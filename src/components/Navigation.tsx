@@ -1,4 +1,4 @@
-// src/components/Navigation.tsx
+// src/components/Navigation.tsx (updated)
 'use client'
 
 import Link from 'next/link'
@@ -23,6 +23,9 @@ export default function Navigation() {
             <>
               <Link href="/dashboard" className={`${pathname === '/dashboard' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
                 Dashboard
+              </Link>
+              <Link href="/dashboard/resources" className={`${pathname.includes('/resources') ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+                Resources
               </Link>
               <Link href="/dashboard/profile" className={`${pathname === '/dashboard/profile' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
                 Profile

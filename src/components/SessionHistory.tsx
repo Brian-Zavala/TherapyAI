@@ -1,30 +1,48 @@
+// src/components/SessionHistory.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type Session = {
   id: string
-  date: string
-  duration: number
+  startTime: string
+  endTime?: string
+  duration?: number
   notes?: string
 }
 
 export default function SessionHistory() {
-  // In a real app, this would be fetched from a database
-  const [sessions, setSessions] = useState<Session[]>([
-    {
-      id: '1',
-      date: '2025-03-22',
-      duration: 15,
-      notes: 'Discussed communication patterns'
-    },
-    {
-      id: '2',
-      date: '2025-03-24',
-      duration: 25,
-      notes: 'Worked on active listening techniques'
+  const [sessions, setSessions] = useState<Session[]>([])
+  
+  useEffect(() => {
+    // Load session history from localStorage
+    const savedSessions = localStorage.getItem('therapySessionHistory')
+    if (savedSessions) {
+      try {
+        setSessions(JSON.parse(savedSessions))
+      } catch (e) {
+        console.error('Error loading session history:', e)
+      }
     }
-  ])
+  }, [])
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric'
+    })
+  }
+  
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true
+    })
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -36,11 +54,37 @@ export default function SessionHistory() {
         <div className="space-y-4">
           {sessions.map(session => (
             <div key={session.id} className="border-b pb-3 last:border-b-0">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">{new Date(session.date).toLocaleDateString()}</span>
-                <span className="text-sm text-gray-600">{session.duration} minutes</span>
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-medium">{formatDate(session.startTime)}</div>
+                  <div className="text-sm text-gray-600">
+                    {formatTime(session.startTime)} - {session.endTime ? formatTime(session.endTime) : 'Ongoing'}
+                  </div>
+                </div>
+                <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
+                  {session.duration || '?'} min
+                </span>
               </div>
-              {session.notes && <p className="text-gray-700 mt-1 text-sm">{session.notes}</p>}
+              {session.notes && <p className="text-gray-700 mt-2 text-sm">{session.notes}</p>}
+              
+              {!session.notes && (
+                <button 
+                  className="text-blue-600 hover:underline text-xs mt-2"
+                  onClick={() => {
+                    // In a real app, this would open a modal to add notes
+                    const notes = prompt('Add notes for this session:')
+                    if (notes) {
+                      const updatedSessions = sessions.map(s => 
+                        s.id === session.id ? { ...s, notes } : s
+                      )
+                      setSessions(updatedSessions)
+                      localStorage.setItem('therapySessionHistory', JSON.stringify(updatedSessions))
+                    }
+                  }}
+                >
+                  + Add notes
+                </button>
+              )}
             </div>
           ))}
         </div>
