@@ -1,20 +1,21 @@
-// src/components/TherapyButton.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Vapi from '@vapi-ai/web'
 
 type SessionData = {
   id: string
-  startTime: Date
-  endTime?: Date
+  startTime: string
+  endTime?: string
   duration?: number
+  notes?: string
 }
 
 export default function TherapyButton() {
   const [isLoading, setIsLoading] = useState(false)
   const [callActive, setCallActive] = useState(false)
   const [currentSession, setCurrentSession] = useState<SessionData | null>(null)
+  const vapiInstanceRef = useRef<Vapi | null>(null)
   
   // Check if a session was in progress and got interrupted
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function TherapyButton() {
     try {
       // Initialize Vapi with your public key
       const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY || '')
+      vapiInstanceRef.current = vapi
       
       // Create session tracking data
       const sessionId = `session_${Date.now()}`
@@ -105,6 +107,17 @@ export default function TherapyButton() {
   }
   
   const endTherapySession = (sessionId: string) => {
+    // First attempt to end the Vapi call if the instance exists
+    if (vapiInstanceRef.current) {
+      try {
+        // Use stop() instead of end() to terminate the call
+        vapiInstanceRef.current.stop()
+        vapiInstanceRef.current = null
+      } catch (error) {
+        console.error('Error ending Vapi call:', error)
+      }
+    }
+    
     const savedSession = localStorage.getItem('currentTherapySession')
     if (savedSession) {
       try {
@@ -139,8 +152,6 @@ export default function TherapyButton() {
     }
   }
   
-  // src/components/TherapyButton.tsx (continued)
-
   return (
     <div className="text-center">
       {callActive ? (
@@ -149,15 +160,16 @@ export default function TherapyButton() {
           <p className="text-sm text-green-600 mt-2">Speak naturally with your therapist</p>
           
           <div className="mt-4 pt-4 border-t border-green-200">
-            <p className="text-xs text-green-600 mb-2">Session started at: {currentSession && new Date(currentSession.startTime).toLocaleTimeString()}</p>
+            <p className="text-xs text-green-600 mb-2">
+              Session started at: {currentSession && new Date(currentSession.startTime).toLocaleTimeString()}
+            </p>
             <button
               onClick={() => {
                 if (confirm('Are you sure you want to end this session?')) {
-                  // In a real app, you would call a method to end the Vapi call here
-                  setCallActive(false);
                   if (currentSession) {
                     endTherapySession(currentSession.id);
                   }
+                  setCallActive(false);
                 }
               }}
               className="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-md hover:bg-red-50 text-sm transition"
