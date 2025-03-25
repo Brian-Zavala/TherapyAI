@@ -24,3 +24,7 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+h1, h2, h3 {
+  color: #3b82f6; /* Tailwind blue-500 */
+}

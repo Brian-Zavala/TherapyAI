@@ -49,7 +49,7 @@ export default function Dashboard() {
         </div>
       </div>
       
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+      <div className="grid md:grid-cols-1 gap-6 mb-8">
         <SessionNotes />
         <RelationshipAssessment />
       </div>
