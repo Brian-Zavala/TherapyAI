@@ -23,6 +23,9 @@ export default function Navigation() {
           ) : isAuthenticated ? (
             // Show authenticated navigation
             <>
+              <Link href="/dashboard/therapy" className={`${pathname === '/dashboard/therapy' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+                Therapy
+             </Link>
               <Link href="/dashboard" className={`${pathname === '/dashboard' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
                 Dashboard
               </Link>

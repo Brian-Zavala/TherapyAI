@@ -39,7 +39,10 @@ export async function POST(request: Request) {
     const newSession = await prisma.session.create({
       data: {
         userId: session.user.id as string,
-        startTime: new Date(startTime)
+        date: new Date(startTime),        // Changed from startTime to date
+        duration: 0,                      // Required field
+        theme: 'AI Therapy Session',      // Required field
+        // status has default "scheduled"
       }
     })
     
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating session:', error)
     return NextResponse.json(
-      { error: 'Failed to create session' }, 
+      { error: error instanceof Error ? error.message : 'Failed to create session' }, 
       { status: 500 }
     )
   }
