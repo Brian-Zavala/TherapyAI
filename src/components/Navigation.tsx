@@ -3,58 +3,176 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useState } from 'react'
 
 export default function Navigation() {
   const pathname = usePathname()
   const { isAuthenticated, logout, isLoading } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
+  }
+  
+  // Define consistent link styles
+  const linkStyles = (isActive) => 
+    isActive 
+      ? 'text-white font-bold' 
+      : 'text-indigo-100 hover:text-white'
   
   return (
-    <header className="bg-white shadow-sm">
-      <nav className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="text-xl font-bold text-blue-700">Couples Connect</div>
-        <div className="space-x-6">
-          <Link href="/" className={`${pathname === '/' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+    <header className="bg-gradient-to-r from-indigo-500 to-purple-600 shadow-sm">
+      <div className="container mx-auto px-4 py-4">
+        {/* Desktop navigation */}
+        <nav className="hidden md:flex justify-center items-center space-x-6">
+          <Link href="/" className={linkStyles(pathname === '/')}>
             Home
           </Link>
           
           {isLoading ? (
-            // Show loading state
-            <span className="text-gray-400">Loading...</span>
+            <span className="text-indigo-100">Loading...</span>
           ) : isAuthenticated ? (
-            // Show authenticated navigation
             <>
-              <Link href="/dashboard/therapy" className={`${pathname === '/dashboard/therapy' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+              <Link href="/dashboard/therapy" className={linkStyles(pathname === '/dashboard/therapy')}>
                 Therapy
-             </Link>
-              <Link href="/dashboard" className={`${pathname === '/dashboard' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+              </Link>
+              <Link href="/dashboard" className={linkStyles(pathname === '/dashboard')}>
                 Dashboard
               </Link>
-              <Link href="/dashboard/resources" className={`${pathname.includes('/resources') ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+              <Link href="/dashboard/resources" className={linkStyles(pathname.includes('/resources'))}>
                 Resources
               </Link>
-              <Link href="/dashboard/profile" className={`${pathname === '/dashboard/profile' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+              <Link href="/dashboard/profile" className={linkStyles(pathname === '/dashboard/profile')}>
                 Profile
               </Link>
               <button 
                 onClick={logout}
-                className="text-gray-600 hover:text-blue-700"
+                className="text-indigo-100 hover:text-white"
               >
                 Logout
               </button>
             </>
           ) : (
-            // Show unauthenticated navigation
             <>
-              <Link href="/auth/login" className={`${pathname === '/auth/login' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+              <Link href="/auth/login" className={linkStyles(pathname === '/auth/login')}>
                 Login
               </Link>
-              <Link href="/auth/register" className={`${pathname === '/auth/register' ? 'text-blue-700' : 'text-gray-600'} hover:text-blue-700`}>
+              <Link href="/auth/register" className={linkStyles(pathname === '/auth/register')}>
                 Sign Up
               </Link>
             </>
           )}
+        </nav>
+        
+        {/* Mobile navigation */}
+        <div className="md:hidden flex justify-end">
+          <button 
+            className="p-2 focus:outline-none cursor-pointer"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            <div className="w-6 h-5 relative flex items-center justify-center">
+              <span 
+                className={`absolute h-0.5 bg-white transition-all duration-300 transform ${
+                  isMenuOpen 
+                    ? 'w-6 rotate-45' 
+                    : 'w-6 -translate-y-2'
+                }`}
+              ></span>
+              <span 
+                className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
+                  isMenuOpen 
+                    ? 'opacity-0' 
+                    : 'opacity-100'
+                }`}
+              ></span>
+              <span 
+                className={`absolute h-0.5 bg-white transition-all duration-300 transform ${
+                  isMenuOpen 
+                    ? 'w-6 -rotate-45' 
+                    : 'w-6 translate-y-2'
+                }`}
+              ></span>
+            </div>
+          </button>
         </div>
-      </nav>
+      </div>
+      
+      {/* Mobile menu drawer - appears below the header instead of overlaying */}
+      {isMenuOpen && (
+        <div className="md:hidden border-t border-indigo-400">
+          <div className="container mx-auto px-4 py-6 flex flex-col space-y-4 bg-gradient-to-r from-indigo-600 to-purple-700">
+            <Link 
+              href="/" 
+              className={`${linkStyles(pathname === '/')} py-2`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Home
+            </Link>
+            
+            {isLoading ? (
+              <span className="text-indigo-100 py-2">Loading...</span>
+            ) : isAuthenticated ? (
+              <>
+                <Link 
+                  href="/dashboard/therapy" 
+                  className={`${linkStyles(pathname === '/dashboard/therapy')} py-2`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Therapy
+                </Link>
+                <Link 
+                  href="/dashboard" 
+                  className={`${linkStyles(pathname === '/dashboard')} py-2`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <Link 
+                  href="/dashboard/resources" 
+                  className={`${linkStyles(pathname.includes('/resources'))} py-2`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Resources
+                </Link>
+                <Link 
+                  href="/dashboard/profile" 
+                  className={`${linkStyles(pathname === '/dashboard/profile')} py-2`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+                <button 
+                  onClick={() => {
+                    logout()
+                    setIsMenuOpen(false)
+                  }}
+                  className="text-indigo-100 hover:text-white py-2 text-left"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/auth/login" 
+                  className={`${linkStyles(pathname === '/auth/login')} py-2`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link 
+                  href="/auth/register" 
+                  className={`${linkStyles(pathname === '/auth/register')} py-2`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   )
 }
