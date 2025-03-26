@@ -65,7 +65,7 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
       
       // 4. Start a call with your assistant ID
       // Replace with your actual Vapi assistant ID
-      await vapi.start('YOUR_VAPI_ASSISTANT_ID')
+      await vapi.start('f6844388-f547-40af-994e-4edf076f7e9c')
       
     } catch (error) {
       console.error('Error starting therapy session:', error)
