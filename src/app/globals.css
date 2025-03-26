@@ -23,15 +23,16 @@ body {
   padding: 0;
   margin: 0;
   font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--background);
-  background-image: 
-    radial-gradient(circle at 25% 25%, rgba(91, 125, 177, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(161, 145, 180, 0.03) 0%, transparent 50%);
   color: var(--text-dark);
   line-height: 1.6;
+  
+  /* New background implementation */
+  background-color: #e5e5f7;
+  background-image: radial-gradient(rgba(25, 25, 25, 0.2) 2px, #e5e5f7 2px);
+  background-size: 40px 40px;
+  
   transition: background-color 700ms ease-in-out, color 700ms ease-in-out;
 }
-
 /* Typography styling */
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Fraunces', serif;
