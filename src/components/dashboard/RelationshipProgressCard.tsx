@@ -7,23 +7,45 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 export default function RelationshipProgressCard() {
   const [progressData, setProgressData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   
   useEffect(() => {
-    // Sample data - in a real app, fetch this from your API
-    const sampleData = [
-      { week: "Week 1", closeness: 65, communication: 60 },
-      { week: "Week 2", closeness: 68, communication: 63 },
-      { week: "Week 3", closeness: 72, communication: 70 },
-      { week: "Week 4", closeness: 75, communication: 72 },
-      { week: "Week 5", closeness: 78, communication: 75 },
-      { week: "Week 6", closeness: 82, communication: 80 },
-    ]
+    const fetchProgressData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/relationship-progress')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch relationship progress data')
+        }
+        
+        const data = await response.json()
+        setProgressData(data)
+      } catch (err) {
+        console.error('Error fetching relationship progress data:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     
-    setProgressData(sampleData)
-    setLoading(false)
+    fetchProgressData()
   }, [])
   
   if (loading) return <div className="h-64 flex items-center justify-center">Loading progress data...</div>
+  
+  if (error) return (
+    <div className="h-64 flex items-center justify-center text-red-500">
+      Error loading progress data: {error}
+    </div>
+  )
+  
+  if (progressData.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-gray-500">
+        No progress data available. Complete your first assessment to see progress.
+      </div>
+    )
+  }
   
   return (
     <div className="h-64">

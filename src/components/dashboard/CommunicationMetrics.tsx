@@ -7,23 +7,47 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recha
 export default function CommunicationMetrics() {
   const [metricsData, setMetricsData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   
   useEffect(() => {
-    // Sample data - in a real app, fetch this from your API
-    const sampleData = [
-      { name: "Active Listening", value: 40 },
-      { name: "Expressing Needs", value: 25 },
-      { name: "Conflict Resolution", value: 20 },
-      { name: "Emotional Support", value: 15 },
-    ]
+    const fetchMetricsData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/communication-metrics')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch communication metrics')
+        }
+        
+        const data = await response.json()
+        setMetricsData(data)
+      } catch (err) {
+        console.error('Error fetching communication metrics:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     
-    setMetricsData(sampleData)
-    setLoading(false)
+    fetchMetricsData()
   }, [])
   
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]
   
   if (loading) return <div className="h-64 flex items-center justify-center">Loading metrics data...</div>
+  
+  if (error) return (
+    <div className="h-64 flex items-center justify-center text-red-500">
+      Error loading metrics data: {error}
+    </div>
+  )
+  
+  if (metricsData.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-gray-500">
+        No communication metrics available. Complete your first assessment to see metrics.
+      </div>
+    )
+  }
   
   return (
     <div className="h-64">

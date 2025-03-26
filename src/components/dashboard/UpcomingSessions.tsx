@@ -6,20 +6,45 @@ import { useState, useEffect } from "react"
 export default function UpcomingSessions() {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   
   useEffect(() => {
-    // Sample data - in a real app, fetch this from your API
-    const sampleData = [
-      { id: 1, date: "2025-03-28", time: "10:00 AM", theme: "Communication Strategies" },
-      { id: 2, date: "2025-04-04", time: "10:00 AM", theme: "Conflict Resolution" },
-      { id: 3, date: "2025-04-11", time: "10:00 AM", theme: "Building Trust" },
-    ]
+    const fetchSessions = async () => {
+      try {
+        const response = await fetch('/api/dashboard/upcoming-sessions')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch upcoming sessions')
+        }
+        
+        const data = await response.json()
+        setSessions(data)
+      } catch (err) {
+        console.error('Error fetching upcoming sessions:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     
-    setSessions(sampleData)
-    setLoading(false)
+    fetchSessions()
   }, [])
   
   if (loading) return <div className="h-64 flex items-center justify-center">Loading session data...</div>
+  
+  if (error) return (
+    <div className="h-64 flex items-center justify-center text-red-500">
+      Error loading upcoming sessions: {error}
+    </div>
+  )
+  
+  if (sessions.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-gray-500">
+        No upcoming sessions scheduled. Book your next session to see it here.
+      </div>
+    )
+  }
   
   return (
     <div className="overflow-y-auto h-64">

@@ -7,24 +7,45 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 export default function SessionTimeChart() {
   const [sessionData, setSessionData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   
   useEffect(() => {
-    // In a real app, you'd fetch this from your API
-    // For now, using sample data
-    const sampleData = [
-      { month: "Jan", sessionTime: 120 },
-      { month: "Feb", sessionTime: 150 },
-      { month: "Mar", sessionTime: 180 },
-      { month: "Apr", sessionTime: 210 },
-      { month: "May", sessionTime: 240 },
-      { month: "Jun", sessionTime: 270 },
-    ]
+    const fetchSessionData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/session-time')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch session time data')
+        }
+        
+        const data = await response.json()
+        setSessionData(data)
+      } catch (err) {
+        console.error('Error fetching session time data:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     
-    setSessionData(sampleData)
-    setLoading(false)
+    fetchSessionData()
   }, [])
   
   if (loading) return <div className="h-64 flex items-center justify-center">Loading session data...</div>
+  
+  if (error) return (
+    <div className="h-64 flex items-center justify-center text-red-500">
+      Error loading session data: {error}
+    </div>
+  )
+  
+  if (sessionData.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-gray-500">
+        No session data available. Complete your first session to see data here.
+      </div>
+    )
+  }
   
   return (
     <div className="h-64">

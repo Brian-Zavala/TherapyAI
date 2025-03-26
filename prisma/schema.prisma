@@ -1,34 +1,51 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  directUrl  = env("DIRECT_URL")
-  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                 String    @id @default(cuid())
-  name               String
-  email              String    @unique
-  password           String
-  partnerName        String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  relationshipStatus String?   @default("Married")
-  sessions           Session[]
+  id                String             @id @default(cuid())
+  email             String?            @unique
+  name              String?
+  password          String
+  partnerName       String?
+  relationshipStatus String?           @default("Married")
+  sessions          Session[]
+  progressTracking  ProgressTracking[]
+  communicationMetrics CommunicationMetrics[]
 }
 
 model Session {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  startTime DateTime
-  endTime   DateTime?
-  duration  Int?
+  date      DateTime
+  duration  Int      // in minutes
+  theme     String
   notes     String?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("scheduled") // scheduled, completed, cancelled
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model ProgressTracking {
+  id                 String   @id @default(cuid())
+  userId             String
+  date               DateTime @default(now())
+  closenessScore     Int      // 0-100
+  communicationScore Int      // 0-100
+  user               User     @relation(fields: [userId], references: [id])
+}
+
+model CommunicationMetrics {
+  id                     String   @id @default(cuid())
+  userId                 String
+  date                   DateTime @default(now())
+  activeListeningScore   Int      // 0-100
+  expressingNeedsScore   Int      // 0-100
+  conflictResolutionScore Int     // 0-100
+  emotionalSupportScore  Int      // 0-100
+  user                   User     @relation(fields: [userId], references: [id])
 }
