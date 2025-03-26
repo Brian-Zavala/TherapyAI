@@ -1,17 +1,7 @@
-// src/lib/auth.ts
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcrypt"
-
-// In a production app, you would use a database
-const users = [
-  {
-    id: "1",
-    name: "Test User",
-    email: "test@example.com",
-    password: "$2b$10$msVXrBy5Sc0KYZwCS/b.vO2LDH/Y9GA8hfE3LeeW7abKpbqUSHeuW" // "password123"
-  }
-]
+import { prisma } from "./prisma"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -26,19 +16,18 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const user = users.find(u => u.email === credentials.email)
-        if (!user) {
-          return null
-        }
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        })
+        
+        if (!user) return null
 
         const passwordMatch = await bcrypt.compare(
           credentials.password,
           user.password
         )
 
-        if (!passwordMatch) {
-          return null
-        }
+        if (!passwordMatch) return null
 
         return {
           id: user.id,
@@ -48,25 +37,14 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/auth/login",
-  },
+  session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
+    session: ({ session, token }) => ({
+      ...session,
+      user: {
+        ...session.user,
+        id: token.sub
       }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-      }
-      return session
-    }
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+    })
+  }
 }

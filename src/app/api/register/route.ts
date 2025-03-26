@@ -1,16 +1,6 @@
-// src/app/api/register/route.ts
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcrypt'
-
-// This is a placeholder - I'll implement proper DB storage later
-let users = [
-  {
-    id: "1",
-    name: "Test User",
-    email: "test@example.com",
-    password: "$2b$10$8OxzvHfRbIvp/6dxQUFkHeTjYUJFw1J3BUTjdZG.hX1MISTsshCxy" // "password123"
-  }
-]
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +15,11 @@ export async function POST(request: Request) {
     }
     
     // Check if user already exists
-    if (users.some(user => user.email === email)) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    })
+    
+    if (existingUser) {
       return NextResponse.json(
         { message: "User with this email already exists" },
         { status: 409 }
@@ -37,18 +31,16 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, saltRounds)
     
     // Create new user
-    const newUser = {
-      id: `${users.length + 1}`,
-      name,
-      email,
-      password: hashedPassword
-    }
-    
-    // Add to users array (In a real app, you would save to a database)
-    users.push(newUser)
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword
+      }
+    })
     
     // Return success response (excluding password)
-    const { password: _, ...userWithoutPassword } = newUser
+    const { password: _, ...userWithoutPassword } = user
     return NextResponse.json(
       { message: "User created successfully", user: userWithoutPassword },
       { status: 201 }
