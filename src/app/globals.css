@@ -29,6 +29,7 @@ body {
     radial-gradient(circle at 75% 75%, rgba(161, 145, 180, 0.03) 0%, transparent 50%);
   color: var(--text-dark);
   line-height: 1.6;
+  transition: background-color 700ms ease-in-out, color 700ms ease-in-out;
 }
 
 /* Typography styling */
@@ -78,4 +79,28 @@ p {
 small {
   font-size: 0.875rem;
   color: var(--text-light);
+}
+
+body.session-active {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+/* Optional ambient animation */
+@keyframes ambient-float {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(10px, -10px); }
+  100% { transform: translate(0, 0); }
+}
+
+body.session-active::before {
+  content: '';
+  position: fixed;
+  top: 20%;
+  left: 20%;
+  width: 60vw;
+  height: 60vh;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+  z-index: -1;
+  animation: ambient-float 15s infinite ease-in-out;
 }
