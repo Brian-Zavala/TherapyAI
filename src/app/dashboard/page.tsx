@@ -1,57 +1,63 @@
 // src/app/dashboard/page.tsx
-'use client'
-
-import { useState } from 'react'
-import Link from 'next/link'
+import { getServerSession } from 'next-auth/next'
+import { redirect } from 'next/navigation'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import TherapyButton from '@/components/TherapyButton'
 import SessionHistory from '@/components/SessionHistory'
-import SessionNotes from '@/components/SessionNotes'
-import RelationshipAssessment from '@/components/RelationshipAssessment'
 
-export default function Dashboard() {
-  const [userName] = useState('User')
+export default async function Dashboard() {
+  const session = await getServerSession(authOptions)
+  
+  if (!session?.user) {
+    redirect('/auth/login')
+  }
+  
+  // Fetch user's therapy sessions
+  const therapySessions = await prisma.session.findMany({
+    where: { 
+      userId: session.user.id as string 
+    },
+    orderBy: { 
+      startTime: 'desc' 
+    }
+  })
+  
+  // Fetch user details
+  const user = await prisma.user.findUnique({
+    where: { 
+      id: session.user.id as string 
+    },
+    select: {
+      name: true,
+      email: true,
+      partnerName: true
+    }
+  })
   
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h1 className="text-2xl font-bold mb-2">Welcome, {userName}</h1>
-        <p className="text-gray-600 mb-4">
-          Your safe space for relationship growth and healing.
+    <div className="max-w-4xl mx-auto p-6">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name}</h1>
+        <p className="text-gray-600 mt-2">
+          {user?.partnerName 
+            ? `You and ${user.partnerName} can start or schedule therapy sessions below.`
+            : 'You can start or schedule therapy sessions below.'}
         </p>
-      </div>
+      </header>
       
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Start a Therapy Session</h2>
-        <p className="text-gray-600 mb-6">
-          Connect with our AI therapist for guidance on communication, 
-          conflict resolution, and strengthening your relationship.
-        </p>
-        
-        <TherapyButton />
+        <h2 className="text-xl font-semibold mb-4">Start a New Therapy Session</h2>
+        <TherapyButton userId={session.user.id as string} />
       </div>
       
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <SessionHistory />
-        
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-3">Resources</h3>
-          <ul className="space-y-2 text-gray-700">
-            <li>• Communication Skills Guide</li>
-            <li>• Conflict Resolution Techniques</li>
-            <li>• Building Trust Workbook</li>
-            <li>• Emotional Intimacy Exercises</li>
-          </ul>
-          <div className="mt-4">
-            <Link href="/dashboard/resources" className="text-blue-600 hover:underline text-sm font-medium">
-              View All Resources →
-            </Link>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid md:grid-cols-1 gap-6 mb-8">
-        <SessionNotes />
-        <RelationshipAssessment />
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Your Session History</h2>
+        {therapySessions.length > 0 ? (
+          <SessionHistory initialSessions={therapySessions} />
+        ) : (
+          <p className="text-gray-500 italic">You haven't had any therapy sessions yet.</p>
+        )}
       </div>
     </div>
   )
