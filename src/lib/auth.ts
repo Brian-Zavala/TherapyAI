@@ -53,38 +53,23 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
-  // src/lib/auth.ts 
-// In your callbacks section:
-
+ 
 callbacks: {
   session: ({ session, token }) => {
-    console.log("Session callback - token:", JSON.stringify(token))
-    console.log("Session callback - session before:", JSON.stringify(session))
-    
-    // Ensure user ID is consistently available
-    const updatedSession = {
+    return {
       ...session,
       user: {
         ...session.user,
-        id: token.sub || token.id, // Use both possible locations
+        id: token.sub, // Use token.sub which is the standard JWT subject claim
       }
     }
-    
-    console.log("Session callback - session after:", JSON.stringify(updatedSession))
-    return updatedSession
   },
   jwt: ({ token, user }) => {
-    console.log("JWT callback - user:", JSON.stringify(user))
-    console.log("JWT callback - token before:", JSON.stringify(token))
-    
+    // Only add user data if available (during sign-in)
     if (user) {
-      // Store user ID in both conventional locations
       token.id = user.id
-      // token.sub is automatically set by NextAuth
     }
-    
-    console.log("JWT callback - token after:", JSON.stringify(token))
     return token
   },
-  },
+},
 }

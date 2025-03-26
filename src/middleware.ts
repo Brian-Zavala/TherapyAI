@@ -37,5 +37,6 @@ export const config = {
     '/',
     '/dashboard/:path*',
     '/auth/:path*',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ]
 }

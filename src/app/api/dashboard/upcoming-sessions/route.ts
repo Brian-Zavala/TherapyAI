@@ -44,12 +44,17 @@ export async function GET() {
       theme: session.theme
     }));
 
+    // Return default data if no sessions found
+    if (formattedSessions.length === 0) {
+      // Return empty array instead of default data
+      // This allows the component to show its "No upcoming sessions" message
+      return NextResponse.json([]);
+    }
+
     return NextResponse.json(formattedSessions);
   } catch (error) {
     console.error("Error fetching upcoming sessions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch upcoming sessions" },
-      { status: 500 }
-    );
+    // Return empty array for better error handling in component
+    return NextResponse.json([]);
   }
 }

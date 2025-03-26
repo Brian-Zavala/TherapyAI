@@ -1,4 +1,3 @@
-// src/app/api/dashboard/session-time/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -32,12 +31,48 @@ export async function GET() {
       sessionTime: parseInt(item.sessiontime)
     }));
 
+    // Return default data if no sessions found
+    if (formattedData.length === 0) {
+      const currentDate = new Date();
+      const months = [];
+      
+      // Generate last 3 months of default data
+      for (let i = 0; i < 3; i++) {
+        const date = new Date();
+        date.setMonth(currentDate.getMonth() - i);
+        const monthName = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear();
+        
+        months.unshift({
+          month: `${monthName} ${year}`,
+          sessionTime: 0
+        });
+      }
+      
+      return NextResponse.json(months);
+    }
+
     return NextResponse.json(formattedData);
   } catch (error) {
     console.error("Error fetching session time data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch session time data" },
-      { status: 500 }
-    );
+    
+    // Return default data on error
+    const currentDate = new Date();
+    const months = [];
+    
+    // Generate last 3 months of default data
+    for (let i = 0; i < 3; i++) {
+      const date = new Date();
+      date.setMonth(currentDate.getMonth() - i);
+      const monthName = date.toLocaleString('default', { month: 'short' });
+      const year = date.getFullYear();
+      
+      months.unshift({
+        month: `${monthName} ${year}`,
+        sessionTime: 0
+      });
+    }
+    
+    return NextResponse.json(months);
   }
 }
