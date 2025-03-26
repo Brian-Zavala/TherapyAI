@@ -26,55 +26,45 @@ export default function Home() {
         </div>
         
         {/* Hero content with darker text for better contrast */}
-        <div className="relative z-10 flex flex-col items-center text-center py-20 px-4 min-h-[80vh] justify-center">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="text-4xl md:text-5xl font-bold mb-6 text-gray-900" // Darker text
-          >
-            Strengthen Your Relationship
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg md:text-xl text-gray-800 mb-10 max-w-2xl" // Darker text
-          >
-            Connect with our AI therapists for personalized guidance 
-            and support in your relationship journey.
-          </motion.p>
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Link 
-              href="/dashboard/therapy" 
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 
-             text-white 
-             font-medium 
-             py-3 
-             px-8 
-             rounded-full 
-             text-lg 
-             shadow-md 
-             hover:shadow-lg 
-             transition 
-             duration-300
-             hover:ring-4 
-             hover:ring-purple-400 
-             hover:ring-opacity-50 
-             focus:outline-none 
-             focus:ring-4 
-             focus:ring-indigo-500"
-            >
-              Start Your Therapy Session
-            </Link>
-          </motion.div>
-        </div>
+       <div className="relative z-10 flex flex-col items-center text-center py-20 px-4 min-h-[80vh] justify-center">
+  <motion.h1 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.7 }}
+    className="text-4xl md:text-5xl font-bold text-gray-900 mb-8" // Added mb-8 for margin-bottom
+  >
+    Strengthen Your Relationship
+  </motion.h1>
+  
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.5, delay: 0.4 }}
+  >
+    <Link 
+      href="/dashboard/therapy" 
+      className="bg-gradient-to-r from-indigo-500 to-purple-600 
+     text-white 
+     font-medium 
+     py-3 
+     px-8 
+     rounded-full 
+     text-lg 
+     shadow-md 
+     hover:shadow-lg 
+     transition 
+     duration-300
+     hover:ring-2
+     hover:ring-gray-500
+     hover:ring-opacity-50 
+     focus:outline-none 
+     focus:ring-4 
+     focus:ring-purple-500"
+    >
+      Start Your Therapy Session
+    </Link>
+  </motion.div>
+</div>
       </section>
       
       {/* Features section remains the same */}

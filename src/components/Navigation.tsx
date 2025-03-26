@@ -21,7 +21,7 @@ export default function Navigation() {
       : 'text-indigo-100 hover:text-white'
   
   return (
-    <header className="bg-gradient-to-r from-indigo-500 to-purple-600 shadow-sm">
+    <header className="bg-zinc-700 shadow-sm">
       <div className="container mx-auto px-4 py-4">
         {/* Desktop navigation */}
         <nav className="hidden md:flex justify-center items-center space-x-6">
@@ -47,7 +47,7 @@ export default function Navigation() {
               </Link>
               <button 
                 onClick={logout}
-                className="text-indigo-100 hover:text-white"
+                className="text-indigo-100 hover:text-white cursor-pointer"
               >
                 Logout
               </button>
@@ -101,7 +101,7 @@ export default function Navigation() {
       {/* Mobile menu drawer - appears below the header instead of overlaying */}
       {isMenuOpen && (
         <div className="md:hidden border-t border-indigo-400">
-          <div className="container mx-auto px-4 py-6 flex flex-col space-y-4 bg-gradient-to-r from-indigo-600 to-purple-700">
+          <div className="container mx-auto px-4 py-6 flex flex-col space-y-4 bg-zinc-700">
             <Link 
               href="/" 
               className={`${linkStyles(pathname === '/')} py-2`}
