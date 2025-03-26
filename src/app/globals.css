@@ -1,30 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Therapeutic color palette */
+  --primary: #5B7DB1;       /* Calming blue */
+  --primary-light: #8CA3D2;
+  --secondary: #A191B4;     /* Gentle lavender */
+  --accent: #F7C4A5;        /* Warm peach */
+  --text-dark: #2D3748;
+  --text-medium: #4A5568;
+  --text-light: #718096;
+  --text-muted: #A0AEC0;
+  --background: #F8F7FF;    /* Soft off-white with hint of lavender */
+  --card-bg: #FFFFFF;
+  --success: #68D391;
+  --warning: #F6E05E;
+  --error: #FC8181;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  padding: 0;
+  margin: 0;
+  font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(91, 125, 177, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(161, 145, 180, 0.03) 0%, transparent 50%);
+  color: var(--text-dark);
+  line-height: 1.6;
 }
 
-h1, h2, h3 {
-  color: #3b82f6; /* Tailwind blue-500 */
+/* Typography styling */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-dark);
+}
+
+h1 {
+  font-size: 2.25rem;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.875rem;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+
+h4 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+h5 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+h6 {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+p {
+  margin-bottom: 1rem;
+  color: var(--text-medium);
+}
+
+small {
+  font-size: 0.875rem;
+  color: var(--text-light);
 }

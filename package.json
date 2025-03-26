@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.8.0",
     "@prisma/client": "^6.5.0",
     "@vapi-ai/web": "^2.2.4",
     "bcrypt": "^5.1.1",
