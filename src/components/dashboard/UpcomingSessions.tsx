@@ -1,71 +1,96 @@
-// src/components/dashboard/UpcomingSessions.tsx
-"use client"
+// components/UpcomingSessions.tsx
+'use client';
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+
+type Session = {
+  id: string;
+  date: string;
+  duration: number;
+  theme: string;
+  notes?: string;
+  status: string;
+};
 
 export default function UpcomingSessions() {
-  const [sessions, setSessions] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    const fetchSessions = async () => {
+    async function fetchSessions() {
       try {
-        const response = await fetch('/api/dashboard/upcoming-sessions')
-        
+        const response = await fetch('/api/sessions?status=scheduled');
         if (!response.ok) {
-          throw new Error('Failed to fetch upcoming sessions')
+          throw new Error('Failed to fetch sessions');
         }
-        
-        const data = await response.json()
-        setSessions(data)
-      } catch (err) {
-        console.error('Error fetching upcoming sessions:', err)
-        setError(err.message)
+        const data = await response.json();
+        setSessions(data);
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
-    
-    fetchSessions()
-  }, [])
-  
-  if (loading) return <div className="h-64 flex items-center justify-center">Loading session data...</div>
-  
-  if (error) return (
-    <div className="h-64 flex items-center justify-center text-red-500">
-      Error loading upcoming sessions: {error}
-    </div>
-  )
-  
-  if (sessions.length === 0) {
-    return (
-      <div className="h-64 flex items-center justify-center text-gray-500">
-        No upcoming sessions scheduled. Book your next session to see it here.
-      </div>
-    )
+
+    fetchSessions();
+  }, []);
+
+  if (loading) {
+    return <div className="animate-pulse h-24 bg-gray-100 rounded-lg"></div>;
   }
-  
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
+
   return (
-    <div className="overflow-y-auto h-64">
-      <table className="min-w-full">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Date</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Time</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Theme</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sessions.map((session) => (
-            <tr key={session.id} className="border-t border-gray-200">
-              <td className="px-4 py-3 text-sm text-gray-900">{session.date}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{session.time}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{session.theme}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-white shadow-md rounded-lg p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Upcoming Sessions</h2>
+        <Link 
+          href="/schedule" 
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
+        >
+          Schedule New
+        </Link>
+      </div>
+
+      {sessions.length === 0 ? (
+        <p className="text-gray-600 py-4">
+          No upcoming sessions. Start your therapy journey today!
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {sessions.map((session) => {
+            const sessionDate = new Date(session.date);
+            return (
+              <div key={session.id} className="border-b pb-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">{session.theme}</h3>
+                    <p className="text-sm text-gray-600">
+                      {format(sessionDate, 'MMMM d, yyyy')} at {format(sessionDate, 'h:mm a')}
+                    </p>
+                    <p className="text-sm text-gray-600">{session.duration} minutes</p>
+                  </div>
+                  <Link
+                    href={`/dashboard/therapy?sessionId=${session.id}`}
+                    className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-3 py-1 rounded text-sm"
+                  >
+                    Start Session
+                  </Link>
+                </div>
+                {session.notes && (
+                  <p className="text-sm mt-2 text-gray-600">{session.notes}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
-  )
+  );
 }

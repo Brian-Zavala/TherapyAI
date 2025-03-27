@@ -3,49 +3,71 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id                String             @id @default(cuid())
-  email             String?            @unique
-  name              String?
-  password          String
-  partnerName       String?
-  relationshipStatus String?           @default("Married")
-  sessions          Session[]
-  progressTracking  ProgressTracking[]
+  id                   String                 @id @default(cuid())
+  email                String                 @unique
+  name                 String?
+  password             String
+  partnerName          String?
+  relationshipStatus   String?                @default("Married")
   communicationMetrics CommunicationMetrics[]
+  progressTracking     ProgressTracking[]
+  sessions             Session[]
+  therapySessions      TherapySession[]
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  date      DateTime
-  duration  Int      // in minutes
-  theme     String
-  notes     String?
-  status    String   @default("scheduled") // scheduled, completed, cancelled
-  user      User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(uuid())
+  userId       String
+  date         DateTime
+  duration     Int
+  theme        String   @default("AI Therapy Session")
+  notes        String?  @default("")
+  status       String   @default("scheduled")
+  reminderSent Boolean  @default(false)
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model ProgressTracking {
   id                 String   @id @default(cuid())
   userId             String
   date               DateTime @default(now())
-  closenessScore     Int      // 0-100
-  communicationScore Int      // 0-100
+  closenessScore     Int
+  communicationScore Int
   user               User     @relation(fields: [userId], references: [id])
 }
 
 model CommunicationMetrics {
-  id                     String   @id @default(cuid())
-  userId                 String
-  date                   DateTime @default(now())
-  activeListeningScore   Int      // 0-100
-  expressingNeedsScore   Int      // 0-100
-  conflictResolutionScore Int     // 0-100
-  emotionalSupportScore  Int      // 0-100
-  user                   User     @relation(fields: [userId], references: [id])
+  id                      String   @id @default(cuid())
+  userId                  String
+  date                    DateTime @default(now())
+  activeListeningScore    Int
+  expressingNeedsScore    Int
+  conflictResolutionScore Int
+  emotionalSupportScore   Int
+  user                    User     @relation(fields: [userId], references: [id])
+}
+
+model TherapySession {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionDate  DateTime
+  duration     Int
+  notes        String?
+  status       String   @default("scheduled")
+  reminderSent Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionDate])
+  @@index([status])
 }

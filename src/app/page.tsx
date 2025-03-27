@@ -8,9 +8,9 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center w-full">
       {/* Hero section with background image and gradient overlay */}
-      <section className="w-full relative overflow-hidden min-h-[80vh]  shadow-md shadow-gray-400">
+      <section className="w-full relative overflow-hidden min-h-[80vh]  shadow-md shadow-gray-400 rounded-t-2xl ">
         {/* Background gradient - lighter to let image show through better */}
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/70 via-purple-100/60 to-white/40 z-0 rounded-t-lg "></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/70 via-purple-100/60 to-white/40 z-0"></div>
         
         {/* Happy couple image with increased opacity */}
         <div className="absolute inset-0 w-full h-full z-0">
@@ -18,7 +18,7 @@ export default function Home() {
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
-            className="object-cover object-center opacity-50 md:opacity-60 rounded-t-lg" // Increased opacity
+            className="object-cover object-center opacity-50 md:opacity-60 rounded-t-2xl" // Increased opacity
             priority
           />
           {/* Lighter gradient overlay to let more image show through */}
