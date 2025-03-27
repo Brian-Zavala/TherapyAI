@@ -77,7 +77,7 @@ export async function PATCH(
       updateData.notes = notes
     }
     
-    // Calculate duration if endTime is provided
+    // Calculate duration if endTime is provided and status is completed
     if (endTime && status === 'completed') {
       const endDate = new Date(endTime)
       const startDate = existingSession.date

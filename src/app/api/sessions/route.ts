@@ -22,14 +22,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
     }
     
-    // Get the request body - accept startTime instead of date
-    const { startTime, theme = 'AI Therapy Session', status = 'scheduled', duration = 60, notes = '' } = await request.json();
+    // Get the request body
+    const body = await request.json();
+    console.log('Request body:', body); // Logging to debug
+    
+    // Extract data with safer defaults and validation
+    const { 
+      startTime, 
+      date,
+      theme = 'AI Therapy Session', 
+      status = 'scheduled', 
+      duration = 60, 
+      notes = '' 
+    } = body;
+    
+    // Validate date input
+    let sessionDate: Date;
+    
+    if (startTime && startTime !== 'Invalid Date') {
+      sessionDate = new Date(startTime);
+    } else if (date && date !== 'Invalid Date') {
+      sessionDate = new Date(date);
+    } else {
+      // Default to current time if no valid date is provided
+      sessionDate = new Date();
+    }
+    
+    // Verify we have a valid date
+    if (isNaN(sessionDate.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date provided' }, 
+        { status: 400 }
+      );
+    }
     
     // Create session using the fields from your schema
     const newSession = await prisma.session.create({
       data: {
         userId: user.id,
-        date: new Date(startTime), // Map startTime to the date field
+        date: sessionDate,
         duration: Number(duration),
         theme,
         notes,
