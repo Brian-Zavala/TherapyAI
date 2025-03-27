@@ -157,10 +157,10 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
   }
 
   async function startTherapySession() {
-    setErrorMessage(null)
+    setErrorMessage(null);
     try {
-      setIsLoading(true)
-
+      setIsLoading(true);
+  
       // 1. Create session in database
       const response = await fetch('/api/sessions', {
         method: 'POST',
@@ -173,74 +173,86 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
           status: 'active',
           theme: 'general relationship',
         }),
-      })
-
+      });
+  
       if (!response.ok) {
-        throw new Error('Failed to create session')
+        throw new Error('Failed to create session');
       }
-
-      const session = await response.json()
-      setSessionId(session.id)
-
+  
+      const session = await response.json();
+      setSessionId(session.id);
+  
       // 2. Initialize Vapi instance fresh each time
-      const initialized = await createVapiInstance()
+      const initialized = await createVapiInstance();
       if (!initialized) {
-        throw new Error('Failed to initialize Vapi')
+        throw new Error('Failed to initialize Vapi');
       }
-
-      // 3. Check browser permissions & setup audio analyzer
+  
+      // 3. Check browser compatibility for advanced audio features
+      const AudioContextClass = window.AudioContext || 
+        (window as any).webkitAudioContext;
+  
+      if (!AudioContextClass) {
+        console.warn('AudioContext not supported in this browser. Some features may be limited.');
+      }
+  
+      // 4. Check browser permissions & setup audio analyzer
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true })
-        console.log('Microphone permission granted')
-        setupAudioAnalyzer()
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone permission granted');
+        
+        // Only set up audio analyzer if AudioContext is supported
+        if (AudioContextClass) {
+          setupAudioAnalyzer();
+        }
       } catch (mediaError) {
-        console.error('Microphone permission denied:', mediaError)
-        setErrorMessage('Microphone access denied. Please allow microphone access and try again.')
-        throw new Error('Microphone permission denied')
+        console.error('Microphone permission denied:', mediaError);
+        setErrorMessage('Microphone access denied. Please allow microphone access and try again.');
+        throw new Error('Microphone permission denied');
       }
-
-      // 4. Start the call with hardcoded assistant ID
-      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID
-      console.log('Starting call with assistant ID:', assistantId)      
+  
+      // 5. Start the call with hardcoded assistant ID
+      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+      console.log('Starting call with assistant ID:', assistantId);      
       
-      // Add timeout for debugging
-      const startPromise = vapiInstanceRef.current.start(assistantId)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Start call timeout')), 15000)
-      )
-      
-      await Promise.race([startPromise, timeoutPromise])
+      // Add timeout for debugging and handle errors more specifically
+      try {
+        const startPromise = vapiInstanceRef.current.start(assistantId);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Start call timeout')), 15000)
+        );
+        
+        await Promise.race([startPromise, timeoutPromise]);
+      } catch (callError: unknown) {
+        // Type narrowing to safely handle the unknown type
+        const errorMessage = callError instanceof Error 
+          ? callError.message 
+          : String(callError);
+          
+        if (errorMessage.includes('audio')) {
+          console.warn('Audio processing issue detected:', errorMessage);
+          // You could set a flag to use limited audio functionality
+          // setUsingLimitedAudio(true);
+        } else {
+          // Re-throw non-audio related errors
+          throw callError;
+        }
+      }
       
       // Apply "dim the lights" effect by adding a class to the body
-      document.body.classList.add('session-active')
+      document.body.classList.add('session-active');
       
-    } catch (error) {
-      console.error('Failed to start therapy session:', error)
-      setErrorMessage(`Start session error: ${error}`)
+    } catch (error: unknown) {
+      console.error('Failed to start therapy session:', error);
+      setErrorMessage(`Start session error: ${error instanceof Error ? error.message : String(error)}`);
       
-      // Clean up if we failed to start
-      if (sessionId) {
-        try {
-          await fetch(`/api/sessions/${sessionId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              status: 'failed',
-              endTime: new Date().toISOString(),
-            }),
-          })
-        } catch (cleanupError) {
-          console.error('Failed to cleanup session:', cleanupError)
-        }
-        
-        setSessionId(null)
-      }
+      // Clean up if needed
+      document.body.classList.remove('session-active');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
+  
 
   async function endTherapySession() {
     if (!sessionId) {
