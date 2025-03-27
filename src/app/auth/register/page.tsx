@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'  // Missing import
 
 export default function Register() {
   const router = useRouter()
@@ -14,32 +15,39 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')  // Use empty string instead of null
     setIsLoading(true)
-    setError('')
 
     try {
-      // In a real app, you would call your API to register the user
-      const response = await fetch('/api/register', {
+      // Register the user
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password }),  // Use individual state variables instead of formData
       })
 
-      const data = await response.json()
+      const data = await res.json()
 
-      if (!response.ok) {
+      if (!res.ok) {
         throw new Error(data.message || 'Registration failed')
       }
+      
+      // Automatically sign in the user after registration
+      const signInResult = await signIn('credentials', {
+        redirect: false,
+        email: email,  // Use individual state variable
+        password: password,  // Use individual state variable
+      })
 
-      // Redirect to login page after successful registration
-      router.push('/auth/login')
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message)
-      } else {
-        setError('An unexpected error occurred')
+      if (signInResult?.error) {
+        throw new Error(signInResult.error)
       }
-      console.error('Registration error:', error)
+      
+      // Redirect to home page after automatic login
+      router.push('/')
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
     } finally {
       setIsLoading(false)
     }

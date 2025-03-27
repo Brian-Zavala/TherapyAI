@@ -12,7 +12,7 @@ export function useAuth() {
   
   const logout = () => {
     signOut({ redirect: false }).then(() => {
-      router.push('/')
+      router.push('/auth/login')
       router.refresh()
     })
   }
