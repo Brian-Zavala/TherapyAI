@@ -22,20 +22,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
     }
     
-    const { date, duration = 60, theme = 'AI Therapy Session', notes = '' } = await request.json();
+    // Get the request body - accept startTime instead of date
+    const { startTime, theme = 'AI Therapy Session', status = 'scheduled', duration = 60, notes = '' } = await request.json();
     
-    // Using the exact field names from your schema
-   // For debugging: Use any to bypass type checking temporarily
-const newSession = await (prisma.session as any).create({
-  data: {
-    userId: user.id,
-    date: new Date(date),
-    duration: Number(duration),
-    theme,
-    notes,
-    status: 'scheduled'
-  }
-});
+    // Create session using the fields from your schema
+    const newSession = await prisma.session.create({
+      data: {
+        userId: user.id,
+        date: new Date(startTime), // Map startTime to the date field
+        duration: Number(duration),
+        theme,
+        notes,
+        status
+      }
+    });
     
     return NextResponse.json(newSession, { status: 201 });
   } catch (error) {
