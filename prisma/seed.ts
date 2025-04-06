@@ -13,14 +13,16 @@ async function main() {
     update: {
       name: 'Test User',
       partnerName: 'Partner Name',
-      relationshipStatus: 'Married'
+      relationshipStatus: 'Married',
+      assistantId: null
     },
     create: {
       email: 'test@example.com',
       name: 'Test User',
       password,
       partnerName: 'Partner Name',
-      relationshipStatus: 'Married'
+      relationshipStatus: 'Married',
+      assistantId: null
     }
   })
   
@@ -48,7 +50,9 @@ async function main() {
         duration: 60 + (i * 10), // Increasing duration each month
         theme: `Communication Strategies ${i + 1}`,
         notes: `Notes for session ${i + 1}. Discussed relationship dynamics and communication patterns.`,
-        status: 'completed'
+        status: 'completed',
+        transcript: i % 2 === 0 ? `USER: Hello, I'm having communication issues with my partner.\nTHERAPIST: I understand that can be frustrating. Can you tell me more about what's happening?\nUSER: We often talk past each other and don't really listen.\nTHERAPIST: That's a common challenge. Let's explore some active listening techniques that might help both of you feel more heard.` : null,
+        reminderSent: false
       }
     })
     
@@ -67,7 +71,8 @@ async function main() {
         date: futureDate,
         duration: 60,
         theme: `Upcoming Session: ${['Trust Building', 'Conflict Resolution', 'Enhancing Intimacy'][i-1]}`,
-        status: 'scheduled'
+        status: 'scheduled',
+        reminderSent: false
       }
     })
     

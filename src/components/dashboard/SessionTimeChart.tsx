@@ -53,9 +53,15 @@ export default function SessionTimeChart() {
         <BarChart data={sessionData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="month" />
-          <YAxis label={{ value: "Minutes", angle: -90, position: "insideLeft" }} />
-          <Tooltip formatter={(value) => [`${value} mins`, "Session Time"]} />
-          <Bar dataKey="sessionTime" fill="#8884d8" />
+          <YAxis yAxisId="left" label={{ value: "Minutes", angle: -90, position: "insideLeft" }} />
+          <YAxis yAxisId="right" orientation="right" />
+          <Tooltip formatter={(value, name) => {
+            if (name === "Session Time") return [`${value} mins`, name];
+            if (name === "Session Count") return [`${value} sessions`, name];
+            return [value, name];
+          }} />
+          <Bar yAxisId="left" dataKey="sessionTime" name="Session Time" fill="#8884d8" />
+          <Bar yAxisId="right" dataKey="sessionCount" name="Session Count" fill="#82ca9d" />
         </BarChart>
       </ResponsiveContainer>
     </div>

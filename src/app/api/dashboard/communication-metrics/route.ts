@@ -12,10 +12,19 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Find the user in the database (might not be the same ID as the session)
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email as string }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+    }
+    
     // Get communication metrics from the CommunicationMetrics table
     const metrics = await prisma.communicationMetrics.findFirst({
       where: {
-        userId: session.user.id
+        userId: user.id
       },
       orderBy: {
         date: 'desc'

@@ -11,14 +11,24 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Find the user in the database (might not be the same ID as the session)
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email as string }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+    }
+    
     // Get all completed sessions for the user, grouped by month
     const sessionData = await prisma.$queryRaw`
       SELECT 
         TO_CHAR(DATE_TRUNC('month', "date"), 'Mon') as month,
         EXTRACT(YEAR FROM "date") as year,
-        SUM(duration) as sessionTime
+        SUM(duration) as sessionTime,
+        COUNT(*) as sessionCount
       FROM "Session"
-      WHERE "userId" = ${session.user.id}
+      WHERE "userId" = ${user.id}
         AND "status" = 'completed'
         AND "date" >= NOW() - INTERVAL '6 months'
       GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
@@ -28,7 +38,8 @@ export async function GET() {
     // Format for the chart
     const formattedData = sessionData.map((item) => ({
       month: `${item.month} ${item.year}`,
-      sessionTime: parseInt(item.sessiontime)
+      sessionTime: parseInt(item.sessiontime),
+      sessionCount: parseInt(item.sessioncount)
     }));
 
     // Return default data if no sessions found
@@ -45,7 +56,8 @@ export async function GET() {
         
         months.unshift({
           month: `${monthName} ${year}`,
-          sessionTime: 0
+          sessionTime: 0,
+          sessionCount: 0
         });
       }
       

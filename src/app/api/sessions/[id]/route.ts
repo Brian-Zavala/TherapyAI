@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { generateMetricsFromSession } from './metrics-helper'
 
 export async function GET(
   request: Request,
@@ -17,14 +18,44 @@ export async function GET(
   try {
     const sessionId = params.id
     
+    // First, find the user by email
+    let user = await prisma.user.findUnique({
+      where: { 
+        email: session.user.email as string 
+      }
+    });
+    
+    // Auto-create user if they don't exist in Prisma but have a valid session
+    if (!user && session.user.email) {
+      console.log(`Auto-creating user in database for ${session.user.email}`);
+      
+      try {
+        user = await prisma.user.create({
+          data: {
+            email: session.user.email,
+            name: session.user.name || session.user.email.split('@')[0],
+            password: 'SESSION_CREATED_USER', // Placeholder password
+          }
+        });
+        console.log('User auto-created successfully:', user.id);
+      } catch (createError) {
+        console.error('Error auto-creating user:', createError);
+        return NextResponse.json({ error: 'Failed to create user record' }, { status: 500 });
+      }
+    }
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    
     const therapySession = await prisma.session.findUnique({
       where: {
-        id: sessionId,
-        userId: session.user.id as string
+        id: sessionId
       }
     })
     
-    if (!therapySession) {
+    // Verify the session belongs to this user
+    if (!therapySession || therapySession.userId !== user.id) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
     
@@ -51,19 +82,48 @@ export async function PATCH(
   const sessionId = params.id
 
   try {
+    // First, find the user by email
+    let user = await prisma.user.findUnique({
+      where: { 
+        email: session.user.email as string 
+      }
+    });
+    
+    // Auto-create user if they don't exist in Prisma but have a valid session
+    if (!user && session.user.email) {
+      console.log(`Auto-creating user in database for ${session.user.email}`);
+      
+      try {
+        user = await prisma.user.create({
+          data: {
+            email: session.user.email,
+            name: session.user.name || session.user.email.split('@')[0],
+            password: 'SESSION_CREATED_USER', // Placeholder password
+          }
+        });
+        console.log('User auto-created successfully:', user.id);
+      } catch (createError) {
+        console.error('Error auto-creating user:', createError);
+        return NextResponse.json({ error: 'Failed to create user record' }, { status: 500 });
+      }
+    }
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    
     // Verify the session belongs to this user
     const existingSession = await prisma.session.findUnique({
       where: {
-        id: sessionId,
-        userId: session.user.id as string
+        id: sessionId
       }
     })
 
-    if (!existingSession) {
+    if (!existingSession || existingSession.userId !== user.id) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const { status, endTime, notes } = await request.json()
+    const { status, endTime, notes, transcript } = await request.json()
     
     const updateData: any = {}
     
@@ -75,6 +135,11 @@ export async function PATCH(
     // Update notes if provided
     if (notes !== undefined) {
       updateData.notes = notes
+    }
+    
+    // Update transcript if provided
+    if (transcript !== undefined) {
+      updateData.transcript = transcript
     }
     
     // Calculate duration if endTime is provided and status is completed
@@ -95,7 +160,14 @@ export async function PATCH(
 
     // Generate metrics if session was completed
     if (status === 'completed') {
-      await generateMetricsFromSession(session.user.id as string, updatedSession.duration)
+      try {
+        // Make sure we're using the database user ID, not the session user ID
+        // Pass transcript to generate more accurate metrics based on conversation content
+        await generateMetricsFromSession(user.id, updatedSession.duration, transcript)
+      } catch (metricsError) {
+        console.error('Error generating metrics, but continuing:', metricsError)
+        // Don't fail the whole request if metrics generation fails
+      }
     }
 
     return NextResponse.json(updatedSession)
@@ -108,29 +180,3 @@ export async function PATCH(
   }
 }
 
-// Helper function to generate metrics from the session
-async function generateMetricsFromSession(userId: string, duration: number) {
-  // Calculate basic improvement scores based on session duration
-  const baseScore = Math.min(85, 50 + Math.floor(duration / 5))
-  const variability = 10 // Add some randomness to scores
-  
-  // Update progress tracking
-  await prisma.progressTracking.create({
-    data: {
-      userId,
-      closenessScore: baseScore + Math.floor(Math.random() * variability),
-      communicationScore: baseScore + Math.floor(Math.random() * variability)
-    }
-  })
-  
-  // Update communication metrics
-  await prisma.communicationMetrics.create({
-    data: {
-      userId,
-      activeListeningScore: baseScore + Math.floor(Math.random() * variability),
-      expressingNeedsScore: baseScore + Math.floor(Math.random() * variability),
-      conflictResolutionScore: baseScore + Math.floor(Math.random() * variability),
-      emotionalSupportScore: baseScore + Math.floor(Math.random() * variability)
-    }
-  })
-}

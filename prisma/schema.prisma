@@ -15,6 +15,7 @@ model User {
   password             String
   partnerName          String?
   relationshipStatus   String?                @default("Married")
+  assistantId          String?                // Vapi assistant ID
   communicationMetrics CommunicationMetrics[]
   progressTracking     ProgressTracking[]
   sessions             Session[]
@@ -30,6 +31,7 @@ model Session {
   notes        String?  @default("")
   status       String   @default("scheduled")
   reminderSent Boolean  @default(false)
+  transcript   String?  @db.Text
   user         User     @relation(fields: [userId], references: [id])
 
   @@index([userId])

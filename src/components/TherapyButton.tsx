@@ -1,4 +1,3 @@
-// src/components/TherapyButton.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -9,7 +8,7 @@ type TherapyButtonProps = {
   userId: string
 }
 
-export default function TherapyButton({ userId }: TherapyButtonProps) {
+function TherapyButton({ userId }: TherapyButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -101,58 +100,75 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
         vapiInstanceRef.current = null
       }
 
-      // Create a new instance with the API key
-      const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY
-      if (!apiKey) {
-        throw new Error('Vapi API key is missing')
+      // Get a secure client token from our backend
+      let token;
+      try {
+        // First try to get a secure token from our backend
+        const tokenResponse = await fetch('/api/vapi/token');
+        if (tokenResponse.ok) {
+          const data = await tokenResponse.json();
+          token = data.token;
+          console.log('Using secure client token from backend');
+        }
+      } catch (tokenError) {
+        console.warn('Could not get secure token from backend, falling back to public key:', tokenError);
       }
 
-      console.log('Creating new Vapi instance with key:', apiKey.substring(0, 5) + '...')
-      vapiInstanceRef.current = new Vapi(apiKey)
+      // Fall back to public key if token fetch fails
+      if (!token) {
+        token = process.env.NEXT_PUBLIC_VAPI_API_KEY;
+        if (!token) {
+          throw new Error('Vapi API key is missing');
+        }
+        console.log('Using public API key as fallback');
+      }
+
+      console.log('Creating new Vapi instance');
+      vapiInstanceRef.current = new Vapi(token);
       
       // Debug: Check if the instance was created
-      console.log('Vapi instance created:', !!vapiInstanceRef.current)
+      console.log('Vapi instance created:', !!vapiInstanceRef.current);
       
       // Set up event handlers
       vapiInstanceRef.current.on('call-start', () => {
-        console.log('Call started successfully')
-        setIsCallActive(true)
-        setErrorMessage(null)
-      })
+        console.log('Call started successfully');
+        setIsCallActive(true);
+        setErrorMessage(null);
+      });
       
       vapiInstanceRef.current.on('call-end', () => {
-        console.log('Call ended')
+        console.log('Call ended');
         if (sessionId) {
-          endTherapySession()
+          endTherapySession();
         }
-      })
+      });
       
       vapiInstanceRef.current.on('error', (error: any) => {
         // Stringify error to see more details
-        const errorString = JSON.stringify(error) || 'Empty error object'
-        console.error('Vapi error:', errorString)
-        setErrorMessage(`Vapi error: ${errorString}`)
+        const errorString = JSON.stringify(error) || 'Empty error object';
+        console.error('Vapi error:', errorString);
+        setErrorMessage(`Vapi error: ${errorString}`);
         
         if (sessionId) {
-          endTherapySession()
+          endTherapySession();
         }
-      })
+      });
       
       vapiInstanceRef.current.on('message', (message: any) => {
-        console.log('Message received:', message)
+        console.log('Message received:', message);
         // Handle different message types
         if (message.type === 'transcript') {
-          setTranscriptChunks(prev => [...prev, `USER: ${message.transcript}`])
+          setTranscriptChunks(prev => [...prev, `USER: ${message.transcript}`]);
         } else if (message.type === 'model-output' && message.content) {
-          setTranscriptChunks(prev => [...prev, `THERAPIST: ${message.content}`])
+          setTranscriptChunks(prev => [...prev, `THERAPIST: ${message.content}`]);
         }
-      })
+      });
       
-      return true
+      return true;
     } catch (error) {
-      console.error('Failed to create Vapi instance:', error)
-      setErrorMessage(`Failed to create Vapi instance: ${error}`)
-      return false
+      console.error('Failed to create Vapi instance:', error);
+      setErrorMessage(`Failed to create Vapi instance: ${error}`);
+      return false;
     }
   }
 
@@ -160,8 +176,20 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
     setErrorMessage(null);
     try {
       setIsLoading(true);
+      
+      // Fetch user profile information to personalize the therapy session
+      let userProfile = null;
+      try {
+        const profileResponse = await fetch('/api/user/profile');
+        if (profileResponse.ok) {
+          userProfile = await profileResponse.json();
+          console.log('User profile loaded for therapy session:', userProfile);
+        }
+      } catch (profileError) {
+        console.warn('Could not load user profile, using default experience:', profileError);
+      }
   
-      // 1. Create session in database
+      // 1. Create session in database with user profile context
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
@@ -172,6 +200,12 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
           startTime: new Date().toISOString(),
           status: 'active',
           theme: 'general relationship',
+          // Add user profile context to personalize the session
+          context: userProfile ? {
+            userName: userProfile.name,
+            partnerName: userProfile.partnerName,
+            relationshipStatus: userProfile.relationshipStatus
+          } : undefined,
         }),
       });
   
@@ -211,9 +245,46 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
         throw new Error('Microphone permission denied');
       }
   
-      // 5. Start the call with hardcoded assistant ID
-      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-      console.log('Starting call with assistant ID:', assistantId);      
+      // 5. Get a personalized assistant configuration based on user profile
+      let assistantConfig;
+      let assistantId;
+      
+      try {
+        // Try to get a personalized assistant from our backend
+        const assistantResponse = await fetch('/api/vapi/assistant?personalized=true');
+        
+        if (assistantResponse.ok) {
+          assistantConfig = await assistantResponse.json();
+          assistantId = assistantConfig.id;
+          console.log('Using personalized assistant configuration');
+          
+          // If we have a personalized assistant, update Vapi instance with it
+          if (assistantConfig.personalized && vapiInstanceRef.current) {
+            // Apply personalized system prompt and first message
+            if (assistantConfig.model?.messages?.[0]?.content) {
+              vapiInstanceRef.current.setSystemPrompt(assistantConfig.model.messages[0].content);
+              console.log('Applied personalized system prompt');
+            }
+            
+            if (assistantConfig.firstMessage) {
+              vapiInstanceRef.current.setFirstMessage(assistantConfig.firstMessage);
+              console.log('Applied personalized first message');
+            }
+          }
+        }
+      } catch (assistantError) {
+        console.warn('Could not get personalized assistant, falling back to default:', assistantError);
+      }
+      
+      // Fall back to default assistant ID if needed
+      if (!assistantId) {
+        assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+        console.log('Using default assistant ID:', assistantId);
+      }
+      
+      if (!assistantId) {
+        throw new Error('No assistant ID available. Please configure an assistant.');
+      }
       
       // Add timeout for debugging and handle errors more specifically
       try {
@@ -273,7 +344,7 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
         vapiInstanceRef.current = null
       }
       
-      // 2. Update session in database with end time
+      // 2. Update session in database with end time and transcript
       const transcript = transcriptChunks.join('\n')
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: 'PATCH',
@@ -283,14 +354,20 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
         body: JSON.stringify({
           endTime: new Date().toISOString(),
           status: 'completed',
-          transcript: transcript,
+          transcript,
+          notes: `Therapy session ${new Date().toLocaleDateString()} - Duration: ${Math.round(transcriptChunks.length / 3)} minutes of conversation`,
         }),
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error updating session:', errorData)
-        throw new Error(errorData.error || 'Failed to update session')
+        try {
+          const errorData = await response.json()
+          console.error('Error updating session:', errorData)
+          throw new Error(errorData.error || 'Failed to update session')
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError)
+          throw new Error('Failed to update session: Invalid server response')
+        }
       }
       
       const updatedSession = await response.json()
@@ -533,3 +610,5 @@ export default function TherapyButton({ userId }: TherapyButtonProps) {
           </div>
   )
 }
+
+export default TherapyButton;

@@ -55,12 +55,41 @@ export const authOptions: NextAuthOptions = {
   ],
  
 callbacks: {
+  async signIn({ user, account }) {
+    // Check if this user exists in the database, and create them if not
+    try {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email as string }
+      });
+      
+      if (!existingUser && user.email) {
+        // Create a basic user in Prisma if they don't exist
+        // This ensures all authenticated users have a corresponding database entry
+        console.log(`Creating new user in Prisma for: ${user.email}`);
+        await prisma.user.create({
+          data: {
+            id: user.id as string,
+            email: user.email,
+            name: user.name || user.email.split('@')[0],
+            // For credential provider, the password should already be handled
+            // But for other providers, we use a placeholder
+            password: account?.provider !== 'credentials' ? 'OAUTH_USER' : undefined,
+          }
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error("Error in signIn callback:", error);
+      // Still allow sign in for better UX, but log the error
+      return true;
+    }
+  },
   session: ({ session, token }) => {
     return {
       ...session,
       user: {
         ...session.user,
-        id: token.sub, // Use token.sub which is the standard JWT subject claim
+        id: token.id || token.sub, // Use token.id which we set in jwt callback, or token.sub as fallback
       }
     }
   },

@@ -12,10 +12,19 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Find the user in the database (might not be the same ID as the session)
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email as string }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+    }
+    
     // Get progress metrics from the ProgressTracking table
     const progressData = await prisma.progressTracking.findMany({
       where: {
-        userId: session.user.id
+        userId: user.id
       },
       select: {
         date: true,

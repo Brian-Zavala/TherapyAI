@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // Resource type definition
 type Resource = {
@@ -293,294 +293,489 @@ export default function Resources() {
     }
   }
 
+  // Define animation variants
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+  
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  // Mobile view handling
+  const [activeTab, setActiveTab] = useState<'search' | 'results'>('search');
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check if it's mobile view on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Change to results tab when search is performed on mobile
+  useEffect(() => {
+    if (isMobile && searchQuery && filteredResources.length > 0) {
+      setActiveTab('results');
+    }
+  }, [searchQuery, filteredResources.length, isMobile]);
+  
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-white to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
+      {/* Mobile tabs */}
+      {isMobile && (
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 mb-6 -mx-4 px-4 py-3">
+          <div className="flex rounded-lg bg-gray-100 p-1 shadow-sm">
+            <button
+              onClick={() => setActiveTab('search')}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                activeTab === 'search'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <span className="flex items-center justify-center">
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('results')}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                activeTab === 'results'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <span className="flex items-center justify-center">
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Resources {filteredResources.length > 0 && `(${filteredResources.length})`}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Header with supportive message */}
-      <div className="max-w-7xl mx-auto text-center mb-12">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-4xl font-bold text-gray-900 mb-4"
+      <div className={`max-w-7xl mx-auto text-center mb-8 ${isMobile && activeTab === 'results' ? 'hidden' : ''}`}>
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
         >
-          Relationship Resources & Support
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-xl text-gray-600 max-w-3xl mx-auto"
-        >
-          Every relationship faces challenges. You're not alone, and reaching out for support
-          is a sign of strength. Browse our curated resources to find guidance for your journey together.
-        </motion.p>
-        
-        {/* Emergency Support Button */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
-          className="mt-8"
-        >
-          <button
-            onClick={() => setShowEmergencySupport(!showEmergencySupport)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+          <motion.h1 
+            variants={fadeIn}
+            transition={{ duration: 0.5 }}
+            className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
           >
-            {showEmergencySupport ? 'Hide Emergency Resources' : 'Need Immediate Help?'}
-          </button>
+            Relationship Resources
+          </motion.h1>
+          <motion.p 
+            variants={fadeIn}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-6"
+          >
+            Every relationship faces challenges. You're not alone, and reaching out for support
+            is a sign of strength.
+          </motion.p>
+          
+          {/* Emergency Support Button */}
+          <motion.div 
+            variants={fadeIn}
+            transition={{ duration: 0.3, delay: 0.4 }}
+            className="mt-6"
+          >
+            <button
+              onClick={() => setShowEmergencySupport(!showEmergencySupport)}
+              className="inline-flex items-center px-4 py-2 sm:px-6 sm:py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              {showEmergencySupport ? 'Hide Emergency Help' : 'Need Immediate Help?'}
+            </button>
+          </motion.div>
         </motion.div>
         
         {/* Emergency Support Panel */}
-        {showEmergencySupport && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mt-6 bg-red-50 border border-red-200 rounded-xl p-6 max-w-4xl mx-auto"
-          >
-            <h2 className="text-2xl font-bold text-red-700 mb-4">Immediate Support Resources</h2>
-            <p className="text-red-600 mb-6">If you're in danger or experiencing a crisis, please use these resources for immediate help:</p>
-            
-            <div className="grid md:grid-cols-3 gap-4">
-              {emergencyResources.map((resource, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-red-100">
-                  <h3 className="font-bold text-lg text-red-700">{resource.title}</h3>
-                  <p className="font-mono text-red-600 my-2">{resource.phone}</p>
-                  <a 
-                    href={resource.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-red-600 hover:text-red-800 underline block mb-2"
+        <AnimatePresence>
+          {showEmergencySupport && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6 bg-red-50 border border-red-200 rounded-xl p-6 max-w-4xl mx-auto overflow-hidden"
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-red-700 mb-4 flex items-center justify-center sm:justify-start">
+                <svg className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Immediate Support Resources
+              </h2>
+              <p className="text-red-600 mb-6 text-sm sm:text-base">If you're in danger or experiencing a crisis, please use these resources for immediate help:</p>
+              
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {emergencyResources.map((resource, index) => (
+                  <motion.div 
+                    key={index} 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white p-4 rounded-lg shadow-sm border border-red-100"
                   >
-                    Visit Website
-                  </a>
-                  <p className="text-sm text-gray-600">{resource.description}</p>
-                </div>
+                    <h3 className="font-bold text-lg text-red-700">{resource.title}</h3>
+                    <p className="font-mono text-red-600 my-2">{resource.phone}</p>
+                    <a 
+                      href={resource.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-red-600 hover:text-red-800 underline block mb-2"
+                    >
+                      Visit Website
+                    </a>
+                    <p className="text-sm text-gray-600">{resource.description}</p>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <div className="mt-6 p-4 bg-white rounded-lg border border-red-100">
+                <p className="text-gray-700 flex items-start">
+                  <svg className="h-5 w-5 mr-2 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>
+                    <strong className="text-red-700">In case of immediate danger:</strong> Call emergency services (911 in the US) if you or someone you know is in immediate danger.
+                  </span>
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      <div className="max-w-7xl mx-auto">
+        <div className={`${isMobile ? (activeTab === 'search' ? 'block' : 'hidden') : 'block'}`}>
+          {/* Category navigation */}
+          <div className="mb-8">
+            <h2 className="text-lg font-medium text-gray-800 mb-3 pl-1">Filter by category:</h2>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              {categories.map(category => (
+                <motion.button
+                  key={category.id}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setActiveCategory(category.id)}
+                  className={`px-3 sm:px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                    activeCategory === category.id 
+                      ? `${category.color.split(' ')[0].replace('100', '500')} text-white shadow-md`
+                      : `${category.color} hover:bg-opacity-80`
+                  }`}
+                >
+                  <span className="mr-2">{category.icon}</span>
+                  <span className="hidden sm:inline">{category.title}</span>
+                  <span className="inline sm:hidden">{category.id === 'all' ? 'All' : category.title.split(' ')[0]}</span>
+                </motion.button>
               ))}
             </div>
-            
-            <div className="mt-6 p-4 bg-white rounded-lg border border-red-100">
-              <p className="text-gray-700">
-                <strong className="text-red-700">In case of immediate danger:</strong> Call emergency services (911 in the US) if you or someone you know is in immediate danger.
-              </p>
+          </div>
+          
+          {/* Search bar */}
+          <div className="mb-8">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search resources by keyword, topic, or source..."
+                className="w-full px-5 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+              />
+              <button 
+                className="absolute right-3 top-2 p-1 text-gray-400 hover:text-indigo-500"
+                onClick={() => {
+                  if (isMobile && filteredResources.length > 0) {
+                    setActiveTab('results');
+                  }
+                }}
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
             </div>
-          </motion.div>
-        )}
-      </div>
-      
-      {/* Category navigation */}
-      <div className="max-w-7xl mx-auto mb-10">
-        <div className="flex flex-wrap justify-center gap-3">
-          {categories.map(category => (
-            <button
-              key={category.id}
-              onClick={() => setActiveCategory(category.id)}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                activeCategory === category.id 
-                  ? `${category.color.split(' ')[0].replace('100', '500')} text-white shadow-md`
-                  : `${category.color} hover:bg-opacity-80`
-              }`}
-            >
-              <span className="mr-2">{category.icon}</span>
-              {category.title}
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      {/* Search bar */}
-      <div className="max-w-3xl mx-auto mb-10">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search resources by keyword, topic, or source..."
-            className="w-full px-5 py-3 border border-gray-300 rounded-full shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-          />
-          <div className="absolute right-3 top-3 text-gray-400">
-            🔍
+            {filteredResources.length > 0 && isMobile && (
+              <div className="mt-3">
+                <button 
+                  onClick={() => setActiveTab('results')}
+                  className="w-full bg-indigo-100 text-indigo-700 py-2 rounded-lg text-sm font-medium flex items-center justify-center"
+                >
+                  <span>View {filteredResources.length} results</span>
+                  <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-      
-      {/* Resource grid */}
-      <div className="max-w-7xl mx-auto">
-        {filteredResources.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredResources.map(resource => (
-              <motion.div
-                key={resource.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+        
+        {/* Resource grid */}
+        <div className={`${isMobile ? (activeTab === 'results' ? 'block' : 'hidden') : 'block'}`}>
+          {isMobile && activeTab === 'results' && (
+            <div className="mb-4 flex items-center justify-between">
+              <button 
+                onClick={() => setActiveTab('search')}
+                className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
               >
-                <div className={`h-2 ${
-                  resource.tags?.includes('communication') ? 'bg-blue-500' :
-                  resource.tags?.includes('conflict') ? 'bg-amber-500' :
-                  resource.tags?.includes('intimacy') ? 'bg-rose-500' :
-                  resource.tags?.includes('growth') ? 'bg-green-500' :
-                  resource.tags?.includes('crisis') ? 'bg-red-500' :
-                  'bg-purple-500'
-                }`}></div>
-                
-                <div className="p-6">
-                  <div className="flex items-start mb-3">
-                    <div className={`rounded-full w-10 h-10 flex items-center justify-center mr-3 ${
-                      resource.type === 'article' ? 'bg-blue-100 text-blue-600' :
-                      resource.type === 'video' ? 'bg-red-100 text-red-600' :
-                      resource.type === 'exercise' ? 'bg-green-100 text-green-600' :
-                      resource.type === 'book' ? 'bg-purple-100 text-purple-600' :
-                      resource.type === 'podcast' ? 'bg-amber-100 text-amber-600' :
-                      'bg-indigo-100 text-indigo-600'
-                    }`}>
-                      <span className="text-lg">{getTypeIcon(resource.type)}</span>
+                <svg className="mr-1 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Search
+              </button>
+              <span className="text-sm text-gray-500">
+                {filteredResources.length} {filteredResources.length === 1 ? 'result' : 'results'}
+              </span>
+            </div>
+          )}
+          
+          {filteredResources.length > 0 ? (
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+            >
+              {filteredResources.map((resource, index) => (
+                <motion.div
+                  key={resource.id}
+                  variants={fadeIn}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-100"
+                >
+                  <div className={`h-2 ${
+                    resource.tags?.includes('communication') ? 'bg-blue-500' :
+                    resource.tags?.includes('conflict') ? 'bg-amber-500' :
+                    resource.tags?.includes('intimacy') ? 'bg-rose-500' :
+                    resource.tags?.includes('growth') ? 'bg-green-500' :
+                    resource.tags?.includes('crisis') ? 'bg-red-500' :
+                    'bg-purple-500'
+                  }`}></div>
+                  
+                  <div className="p-4 sm:p-5">
+                    <div className="flex items-start mb-3">
+                      <div className={`rounded-full w-10 h-10 flex items-center justify-center mr-3 ${
+                        resource.type === 'article' ? 'bg-blue-100 text-blue-600' :
+                        resource.type === 'video' ? 'bg-red-100 text-red-600' :
+                        resource.type === 'exercise' ? 'bg-green-100 text-green-600' :
+                        resource.type === 'book' ? 'bg-purple-100 text-purple-600' :
+                        resource.type === 'podcast' ? 'bg-amber-100 text-amber-600' :
+                        'bg-indigo-100 text-indigo-600'
+                      }`}>
+                        <span className="text-lg">{getTypeIcon(resource.type)}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">{resource.title}</h3>
+                        {resource.source && (
+                          <p className="text-xs sm:text-sm text-gray-500">Source: {resource.source}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 leading-tight">{resource.title}</h3>
-                      {resource.source && (
-                        <p className="text-sm text-gray-500">Source: {resource.source}</p>
+                    
+                    <p className="text-sm text-gray-600 mb-4">{resource.description}</p>
+                    
+                    <div className="mt-1 mb-4 flex flex-wrap gap-2">
+                      {resource.tags?.map(tag => (
+                        <span 
+                          key={tag}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            tag === 'communication' ? 'bg-blue-100 text-blue-800' :
+                            tag === 'conflict' ? 'bg-amber-100 text-amber-800' :
+                            tag === 'intimacy' ? 'bg-rose-100 text-rose-800' :
+                            tag === 'growth' ? 'bg-green-100 text-green-800' :
+                            tag === 'crisis' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                        </span>
+                      ))}
+                      
+                      {resource.difficulty && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyLabel(resource.difficulty).color}`}>
+                          {getDifficultyLabel(resource.difficulty).label}
+                        </span>
                       )}
                     </div>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-4">{resource.description}</p>
-                  
-                  <div className="mt-1 mb-4 flex flex-wrap gap-2">
-                    {resource.tags?.map(tag => (
-                      <span 
-                        key={tag}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          tag === 'communication' ? 'bg-blue-100 text-blue-800' :
-                          tag === 'conflict' ? 'bg-amber-100 text-amber-800' :
-                          tag === 'intimacy' ? 'bg-rose-100 text-rose-800' :
-                          tag === 'growth' ? 'bg-green-100 text-green-800' :
-                          tag === 'crisis' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                      </span>
-                    ))}
                     
-                    {resource.difficulty && (
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyLabel(resource.difficulty).color}`}>
-                        {getDifficultyLabel(resource.difficulty).label}
-                      </span>
-                    )}
+                    <a 
+                      href={resource.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                    >
+                      Access Resource
+                      <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
                   </div>
-                  
-                  <a 
-                    href={resource.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium transition-colors"
-                  >
-                    Access Resource
-                    <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">🔍</div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">No resources found</h3>
-            <p className="text-gray-600">Try adjusting your search or category filter.</p>
-          </div>
-        )}
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-8 bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+            >
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-xl font-medium text-gray-900 mb-2">No resources found</h3>
+              <p className="text-gray-600">Try adjusting your search or category filter.</p>
+              <button 
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategory('all');
+                  if (isMobile) setActiveTab('search');
+                }}
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Reset Search
+              </button>
+            </motion.div>
+          )}
+        </div>
       </div>
       
       {/* Support message */}
-      <div className="max-w-4xl mx-auto mt-16 p-8 bg-purple-50 rounded-xl shadow-sm border border-purple-100">
+      <div className="max-w-4xl mx-auto mt-10 p-6 sm:p-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-sm border border-indigo-100">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-purple-800 mb-4">Need Personalized Support?</h2>
-          <p className="text-gray-700 mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-indigo-800 mb-3 flex items-center justify-center">
+            <svg className="h-6 w-6 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+            </svg>
+            Need Personalized Support?
+          </h2>
+          <p className="text-gray-700 mb-6 text-sm sm:text-base">
             While these resources are helpful, sometimes you need professional guidance tailored to your unique situation.
-            Our trained therapists are ready to support you and your partner on your journey to a healthier relationship.
+            Our trained therapists are ready to support you and your partner.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link href="/schedule" className="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+            <Link href="/schedule" className="inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 border border-transparent text-sm sm:text-base font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+              <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               Schedule a Session
             </Link>
-            <Link href="/therapists" className="inline-flex justify-center items-center px-6 py-3 border border-purple-300 text-base font-medium rounded-md shadow-sm text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200">
-              Meet Our Therapists
+            <Link href="/dashboard/therapy" className="inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 border border-indigo-300 text-sm sm:text-base font-medium rounded-lg shadow-sm text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+              <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 107.072 0m-9.9 2.828a9 9 0 0112.728 0" />
+              </svg>
+              Start Voice Session
             </Link>
           </div>
         </div>
       </div>
       
-      {/* Community wisdom section */}
-      <div className="max-w-5xl mx-auto mt-16 mb-8">
-        <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Community Wisdom</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+      {/* Condensed Community wisdom section */}
+      <div className="max-w-5xl mx-auto mt-10 mb-8">
+        <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-6 flex items-center justify-center">
+          <svg className="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13h4m-4 0H8m4-6.5v.5m0 7v.5m0-8.75C11.667 2.732 11 2.232 10 2h4c-.667.732-1 1.232-1 1.75z" />
+          </svg>
+          Community Wisdom
+        </h2>
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-white p-5 rounded-lg shadow-sm border border-gray-200"
+          >
+            <div className="flex items-center mb-3">
+              <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
                 ❤️‍🩹
               </div>
               <h3 className="font-semibold text-gray-900">Healing Takes Time</h3>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               "Rebuilding trust is a process, not an event. Be patient with yourselves and each other as you heal."
             </p>
-            <p className="text-gray-500 mt-2 text-sm">— From a couple married 27 years</p>
-          </div>
+            <p className="text-gray-500 mt-2 text-xs">— From a couple married 27 years</p>
+          </motion.div>
           
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-white p-5 rounded-lg shadow-sm border border-gray-200"
+          >
+            <div className="flex items-center mb-3">
+              <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
                 🌱
               </div>
               <h3 className="font-semibold text-gray-900">Growth Together</h3>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               "The strongest relationships aren't those without problems, but those where couples grow by facing challenges together."
             </p>
-            <p className="text-gray-500 mt-2 text-sm">— From couples therapy group insights</p>
-          </div>
+            <p className="text-gray-500 mt-2 text-xs">— From couples therapy group</p>
+          </motion.div>
           
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mr-3">
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-white p-5 rounded-lg shadow-sm border border-gray-200"
+          >
+            <div className="flex items-center mb-3">
+              <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mr-3">
                 🔄
               </div>
               <h3 className="font-semibold text-gray-900">Daily Practice</h3>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               "Small daily acts of appreciation and connection matter more than grand gestures. Consistency builds security."
             </p>
-            <p className="text-gray-500 mt-2 text-sm">— Shared by relationship counselors</p>
-          </div>
+            <p className="text-gray-500 mt-2 text-xs">— Relationship counselors</p>
+          </motion.div>
         </div>
       </div>
       
-      {/* Newsletter signup */}
-      <div className="max-w-4xl mx-auto mt-16 mb-12 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl overflow-hidden shadow-xl">
-        <div className="px-6 py-8 md:p-10 md:py-12 flex flex-col md:flex-row items-center justify-between">
-          <div className="md:w-7/12 mb-8 md:mb-0 text-center md:text-left">
-            <h3 className="text-2xl font-bold text-white mb-2">Weekly Relationship Insights</h3>
-            <p className="text-purple-100">
-              Join our community and receive expert tips, new resources, and supportive guidance directly to your inbox.
+      {/* Compact Newsletter signup */}
+      <div className="max-w-4xl mx-auto mt-10 mb-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl overflow-hidden shadow-md">
+        <div className="px-5 py-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between">
+          <div className="sm:w-7/12 mb-5 sm:mb-0 text-center sm:text-left">
+            <h3 className="text-xl font-bold text-white mb-2">Weekly Relationship Insights</h3>
+            <p className="text-indigo-100 text-sm">
+              Join our community for expert tips and supportive guidance.
             </p>
           </div>
-          <div className="md:w-5/12">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="sm:w-5/12 w-full">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input 
                 type="email" 
-                placeholder="Your email address" 
-                className="px-4 py-3 rounded-md text-gray-900 border-0 focus:ring-2 focus:ring-white"
+                placeholder="Your email" 
+                className="px-3 py-2 sm:px-4 sm:py-2 rounded-md text-gray-900 border-0 focus:ring-2 focus:ring-white w-full"
               />
-              <button className="bg-white text-purple-700 hover:bg-purple-50 px-4 py-3 rounded-md font-medium transition-colors">
+              <button className="bg-white text-indigo-700 hover:bg-indigo-50 px-4 py-2 rounded-md font-medium transition-colors whitespace-nowrap">
                 Subscribe
               </button>
             </div>
-            <p className="text-xs text-purple-100 mt-2">We respect your privacy. Unsubscribe anytime.</p>
+            <p className="text-xs text-indigo-100 mt-2 text-center sm:text-left">We respect your privacy. Unsubscribe anytime.</p>
           </div>
         </div>
       </div>
