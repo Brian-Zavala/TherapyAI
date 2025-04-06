@@ -444,8 +444,9 @@ export default function RelationshipProgressCard() {
               const isActive = activeIndex === index;
               
               return (
-                <g>
+                <g key={`dot-${index}`}>
                   <circle
+                    key={`circle-${index}`}
                     cx={cx}
                     cy={cy}
                     r={isFocused ? 6 : isActive ? 6 : 4}
@@ -458,6 +459,7 @@ export default function RelationshipProgressCard() {
                   />
                   {isActive && !isFocused && (
                     <circle
+                      key={`pulse-${index}`}
                       cx={cx}
                       cy={cy}
                       r={10}
@@ -471,7 +473,7 @@ export default function RelationshipProgressCard() {
                     />
                   )}
                   
-                  <style>
+                  <style key={`style-${index}`}>
                     {`
                       @keyframes pulse {
                         0% { r: 4; stroke-opacity: 0.8; }
@@ -507,8 +509,9 @@ export default function RelationshipProgressCard() {
               const isActive = activeIndex === index;
               
               return (
-                <g>
+                <g key={`dot-comm-${index}`}>
                   <circle
+                    key={`circle-comm-${index}`}
                     cx={cx}
                     cy={cy}
                     r={isFocused ? 6 : isActive ? 6 : 4}
@@ -521,6 +524,7 @@ export default function RelationshipProgressCard() {
                   />
                   {isActive && !isFocused && (
                     <circle
+                      key={`pulse-comm-${index}`}
                       cx={cx}
                       cy={cy}
                       r={10}
@@ -534,7 +538,7 @@ export default function RelationshipProgressCard() {
                     />
                   )}
                   
-                  <style>
+                  <style key={`style-comm-${index}`}>
                     {`
                       @keyframes pulsePink {
                         0% { r: 4; stroke-opacity: 0.8; }
