@@ -43,8 +43,8 @@ export default function Register() {
         throw new Error(signInResult.error)
       }
       
-      // Redirect to home page after automatic login
-      router.push('/')
+      // Redirect to dashboard after registration - dashboard will handle profile setup
+      router.push('/dashboard')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred')

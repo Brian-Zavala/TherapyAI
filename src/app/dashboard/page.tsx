@@ -352,7 +352,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
               <h1 className="text-3xl font-bold">Welcome back, {session?.user?.name?.split(' ')[0] || 'there'}</h1>
-              <p className="mt-2 text-indigo-100">Track your progress and manage your relationship journey</p>
+              <p className="mt-2 text-indigo-100!">Track your progress and manage your relationship journey</p>
             </div>
             <Link href="/dashboard/therapy" className="mt-4 sm:mt-0 px-5 py-2 bg-white text-indigo-600 rounded-lg font-medium shadow-sm hover:bg-indigo-50 transition-colors duration-150">
               Start New Session
@@ -412,7 +412,7 @@ export default function Dashboard() {
           className="hidden sm:grid sm:grid-cols-1 md:grid-cols-2 gap-6"
         >
           {/* Session Time Visualization */}
-          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 pb-8 sm:pb-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200">
             <div className="flex items-center mb-4">
               <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -471,7 +471,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 mb-6"
+              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
             >
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
@@ -490,7 +490,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 mb-6"
+              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
             >
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
@@ -509,7 +509,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 mb-6"
+              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
             >
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
@@ -528,7 +528,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 mb-6"
+              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
             >
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">

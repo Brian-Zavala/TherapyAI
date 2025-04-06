@@ -263,19 +263,27 @@ function TherapyButton({ userId }: TherapyButtonProps) {
         console.warn('AudioContext not supported in this browser. Some features may be limited.');
       }
   
-      // 4. Check browser permissions & setup audio analyzer
+      // 4. Check browser compatibility and permissions for audio
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('Microphone permission granted');
-        
-        // Only set up audio analyzer if AudioContext is supported
-        if (AudioContextClass) {
-          setupAudioAnalyzer();
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.warn('Browser does not support getUserMedia API');
+          // Continue without audio visualization, but don't block the session
+        } else {
+          // Try to get microphone access
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('Microphone permission granted');
+          
+          // Only set up audio analyzer if AudioContext is supported
+          if (AudioContextClass) {
+            setupAudioAnalyzer();
+          }
         }
       } catch (mediaError) {
-        console.error('Microphone permission denied:', mediaError);
-        setErrorMessage('Microphone access denied. Please allow microphone access and try again.');
-        throw new Error('Microphone permission denied');
+        // Log the error but don't block the session completely
+        console.error('Microphone permission denied or audio issue:', mediaError);
+        setErrorMessage('Microphone access unavailable. Session will continue in limited mode.');
+        // Don't throw an error here to allow the session to continue
       }
   
       // 5. Get the assistant ID to use and prepare configuration
@@ -303,9 +311,21 @@ function TherapyButton({ userId }: TherapyButtonProps) {
       
       // Add timeout for debugging and handle errors more specifically
       try {
-        // When using an assistantId, we should use assistantOverrides format
-        // not the full assistantConfig format
-        const startPromise = vapiInstanceRef.current.start(assistantId, assistantOverrides);
+        console.log('Starting Vapi session with config:', JSON.stringify(assistantOverrides));
+        
+        // Add fallback options specifically for audio issues
+        const startOptions = {
+          ...assistantOverrides,
+          // Add simplified audio settings to improve compatibility
+          noAudioProcessing: true,
+          audio: {
+            processingMode: 'basic', // Use basic processing instead of advanced
+            noiseReduction: false,   // Disable noise reduction to improve compatibility
+            echoCancellation: false  // Disable echo cancellation to improve compatibility
+          }
+        };
+        
+        const startPromise = vapiInstanceRef.current.start(assistantId, startOptions);
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Start call timeout')), 15000)
         );
@@ -317,10 +337,26 @@ function TherapyButton({ userId }: TherapyButtonProps) {
           ? callError.message 
           : String(callError);
           
-        if (errorMessage.includes('audio')) {
-          console.warn('Audio processing issue detected:', errorMessage);
-          // You could set a flag to use limited audio functionality
-          // setUsingLimitedAudio(true);
+        console.warn('Session start issue:', errorMessage);
+        
+        if (errorMessage.includes('audio') || errorMessage.includes('ignoring settings')) {
+          console.warn('Audio processing issue detected - attempting fallback mode');
+          
+          try {
+            // Try again with minimal config - basic default settings
+            await vapiInstanceRef.current.start(assistantId, {
+              variableValues: assistantOverrides.variableValues
+            });
+            
+            // Session started in fallback mode
+            console.log('Started session in compatibility mode');
+            setErrorMessage('Running in compatibility mode. Some audio features may be limited.');
+          } catch (fallbackError) {
+            // If even the fallback fails, show error but don't completely block
+            console.error('Fallback mode failed:', fallbackError);
+            setErrorMessage('Audio features limited. Session will continue with reduced functionality.');
+            // Still continue the session
+          }
         } else {
           // Re-throw non-audio related errors
           throw callError;

@@ -33,7 +33,7 @@ export default function Home() {
     transition={{ duration: 0.7 }}
     className="text-4xl md:text-5xl font-bold text-gray-900 mb-8" // Added mb-8 for margin-bottom
   >
-    Strengthen Your Relationship
+    Strengthen Your Relationships
   </motion.h1>
   
   <motion.div

@@ -8,8 +8,7 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   
   // Public paths that don't require authentication
-  const isPublicPath = path === '/' || 
-                        path === '/auth/login' || 
+  const isPublicPath = path === '/auth/login' || 
                         path === '/auth/register' || 
                         path === '/api/auth'
   
@@ -19,13 +18,18 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET
   })
   
+  // Redirect unauthenticated users from home page to login page
+  if (path === '/' && !token) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+  
   // Redirect unauthenticated users from protected routes to login
   if (!isPublicPath && !token) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
   
   // Redirect authenticated users from auth pages to dashboard
-  if (token && (path === '/auth/login' || path === '/auth/register')) {
+  if (token && (path === '/auth/login' || path === '/auth/register' || path === '/')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
   

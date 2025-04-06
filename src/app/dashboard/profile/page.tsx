@@ -10,6 +10,7 @@ export default function ProfileSettings() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState("")
+  const [isNewUser, setIsNewUser] = useState(false)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -19,10 +20,16 @@ export default function ProfileSettings() {
     relationshipStatus: "Married"
   })
   
-  // Debug logging for session
+  // Debug logging for session and check for new user flag
   useEffect(() => {
     console.log("Session status:", status)
     console.log("Session data:", session)
+    
+    // Check if this is a new user from URL param
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      setIsNewUser(urlParams.get('isNewUser') === 'true')
+    }
   }, [session, status])
   
   // Load user data when session is available
@@ -91,7 +98,15 @@ export default function ProfileSettings() {
       
       if (!response.ok) throw new Error("Failed to update profile")
       
-      setMessage("Profile updated successfully!")
+      if (isNewUser) {
+        // If new user, redirect to dashboard after successful profile update
+        setMessage("Profile created successfully! Redirecting to dashboard...")
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 1500)
+      } else {
+        setMessage("Profile updated successfully!")
+      }
     } catch (error) {
       console.error("Error updating profile:", error)
       setMessage("Failed to update profile. Please try again.")
@@ -120,6 +135,25 @@ export default function ProfileSettings() {
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Your Profile</h1>
           </div>
+          
+          {isNewUser && (
+            <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 mt-1">
+                  <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-indigo-800">Welcome to Couple Therapy!</h3>
+                  <div className="mt-2 text-sm text-indigo-700">
+                    <p>Please complete your profile information to get the most out of your therapy sessions.</p>
+                    <p className="mt-1">This will help personalize your experience with our AI therapist.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {message && (
             <div className={`mb-6 p-3 rounded-lg flex items-center text-sm ${
@@ -239,7 +273,7 @@ export default function ProfileSettings() {
                     <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
-                    Save Changes
+                    {isNewUser ? 'Complete Profile Setup' : 'Save Changes'}
                   </>
                 )}
               </button>

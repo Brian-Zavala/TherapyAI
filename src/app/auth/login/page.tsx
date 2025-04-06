@@ -28,8 +28,8 @@ export default function Login() {
       if (result?.error) {
         setError('Invalid email or password')
       } else {
-        // Redirect to home on successful login
-        router.push('/')
+        // Redirect to dashboard on successful login
+        router.push('/dashboard')
         router.refresh()
       }
     } catch (error) {
