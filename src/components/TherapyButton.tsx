@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Vapi from '@vapi-ai/web'
+import { AssistantConfig } from '@/lib/vapi'
 
 type TherapyButtonProps = {
   userId: string
@@ -88,7 +89,7 @@ function TherapyButton({ userId }: TherapyButtonProps) {
     }
   }
 
-  async function createVapiInstance() {
+  async function createVapiInstance(userProfile?: any) {
     try {
       // Dispose of any existing instance first
       if (vapiInstanceRef.current) {
@@ -128,6 +129,38 @@ function TherapyButton({ userId }: TherapyButtonProps) {
       
       // Debug: Check if the instance was created
       console.log('Vapi instance created:', !!vapiInstanceRef.current);
+      
+      // Immediately customize the assistant with user profile if available
+      if (userProfile && vapiInstanceRef.current) {
+        try {
+          // Import helper functions from vapi.ts
+          const { getPersonalizedSystemPrompt, getPersonalizedFirstMessage } = await import('@/lib/vapi');
+          
+          // Create personalized content
+          const systemPrompt = getPersonalizedSystemPrompt({
+            userName: userProfile.name,
+            partnerName: userProfile.partnerName,
+            relationshipStatus: userProfile.relationshipStatus
+          });
+          
+          const firstMessage = getPersonalizedFirstMessage({
+            userName: userProfile.name,
+            partnerName: userProfile.partnerName
+          });
+          
+          // Store personalization data to use when starting the assistant
+          console.log('Prepared personalized content for assistant');
+          
+          // Store these values in a safer way - using a dedicated property object
+          // These will be used during the start call
+          vapiInstanceRef.current._customData = {
+            systemPrompt,
+            firstMessage
+          };
+        } catch (personalizationError) {
+          console.error('Error applying personalizations:', personalizationError);
+        }
+      }
       
       // Set up event handlers
       vapiInstanceRef.current.on('call-start', () => {
@@ -216,8 +249,8 @@ function TherapyButton({ userId }: TherapyButtonProps) {
       const session = await response.json();
       setSessionId(session.id);
   
-      // 2. Initialize Vapi instance fresh each time
-      const initialized = await createVapiInstance();
+      // 2. Initialize Vapi instance fresh each time with user profile
+      const initialized = await createVapiInstance(userProfile);
       if (!initialized) {
         throw new Error('Failed to initialize Vapi');
       }
@@ -245,50 +278,34 @@ function TherapyButton({ userId }: TherapyButtonProps) {
         throw new Error('Microphone permission denied');
       }
   
-      // 5. Get a personalized assistant configuration based on user profile
-      let assistantConfig;
-      let assistantId;
+      // 5. Get the assistant ID to use and prepare configuration
+      let assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
       
-      try {
-        // Try to get a personalized assistant from our backend
-        const assistantResponse = await fetch('/api/vapi/assistant?personalized=true');
-        
-        if (assistantResponse.ok) {
-          assistantConfig = await assistantResponse.json();
-          assistantId = assistantConfig.id;
-          console.log('Using personalized assistant configuration');
-          
-          // If we have a personalized assistant, update Vapi instance with it
-          if (assistantConfig.personalized && vapiInstanceRef.current) {
-            // Apply personalized system prompt and first message
-            if (assistantConfig.model?.messages?.[0]?.content) {
-              vapiInstanceRef.current.setSystemPrompt(assistantConfig.model.messages[0].content);
-              console.log('Applied personalized system prompt');
-            }
-            
-            if (assistantConfig.firstMessage) {
-              vapiInstanceRef.current.setFirstMessage(assistantConfig.firstMessage);
-              console.log('Applied personalized first message');
-            }
-          }
-        }
-      } catch (assistantError) {
-        console.warn('Could not get personalized assistant, falling back to default:', assistantError);
-      }
-      
-      // Fall back to default assistant ID if needed
-      if (!assistantId) {
-        assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-        console.log('Using default assistant ID:', assistantId);
-      }
+      // Log which assistant we're using
+      console.log('Using assistant ID:', assistantId);
       
       if (!assistantId) {
         throw new Error('No assistant ID available. Please configure an assistant.');
       }
       
+      // Prepare assistant overrides with personalized data
+      // For overriding an existing assistant, use assistantOverrides format
+      const assistantOverrides = {
+        variableValues: userProfile ? {
+          username: userProfile.name || 'user',
+          partnername: userProfile.partnerName || 'partner'
+        } : undefined,
+        // Only override the first message if we have a custom one
+        firstMessage: vapiInstanceRef.current._customData?.firstMessage || undefined
+      };
+      
+      console.log('Starting call with assistant overrides:', JSON.stringify(assistantOverrides));
+      
       // Add timeout for debugging and handle errors more specifically
       try {
-        const startPromise = vapiInstanceRef.current.start(assistantId);
+        // When using an assistantId, we should use assistantOverrides format
+        // not the full assistantConfig format
+        const startPromise = vapiInstanceRef.current.start(assistantId, assistantOverrides);
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Start call timeout')), 15000)
         );
