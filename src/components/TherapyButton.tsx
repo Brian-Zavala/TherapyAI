@@ -313,13 +313,9 @@ function TherapyButton({
         console.log('Call end reason:', reason);
         setIsCallActive(false);
         
-        // If there's a specific reason other than normal ending, show it to the user
-        if (reason && reason !== 'ended' && reason !== 'normal') {
-          setErrorMessage(`Session ended: ${reason}. You can try again if needed.`);
-        } else {
-          // Clear any error messages for normal endings
-          setErrorMessage(null);
-        }
+        // Always clear error messages for all session endings
+        setErrorMessage(null);
+        // Reason is logged but no error is shown to the user
         
         if (sessionId) {
           // Directly use the current ref value to avoid circular dependencies
