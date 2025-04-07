@@ -26,7 +26,11 @@ export default function Dashboard() {
   const [formData, setFormData] = useState({
     name: "",
     partnerName: "",
-    relationshipStatus: "Married"
+    relationshipStatus: "Married",
+    familyMember1: "",
+    familyMember2: "",
+    familyMember3: "",
+    familyMember4: ""
   })
   const [isSaving, setIsSaving] = useState(false)
   const [onboardingStep, setOnboardingStep] = useState(0)
@@ -54,7 +58,11 @@ export default function Dashboard() {
               setFormData({
                 name: userData.name || session?.user?.name || "",
                 partnerName: "",
-                relationshipStatus: userData.relationshipStatus || "Married"
+                relationshipStatus: userData.relationshipStatus || "Married",
+                familyMember1: userData.familyMember1 || "",
+                familyMember2: userData.familyMember2 || "",
+                familyMember3: userData.familyMember3 || "",
+                familyMember4: userData.familyMember4 || ""
               })
             } else {
               setShowProfileSetup(false)
@@ -67,7 +75,11 @@ export default function Dashboard() {
               setFormData({
                 name: session?.user?.name || "",
                 partnerName: "",
-                relationshipStatus: "Married"
+                relationshipStatus: "Married",
+                familyMember1: "",
+                familyMember2: "",
+                familyMember3: "",
+                familyMember4: ""
               })
             }
           }
@@ -122,7 +134,7 @@ export default function Dashboard() {
   }
   
   const nextStep = () => {
-    if (onboardingStep < 2) {
+    if (onboardingStep < 3) {
       setOnboardingStep(onboardingStep + 1)
     } else {
       handleProfileSubmit()
@@ -164,10 +176,10 @@ export default function Dashboard() {
           
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              {[0, 1, 2].map((step) => (
+              {[0, 1, 2, 3].map((step) => (
                 <div 
                   key={step} 
-                  className={`relative flex-1 ${step < onboardingStep ? 'bg-indigo-500' : step === onboardingStep ? 'bg-indigo-500' : 'bg-gray-200'} h-2 rounded-full ${step === 0 ? 'rounded-l-full' : step === 2 ? 'rounded-r-full' : ''}`}
+                  className={`relative flex-1 ${step < onboardingStep ? 'bg-indigo-500' : step === onboardingStep ? 'bg-indigo-500' : 'bg-gray-200'} h-2 rounded-full ${step === 0 ? 'rounded-l-full' : step === 3 ? 'rounded-r-full' : ''}`}
                 >
                   <div 
                     className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${step < onboardingStep ? 'bg-indigo-500 text-white' : step === onboardingStep ? 'bg-white border-2 border-indigo-500 text-indigo-500' : 'bg-white border-2 border-gray-300 text-gray-500'}`}
@@ -257,6 +269,79 @@ export default function Dashboard() {
                       </select>
                       <p className="text-xs text-gray-500 mt-1">Helps our AI provide more relevant guidance</p>
                     </div>
+                  </div>
+                </div>
+              )}
+              
+              {onboardingStep === 3 && (
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Family Members</h3>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Add family members who might participate in therapy sessions. This is optional and can be updated later.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label htmlFor="familyMember1" className="block text-sm font-medium text-gray-700 mb-1">
+                          Family Member 1
+                        </label>
+                        <input
+                          type="text"
+                          id="familyMember1"
+                          name="familyMember1"
+                          value={formData.familyMember1}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Enter name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="familyMember2" className="block text-sm font-medium text-gray-700 mb-1">
+                          Family Member 2
+                        </label>
+                        <input
+                          type="text"
+                          id="familyMember2"
+                          name="familyMember2"
+                          value={formData.familyMember2}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Enter name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="familyMember3" className="block text-sm font-medium text-gray-700 mb-1">
+                          Family Member 3
+                        </label>
+                        <input
+                          type="text"
+                          id="familyMember3"
+                          name="familyMember3"
+                          value={formData.familyMember3}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Enter name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="familyMember4" className="block text-sm font-medium text-gray-700 mb-1">
+                          Family Member 4
+                        </label>
+                        <input
+                          type="text"
+                          id="familyMember4"
+                          name="familyMember4"
+                          value={formData.familyMember4}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Enter name"
+                        />
+                      </div>
+                    </div>
                     
                     <div className="pt-4 border-t border-gray-200">
                       <h4 className="font-medium text-gray-800 mb-2 flex items-center">
@@ -266,7 +351,7 @@ export default function Dashboard() {
                         Profile Information
                       </h4>
                       <p className="text-sm text-gray-600">
-                        Your information helps personalize your therapy experience. Our AI will address both you and {formData.partnerName} by name during sessions, making conversations more natural and effective.
+                        Your information helps personalize your therapy experience. Our AI will address you, {formData.partnerName}, and family members by name during sessions, making conversations more natural and effective.
                       </p>
                     </div>
                   </div>
@@ -292,7 +377,7 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={nextStep}
-              disabled={onboardingStep === 0 && !formData.name || onboardingStep === 1 && !formData.partnerName || isSaving}
+              disabled={(onboardingStep === 0 && !formData.name) || (onboardingStep === 1 && !formData.partnerName) || isSaving}
               className={`px-6 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
             >
               {isSaving ? (
@@ -303,7 +388,7 @@ export default function Dashboard() {
                   </svg>
                   Saving...
                 </>
-              ) : onboardingStep < 2 ? (
+              ) : onboardingStep < 3 ? (
                 <>
                   Continue
                   <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

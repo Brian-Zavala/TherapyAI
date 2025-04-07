@@ -21,7 +21,7 @@ export default function Navigation() {
       : 'text-indigo-100 hover:text-white'
   
   return (
-    <header className="bg-gradient-to-br from-indigo-600 to-purple-600 shadow-sm sticky top-0 z-40">
+    <header className="bg-gradient-to-r from-indigo-600 to-indigo-900 shadow-sm sticky top-0 z-40">
       <div className="w-full px-2 py-3">
         <div className="flex justify-between items-center">
           {/* Logo/Site Title - far left aligned */}
@@ -73,7 +73,7 @@ export default function Navigation() {
       
       {/* Menu drawer - appears for all screen sizes */}
       <div 
-        className={`fixed top-0 right-0 h-screen bg-gradient-to-br from-indigo-600 to-purple-600 z-50 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out w-72 transform ${
+        className={`fixed top-0 right-0 h-screen bg-gradient-to-r from-indigo-600 to-indigo-900 z-50 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out w-72 transform ${
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
