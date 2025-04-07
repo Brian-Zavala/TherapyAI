@@ -55,7 +55,13 @@ export default function Register() {
   }
 
   return (
-    <div className="flex min-h-[80vh] bg-gradient-to-b from-indigo-50 to-purple-50 overflow-hidden">
+    <div className="flex min-h-[80vh] relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 -z-10 bg-[length:400%_400%] bg-gradient-to-br from-indigo-100 via-purple-50 to-blue-100 animate-gradient-xy overflow-hidden">
+        {/* Add floating shapes */}
+        <div className="absolute top-20 right-1/4 w-72 h-72 bg-indigo-300/20 rounded-full blur-3xl animate-float-medium"></div>
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-purple-300/20 rounded-full blur-3xl animate-float-slow"></div>
+      </div>
       {/* Left Side - Testimonials Column */}
       <div className="hidden lg:flex lg:flex-col lg:w-1/4 xl:w-1/5 justify-center items-end pr-8 space-y-4">
         {/* Testimonial 1 */}
@@ -172,62 +178,97 @@ export default function Register() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-xl shadow-lg p-8 border border-purple-100 min-h-[400px]"
+            whileHover={{ 
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.02)",
+              translateY: -4
+            }}
+            className="bg-white rounded-xl shadow-lg p-8 border border-purple-100 min-h-[400px] transition-all"
           >
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block text-gray-700 mb-2 font-medium">Name</label>
+              <div className="relative">
                 <input
                   type="text"
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   required
-                  placeholder="Your name"
+                  placeholder=" "
                 />
+                <label 
+                  htmlFor="name" 
+                  className="absolute text-gray-600 left-4 top-2 text-xs font-medium transition-all duration-200 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-xs peer-focus:text-purple-600"
+                >
+                  Your Name
+                </label>
               </div>
               
-              <div>
-                <label htmlFor="email" className="block text-gray-700 mb-2 font-medium">Email</label>
+              <div className="relative">
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   required
-                  placeholder="your.email@example.com"
+                  placeholder=" "
                 />
+                <label 
+                  htmlFor="email" 
+                  className="absolute text-gray-600 left-4 top-2 text-xs font-medium transition-all duration-200 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-xs peer-focus:text-purple-600"
+                >
+                  Email Address
+                </label>
               </div>
               
-              <div>
-                <label htmlFor="password" className="block text-gray-700 mb-2 font-medium">Password</label>
+              <div className="relative">
                 <input
                   type="password"
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   minLength={8}
                   required
-                  placeholder="Create a password (8+ characters)"
+                  placeholder=" "
                 />
-                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+                <label 
+                  htmlFor="password" 
+                  className="absolute text-gray-600 left-4 top-2 text-xs font-medium transition-all duration-200 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-xs peer-focus:text-purple-600"
+                >
+                  Password
+                </label>
+                {/* Password strength indicator */}
+                <div className="mt-1.5 flex space-x-1">
+                  <div className={`h-1 flex-1 rounded-full transition-colors ${password.length > 0 ? 'bg-red-400' : 'bg-gray-200'}`}></div>
+                  <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 6 ? 'bg-yellow-400' : 'bg-gray-200'}`}></div>
+                  <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-green-400' : 'bg-gray-200'}`}></div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Must be at least 8 characters</p>
               </div>
               
               <div className="pt-2">
-                <button
+                <motion.button
                   type="submit"
                   disabled={isLoading}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
                   className={`cursor-pointer w-full px-4 py-3 rounded-lg text-white font-medium shadow-md transform transition-all duration-200 ${
                     isLoading 
                       ? 'bg-purple-400 cursor-wait' 
-                      : 'bg-gradient-to-r from-indigo-600 to-indigo-900 hover:from-indigo-700 hover:to-indigo-900 hover:shadow-lg active:scale-[0.98]'
+                      : 'bg-gradient-to-r from-indigo-600 to-indigo-900 hover:from-indigo-700 hover:to-indigo-900 hover:shadow-lg'
                   }`}
                 >
-                  {isLoading ? 'Creating account...' : 'Sign Up'}
-                </button>
+                  {isLoading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating account...
+                    </span>
+                  ) : 'Sign Up'}
+                </motion.button>
               </div>
             </form>
             

@@ -92,7 +92,13 @@ export default function Login() {
 
 
   return (
-    <div className="flex flex-col lg:flex-row items-center lg:items-start lg:justify-center min-h-[90vh] bg-gradient-to-b from-indigo-50 to-purple-50 px-4 py-10 lg:px-8 lg:py-16 lg:gap-x-12 xl:gap-x-16 overflow-hidden"> {/* Added overflow-hidden */}
+    <div className="flex flex-col lg:flex-row items-center lg:items-start lg:justify-center min-h-[90vh] relative px-4 py-10 lg:px-8 lg:py-16 lg:gap-x-12 xl:gap-x-16 overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 -z-10 bg-[length:400%_400%] bg-gradient-to-br from-indigo-100 via-purple-50 to-blue-100 animate-gradient-xy overflow-hidden">
+        {/* Add floating shapes */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-300/20 rounded-full blur-3xl animate-float-slow"></div>
+        <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-float-medium"></div>
+      </div>
 
         {/* Column 1: Left Testimonials */}
         {/* Increased vertical spacing with space-y-8 */}
@@ -146,20 +152,82 @@ export default function Login() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full">
                 {error && ( <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 shadow-sm"> {error} </motion.div> )}
                 {/* Form Card */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="bg-white rounded-xl shadow-lg p-8 border border-purple-100 w-full">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ duration: 0.5, delay: 0.1 }} 
+                  whileHover={{ 
+                    boxShadow: "0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.02)",
+                    translateY: -4
+                  }}
+                  className="bg-white rounded-xl shadow-lg p-8 border border-purple-100 w-full transition-all">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Email */}
-                        <div>
-                            <label htmlFor="email" className="block text-gray-700 mb-2 font-medium">Email</label>
-                            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" required placeholder="your.email@example.com" />
+                        <div className="relative">
+                            <input 
+                              type="email" 
+                              id="email" 
+                              value={email} 
+                              onChange={(e) => setEmail(e.target.value)} 
+                              className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+                              required 
+                              placeholder=" " 
+                            />
+                            <label 
+                              htmlFor="email" 
+                              className="absolute text-gray-600 left-4 top-2 text-xs font-medium transition-all duration-200 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-xs peer-focus:text-purple-600"
+                            >
+                              Email
+                            </label>
                         </div>
                         {/* Password */}
                         <div>
                             <div className="flex justify-between mb-2"> <label htmlFor="password" className="block text-gray-700 font-medium">Password</label> <Link href="/auth/reset-password" className="text-sm text-purple-600 hover:text-purple-800 transition-colors">Forgot password?</Link> </div>
-                            <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" required placeholder="••••••••" />
+                            <div className="relative">
+                              <input 
+                                type="password" 
+                                id="password" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+                                required 
+                                placeholder=" " 
+                                minLength={8}
+                              />
+                              <label 
+                                htmlFor="password" 
+                                className="absolute text-gray-600 left-4 top-2 text-xs font-medium transition-all duration-200 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-xs peer-focus:text-purple-600"
+                              >
+                                Password
+                              </label>
+                              {/* Password strength indicator */}
+                              <div className="mt-1.5 flex space-x-1">
+                                <div className={`h-1 flex-1 rounded-full transition-colors ${password.length > 0 ? 'bg-red-400' : 'bg-gray-200'}`}></div>
+                                <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 6 ? 'bg-yellow-400' : 'bg-gray-200'}`}></div>
+                                <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-green-400' : 'bg-gray-200'}`}></div>
+                              </div>
+                            </div>
                         </div>
                         {/* Submit */}
-                        <div className="pt-2"> <button type="submit" disabled={isLoading} className={`cursor-pointer w-full px-4 py-3 rounded-lg text-white font-medium shadow-md transform transition-all duration-200 ${isLoading ? 'bg-purple-400 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-indigo-900 hover:from-indigo-700 hover:to-indigo-900 hover:shadow-lg active:scale-[0.98]'}`}> {isLoading ? 'Logging in...' : 'Sign In'} </button> </div>
+                        <div className="pt-2">
+                          <motion.button 
+                            type="submit" 
+                            disabled={isLoading} 
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`cursor-pointer w-full px-4 py-3 rounded-lg text-white font-medium shadow-md transform transition-all duration-200 ${isLoading ? 'bg-purple-400 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-indigo-900 hover:from-indigo-700 hover:to-indigo-900 hover:shadow-lg'}`}
+                          > 
+                            {isLoading ? (
+                              <span className="flex items-center justify-center">
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Logging in...
+                              </span>
+                            ) : 'Sign In'} 
+                          </motion.button> 
+                        </div>
                     </form>
                     {/* Register Link */}
                     <div className="mt-8 text-center"> <p className="text-gray-600">New to our therapy platform?{' '} <Link href="/auth/register" className="text-purple-600 hover:text-purple-800 font-medium transition-colors">Create an account</Link> </p> </div>
