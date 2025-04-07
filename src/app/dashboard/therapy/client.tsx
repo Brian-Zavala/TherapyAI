@@ -239,7 +239,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     } flex items-center justify-center`
                   }, [
                     // Simple approach with two containers and conditional rendering
-                    React.createElement(React.Fragment, null, [
+                    React.createElement(React.Fragment, { key: "doctor-image-container" }, [
                       // A simpler approach: just use a regular image element instead of next/image
                       // Actual doc photo or fallback icon - handled with onError
                       React.createElement("img", {
@@ -397,10 +397,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   }, "Click the button below to start a session whenever you're ready to talk.")
                 ]),
               
-              // Therapy button with enhanced style
+              // Therapy button with enhanced style - centered text on mobile only
               React.createElement("div", {
                 key: "button-container",
-                className: "flex justify-center items-center mt-8 w-full"
+                className: "flex justify-center items-center mt-8 w-full text-center sm:text-left"
               }, 
                 React.createElement("div", {
                   key: "button-wrapper",

@@ -60,7 +60,7 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">Choose Your Therapist</h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-2"></div>
+              <div className="h-1 w-48 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-2"></div>
             </div>
             <button 
               onClick={onClose}
