@@ -1,88 +1,227 @@
-// src/components/VoiceWaveform.tsx
-import { useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+'use client'
+
+import { useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VoiceWaveformProps {
   audioLevel: number;
 }
 
-export default function VoiceWaveform({ audioLevel }: VoiceWaveformProps) {
+function VoiceWaveform({ audioLevel }: VoiceWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const timeRef = useRef(0);
   
-  // Normalize audio level to a scale of 0-100
-  const normalizedLevel = Math.min(100, Math.max(0, audioLevel * 2));
-  
-  // Generate bars for visualization
-  const generateBars = () => {
-    const bars = [];
-    const barCount = 50;
-    
-    for (let i = 0; i < barCount; i++) {
-      // Calculate height based on position and audio level
-      const position = i / barCount;
-      const amplitude = Math.sin(position * Math.PI);
-      const height = amplitude * normalizedLevel;
-      
-      bars.push(
-        <motion.div
-          key={i}
-          initial={{ height: '5%' }}
-          animate={{ 
-            height: `${5 + Math.abs(height)}%`,
-            backgroundColor: audioLevel > 30 
-              ? `rgba(129, 140, 248, ${0.3 + amplitude * 0.7})` 
-              : `rgba(129, 140, 248, ${0.3 + amplitude * 0.3})`
-          }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 300, 
-            damping: 10,
-            mass: 0.5 + Math.random() * 0.5
-          }}
-          className="w-1 md:w-2 rounded-full mx-px transform transition-all duration-75"
-          style={{ 
-            transformOrigin: 'bottom',
-          }}
-        />
-      );
+  // Update speaking state based on audio level
+  useEffect(() => {
+    // Simple, reliable thresholds - only count significant audio
+    if (audioLevel > 30 && !isSpeaking) {
+      setIsSpeaking(true);
+    } else if (audioLevel < 20 && isSpeaking) {
+      setIsSpeaking(false);
     }
+  }, [audioLevel, isSpeaking]);
+  
+  // Canvas initialization
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
-    return bars;
-  };
-
-  return (
-    <div className="w-full py-8 px-4">
-      <div className="relative h-32 md:h-40 w-full overflow-hidden rounded-lg bg-indigo-900/30 backdrop-blur-sm flex items-center justify-center">
-        <motion.div 
-          className="absolute bottom-0 left-0 right-0 flex justify-center items-end h-full px-2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          {generateBars()}
-        </motion.div>
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Resize handling
+    const resizeCanvas = () => {
+      const rect = canvas.parentElement?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      ctx.scale(dpr, dpr);
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+    };
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+  
+  // Simple animation loop
+  useEffect(() => {
+    const render = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      timeRef.current += 16;
+      const time = timeRef.current * 0.001;
+      
+      // Get dimensions
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+      const centerY = height / 2;
+      
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Create gradient (used for all states)
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, '#6366f1');  // Indigo
+      gradient.addColorStop(0.5, '#a78bfa'); // Purple
+      gradient.addColorStop(1, '#ec4899');  // Pink
+      
+      // Set up for drawing
+      ctx.beginPath();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = gradient;
+      
+      // How many points to draw
+      const segments = 100;
+      const segmentWidth = width / segments;
+      
+      // Start at left edge
+      ctx.moveTo(0, centerY);
+      
+      // Determine animation state based on audio level
+      let animationIntensity = 0;
+      
+      // Multiple thresholds for smoother transitions
+      if (audioLevel <= 3) {
+        // Completely silent - flat line with minimal movement
+        animationIntensity = 0;
+      } else if (audioLevel <= 10) {
+        // Very quiet - slight ripple
+        animationIntensity = 0.2;
+      } else if (audioLevel <= 20) {
+        // Low voice - gentle wave
+        animationIntensity = 0.4;
+      } else if (audioLevel <= 40) {
+        // Normal speech - moderate wave
+        animationIntensity = 0.7;
+      } else {
+        // Loud speech - full wave
+        animationIntensity = 1.0;
+      }
+      
+      // Maximum amplitude is scaled by intensity
+      const baseAmplitude = height * 0.004;
+      const maxAmplitude = 40 * baseAmplitude;
+      
+      // Apply audio level and intensity scaling
+      const effectiveAmplitude = Math.min(audioLevel * baseAmplitude, maxAmplitude) * animationIntensity;
+      
+      // Secondary wave effect that's always present but varies with intensity
+      const secondaryAmplitude = height * 0.003 * Math.max(0.05, animationIntensity / 5);
+      const secondarySpeed = 1 + animationIntensity;
+      
+      // Draw the wave points with varied intensities
+      for (let i = 0; i <= segments; i++) {
+        const x = i * segmentWidth;
+        const position = i / segments;
         
-        {/* Glowing effect that responds to audio level */}
-        <motion.div 
-          className="absolute inset-0 rounded-lg pointer-events-none"
-          animate={{ 
-            boxShadow: `inset 0 0 ${20 + normalizedLevel / 2}px rgba(99, 102, 241, ${0.2 + normalizedLevel / 300})` 
+        // Center weighting (stronger in middle of line, subtle at edges)
+        const centerWeighting = Math.sin(position * Math.PI);
+        
+        // Primary animation speed based on intensity
+        const speedFactor = 2 + (animationIntensity * 3);
+        
+        // Combine waves of different frequencies
+        let y = centerY;
+        
+        // Primary wave - speech reactive
+        if (animationIntensity > 0) {
+          y += Math.sin(i * 0.2 + time * speedFactor) * effectiveAmplitude * centerWeighting;
+        }
+        
+        // Always-present secondary gentle wave (even at low levels)
+        y += Math.sin(i * 0.1 + time * secondarySpeed) * secondaryAmplitude;
+        
+        // Third subtle micro-movement (very gentle)
+        if (animationIntensity > 0.3) {
+          y += Math.sin(i * 0.3 + time * 1.5) * effectiveAmplitude * 0.2 * centerWeighting;
+        }
+        
+        // Add the point
+        ctx.lineTo(x, y);
+      }
+      
+      // Draw the line
+      ctx.stroke();
+      
+      // Add glow effect that scales with intensity
+      if (animationIntensity > 0.1) {
+        ctx.save();
+        ctx.filter = `blur(${Math.min(audioLevel / 60, 2) * animationIntensity}px)`;
+        ctx.globalAlpha = 0.3 * animationIntensity;
+        ctx.stroke();
+        ctx.restore();
+      }
+      
+      animationRef.current = requestAnimationFrame(render);
+    };
+    
+    animationRef.current = requestAnimationFrame(render);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [audioLevel]);
+  
+  return (
+    <div className="w-full py-2 px-0">
+      <div 
+        className="relative h-20 sm:h-24 md:h-32 w-full overflow-hidden rounded-lg shadow-md bg-gradient-to-r from-indigo-500/5 to-purple-500/5 flex items-center justify-center"
+        style={{ 
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        {/* Canvas for waveform */}
+        <canvas 
+          ref={canvasRef} 
+          className="absolute inset-0 w-full h-full z-10"
+          style={{ 
+            willChange: 'transform', /* Hint for browser to optimize */
+            imageRendering: 'high-quality' 
           }}
-          transition={{ duration: 0.1 }}
         />
         
-        {/* Subtle instruction/status when idle */}
-        {audioLevel < 5 && (
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.7 }}
-            transition={{ delay: 1 }}
-            className="text-indigo-200 text-opacity-70 text-sm md:text-base"
-          >
-            Speak to see your voice visualization...
-          </motion.p>
-        )}
+        {/* Speaking indicator */}
+        <AnimatePresence>
+          {isSpeaking && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-2 left-2 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-indigo-600 text-white text-xs font-medium flex items-center z-20"
+            >
+              <motion.span 
+                animate={{ opacity: [1, 0.5, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="w-2.5 h-2.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1.5 sm:mr-1"
+              />
+              <span className="text-sm sm:text-xs">Speaking</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
+
+export default VoiceWaveform;

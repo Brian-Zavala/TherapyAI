@@ -48,25 +48,65 @@ export default function SessionTranscript({ sessionId }: { sessionId: string }) 
     if (!transcript) return []
     
     // Split by newlines and process each line
-    return transcript.split('\n').map((line, index) => {
-      // Check if line is from user or therapist
-      const isUser = line.startsWith('USER:')
-      const isTherapist = line.startsWith('THERAPIST:')
+    const lines = transcript.split('\n').filter(line => line.trim() !== '');
+    
+    // Remove duplicate consecutive therapist messages
+    const deduplicatedLines = [];
+    let lastSpeaker = '';
+    let lastContent = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Check for patterns like "USER:" or "User:" (case insensitive)
+      let isUserMessage = /^user\s*:/i.test(line);
+      // Check for patterns like "THERAPIST:", "ASSISTANT:", "AI:", etc. (case insensitive)
+      const isTherapist = /^(therapist|assistant|ai)\s*:/i.test(line);
       
       // Extract the speaker and content
-      let speaker = ''
-      let content = line
+      let speaker = '';
+      let content = line;
+      let speakerPrefix = '';
       
-      if (isUser) {
-        speaker = 'You'
-        content = line.substring(5).trim()
+      if (isUserMessage) {
+        speaker = 'You';
+        // Find the colon position to extract content properly regardless of case
+        const colonPos = line.indexOf(':');
+        content = colonPos >= 0 ? line.substring(colonPos + 1).trim() : line;
+        speakerPrefix = line.substring(0, colonPos).trim();
       } else if (isTherapist) {
-        speaker = 'AI Therapist'
-        content = line.substring(10).trim()
+        speaker = 'AI Therapist';
+        // Find the colon position to extract content properly regardless of case
+        const colonPos = line.indexOf(':');
+        content = colonPos >= 0 ? line.substring(colonPos + 1).trim() : line;
+        speakerPrefix = line.substring(0, colonPos).trim();
+      } else if (line.trim() !== '') {
+        // If no speaker prefix, assume continuation of previous speaker
+        // Default to AI Therapist if it's the first line without a prefix
+        speaker = lastSpeaker || 'AI Therapist';
+        content = line.trim();
+        // Check if this should be treated as a user message
+        isUserMessage = speaker === 'You';
       }
       
-      return { id: index, speaker, content, isUser }
-    })
+      // Skip if this is a duplicate therapist message
+      if (speaker === 'AI Therapist' && speaker === lastSpeaker && 
+          (content === lastContent || lastContent.includes(content) || content.includes(lastContent))) {
+        continue;
+      }
+      
+      deduplicatedLines.push({ 
+        id: deduplicatedLines.length, 
+        speaker, 
+        content,
+        prefix: speakerPrefix, 
+        isUser: isUserMessage
+      });
+      
+      lastSpeaker = speaker;
+      lastContent = content;
+    }
+    
+    return deduplicatedLines;
   }
 
   if (loading) {

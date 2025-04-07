@@ -28,8 +28,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
   
-  // Redirect authenticated users from auth pages to dashboard
-  if (token && (path === '/auth/login' || path === '/auth/register' || path === '/')) {
+  // Only redirect authenticated users from auth pages to dashboard, not from homepage
+  if (token && (path === '/auth/login' || path === '/auth/register')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
   

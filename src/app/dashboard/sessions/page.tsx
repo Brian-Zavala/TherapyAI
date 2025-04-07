@@ -25,6 +25,7 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'list' | 'details'>('list')
   
   useEffect(() => {
     // Redirect if not logged in
@@ -92,8 +93,7 @@ export default function SessionsPage() {
     }
   };
 
-  // Handle mobile tab view
-  const [activeTab, setActiveTab] = useState<'list' | 'details'>('list');
+  // Mobile tab view is handled above with the other state hooks
   
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">

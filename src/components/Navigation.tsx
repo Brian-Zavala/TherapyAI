@@ -21,7 +21,7 @@ export default function Navigation() {
       : 'text-indigo-100 hover:text-white'
   
   return (
-    <header className="bg-zinc-700 shadow-sm sticky top-0 z-40">
+    <header className="bg-gradient-to-bl from-zinc-800 to-indigo-900 shadow-sm sticky top-0 z-40">
       <div className="w-full px-2 py-3">
         <div className="flex justify-between items-center">
           {/* Logo/Site Title - far left aligned */}

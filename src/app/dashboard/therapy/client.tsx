@@ -172,7 +172,7 @@ export default function TherapyPageClient({ userId }) {
         </AnimatePresence>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 relative z-10">
         {/* Date/Time and Session Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8">
           <motion.div
@@ -213,7 +213,7 @@ export default function TherapyPageClient({ userId }) {
             transition={{ duration: 0.5 }}
             className={`${isSessionActive ? 'md:col-span-3' : 'md:col-span-2'} relative overflow-hidden rounded-2xl shadow-xl transition-all duration-700 ${
               isSessionActive 
-                ? 'bg-gradient-to-br from-slate-900/80 to-indigo-900/80 backdrop-blur-lg border border-indigo-500/30 p-6' 
+                ? 'bg-gradient-to-br from-slate-900/90 to-indigo-900/90 border border-indigo-500/30 p-6' 
                 : 'bg-white p-8'
             }`}
           >
@@ -226,9 +226,9 @@ export default function TherapyPageClient({ userId }) {
               </svg>
             </div>
             
-            {/* Glass effect for active session */}
+            {/* Solid background for better mobile appearance */}
             {isSessionActive && (
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/30 to-indigo-900/30"></div>
             )}
             
             <div className="relative z-10">
@@ -270,7 +270,7 @@ export default function TherapyPageClient({ userId }) {
               {/* Session content */}
               <div className={`transition-colors duration-500 ${isSessionActive ? 'text-white' : 'text-gray-700'}`}>
                 {isSessionActive ? (
-                  <div className={`p-5 rounded-xl mb-8 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 backdrop-blur-md`}>
+                  <div className={`p-5 rounded-xl mb-8 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30`}>
                     <div className="flex items-start">
                       <svg className="w-6 h-6 text-indigo-300 mr-3 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -292,7 +292,7 @@ export default function TherapyPageClient({ userId }) {
                 )}
                 
                 {/* Therapy button with responsive styling */}
-                <div className={`${isSessionActive ? 'flex justify-center mt-8' : 'mt-10'}`}>
+                <div className="flex justify-center items-center mt-8 w-full">
                   <TherapyButton userId={userId} />
                 </div>
               </div>
@@ -344,7 +344,7 @@ export default function TherapyPageClient({ userId }) {
                 <motion.div 
                   key={i} 
                   whileHover={{ y: -4 }}
-                  className={`${tip.color} backdrop-blur-md border rounded-xl p-5 flex flex-col items-center text-center`}
+                  className={`${tip.color} border rounded-xl p-5 flex flex-col items-center text-center`}
                 >
                   <div className="text-3xl mb-3">{tip.icon}</div>
                   <p className="text-white text-sm font-medium">{tip.tip}</p>
