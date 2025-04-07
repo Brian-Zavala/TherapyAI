@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import TherapyButton from "@/components/TherapyButton";
+import TherapyTypeSelector from "@/components/TherapyTypeSelector";
 import { 
   COUPLE_THERAPY_ASSISTANT_CONFIG, 
   INDIVIDUAL_THERAPY_ASSISTANT_CONFIG, 
@@ -13,6 +14,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState(COUPLE_THERAPY_ASSISTANT_CONFIG);
+  // Default to show the selector - user must explicitly choose session type
+  const [showTypeSelector, setShowTypeSelector] = useState(true);
 
   useEffect(() => {
     const checkActive = () => {
@@ -45,23 +48,27 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     };
   }, []);
   
-  // Handle therapy type selection
-  const handleSelectTherapyType = (type: string) => {
+  // Handle selecting therapy type (used by both popup and UI elements within the page)
+  const handleSelectTherapyType = (type: 'couple' | 'solo' | 'family' | string) => {
     setSessionType(type);
     
     // Set the appropriate assistant based on the session type
+    let assistant;
     switch (type) {
       case 'solo':
-        setSelectedAssistant(INDIVIDUAL_THERAPY_ASSISTANT_CONFIG);
+        assistant = INDIVIDUAL_THERAPY_ASSISTANT_CONFIG;
         break;
       case 'family':
-        setSelectedAssistant(FAMILY_THERAPY_ASSISTANT_CONFIG);
+        assistant = FAMILY_THERAPY_ASSISTANT_CONFIG;
         break;
       case 'couple':
       default:
-        setSelectedAssistant(COUPLE_THERAPY_ASSISTANT_CONFIG);
+        assistant = COUPLE_THERAPY_ASSISTANT_CONFIG;
         break;
     }
+    
+    console.log(`Selected ${type} therapy with assistant:`, assistant.name, 'ID:', assistant.id);
+    setSelectedAssistant(assistant);
   };
 
   // Format time
@@ -78,13 +85,25 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     day: 'numeric'
   }).format(currentTime);
 
+
   // Use React.createElement to avoid JSX parsing issues
-  return React.createElement("div", { 
-    className: `min-h-screen transition-all duration-700 ease-in-out opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] ${
-      isSessionActive 
-        ? 'bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950' 
-        : 'bg-gradient-to-b from-slate-50 via-indigo-50/50 to-purple-50/50'
-    }`
+  return React.createElement(React.Fragment, null, [
+    // Therapy Type Selector Popup
+    React.createElement(TherapyTypeSelector, {
+      key: "therapy-selector",
+      isOpen: showTypeSelector,
+      onClose: () => setShowTypeSelector(false),
+      onSelect: handleSelectTherapyType
+    }),
+    
+    // Main Content
+    React.createElement("div", { 
+      key: "main-container",
+      className: `min-h-screen transition-all duration-700 ease-in-out opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] ${
+        isSessionActive 
+          ? 'bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950' 
+          : 'bg-gradient-to-b from-slate-50 via-indigo-50/50 to-purple-50/50'
+      }`
   }, [
     // Main content wrapper
     React.createElement("div", { 
@@ -291,5 +310,6 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         ])
       ])
     ])
+  ])
   ]);
 }

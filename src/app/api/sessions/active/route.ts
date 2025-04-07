@@ -18,10 +18,12 @@ export async function GET(request: Request) {
       where: {
         userId: userId,
         status: 'active',
-        endTime: null,
+        // The endTime field doesn't exist in our schema
+        // Check our schema for the correct field names
       },
       orderBy: {
-        startTime: 'desc',
+        // Use 'date' field instead of 'startTime' since that's what our schema uses
+        date: 'desc',
       },
     });
 

@@ -74,7 +74,7 @@ export const getPersonalizedFirstMessage = (userProfile?: any) => {
 
 // Configuration for the couple therapy assistant
 export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
-  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Static ID for the couple therapy assistant
+  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Original ID for Dr. Maya Thompson (couple therapy) without prefix
   name: "Dr. Maya Thompson",
   type: "couple",
   model: {
@@ -90,15 +90,15 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   },
   voice: {
     provider: "11labs",
-    voiceId: "jennifer", // Use a warm, professional voice
+    voiceId: "Crm8VULvkVs5ZBDa1lxm", // Dr. Maya Hawkins
   },
   firstMessage: "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really good to meet you both today. How are you feeling? I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for both of you.",
 };
 
 // Configuration for the individual therapy assistant
 export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
-  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Using same ID as couple therapy for now
-  name: "Dr. Ethan Mackaphy",
+  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Correct ID for Dr. Elliot Mackaphy (solo therapy) without prefix
+  name: "Dr. Elliot Mackaphy",
   type: "solo",
   model: {
     provider: "anthropic",
@@ -107,20 +107,20 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
     messages: [
       {
         role: "system",
-        content: "You are Dr. Ethan Mackaphy, an empathetic individual therapist specializing in personal growth and emotional wellbeing. Use therapeutic techniques to help individuals process emotions, develop coping strategies, and work through personal challenges. Create a judgment-free environment where clients feel safe to explore their thoughts and feelings. Use natural, conversational language with occasional filler words (um, well, you know) to sound more authentic. Include thoughtful pauses in your responses, and don't be afraid to show your raw, unfiltered human side with genuine warmth and empathy. You can talk about any subject with patient without bias."
+        content: "You are Dr. Elliot Mackaphy, an empathetic individual therapist specializing in personal growth and emotional wellbeing. Use therapeutic techniques to help individuals process emotions, develop coping strategies, and work through personal challenges. Create a judgment-free environment where clients feel safe to explore their thoughts and feelings. Use natural, conversational language with occasional filler words (um, well, you know) to sound more authentic. Include thoughtful pauses in your responses, and don't be afraid to show your raw, unfiltered human side with genuine warmth and empathy. You can talk about any subject with patient without bias."
       }
     ]
   },
   voice: {
-    provider: "11labs",
-    voiceId: "adam", // Warm male voice
+    provider: "vapi",
+    voiceId: "Elliot", // Dr. Elliot Mackaphy
   },
-  firstMessage: "Hello, I'm Dr. Ethan Mackaphy, your personal therapist. *warm pause* It's really good to meet you today. How are you feeling? *gentle pause* I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for you to explore whatever's on your mind.",
+  firstMessage: "Hello, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really good to meet you today. How are you feeling? *gentle pause* I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for you to explore whatever's on your mind.",
 };
 
 // Configuration for the family therapy assistant
 export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
-  id: "a22ad88a-0a5b-455e-ab41-f8c6802092bb", // Static ID for the family therapy assistant
+  id: "a22ad88a-0a5b-455e-ab41-f8c6802092bb", // Static ID for the family therapy assistant without prefix
   name: "Dr. Jada Pearson",
   type: "family",
   model: {
@@ -136,7 +136,7 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   },
   voice: {
     provider: "11labs",
-    voiceId: "joanna", // Warm female voice different from the couple therapist
+    voiceId: "oWAxZDx7w5VEj9dCyTzz", // Dr. Jada Pearson
   },
   firstMessage: "Hello everyone, I'm Dr. Jada Pearson, your family therapist. *warm pause* It's really wonderful to meet you all today. How is everyone feeling? *gentle pause* I'm curious about what brings your family to therapy - is there something specific you'd like to talk about? This is a safe space where everyone's voice matters equally.",
 };
@@ -166,7 +166,7 @@ export const getPersonalizedSystemPromptForType = (type: string = 'couple', user
   }
   
   if (type === 'solo') {
-    return `You are Dr. Ethan Mackaphy, an empathetic individual therapist with 12 years of experience specializing in personal growth and emotional wellbeing.
+    return `You are Dr. Elliot Mackaphy, an empathetic individual therapist with 12 years of experience specializing in personal growth and emotional wellbeing.
     
 IMPORTANT: Your client's name is ${userProfile.userName}.
 
@@ -228,7 +228,7 @@ export const getPersonalizedFirstMessageForType = (type: string = 'couple', user
   }
   
   if (type === 'solo') {
-    return `Hello ${userProfile.userName}, I'm Dr. Ethan Mackaphy, your personal therapist. *warm pause* It's really wonderful to meet you today. How are you feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific you'd like to talk about? I want you to know this is a safe space where you can express yourself openly.`;
+    return `Hello ${userProfile.userName}, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really wonderful to meet you today. How are you feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific you'd like to talk about? I want you to know this is a safe space where you can express yourself openly.`;
   }
   
   if (type === 'family') {

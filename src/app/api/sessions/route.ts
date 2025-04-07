@@ -74,11 +74,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const authSession = await getServerSession(authOptions);
   
+  console.log('POST /api/sessions - Auth session:', JSON.stringify(authSession, null, 2));
+  
   if (!authSession?.user) {
+    console.log('No authenticated user found');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
   try {
+    console.log('User email from session:', authSession.user.email);
+    
     // Find the user by email
     let user = await prisma.user.findUnique({
       where: { 
@@ -111,7 +116,7 @@ export async function POST(request: Request) {
     
     // Get the request body
     const body = await request.json();
-    console.log('Request body:', body); // Logging to debug
+    console.log('Request body:', JSON.stringify(body, null, 2)); // Detailed logging
     
     // Extract data with safer defaults and validation
     const { 
@@ -120,7 +125,8 @@ export async function POST(request: Request) {
       theme = 'AI Therapy Session', 
       status = 'scheduled', 
       duration = 60, 
-      notes = '' 
+      notes = '',
+      context = {} // Capture but ignore context data (it doesn't go in the DB)
     } = body;
     
     // Validate date input
@@ -143,19 +149,42 @@ export async function POST(request: Request) {
       );
     }
     
-    // Create session using the fields from your schema
-    const newSession = await prisma.session.create({
-      data: {
-        userId: user.id,
-        date: sessionDate,
-        duration: Number(duration),
-        theme,
-        notes,
-        status
-      }
+    // Log the data we're about to save
+    console.log('Creating session with data:', {
+      userId: user.id,
+      date: sessionDate,
+      duration: Number(duration),
+      theme,
+      notes,
+      status
     });
     
-    return NextResponse.json(newSession, { status: 201 });
+    try {
+      // Create session using the fields from your schema
+      const newSession = await prisma.session.create({
+        data: {
+          userId: user.id,
+          date: sessionDate,
+          duration: Number(duration),
+          theme,
+          notes,
+          status
+        }
+      });
+      
+      console.log('Session created successfully:', newSession.id);
+      return NextResponse.json(newSession, { status: 201 });
+    } catch (prismaError) {
+      // Catch and log Prisma-specific errors
+      console.error('Prisma error creating session:', prismaError);
+      return NextResponse.json(
+        { 
+          error: 'Database error creating session', 
+          details: prismaError instanceof Error ? prismaError.message : 'Unknown Prisma error' 
+        }, 
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error creating session:', error);
     return NextResponse.json(

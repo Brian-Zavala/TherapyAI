@@ -18,6 +18,8 @@ export async function GET(
   try {
     const sessionId = params.id
     
+    console.log('Fetching session ID:', sessionId)
+    
     // First, find the user by email
     let user = await prisma.user.findUnique({
       where: { 
@@ -79,7 +81,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // params is not a Promise in Next.js route handlers, so we access it directly
   const sessionId = params.id
+  
+  console.log('Processing update for session ID:', sessionId)
 
   try {
     // First, find the user by email
