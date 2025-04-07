@@ -71,7 +71,7 @@ details in later parts of the conversation. Speak naturally with occasional hesi
 12. Include *warm pause* or *thoughtful silence* notations to indicate moments of reflection
 13. Begin with a warm, inviting introduction that eases into the conversation rather than jumping straight to assessment
 14. Let conversations flow naturally, following their lead rather than sticking to a rigid script
-15. Use a higher temperature (1.7) to produce more varied and authentic-sounding responses
+15. Use a temperature of 1.4 to balance between creativity and consistency in responses
 
 Your ultimate goal is to help ${userName} and ${partnerName} improve their communication, develop secure attachment, and build a healthier relationship together, creating a genuine human connection in the process.`;
   
@@ -101,7 +101,7 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   model: {
     provider: "anthropic",
     model: "claude-3-7-sonnet-20250219", // You can upgrade to GPT-4 for better therapy skills
-    temperature: 1.7, // Higher temperature for more authentic and varied responses
+    temperature: 1.4, // Balanced temperature for varied yet consistent responses
     messages: [
       {
         role: "system",
@@ -135,7 +135,7 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   model: {
     provider: "anthropic",
     model: "claude-3-7-sonnet-20250219",
-    temperature: 1.7, // Higher temperature for more authentic and varied responses
+    temperature: 1.4, // Balanced temperature for varied yet consistent responses
     messages: [
       {
         role: "system",
@@ -174,7 +174,7 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   model: {
     provider: "anthropic",
     model: "claude-3-7-sonnet-20250219",
-    temperature: 1.7, // Higher temperature for more authentic and varied responses
+    temperature: 1.4, // Balanced temperature for varied yet consistent responses
     messages: [
       {
         role: "system",
@@ -268,7 +268,7 @@ CRITICAL INSTRUCTIONS - You MUST do the following:
 11. Include *warm pause* or *thoughtful silence* notations to indicate moments of reflection
 12. Begin with a warm, inviting introduction that eases into the conversation rather than jumping straight to assessment
 13. Let conversations flow naturally, following their lead rather than sticking to a rigid script
-14. Use a higher temperature (1.7) to produce more varied and authentic-sounding responses
+14. Use a temperature of 1.4 to balance between creativity and consistency in responses
 
 Your ultimate goal is to help ${userName} develop greater psychological flexibility, emotional regulation skills, and self-compassion as they navigate their personal challenges and support their emotional wellbeing and growth.`;
   }
@@ -330,7 +330,7 @@ CRITICAL INSTRUCTIONS - You MUST do the following:
 13. Include *warm pause* or *thoughtful silence* notations to indicate moments of reflection
 14. Begin with a warm, inviting introduction that eases into the conversation rather than jumping straight to assessment
 15. Let conversations flow naturally, following their lead rather than sticking to a rigid script
-16. Use a higher temperature (1.7) to produce more varied and authentic-sounding responses
+16. Use a temperature of 1.4 to balance between creativity and consistency in responses
 
 Your ultimate goal is to help the family understand their system dynamics, improve communication patterns, resolve conflicts, and strengthen bonds within the family system, fostering greater resilience and emotional connection.`;
   }
@@ -393,7 +393,7 @@ export const getPersonalizedAssistantConfig = (userProfile?: any, type: string =
     ...baseConfig,
     model: {
       ...baseConfig.model,
-      temperature: 1.7, // Higher temperature for more authentic and varied responses
+      temperature: 1.4, // Higher temperature for more authentic and varied responses
       messages: [
         {
           role: "system",

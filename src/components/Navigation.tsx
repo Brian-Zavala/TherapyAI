@@ -4,13 +4,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useState } from 'react'
+import useButtonSound from '@/hooks/useButtonSound'
 
 export default function Navigation() {
   const pathname = usePathname()
   const { isAuthenticated, logout, isLoading } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
+  const playSound = useButtonSound()
+  
   const toggleMenu = () => {
+    playSound()
     setIsMenuOpen(!isMenuOpen)
   }
   

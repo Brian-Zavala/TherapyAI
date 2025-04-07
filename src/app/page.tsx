@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import ButtonWithSound from '@/components/ButtonWithSound'
 
 export default function Home() {
   return (
@@ -41,7 +42,8 @@ export default function Home() {
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.5, delay: 0.4 }}
   >
-    <Link 
+    <ButtonWithSound
+      as={Link}
       href="/dashboard/therapy" 
       className="bg-gradient-to-r from-indigo-500 to-purple-600 
      text-white 
@@ -62,7 +64,7 @@ export default function Home() {
      focus:ring-purple-500"
     >
       Start Your Therapy Session
-    </Link>
+    </ButtonWithSound>
   </motion.div>
 </div>
       </section>

@@ -48,6 +48,20 @@ model ProgressTracking {
   closenessScore     Int
   communicationScore Int
   user               User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model RelationshipProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  week          Int
+  date          DateTime @default(now())
+  closeness     Float
+  communication Float
+
+  @@index([userId])
+  @@index([week])
 }
 
 model CommunicationMetrics {

@@ -4,14 +4,18 @@
 import { useState, useEffect, useCallback } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, RadialBarChart, RadialBar } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
+import RelationshipAssessment from "@/components/RelationshipAssessment"
 
 export default function CommunicationMetrics() {
+  const router = useRouter()
   const [metricsData, setMetricsData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [chartType, setChartType] = useState('radar') // 'radar', 'pie', or 'radial'
   const [activeIndex, setActiveIndex] = useState(0)
   const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
+  const [isAssessmentOpen, setIsAssessmentOpen] = useState(false) // State for assessment modal
   
   const fetchMetricsData = async (type = 'couple') => {
     setLoading(true)
@@ -19,7 +23,14 @@ export default function CommunicationMetrics() {
       const response = await fetch(`/api/dashboard/communication-metrics?type=${type}`)
       
       if (!response.ok) {
-        throw new Error('Failed to fetch communication metrics')
+        // Handle different error cases based on status code
+        if (response.status === 401) {
+          throw new Error('Please sign in to view your metrics')
+        } else if (response.status === 404) {
+          throw new Error('User profile not found')
+        } else {
+          throw new Error('No data available yet')
+        }
       }
       
       const data = await response.json()
@@ -139,38 +150,81 @@ export default function CommunicationMetrics() {
     <div className="h-80 flex items-center justify-center text-blue-600">
       <div className="text-center p-6 bg-blue-50 rounded-lg">
         <svg className="w-12 h-12 mx-auto text-blue-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-        <p className="text-lg font-medium">Couldn't load your communication data</p>
-        <p className="text-sm mt-2 text-blue-500">{error}</p>
+        <p className="text-lg font-medium">No communication data available yet</p>
+        <p className="text-sm mt-2 text-blue-500">Complete your first therapy session to see analytics and insights</p>
       </div>
     </div>
   )
   
+  // Function to toggle assessment modal
+  const toggleAssessment = () => {
+    setIsAssessmentOpen(!isAssessmentOpen)
+  }
+  
   if (metricsData.length === 0) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="h-80 flex items-center justify-center text-blue-600"
-      >
-        <div className="text-center p-6 bg-blue-50 rounded-lg max-w-sm">
-          <svg className="w-12 h-12 mx-auto text-blue-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <p className="text-lg font-medium">Begin tracking your communication</p>
-          <p className="text-sm mt-2 text-blue-500">
-            Complete your first assessment to see insights about your communication patterns
-          </p>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
-          >
-            Take Assessment
-          </motion.button>
-        </div>
-      </motion.div>
+      <>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="h-80 flex items-center justify-center text-blue-600"
+        >
+          <div className="text-center p-6 bg-blue-50 rounded-lg max-w-sm">
+            <svg className="w-12 h-12 mx-auto text-blue-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <p className="text-lg font-medium">No data available yet</p>
+            <p className="text-sm mt-2 text-blue-500">
+              Complete an assessment or therapy session to see analytics and insights
+            </p>
+            <div className="flex flex-col sm:flex-row sm:space-x-3 justify-center mt-4">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="mb-2 sm:mb-0 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+                onClick={toggleAssessment}
+              >
+                Take Assessment
+              </motion.button>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium"
+                onClick={() => router.push('/schedule')}
+              >
+                Schedule Session
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Assessment Modal */}
+        {isAssessmentOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-800">Relationship Assessment</h3>
+                <button onClick={toggleAssessment} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="mb-6 text-sm text-gray-600">
+                  Your assessment results will be used to personalize your therapy experience and 
+                  track your progress over time.
+                </div>
+                <div className="overflow-y-auto max-h-[60vh]">
+                  <RelationshipAssessment />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     )
   }
   
