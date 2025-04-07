@@ -71,11 +71,21 @@ body.session-active {
   color: #f8fafc;
 }
 
-/* Optional ambient animation */
+/* Animations */
 @keyframes ambient-float {
   0% { transform: translate(0, 0); }
   50% { transform: translate(10px, -10px); }
   100% { transform: translate(0, 0); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  0% { height: 0; opacity: 0; }
+  100% { height: auto; opacity: 1; }
 }
 
 body.session-active::before {

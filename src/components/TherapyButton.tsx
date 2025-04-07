@@ -1,20 +1,49 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React from 'react'
+// Framer Motion import commented out due to build errors
+// import { motion, AnimatePresence } from 'framer-motion'
 import Vapi from '@vapi-ai/web'
 import dynamic from 'next/dynamic'
+import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
   ssr: false
 })
 
-type TherapyButtonProps = {
-  userId: string
+interface AssistantConfigType {
+  id: string;
+  name: string;
+  type: string;
+  model: {
+    provider: string;
+    model: string;
+    temperature: number;
+    messages: Array<{
+      role: string;
+      content: string;
+    }>;
+  };
+  voice: {
+    provider: string;
+    voiceId: string;
+  };
+  firstMessage: string;
 }
 
-function TherapyButton({ userId }: TherapyButtonProps) {
+type TherapyButtonProps = {
+  userId: string;
+  assistantConfig?: AssistantConfigType;
+  therapyType?: string;
+}
+
+function TherapyButton({ 
+  userId, 
+  assistantConfig = COUPLE_THERAPY_ASSISTANT_CONFIG, 
+  therapyType = 'couple' 
+}: TherapyButtonProps) {
   // State management
   const [isLoading, setIsLoading] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
@@ -223,18 +252,17 @@ function TherapyButton({ userId }: TherapyButtonProps) {
       // Customize assistant if profile available
       if (userProfile && vapiInstanceRef.current) {
         try {
-          const { getPersonalizedSystemPrompt, getPersonalizedFirstMessage } = await import('@/lib/vapi')
+          const { getPersonalizedAssistantConfig, getPersonalizedSystemPromptForType, getPersonalizedFirstMessageForType } = await import('@/lib/vapi')
           
-          const systemPrompt = getPersonalizedSystemPrompt({
+          const userProfileData = {
             userName: userProfile.name,
             partnerName: userProfile.partnerName,
             relationshipStatus: userProfile.relationshipStatus
-          })
+          };
           
-          const firstMessage = getPersonalizedFirstMessage({
-            userName: userProfile.name,
-            partnerName: userProfile.partnerName
-          })
+          // Get personalized prompt and message based on therapy type
+          const systemPrompt = getPersonalizedSystemPromptForType(therapyType, userProfileData);
+          const firstMessage = getPersonalizedFirstMessageForType(therapyType, userProfileData);
           
           vapiInstanceRef.current._customData = {
             systemPrompt,
@@ -314,11 +342,14 @@ function TherapyButton({ userId }: TherapyButtonProps) {
           userId,
           startTime: new Date().toISOString(),
           status: 'active',
-          theme: 'general relationship',
+          theme: therapyType === 'couple' ? 'relationship counseling' : 
+                 therapyType === 'solo' ? 'individual therapy' : 'family therapy',
+          sessionType: therapyType,
           context: userProfile ? {
             userName: userProfile.name,
             partnerName: userProfile.partnerName,
-            relationshipStatus: userProfile.relationshipStatus
+            relationshipStatus: userProfile.relationshipStatus,
+            therapyType: therapyType
           } : undefined,
         }),
       })
@@ -339,30 +370,38 @@ function TherapyButton({ userId }: TherapyButtonProps) {
       // Set up audio analyzer
       await setupAudioAnalyzer()
       
-      // Get assistant ID
-      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID
+      // Get assistant ID - either from assistantConfig or from env vars
+      let assistantId;
+      
+      if (assistantConfig && assistantConfig.id) {
+        assistantId = assistantConfig.id;
+      } else {
+        assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+      }
+      
       if (!assistantId) {
         throw new Error('No assistant ID available')
       }
       
-      // Prepare assistant config
-      const assistantConfig = {
+      // Prepare assistant config for API call
+      const vapiAssistantConfig = {
         variableValues: userProfile ? {
           username: userProfile.name || 'user',
-          partnername: userProfile.partnerName || 'partner'
+          partnername: userProfile.partnerName || 'partner',
+          therapyType: therapyType
         } : undefined,
         firstMessage: vapiInstanceRef.current?._customData?.firstMessage
       }
       
       // Start call
       try {
-        await vapiInstanceRef.current?.start(assistantId, assistantConfig)
+        await vapiInstanceRef.current?.start(assistantId, vapiAssistantConfig)
       } catch (err) {
         console.error('Error starting call, trying minimal config:', err)
         
         // Try with minimal config
         const minimalConfig = {
-          variableValues: assistantConfig.variableValues
+          variableValues: vapiAssistantConfig.variableValues
         }
         
         await vapiInstanceRef.current?.start(assistantId, minimalConfig)
@@ -452,28 +491,28 @@ function TherapyButton({ userId }: TherapyButtonProps) {
   return (
     <div className="flex flex-col items-center w-full max-w-full sm:max-w-lg mx-auto">
       {/* Error messages */}
-      <AnimatePresence>
+      {/* AnimatePresence removed temporarily */}
         {errorMessage && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm w-full"
+          <div 
+            // initial={{ opacity: 0, y: -10 }}
+            // animate={{ opacity: 1, y: 0 }}
+            // exit={{ opacity: 0, y: -10 }}
+            className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm w-full opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards]"
           >
             {errorMessage}
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      
       
       {/* Voice waveform - only visible during active calls */}
-      <AnimatePresence>
+      {/* AnimatePresence removed temporarily */}
         {isCallActive && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="w-full mb-4"
+          <div
+            // initial={{ opacity: 0, height: 0 }}
+            // animate={{ opacity: 1, height: 'auto' }}
+            // exit={{ opacity: 0, height: 0 }}
+            // transition={{ duration: 0.3 }}
+            className="w-full mb-4 opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards]"
             style={{
               maxWidth: '100%',
               width: '100%',
@@ -484,25 +523,23 @@ function TherapyButton({ userId }: TherapyButtonProps) {
             }}
           >
             <VoiceWaveform audioLevel={audioLevel} />
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      
       
       {/* Action buttons */}
       {!isCallActive ? (
-        <motion.button
+        <button
           onClick={startTherapySession}
           disabled={isLoading}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="relative px-5 sm:px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-lg hover:shadow-indigo-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+          className="relative px-5 sm:px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-lg hover:shadow-indigo-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden hover:scale-105"
         >
-          <motion.div
-            className="absolute inset-0 opacity-30"
-            animate={{
-              background: ['linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)', 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)']
-            }}
-            transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
+          <div 
+            className="absolute inset-0 opacity-30 bg-gradient-to-r from-indigo-500 to-purple-600"
+            // animate={{
+            //  background: ['linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)', 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)']
+            // }}
+            // transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
           />
           
           <div className="flex items-center justify-center relative z-10">
@@ -511,14 +548,12 @@ function TherapyButton({ userId }: TherapyButtonProps) {
             </svg>
             <span className="whitespace-nowrap text-sm sm:text-base">{isLoading ? 'Connecting...' : 'Start Therapy Session'}</span>
           </div>
-        </motion.button>
+        </button>
       ) : (
-        <motion.button
+        <button
           onClick={endTherapySession}
           disabled={isLoading}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="relative px-5 sm:px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-lg hover:shadow-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+          className="relative px-5 sm:px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-lg hover:shadow-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden hover:scale-105"
         >
           <div className="flex items-center justify-center relative z-10">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -526,18 +561,18 @@ function TherapyButton({ userId }: TherapyButtonProps) {
             </svg>
             <span className="whitespace-nowrap text-sm sm:text-base">{isLoading ? 'Ending...' : 'End Therapy Session'}</span>
           </div>
-        </motion.button>
+        </button>
       )}
       
       {/* Session status message */}
       {isCallActive && (
-        <motion.p 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 text-green-600 font-medium"
+        <p 
+          // initial={{ opacity: 0, y: 10 }}
+          // animate={{ opacity: 1, y: 0 }}
+          className="mt-4 text-green-600 font-medium opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards]"
         >
           Session active - speak with our AI therapist
-        </motion.p>
+        </p>
       )}
     </div>
   )
