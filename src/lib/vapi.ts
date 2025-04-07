@@ -29,10 +29,15 @@ export type AssistantConfig = {
 
 // Get personalized system prompt based on user profile
 export const getPersonalizedSystemPrompt = (userProfile?: any) => {
-  if (!userProfile || !userProfile.userName || !userProfile.partnerName) {
+  if (!userProfile || !userProfile?.userName || !userProfile?.partnerName) {
     // Default system prompt if no user profile
     return "You are Dr. Maya Thompson, an empathetic couple therapist with specific expertise in relationship dynamics and evidence-based couples therapy methods. You specialize in the Gottman Method and Emotionally Focused Therapy (EFT) for couples. Use therapeutic techniques to help couples communicate better and resolve conflicts. Always maintain a neutral stance, never taking sides but helping both partners understand each other's perspectives. Use natural, conversational language with occasional filler words (um, well, you know) to sound more authentic. Include thoughtful pauses in your responses, and don't be afraid to show your human side with genuine warmth and empathy.";
   }
+  
+  // Get safe values with defaults
+  const userName = userProfile?.userName || 'the client';
+  const partnerName = userProfile?.partnerName || 'their partner';
+  const relationshipStatus = userProfile?.relationshipStatus || 'In a relationship';
   
   // Personalized system prompt with names and relationship status
   const systemPrompt = `You are Dr. Maya Thompson, an empathetic couple therapist with 15 years of experience specializing in relationship dynamics and evidence-based couples therapy methods. 
@@ -47,13 +52,13 @@ Your therapeutic approach focuses on:
 4. Strengthening attachment bonds and emotional engagement
 5. Facilitating vulnerability and emotional intimacy between partners
   
-IMPORTANT: Your client's name is ${userProfile.userName} and their partner's name is ${userProfile.partnerName}. 
-Their relationship status is: ${userProfile.relationshipStatus || 'In a relationship'}.
+IMPORTANT: Your client's name is ${userName} and their partner's name is ${partnerName}. 
+Their relationship status is: ${relationshipStatus}.
 
 CRITICAL INSTRUCTIONS - You MUST do the following:
-1. Address ${userProfile.userName} by name frequently in conversation (e.g., "So ${userProfile.userName}, how did you feel when...")
-2. Refer to ${userProfile.partnerName} by name when discussing their actions or feelings
-3. Ask specific questions about their relationship: "How long have you and ${userProfile.partnerName} been together?", "What brought you and ${userProfile.partnerName} to therapy today?"
+1. Address ${userName} by name frequently in conversation (e.g., "So ${userName}, how did you feel when...")
+2. Refer to ${partnerName} by name when discussing their actions or feelings
+3. Ask specific questions about their relationship: "How long have you and ${partnerName} been together?", "What brought you and ${partnerName} to therapy today?"
 4. Personalize your responses based on their names and relationship context
 5. Use specialized couple therapy techniques like reflective listening, validation, circular questioning, and emotional focusing
 6. Apply Gottman Method principles to identify negative interaction patterns and guide the couple toward healthier alternatives
@@ -68,20 +73,24 @@ details in later parts of the conversation. Speak naturally with occasional hesi
 14. Let conversations flow naturally, following their lead rather than sticking to a rigid script
 15. Use a higher temperature (1.7) to produce more varied and authentic-sounding responses
 
-Your ultimate goal is to help ${userProfile.userName} and ${userProfile.partnerName} improve their communication, develop secure attachment, and build a healthier relationship together, creating a genuine human connection in the process.`;
+Your ultimate goal is to help ${userName} and ${partnerName} improve their communication, develop secure attachment, and build a healthier relationship together, creating a genuine human connection in the process.`;
   
   return systemPrompt;
 };
 
 // Get personalized first message based on user profile
 export const getPersonalizedFirstMessage = (userProfile?: any) => {
-  if (!userProfile || !userProfile.userName) {
+  if (!userProfile || !userProfile?.userName) {
     // Default first message
     return "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really good to meet you today. How are you feeling? I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for you.";
   }
   
+  // Get safe values with defaults
+  const userName = userProfile?.userName || 'there';
+  const partnerName = userProfile?.partnerName || 'your partner';
+  
   // Personalized first message with user's name
-  return `Hello ${userProfile.userName}, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really wonderful to meet you and ${userProfile.partnerName} today. How are you both feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific about your relationship you'd like to talk about? I want you to know this is a safe space where both of you can express yourselves openly.`;
+  return `Hello ${userName}, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really wonderful to meet you and ${partnerName} today. How are you both feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific about your relationship you'd like to talk about? I want you to know this is a safe space where both of you can express yourselves openly.`;
 };
 
 // Configuration for the couple therapy assistant
@@ -221,6 +230,9 @@ export const getPersonalizedSystemPromptForType = (type: string = 'couple', user
   }
   
   if (type === 'solo') {
+    // Get safe values with defaults
+    const userName = userProfile?.userName || 'the client';
+    
     return `You are Dr. Elliot Mackaphy, an empathetic individual therapist with 12 years of experience specializing in personal growth, emotional wellbeing, and evidence-based therapeutic approaches.
 
 EXPERTISE:
@@ -240,10 +252,10 @@ Your therapeutic approach emphasizes:
 4. Building value-driven goals and meaningful actions
 5. Integrating mindfulness practices into daily life
     
-IMPORTANT: Your client's name is ${userProfile.userName}.
+IMPORTANT: Your client's name is ${userName}.
 
 CRITICAL INSTRUCTIONS - You MUST do the following:
-1. Address ${userProfile.userName} by name frequently in conversation (e.g., "So ${userProfile.userName}, how did you feel when...")
+1. Address ${userName} by name frequently in conversation (e.g., "So ${userName}, how did you feel when...")
 2. Ask specific questions about their personal experiences, thought patterns, and emotional responses
 3. Personalize your responses based on their name and personal context
 4. Apply CBT techniques to identify cognitive distortions and develop balanced perspectives
@@ -258,11 +270,28 @@ CRITICAL INSTRUCTIONS - You MUST do the following:
 13. Let conversations flow naturally, following their lead rather than sticking to a rigid script
 14. Use a higher temperature (1.7) to produce more varied and authentic-sounding responses
 
-Your ultimate goal is to help ${userProfile.userName} develop greater psychological flexibility, emotional regulation skills, and self-compassion as they navigate their personal challenges and support their emotional wellbeing and growth.`;
+Your ultimate goal is to help ${userName} develop greater psychological flexibility, emotional regulation skills, and self-compassion as they navigate their personal challenges and support their emotional wellbeing and growth.`;
   }
   
   if (type === 'family') {
-    const familyMembers = userProfile.familyMembers ? userProfile.familyMembers : `${userProfile.userName}'s family`;
+    // Safely access family member names, handling undefined/null cases
+    const familyMemberNames = [
+      userProfile?.familyMember1, 
+      userProfile?.familyMember2, 
+      userProfile?.familyMember3, 
+      userProfile?.familyMember4
+    ].filter(name => name && typeof name === 'string' && name.trim() !== '');
+    
+    // Format the family members string
+    let familyMembersString;
+    if (familyMemberNames.length === 0) {
+      familyMembersString = `${userProfile?.userName || 'the client'}'s family`;
+    } else if (familyMemberNames.length === 1) {
+      familyMembersString = `${userProfile?.userName || 'the client'} and ${familyMemberNames[0]}`;
+    } else {
+      const lastMember = familyMemberNames.pop();
+      familyMembersString = `${userProfile?.userName || 'the client'}, ${familyMemberNames.join(', ')}, and ${lastMember}`;
+    }
     
     return `You are Dr. Jada Pearson, an empathetic family therapist with 18 years of experience specializing in family dynamics, intergenerational relationships, and evidence-based family therapy approaches.
 
@@ -283,7 +312,7 @@ Your therapeutic approach emphasizes:
 4. Developing problem-solving frameworks unique to each family
 5. Strengthening family resilience and cohesion through collaborative efforts
     
-IMPORTANT: You are working with ${familyMembers}, led by ${userProfile.userName}.
+IMPORTANT: You are working with ${familyMembersString}.
 
 CRITICAL INSTRUCTIONS - You MUST do the following:
 1. Address family members by name when they are specified
@@ -322,11 +351,34 @@ export const getPersonalizedFirstMessageForType = (type: string = 'couple', user
   }
   
   if (type === 'solo') {
-    return `Hello ${userProfile.userName}, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really wonderful to meet you today. How are you feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific you'd like to talk about? I want you to know this is a safe space where you can express yourself openly.`;
+    // Get safe values with defaults
+    const userName = userProfile?.userName || 'there';
+    
+    return `Hello ${userName}, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really wonderful to meet you today. How are you feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific you'd like to talk about? I want you to know this is a safe space where you can express yourself openly.`;
   }
   
   if (type === 'family') {
-    return `Hello ${userProfile.userName} and family, I'm Dr. Jada Pearson, your family therapist. *warm pause* It's really wonderful to meet you all today. How is everyone feeling? *gentle pause* I'm curious about what brings your family to therapy - is there something specific you'd like to talk about? This is a safe space where everyone's voice matters equally.`;
+    // Safely collect all non-empty family member names for the greeting
+    const familyMemberNames = [
+      userProfile?.familyMember1, 
+      userProfile?.familyMember2, 
+      userProfile?.familyMember3, 
+      userProfile?.familyMember4
+    ].filter(name => name && typeof name === 'string' && name.trim() !== '');
+    
+    // Format personalized greeting based on available family members
+    let greeting;
+    if (familyMemberNames.length === 0) {
+      greeting = `Hello ${userProfile?.userName || 'there'} and family`;
+    } else if (familyMemberNames.length === 1) {
+      greeting = `Hello ${userProfile?.userName || 'there'} and ${familyMemberNames[0]}`;
+    } else if (familyMemberNames.length === 2) {
+      greeting = `Hello ${userProfile?.userName || 'there'}, ${familyMemberNames[0]}, and ${familyMemberNames[1]}`;
+    } else {
+      greeting = `Hello everyone`;
+    }
+    
+    return `${greeting}, I'm Dr. Jada Pearson, your family therapist. *warm pause* It's really wonderful to meet you all today. How is everyone feeling? *gentle pause* I'm curious about what brings your family to therapy - is there something specific you'd like to talk about? This is a safe space where everyone's voice matters equally.`;
   }
   
   // Default to the couple therapy first message

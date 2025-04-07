@@ -196,16 +196,16 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-80 mb-6 sm:mb-0"
+      className="h-[340px] sm:h-80 lg:h-96 mb-6 sm:mb-0 overflow-hidden"
     >
       {/* Therapy type selector at the very top */}
-      <div className="flex justify-center mb-4">
-        <div className="inline-flex p-1 bg-indigo-50 rounded-lg">
+      <div className="flex justify-center mb-2 sm:mb-4">
+        <div className="inline-flex p-1 bg-indigo-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('couple')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'couple' 
                 ? 'bg-indigo-600 text-white' 
                 : 'text-indigo-800 hover:bg-indigo-100'
@@ -217,7 +217,7 @@ export default function SessionTimeChart() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('solo')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'solo' 
                 ? 'bg-indigo-600 text-white' 
                 : 'text-indigo-800 hover:bg-indigo-100'
@@ -229,7 +229,7 @@ export default function SessionTimeChart() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('family')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'family' 
                 ? 'bg-indigo-600 text-white' 
                 : 'text-indigo-800 hover:bg-indigo-100'
@@ -269,7 +269,7 @@ export default function SessionTimeChart() {
         </motion.button>
       </div>
       
-      <div className="h-[75%] w-full">
+      <div className="h-[70%] min-h-[200px] w-full overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
             data={sessionData}
@@ -408,9 +408,9 @@ export default function SessionTimeChart() {
       </div>
       
       {/* Chart legend/annotation */}
-      <div className="flex justify-center mt-1 mb-3">
-        <p className="text-xs text-gray-500 italic max-w-md text-center px-2">
-          Click on any bar for details. Bars represent minutes spent in therapy.
+      <div className="flex justify-center">
+        <p className="text-xs text-gray-500 italic text-center -translate-y-7.5">
+          Click on any bar for details.
         </p>
       </div>
     </motion.div>

@@ -15,6 +15,10 @@ model User {
   password             String
   partnerName          String?
   relationshipStatus   String?                @default("Married")
+  familyMember1        String?
+  familyMember2        String?
+  familyMember3        String?
+  familyMember4        String?
   assistantId          String?                // Vapi assistant ID
   communicationMetrics CommunicationMetrics[]
   progressTracking     ProgressTracking[]

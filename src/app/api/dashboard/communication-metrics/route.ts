@@ -34,55 +34,136 @@ export async function GET(request: Request) {
       }
     });
 
-    // Define default metrics for each therapy type
-    const getDefaultMetrics = (type: string) => {
-      switch (type) {
-        case 'solo':
-          return [
-            { name: "Self-awareness", value: 30 },
-            { name: "Emotional Regulation", value: 25 },
-            { name: "Personal Growth", value: 35 },
-            { name: "Coping Skills", value: 20 }
-          ];
-        case 'family':
-          return [
-            { name: "Family Communication", value: 25 },
-            { name: "Role Definition", value: 30 },
-            { name: "Conflict Management", value: 20 },
-            { name: "Family Bonding", value: 35 }
-          ];
-        case 'couple':
-        default:
-          return [
-            { name: "Active Listening", value: 25 },
-            { name: "Expressing Needs", value: 25 },
-            { name: "Conflict Resolution", value: 25 },
-            { name: "Emotional Support", value: 25 }
-          ];
-      }
-    };
-
+    // If no metrics found, query the session data to generate real metrics based on actual session history
     if (!metrics) {
-      // Return default values based on therapy type if no metrics are found
-      return NextResponse.json(getDefaultMetrics(therapyType));
+      // Get completed sessions for this user to analyze real data
+      const completedSessions = await prisma.session.findMany({
+        where: {
+          userId: user.id,
+          status: 'completed',
+          type: therapyType
+        },
+        orderBy: {
+          date: 'desc'
+        },
+        take: 10 // Use last 10 sessions for analysis
+      });
+      
+      // If there are completed sessions, calculate metrics based on actual session data
+      if (completedSessions.length > 0) {
+        // Initialize metrics based on therapy type
+        let calculatedMetrics;
+        const sessionCount = completedSessions.length;
+        const totalDuration = completedSessions.reduce((sum, session) => sum + (session.duration || 0), 0);
+        const avgDuration = totalDuration / sessionCount;
+        const hasTranscript = completedSessions.filter(s => s.transcript && s.transcript.length > 0).length;
+        const transcriptRatio = hasTranscript / sessionCount * 100;
+        
+        // Generate metrics based on actual session data and therapy type
+        if (therapyType === 'solo') {
+          calculatedMetrics = [
+            { name: "Self-awareness", value: Math.min(100, Math.round(avgDuration * 0.6) + (transcriptRatio * 0.3)) },
+            { name: "Emotional Regulation", value: Math.min(100, Math.round(sessionCount * 5) + (transcriptRatio * 0.2)) },
+            { name: "Personal Growth", value: Math.min(100, Math.round(avgDuration * 0.5) + Math.round(sessionCount * 4)) },
+            { name: "Coping Skills", value: Math.min(100, Math.round(sessionCount * 6) + (transcriptRatio * 0.25)) }
+          ];
+        } else if (therapyType === 'family') {
+          calculatedMetrics = [
+            { name: "Family Communication", value: Math.min(100, Math.round(avgDuration * 0.5) + (transcriptRatio * 0.35)) },
+            { name: "Role Definition", value: Math.min(100, Math.round(sessionCount * 6) + (transcriptRatio * 0.15)) },
+            { name: "Conflict Management", value: Math.min(100, Math.round(avgDuration * 0.4) + Math.round(sessionCount * 4)) },
+            { name: "Family Bonding", value: Math.min(100, Math.round(sessionCount * 7) + (transcriptRatio * 0.2)) }
+          ];
+        } else {
+          // Default 'couple' metrics
+          calculatedMetrics = [
+            { name: "Active Listening", value: Math.min(100, Math.round(avgDuration * 0.5) + (transcriptRatio * 0.3)) },
+            { name: "Expressing Needs", value: Math.min(100, Math.round(sessionCount * 5) + (transcriptRatio * 0.25)) },
+            { name: "Conflict Resolution", value: Math.min(100, Math.round(avgDuration * 0.4) + Math.round(sessionCount * 5)) },
+            { name: "Emotional Support", value: Math.min(100, Math.round(sessionCount * 6) + (transcriptRatio * 0.2)) }
+          ];
+        }
+        
+        return NextResponse.json(calculatedMetrics);
+      }
+      
+      // If no completed sessions, return empty metrics array to show empty state in UI
+      return NextResponse.json([]);
     }
 
-    // For demo purposes, modify the metrics based on therapy type
-    // In a real app, you would have separate metrics stored for each therapy type
+    // Get real metrics based on therapy type from database
     if (therapyType === 'solo') {
-      return NextResponse.json([
-        { name: "Self-awareness", value: Math.min(100, metrics.activeListeningScore + 10) },
-        { name: "Emotional Regulation", value: Math.min(100, metrics.expressingNeedsScore + 5) },
-        { name: "Personal Growth", value: Math.min(100, metrics.conflictResolutionScore + 15) },
-        { name: "Coping Skills", value: Math.min(100, metrics.emotionalSupportScore - 5) }
-      ]);
+      // Find solo therapy metrics for this user
+      const soloMetrics = await prisma.soloTherapyMetrics.findFirst({
+        where: {
+          userId: user.id
+        },
+        orderBy: {
+          date: 'desc'
+        }
+      });
+      
+      // If solo metrics exist, use them
+      if (soloMetrics) {
+        return NextResponse.json([
+          { name: "Self-awareness", value: soloMetrics.selfAwarenessScore },
+          { name: "Emotional Regulation", value: soloMetrics.emotionalRegulationScore },
+          { name: "Personal Growth", value: soloMetrics.personalGrowthScore },
+          { name: "Coping Skills", value: soloMetrics.copingSkillsScore }
+        ]);
+      } else {
+        // Calculate from the primary metrics as a fallback
+        const completedSessions = await prisma.session.count({
+          where: {
+            userId: user.id,
+            status: 'completed',
+            type: 'solo'
+          }
+        });
+        
+        return NextResponse.json([
+          { name: "Self-awareness", value: Math.min(100, metrics.activeListeningScore + Math.round(completedSessions * 2)) },
+          { name: "Emotional Regulation", value: Math.min(100, metrics.expressingNeedsScore + Math.round(completedSessions * 1.5)) },
+          { name: "Personal Growth", value: Math.min(100, metrics.conflictResolutionScore + Math.round(completedSessions * 3)) },
+          { name: "Coping Skills", value: Math.min(100, metrics.emotionalSupportScore + Math.round(completedSessions)) }
+        ]);
+      }
     } else if (therapyType === 'family') {
-      return NextResponse.json([
-        { name: "Family Communication", value: Math.min(100, metrics.activeListeningScore - 5) },
-        { name: "Role Definition", value: Math.min(100, metrics.expressingNeedsScore + 10) },
-        { name: "Conflict Management", value: Math.min(100, metrics.conflictResolutionScore - 5) },
-        { name: "Family Bonding", value: Math.min(100, metrics.emotionalSupportScore + 10) }
-      ]);
+      // Find family therapy metrics for this user
+      const familyMetrics = await prisma.familyTherapyMetrics.findFirst({
+        where: {
+          userId: user.id
+        },
+        orderBy: {
+          date: 'desc'
+        }
+      });
+      
+      // If family metrics exist, use them
+      if (familyMetrics) {
+        return NextResponse.json([
+          { name: "Family Communication", value: familyMetrics.familyCommunicationScore },
+          { name: "Role Definition", value: familyMetrics.roleDefinitionScore },
+          { name: "Conflict Management", value: familyMetrics.conflictManagementScore },
+          { name: "Family Bonding", value: familyMetrics.familyBondingScore }
+        ]);
+      } else {
+        // Calculate from the primary metrics as a fallback
+        const completedSessions = await prisma.session.count({
+          where: {
+            userId: user.id,
+            status: 'completed',
+            type: 'family'
+          }
+        });
+        
+        return NextResponse.json([
+          { name: "Family Communication", value: Math.min(100, metrics.activeListeningScore + Math.round(completedSessions * 1.5)) },
+          { name: "Role Definition", value: Math.min(100, metrics.expressingNeedsScore + Math.round(completedSessions * 2)) },
+          { name: "Conflict Management", value: Math.min(100, metrics.conflictResolutionScore + Math.round(completedSessions)) },
+          { name: "Family Bonding", value: Math.min(100, metrics.emotionalSupportScore + Math.round(completedSessions * 2.5)) }
+        ]);
+      }
     } else {
       // Default 'couple' metrics
       const formattedMetrics = [

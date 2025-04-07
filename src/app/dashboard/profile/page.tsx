@@ -17,7 +17,11 @@ export default function ProfileSettings() {
     name: "",
     email: "",
     partnerName: "",
-    relationshipStatus: "Married"
+    relationshipStatus: "Married",
+    familyMember1: "",
+    familyMember2: "",
+    familyMember3: "",
+    familyMember4: ""
   })
   
   // Debug logging for session and check for new user flag
@@ -61,7 +65,11 @@ export default function ProfileSettings() {
           name: userData.name || "",
           email: userData.email || "",
           partnerName: userData.partnerName || "",
-          relationshipStatus: userData.relationshipStatus || "Married"
+          relationshipStatus: userData.relationshipStatus || "Married",
+          familyMember1: userData.familyMember1 || "",
+          familyMember2: userData.familyMember2 || "",
+          familyMember3: userData.familyMember3 || "",
+          familyMember4: userData.familyMember4 || ""
         })
       } catch (error) {
         console.error("Profile fetch error details:", error)
@@ -252,6 +260,76 @@ export default function ProfileSettings() {
                   </div>
                 </div>
               </div>
+              
+              {/* Family Members Section */}
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 mt-6">
+                <h3 className="text-sm font-medium text-purple-800 mb-3 flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Family Members (For Family Therapy)
+                </h3>
+                
+                <p className="text-sm text-purple-700 mb-4">
+                  Add up to 4 family members who may participate in family therapy sessions. This information will help personalize your family therapy experience.
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="familyMember1" className="block text-sm font-medium text-gray-700 mb-1">Family Member 1</label>
+                      <input
+                        type="text"
+                        id="familyMember1"
+                        name="familyMember1"
+                        value={formData.familyMember1}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember2" className="block text-sm font-medium text-gray-700 mb-1">Family Member 2</label>
+                      <input
+                        type="text"
+                        id="familyMember2"
+                        name="familyMember2"
+                        value={formData.familyMember2}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember3" className="block text-sm font-medium text-gray-700 mb-1">Family Member 3</label>
+                      <input
+                        type="text"
+                        id="familyMember3"
+                        name="familyMember3"
+                        value={formData.familyMember3}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember4" className="block text-sm font-medium text-gray-700 mb-1">Family Member 4</label>
+                      <input
+                        type="text"
+                        id="familyMember4"
+                        name="familyMember4"
+                        value={formData.familyMember4}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row-reverse sm:justify-between gap-3">
@@ -291,6 +369,113 @@ export default function ProfileSettings() {
           </form>
         </div>
         
+        {/* Quick Navigation */}
+        <div className="mt-8 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-sm border border-indigo-100">
+          <h2 className="flex items-center text-lg font-medium text-indigo-800 mb-4">
+            <svg className="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Quick Navigation
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+            <button 
+              onClick={() => router.push("/dashboard")}
+              className="p-4 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center h-24"
+            >
+              <svg className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span className="font-medium">Dashboard</span>
+            </button>
+            
+            <button 
+              onClick={() => router.push("/dashboard/therapy")}
+              className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center h-24"
+            >
+              <svg className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+              </svg>
+              <span className="font-medium">Therapy Session</span>
+            </button>
+            
+            <button 
+              onClick={() => router.push("/dashboard/sessions")}
+              className="p-4 bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center h-24"
+            >
+              <svg className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="font-medium">Sessions</span>
+            </button>
+          </div>
+          
+          <p className="text-sm text-center text-indigo-600 mt-4">
+            Quick access to essential features
+          </p>
+        </div>
+        
+        {/* Therapy Navigation */}
+        <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100">
+          <h2 className="flex items-center text-lg font-medium text-purple-800 mb-4">
+            <svg className="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Therapy Options
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button 
+                onClick={() => {
+                  router.push("/dashboard/therapy?type=couple")
+                }}
+                className="px-4 py-3 bg-gradient-to-br from-indigo-100 to-indigo-200 hover:from-indigo-200 hover:to-indigo-300 text-indigo-700 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span className="font-medium">Couple Therapy</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  router.push("/dashboard/therapy?type=solo") 
+                }}
+                className="px-4 py-3 bg-gradient-to-br from-purple-100 to-purple-200 hover:from-purple-200 hover:to-purple-300 text-purple-700 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="font-medium">Individual Therapy</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  router.push("/dashboard/therapy?type=family")
+                }}
+                className="px-4 py-3 bg-gradient-to-br from-pink-100 to-pink-200 hover:from-pink-200 hover:to-pink-300 text-pink-700 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="font-medium">Family Therapy</span>
+              </button>
+            </div>
+            
+            <button 
+              onClick={() => router.push("/dashboard/resources")}
+              className="w-full mt-3 px-4 py-3 bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 text-blue-700 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <span className="font-medium">Therapy Resources</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Account Settings */}
         <div className="mt-8 p-6 bg-white rounded-xl shadow-sm border border-gray-100">
           <h2 className="flex items-center text-lg font-medium text-gray-800 mb-4">
             <svg className="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">

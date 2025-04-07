@@ -269,10 +269,16 @@ function TherapyButton({
         try {
           const { getPersonalizedAssistantConfig, getPersonalizedSystemPromptForType, getPersonalizedFirstMessageForType } = await import('@/lib/vapi')
           
+          // Create profile data object with appropriate fields based on therapy type
           const userProfileData = {
             userName: userProfile.name,
             partnerName: userProfile.partnerName,
-            relationshipStatus: userProfile.relationshipStatus
+            relationshipStatus: userProfile.relationshipStatus,
+            // Include family members for family therapy
+            familyMember1: userProfile.familyMember1,
+            familyMember2: userProfile.familyMember2,
+            familyMember3: userProfile.familyMember3,
+            familyMember4: userProfile.familyMember4
           };
           
           // Get personalized prompt and message based on therapy type
@@ -428,6 +434,11 @@ function TherapyButton({
             userName: userProfile.name,
             partnerName: userProfile.partnerName,
             relationshipStatus: userProfile.relationshipStatus,
+            // Include family members for family therapy
+            familyMember1: userProfile.familyMember1,
+            familyMember2: userProfile.familyMember2,
+            familyMember3: userProfile.familyMember3,
+            familyMember4: userProfile.familyMember4,
             therapyType: therapyType
           } : undefined,
         }),
@@ -496,7 +507,14 @@ function TherapyButton({
           // Just include the essential parameters
           variableValues: userProfile ? {
             username: userProfile.name || 'user',
-            partnername: userProfile.partnerName || 'partner'
+            partnername: userProfile.partnerName || 'partner',
+            // Include family members if this is family therapy
+            ...(therapyType === 'family' ? {
+              familymember1: userProfile.familyMember1 || '',
+              familymember2: userProfile.familyMember2 || '',
+              familymember3: userProfile.familyMember3 || '',
+              familymember4: userProfile.familyMember4 || ''
+            } : {})
           } : undefined,
           firstMessage: vapiInstanceRef.current?._customData?.firstMessage
         };

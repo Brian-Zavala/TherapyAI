@@ -71,16 +71,6 @@ export default function RelationshipProgressCard() {
       })
       
       setProgressData(enhancedData)
-      
-      // Animate in the chart data
-      chartControls.start({
-        opacity: 1,
-        y: 0,
-        transition: { 
-          duration: 0.5,
-          delay: 0.2
-        }
-      })
     } catch (err) {
       console.error(`Error fetching ${type} relationship progress data:`, err)
       setError(err.message)
@@ -89,9 +79,24 @@ export default function RelationshipProgressCard() {
     }
   }
   
+  // Separate useEffect for animations that depends on progressData changes
+  useEffect(() => {
+    if (progressData.length > 0) {
+      // Animate in the chart data only after data is loaded and component is mounted
+      chartControls.start({
+        opacity: 1,
+        y: 0,
+        transition: { 
+          duration: 0.5,
+          delay: 0.2
+        }
+      })
+    }
+  }, [progressData, chartControls])
+  
   useEffect(() => {
     fetchProgressData(therapyType)
-  }, [chartControls, therapyType])
+  }, [therapyType])
   
   const toggleAverageLines = () => {
     setShowAverage(!showAverage)
@@ -293,16 +298,16 @@ export default function RelationshipProgressCard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="h-80"
+      className="h-[340px] sm:h-80 lg:h-96 overflow-hidden"
     >
       {/* Therapy type selector at the very top */}
-      <div className="flex justify-center mb-4">
-        <div className="inline-flex p-1 bg-purple-50 rounded-lg">
+      <div className="flex justify-center mb-2 sm:mb-4">
+        <div className="inline-flex p-1 bg-purple-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('couple')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'couple' 
                 ? 'bg-purple-600 text-white' 
                 : 'text-purple-800 hover:bg-purple-100'
@@ -314,7 +319,7 @@ export default function RelationshipProgressCard() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('solo')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'solo' 
                 ? 'bg-purple-600 text-white' 
                 : 'text-purple-800 hover:bg-purple-100'
@@ -326,7 +331,7 @@ export default function RelationshipProgressCard() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('family')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'family' 
                 ? 'bg-purple-600 text-white' 
                 : 'text-purple-800 hover:bg-purple-100'
@@ -402,7 +407,7 @@ export default function RelationshipProgressCard() {
         </div>
       </div>
       
-      <div className="h-[75%] w-full">
+      <div className="h-[70%] min-h-[200px] w-full max-h-[260px] lg:max-h-[290px] overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
             data={progressData}

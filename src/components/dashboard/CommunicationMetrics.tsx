@@ -183,16 +183,16 @@ export default function CommunicationMetrics() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-80"
+      className="h-[340px] sm:h-80 lg:h-96 overflow-hidden"
     >
       {/* Therapy type selector at the very top */}
-      <div className="flex justify-center mb-4">
-        <div className="inline-flex p-1 bg-blue-50 rounded-lg">
+      <div className="flex justify-center mb-2 sm:mb-4">
+        <div className="inline-flex p-1 bg-blue-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('couple')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'couple' 
                 ? 'bg-blue-600 text-white' 
                 : 'text-blue-800 hover:bg-blue-100'
@@ -204,7 +204,7 @@ export default function CommunicationMetrics() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('solo')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'solo' 
                 ? 'bg-blue-600 text-white' 
                 : 'text-blue-800 hover:bg-blue-100'
@@ -216,7 +216,7 @@ export default function CommunicationMetrics() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTherapyType('family')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
               therapyType === 'family' 
                 ? 'bg-blue-600 text-white' 
                 : 'text-blue-800 hover:bg-blue-100'
@@ -286,7 +286,7 @@ export default function CommunicationMetrics() {
         </div>
       </div>
       
-      <div className="h-[64%] w-full">
+      <div className="h-[70%] min-h-[200px] w-full overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div 
             key={chartType}

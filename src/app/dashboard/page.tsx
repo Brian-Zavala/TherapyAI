@@ -351,20 +351,20 @@ export default function Dashboard() {
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
-              <h1 className="text-3xl font-bold">Welcome back, {session?.user?.name?.split(' ')[0] || 'there'}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {session?.user?.name?.split(' ')[0] || 'there'}</h1>
               <p className="mt-2 text-indigo-100!">Track your progress and manage your relationship journey</p>
             </div>
-            <Link href="/dashboard/therapy" className="mt-4 sm:mt-0 px-5 py-2 bg-white text-indigo-600 rounded-lg font-medium shadow-sm hover:bg-indigo-50 transition-colors duration-150">
+            <Link href="/dashboard/therapy" className="mt-4 sm:mt-0 px-5 py-2 bg-white text-indigo-600 rounded-lg font-medium shadow-sm hover:bg-indigo-50 transition-colors duration-150 w-full sm:w-auto text-center">
               Start New Session
             </Link>
           </div>
         </motion.div>
         
         {/* Dashboard Tab Navigation for Mobile */}
-        <div className="sm:hidden mb-6 overflow-x-auto flex space-x-4 pb-2">
+        <div className="sm:hidden mb-4 overflow-x-auto scrollbar-hide flex space-x-2 pb-2 border-b border-gray-200">
           <button 
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-lg font-medium flex-shrink-0 ${
+            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'overview' 
                 ? 'bg-indigo-100 text-indigo-800' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -374,7 +374,7 @@ export default function Dashboard() {
           </button>
           <button 
             onClick={() => setActiveTab('progress')}
-            className={`px-4 py-2 rounded-lg font-medium flex-shrink-0 ${
+            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'progress' 
                 ? 'bg-indigo-100 text-indigo-800' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -384,17 +384,17 @@ export default function Dashboard() {
           </button>
           <button 
             onClick={() => setActiveTab('communication')}
-            className={`px-4 py-2 rounded-lg font-medium flex-shrink-0 ${
+            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'communication' 
                 ? 'bg-indigo-100 text-indigo-800' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            Communication
+            Comm.
           </button>
           <button 
             onClick={() => setActiveTab('sessions')}
-            className={`px-4 py-2 rounded-lg font-medium flex-shrink-0 ${
+            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'sessions' 
                 ? 'bg-indigo-100 text-indigo-800' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -409,10 +409,10 @@ export default function Dashboard() {
           variants={container}
           initial="hidden"
           animate="show"
-          className="hidden sm:grid sm:grid-cols-1 md:grid-cols-2 gap-6"
+          className="hidden sm:grid sm:grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 xl:gap-10"
         >
           {/* Session Time Visualization */}
-          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 pb-8 sm:pb-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 pb-8 sm:pb-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200 overflow-hidden">
             <div className="flex items-center mb-4">
               <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -425,7 +425,7 @@ export default function Dashboard() {
           </motion.div>
           
           {/* Relationship Progress Card */}
-          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200 overflow-hidden">
             <div className="flex items-center mb-4">
               <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -438,7 +438,7 @@ export default function Dashboard() {
           </motion.div>
           
           {/* Communication Metrics */}
-          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200 overflow-hidden">
             <div className="flex items-center mb-4">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -451,7 +451,7 @@ export default function Dashboard() {
           </motion.div>
           
           {/* Upcoming Sessions */}
-          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200">
+          <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200 overflow-hidden">
             <div className="flex items-center mb-4">
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -466,20 +466,21 @@ export default function Dashboard() {
         
         {/* Mobile View - Tabbed Interface */}
         <div className="sm:hidden">
+          {/* Chart Component based on active tab */}
           {activeTab === 'overview' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
+              className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800">Session Time Overview</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Session Time Overview</h2>
               </div>
               <SessionTimeChart />
             </motion.div>
@@ -490,15 +491,15 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
+              className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800">Relationship Progress</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Relationship Progress</h2>
               </div>
               <RelationshipProgressCard />
             </motion.div>
@@ -509,15 +510,15 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
+              className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800">Communication Quality</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Communication Quality</h2>
               </div>
               <CommunicationMetrics />
             </motion.div>
@@ -528,32 +529,87 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl shadow-md p-5 pb-8 mb-10"
+              className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800">Upcoming Sessions</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Upcoming Sessions</h2>
               </div>
               <UpcomingSessions />
             </motion.div>
           )}
+
+          {/* Quick Actions for Mobile - Displayed after charts */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl shadow-md p-4 border border-gray-200 mb-4"
+          >
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/dashboard/therapy" className="flex flex-col items-center p-3 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-900">Start Therapy</p>
+                </div>
+              </Link>
+              
+              <Link href="/dashboard/sessions" className="flex flex-col items-center p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-900">Past Sessions</p>
+                </div>
+              </Link>
+              
+              <Link href="/dashboard/resources" className="flex flex-col items-center p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-900">Resources</p>
+                </div>
+              </Link>
+              
+              <Link href="/dashboard/profile" className="flex flex-col items-center p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-900">Profile</p>
+                </div>
+              </Link>
+            </div>
+          </motion.div>
         </div>
         
-        {/* Quick Actions */}
+        {/* Quick Actions - Desktop only */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-8 bg-white rounded-xl shadow-md p-6 border border-gray-200"
+          className="hidden sm:block mt-8 bg-white rounded-xl shadow-md p-6 border border-gray-200"
         >
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/dashboard/therapy" className="flex items-center p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
@@ -565,7 +621,7 @@ export default function Dashboard() {
             </Link>
             
             <Link href="/dashboard/sessions" className="flex items-center p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
@@ -577,7 +633,7 @@ export default function Dashboard() {
             </Link>
             
             <Link href="/dashboard/resources" className="flex items-center p-4 bg-amber-50 rounded-xl hover:bg-amber-100 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mr-3">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
@@ -589,7 +645,7 @@ export default function Dashboard() {
             </Link>
             
             <Link href="/dashboard/profile" className="flex items-center p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
