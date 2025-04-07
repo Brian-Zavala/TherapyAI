@@ -74,7 +74,7 @@ export const getPersonalizedFirstMessage = (userProfile?: any) => {
 
 // Configuration for the couple therapy assistant
 export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
-  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Original ID for Dr. Maya Thompson (couple therapy) without prefix
+  id: "f6844388-f547-40af-994e-4edf076f7e9c", // Correct ID for Dr. Maya Thompson (couple therapy)
   name: "Dr. Maya Thompson",
   type: "couple",
   model: {
@@ -97,7 +97,7 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
 
 // Configuration for the individual therapy assistant
 export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
-  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Correct ID for Dr. Elliot Mackaphy (solo therapy) without prefix
+  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Correct ID for Dr. Elliot Mackaphy (solo therapy)
   name: "Dr. Elliot Mackaphy",
   type: "solo",
   model: {
