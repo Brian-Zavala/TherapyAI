@@ -13,6 +13,7 @@ export default function RelationshipProgressCard() {
   const [averageScores, setAverageScores] = useState({ closeness: 0, communication: 0 })
   const [activeIndex, setActiveIndex] = useState(null)
   const [showAverage, setShowAverage] = useState(false)
+  const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
   const chartControls = useAnimation()
   const progressRef = useRef(null)
   
@@ -29,68 +30,68 @@ export default function RelationshipProgressCard() {
     }
   }, [progressData])
   
-  useEffect(() => {
-    const fetchProgressData = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/dashboard/relationship-progress')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch relationship progress data')
-        }
-        
-        const data = await response.json()
-        
-        // Calculate average scores
-        if (data.length > 0) {
-          const totalCloseness = data.reduce((sum, item) => sum + item.closeness, 0)
-          const totalCommunication = data.reduce((sum, item) => sum + item.communication, 0)
-          
-          setAverageScores({
-            closeness: Math.round(totalCloseness / data.length),
-            communication: Math.round(totalCommunication / data.length)
-          })
-        }
-        
-        // Add trend indicators
-        const enhancedData = data.map((item, index, arr) => {
-          let closenessChange = 0
-          let commChange = 0
-          
-          if (index > 0) {
-            closenessChange = item.closeness - arr[index-1].closeness
-            commChange = item.communication - arr[index-1].communication
-          }
-          
-          return {
-            ...item,
-            closenessChange,
-            commChange,
-            trend: (closenessChange + commChange) / 2
-          }
-        })
-        
-        setProgressData(enhancedData)
-        
-        // Animate in the chart data
-        chartControls.start({
-          opacity: 1,
-          y: 0,
-          transition: { 
-            duration: 0.5,
-            delay: 0.2
-          }
-        })
-      } catch (err) {
-        console.error('Error fetching relationship progress data:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
+  const fetchProgressData = async (type = 'couple') => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/dashboard/relationship-progress?type=${type}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch relationship progress data')
       }
+      
+      const data = await response.json()
+      
+      // Calculate average scores
+      if (data.length > 0) {
+        const totalCloseness = data.reduce((sum, item) => sum + item.closeness, 0)
+        const totalCommunication = data.reduce((sum, item) => sum + item.communication, 0)
+        
+        setAverageScores({
+          closeness: Math.round(totalCloseness / data.length),
+          communication: Math.round(totalCommunication / data.length)
+        })
+      }
+      
+      // Add trend indicators
+      const enhancedData = data.map((item, index, arr) => {
+        let closenessChange = 0
+        let commChange = 0
+        
+        if (index > 0) {
+          closenessChange = item.closeness - arr[index-1].closeness
+          commChange = item.communication - arr[index-1].communication
+        }
+        
+        return {
+          ...item,
+          closenessChange,
+          commChange,
+          trend: (closenessChange + commChange) / 2
+        }
+      })
+      
+      setProgressData(enhancedData)
+      
+      // Animate in the chart data
+      chartControls.start({
+        opacity: 1,
+        y: 0,
+        transition: { 
+          duration: 0.5,
+          delay: 0.2
+        }
+      })
+    } catch (err) {
+      console.error(`Error fetching ${type} relationship progress data:`, err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    
-    fetchProgressData()
-  }, [chartControls])
+  }
+  
+  useEffect(() => {
+    fetchProgressData(therapyType)
+  }, [chartControls, therapyType])
   
   const toggleAverageLines = () => {
     setShowAverage(!showAverage)
@@ -294,6 +295,47 @@ export default function RelationshipProgressCard() {
       transition={{ duration: 0.5 }}
       className="h-80"
     >
+      {/* Therapy type selector at the very top */}
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex p-1 bg-purple-50 rounded-lg">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('couple')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'couple' 
+                ? 'bg-purple-600 text-white' 
+                : 'text-purple-800 hover:bg-purple-100'
+            }`}
+          >
+            Couple
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('solo')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'solo' 
+                ? 'bg-purple-600 text-white' 
+                : 'text-purple-800 hover:bg-purple-100'
+            }`}
+          >
+            Individual
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('family')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'family' 
+                ? 'bg-purple-600 text-white' 
+                : 'text-purple-800 hover:bg-purple-100'
+            }`}
+          >
+            Family
+          </motion.button>
+        </div>
+      </div>
       {/* Score indicators with subtle animations */}
       <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
         <div className="flex flex-wrap gap-2 sm:gap-4">

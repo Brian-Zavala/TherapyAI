@@ -11,36 +11,38 @@ export default function CommunicationMetrics() {
   const [error, setError] = useState(null)
   const [chartType, setChartType] = useState('radar') // 'radar', 'pie', or 'radial'
   const [activeIndex, setActiveIndex] = useState(0)
+  const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
+  
+  const fetchMetricsData = async (type = 'couple') => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/dashboard/communication-metrics?type=${type}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch communication metrics')
+      }
+      
+      const data = await response.json()
+      
+      // Transform data for different chart types
+      const transformed = data.map((item) => ({
+        ...item,
+        name: item.name.replace('Score', ''), // Shorten names
+        fullMark: 100, // For radar chart
+        fill: getColorForMetric(item.name), // For radial bar chart
+      }))
+      
+      setMetricsData(transformed)
+    } catch (err) {
+      console.error(`Error fetching ${type} communication metrics:`, err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
   
   useEffect(() => {
-    const fetchMetricsData = async () => {
-      try {
-        const response = await fetch('/api/dashboard/communication-metrics')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch communication metrics')
-        }
-        
-        const data = await response.json()
-        
-        // Transform data for different chart types
-        const transformed = data.map((item) => ({
-          ...item,
-          name: item.name.replace('Score', ''), // Shorten names
-          fullMark: 100, // For radar chart
-          fill: getColorForMetric(item.name), // For radial bar chart
-        }))
-        
-        setMetricsData(transformed)
-      } catch (err) {
-        console.error('Error fetching communication metrics:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchMetricsData()
+    fetchMetricsData(therapyType)
     
     // Set up rotation of chart types
     const interval = setInterval(() => {
@@ -52,7 +54,7 @@ export default function CommunicationMetrics() {
     }, 6000) // Rotate every 8 seconds
     
     return () => clearInterval(interval)
-  }, [])
+  }, [therapyType])
   
   // Colors for different metrics
   const getColorForMetric = (name) => {
@@ -183,7 +185,49 @@ export default function CommunicationMetrics() {
       transition={{ duration: 0.5 }}
       className="h-80"
     >
-      {/* Metrics summary at top */}
+      {/* Therapy type selector at the very top */}
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex p-1 bg-blue-50 rounded-lg">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('couple')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'couple' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-blue-800 hover:bg-blue-100'
+            }`}
+          >
+            Couple
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('solo')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'solo' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-blue-800 hover:bg-blue-100'
+            }`}
+          >
+            Individual
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('family')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'family' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-blue-800 hover:bg-blue-100'
+            }`}
+          >
+            Family
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Metrics summary and chart types */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div className="flex flex-wrap gap-2">
           <motion.button

@@ -13,65 +13,67 @@ export default function SessionTimeChart() {
   const [view, setView] = useState('monthly') // 'monthly' or 'average'
   const [totalHours, setTotalHours] = useState(0)
   const [averageSessionLength, setAverageSessionLength] = useState(0)
+  const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
+  
+  const fetchSessionData = async (type = 'couple') => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/dashboard/session-time?type=${type}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch session time data')
+      }
+      
+      const data = await response.json()
+      
+      // Calculate summary statistics
+      let totalMinutes = 0
+      let totalSessions = 0
+      
+      data.forEach(item => {
+        totalMinutes += item.sessionTime
+        totalSessions += item.sessionCount
+      })
+      
+      setTotalHours(Math.round(totalMinutes / 60 * 10) / 10) // Round to 1 decimal place
+      setAverageSessionLength(totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0)
+      
+      // Add visual interest by adding a progress field and improving clarity
+      const enhancedData = data.map((item, index, arr) => {
+        // Calculate a growth percentage based on previous months
+        const prevValue = index > 0 ? arr[index-1].sessionTime : 0
+        const growthRate = prevValue === 0 ? 100 : Math.round((item.sessionTime / prevValue) * 100 - 100)
+        
+        // Calculate average session length for this month
+        const avgSessionLen = item.sessionCount > 0 
+          ? Math.round(item.sessionTime / item.sessionCount) 
+          : 0
+          
+        return {
+          ...item,
+          // Format month for better readability
+          monthFormatted: item.month.substring(0, 3), // First 3 letters of month
+          // Indicates % change from previous month
+          growth: growthRate,
+          // Average length of each session this month
+          avgSessionLength: avgSessionLen,
+          // Visual representation - cap at reasonable values
+          progressVisual: Math.min(Math.max(growthRate + 100, 50), 150)
+        }
+      })
+      
+      setSessionData(enhancedData)
+    } catch (err) {
+      console.error(`Error fetching ${type} session time data:`, err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
   
   useEffect(() => {
-    const fetchSessionData = async () => {
-      try {
-        const response = await fetch('/api/dashboard/session-time')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch session time data')
-        }
-        
-        const data = await response.json()
-        
-        // Calculate summary statistics
-        let totalMinutes = 0
-        let totalSessions = 0
-        
-        data.forEach(item => {
-          totalMinutes += item.sessionTime
-          totalSessions += item.sessionCount
-        })
-        
-        setTotalHours(Math.round(totalMinutes / 60 * 10) / 10) // Round to 1 decimal place
-        setAverageSessionLength(totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0)
-        
-        // Add visual interest by adding a progress field and improving clarity
-        const enhancedData = data.map((item, index, arr) => {
-          // Calculate a growth percentage based on previous months
-          const prevValue = index > 0 ? arr[index-1].sessionTime : 0
-          const growthRate = prevValue === 0 ? 100 : Math.round((item.sessionTime / prevValue) * 100 - 100)
-          
-          // Calculate average session length for this month
-          const avgSessionLen = item.sessionCount > 0 
-            ? Math.round(item.sessionTime / item.sessionCount) 
-            : 0
-            
-          return {
-            ...item,
-            // Format month for better readability
-            monthFormatted: item.month.substring(0, 3), // First 3 letters of month
-            // Indicates % change from previous month
-            growth: growthRate,
-            // Average length of each session this month
-            avgSessionLength: avgSessionLen,
-            // Visual representation - cap at reasonable values
-            progressVisual: Math.min(Math.max(growthRate + 100, 50), 150)
-          }
-        })
-        
-        setSessionData(enhancedData)
-      } catch (err) {
-        console.error('Error fetching session time data:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchSessionData()
-  }, [])
+    fetchSessionData(therapyType)
+  }, [therapyType])
   
   if (loading) return (
     <div className="h-80 flex items-center justify-center">
@@ -196,6 +198,48 @@ export default function SessionTimeChart() {
       transition={{ duration: 0.5 }}
       className="h-80 mb-6 sm:mb-0"
     >
+      {/* Therapy type selector at the very top */}
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex p-1 bg-indigo-50 rounded-lg">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('couple')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'couple' 
+                ? 'bg-indigo-600 text-white' 
+                : 'text-indigo-800 hover:bg-indigo-100'
+            }`}
+          >
+            Couple
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('solo')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'solo' 
+                ? 'bg-indigo-600 text-white' 
+                : 'text-indigo-800 hover:bg-indigo-100'
+            }`}
+          >
+            Individual
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setTherapyType('family')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              therapyType === 'family' 
+                ? 'bg-indigo-600 text-white' 
+                : 'text-indigo-800 hover:bg-indigo-100'
+            }`}
+          >
+            Family
+          </motion.button>
+        </div>
+      </div>
+
       {/* Summary Stats */}
       <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
         <div className="flex flex-wrap gap-2 sm:gap-4">
