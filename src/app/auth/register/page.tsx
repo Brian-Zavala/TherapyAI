@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'  // Missing import
+import { signIn } from 'next-auth/react'
+import { motion } from 'framer-motion'
 
 export default function Register() {
   const router = useRouter()
@@ -66,7 +67,14 @@ export default function Register() {
         >
           <div className="flex p-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full relative overflow-hidden mr-3 flex-shrink-0">
-              <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-indigo-400/30 to-purple-400/30"></div>
+              {/* Person silhouette with blur effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400">
+                {/* Head shape */}
+                <div className="absolute w-5 h-5 bg-gray-400 rounded-full top-1 left-1/2 transform -translate-x-1/2"></div>
+                {/* Body shape */}
+                <div className="absolute w-6 h-4 bg-gray-400 rounded-t-full bottom-0 left-1/2 transform -translate-x-1/2"></div>
+              </div>
+              <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-r from-indigo-400/30 to-purple-400/30"></div>
             </div>
             <div>
               <div className="text-amber-500 text-xs mb-1">★★★★★</div>
@@ -87,7 +95,14 @@ export default function Register() {
         >
           <div className="flex p-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full relative overflow-hidden mr-3 flex-shrink-0">
-              <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-indigo-400/30 to-purple-400/30"></div>
+              {/* Person silhouette with blur effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400">
+                {/* Head shape */}
+                <div className="absolute w-5 h-5 bg-gray-400 rounded-full top-1 left-1/2 transform -translate-x-1/2"></div>
+                {/* Body shape */}
+                <div className="absolute w-6 h-4 bg-gray-400 rounded-t-full bottom-0 left-1/2 transform -translate-x-1/2"></div>
+              </div>
+              <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-r from-indigo-400/30 to-purple-400/30"></div>
             </div>
             <div>
               <div className="text-amber-500 text-xs mb-1">★★★★★</div>
@@ -108,7 +123,14 @@ export default function Register() {
         >
           <div className="flex p-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full relative overflow-hidden mr-3 flex-shrink-0">
-              <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-indigo-400/30 to-purple-400/30"></div>
+              {/* Person silhouette with blur effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400">
+                {/* Head shape */}
+                <div className="absolute w-5 h-5 bg-gray-400 rounded-full top-1 left-1/2 transform -translate-x-1/2"></div>
+                {/* Body shape */}
+                <div className="absolute w-6 h-4 bg-gray-400 rounded-t-full bottom-0 left-1/2 transform -translate-x-1/2"></div>
+              </div>
+              <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-r from-indigo-400/30 to-purple-400/30"></div>
             </div>
             <div>
               <div className="text-amber-500 text-xs mb-1">★★★★★</div>
@@ -242,7 +264,14 @@ export default function Register() {
         >
           <div className="flex p-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full relative overflow-hidden mr-3 flex-shrink-0">
-              <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-purple-400/30 to-indigo-400/30"></div>
+              {/* Person silhouette with blur effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400">
+                {/* Head shape */}
+                <div className="absolute w-5 h-5 bg-gray-400 rounded-full top-1 left-1/2 transform -translate-x-1/2"></div>
+                {/* Body shape */}
+                <div className="absolute w-6 h-4 bg-gray-400 rounded-t-full bottom-0 left-1/2 transform -translate-x-1/2"></div>
+              </div>
+              <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-r from-purple-400/30 to-indigo-400/30"></div>
             </div>
             <div>
               <div className="text-amber-500 text-xs mb-1">★★★★★</div>
@@ -263,7 +292,14 @@ export default function Register() {
         >
           <div className="flex p-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full relative overflow-hidden mr-3 flex-shrink-0">
-              <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-purple-400/30 to-indigo-400/30"></div>
+              {/* Person silhouette with blur effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400">
+                {/* Head shape */}
+                <div className="absolute w-5 h-5 bg-gray-400 rounded-full top-1 left-1/2 transform -translate-x-1/2"></div>
+                {/* Body shape */}
+                <div className="absolute w-6 h-4 bg-gray-400 rounded-t-full bottom-0 left-1/2 transform -translate-x-1/2"></div>
+              </div>
+              <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-r from-purple-400/30 to-indigo-400/30"></div>
             </div>
             <div>
               <div className="text-amber-500 text-xs mb-1">★★★★★</div>
@@ -284,7 +320,14 @@ export default function Register() {
         >
           <div className="flex p-4">
             <div className="w-10 h-10 bg-gray-200 rounded-full relative overflow-hidden mr-3 flex-shrink-0">
-              <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-purple-400/30 to-indigo-400/30"></div>
+              {/* Person silhouette with blur effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400">
+                {/* Head shape */}
+                <div className="absolute w-5 h-5 bg-gray-400 rounded-full top-1 left-1/2 transform -translate-x-1/2"></div>
+                {/* Body shape */}
+                <div className="absolute w-6 h-4 bg-gray-400 rounded-t-full bottom-0 left-1/2 transform -translate-x-1/2"></div>
+              </div>
+              <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-r from-purple-400/30 to-indigo-400/30"></div>
             </div>
             <div>
               <div className="text-amber-500 text-xs mb-1">★★★★★</div>
