@@ -29,7 +29,10 @@ export default function CommunicationMetrics() {
         } else if (response.status === 404) {
           throw new Error('User profile not found')
         } else {
-          throw new Error('No data available yet')
+          // Treat any other error as "No data yet" but don't throw an error
+          setError('No data available yet')
+          setLoading(false)
+          return
         }
       }
       

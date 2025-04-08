@@ -10,6 +10,7 @@ import SessionTimeChart from "@/components/dashboard/SessionTimeChart"
 import RelationshipProgressCard from "@/components/dashboard/RelationshipProgressCard"
 import CommunicationMetrics from "@/components/dashboard/CommunicationMetrics"
 import UpcomingSessions from "@/components/dashboard/UpcomingSessions"
+import RelationshipAssessment from "@/components/RelationshipAssessment"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -34,6 +35,7 @@ export default function Dashboard() {
   })
   const [isSaving, setIsSaving] = useState(false)
   const [onboardingStep, setOnboardingStep] = useState(0)
+  const [assessmentResults, setAssessmentResults] = useState<any>(null)
   
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -96,8 +98,8 @@ export default function Dashboard() {
   
   // Handle profile form submission
   const handleProfileSubmit = async () => {
-    if (!formData.name || !formData.partnerName) {
-      return // Don't submit if required fields are missing
+    if (!formData.name) {
+      return // Only name is required
     }
     
     try {
@@ -115,6 +117,9 @@ export default function Dashboard() {
         const data = await response.json()
         setUserProfile(data.user)
         setShowProfileSetup(false)
+        
+        // Redirect to home page after profile setup is complete
+        router.push('/')
       } else {
         console.error("Failed to update profile")
       }
@@ -134,11 +139,37 @@ export default function Dashboard() {
   }
   
   const nextStep = () => {
-    if (onboardingStep < 3) {
+    // Add extra step for relationship assessment only if partner name is provided
+    const hasPartner = formData.partnerName && formData.partnerName !== "N/A";
+    const maxSteps = hasPartner ? 4 : 3;
+    
+    if (onboardingStep < maxSteps) {
       setOnboardingStep(onboardingStep + 1)
     } else {
       handleProfileSubmit()
     }
+  }
+  
+  const skipStep = () => {
+    // Skip partner or family details while preserving other data
+    if (onboardingStep === 1) {
+      // Skip partner section and set empty partner name
+      setFormData(prev => ({ ...prev, partnerName: "N/A" }))
+      setOnboardingStep(2)
+    } else if (onboardingStep === 3) {
+      // Skip family section and proceed to submit
+      handleProfileSubmit()
+    } else if (onboardingStep === 4) {
+      // Skip assessment and proceed to submit
+      handleProfileSubmit()
+    }
+  }
+  
+  // Handle assessment results
+  const handleAssessmentResults = (results) => {
+    setAssessmentResults(results)
+    // Move to next step immediately after assessment is submitted
+    nextStep()
   }
   
   const prevStep = () => {
@@ -158,11 +189,11 @@ export default function Dashboard() {
   // Profile onboarding overlay - shown if profile is incomplete
   if (showProfileSetup) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 overflow-y-auto">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-xl shadow-xl max-w-xl w-full p-6 sm:p-8"
+          className="bg-white rounded-xl shadow-xl max-w-xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto my-8"
         >
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -176,18 +207,24 @@ export default function Dashboard() {
           
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              {[0, 1, 2, 3].map((step) => (
-                <div 
-                  key={step} 
-                  className={`relative flex-1 ${step < onboardingStep ? 'bg-indigo-500' : step === onboardingStep ? 'bg-indigo-500' : 'bg-gray-200'} h-2 rounded-full ${step === 0 ? 'rounded-l-full' : step === 3 ? 'rounded-r-full' : ''}`}
-                >
+              {(() => {
+                // Determine max steps - 5 if partner entered, 4 otherwise
+                const steps = formData.partnerName && formData.partnerName !== "N/A" ? [0, 1, 2, 3, 4] : [0, 1, 2, 3];
+                const maxStep = steps.length - 1;
+                
+                return steps.map((step) => (
                   <div 
-                    className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${step < onboardingStep ? 'bg-indigo-500 text-white' : step === onboardingStep ? 'bg-white border-2 border-indigo-500 text-indigo-500' : 'bg-white border-2 border-gray-300 text-gray-500'}`}
+                    key={step} 
+                    className={`relative flex-1 ${step < onboardingStep ? 'bg-indigo-500' : step === onboardingStep ? 'bg-indigo-500' : 'bg-gray-200'} h-2 rounded-full ${step === 0 ? 'rounded-l-full' : step === maxStep ? 'rounded-r-full' : ''}`}
                   >
-                    {step + 1}
+                    <div 
+                      className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${step < onboardingStep ? 'bg-indigo-500 text-white' : step === onboardingStep ? 'bg-white border-2 border-indigo-500 text-indigo-500' : 'bg-white border-2 border-gray-300 text-gray-500'}`}
+                    >
+                      {step + 1}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
           
@@ -227,8 +264,9 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Relationship</h3>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
                         Partner's Name
+                        <span className="text-xs text-gray-500">Optional - can skip</span>
                       </label>
                       <input
                         type="text"
@@ -238,7 +276,6 @@ export default function Dashboard() {
                         onChange={handleInputChange}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="Enter your partner's name"
-                        required
                       />
                       <p className="text-xs text-gray-500 mt-1">Our AI assistant will include your partner in conversations</p>
                     </div>
@@ -277,8 +314,9 @@ export default function Dashboard() {
                 <div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">Family Members</h3>
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600 mb-3">
-                      Add family members who might participate in therapy sessions. This is optional and can be updated later.
+                    <p className="text-sm text-gray-600 mb-3 flex justify-between">
+                      Add family members who might participate in therapy sessions.
+                      <span className="text-xs text-gray-500 italic">Optional - can skip</span>
                     </p>
                     
                     <div className="space-y-3">
@@ -357,6 +395,18 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+              
+              {/* Add relationship assessment as the 5th step for users who have entered a partner name */}
+              {onboardingStep === 4 && formData.partnerName && formData.partnerName !== "N/A" && (
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Relationship Assessment</h3>
+                  <p className="text-sm text-gray-600 mb-4 flex justify-between">
+                    Answer a few questions to help us understand your relationship better.
+                    <span className="text-xs text-gray-500 italic">Optional - can skip</span>
+                  </p>
+                  <RelationshipAssessment onResultsSubmit={handleAssessmentResults} />
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
           
@@ -374,36 +424,48 @@ export default function Dashboard() {
               Back
             </button>
             
-            <button
-              type="button"
-              onClick={nextStep}
-              disabled={(onboardingStep === 0 && !formData.name) || (onboardingStep === 1 && !formData.partnerName) || isSaving}
-              className={`px-6 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
-            >
-              {isSaving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : onboardingStep < 3 ? (
-                <>
-                  Continue
-                  <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </>
-              ) : (
-                <>
-                  Complete Setup
-                  <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </>
+            <div className="flex space-x-2">
+              {(onboardingStep === 1 || onboardingStep === 3 || onboardingStep === 4) && (
+                <button
+                  type="button"
+                  onClick={skipStep}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-indigo-600 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                >
+                  Skip this step
+                </button>
               )}
-            </button>
+              
+              <button
+                type="button"
+                onClick={nextStep}
+                disabled={(onboardingStep === 0 && !formData.name) || isSaving}
+                className={`px-6 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
+              >
+                {isSaving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : onboardingStep < 3 ? (
+                  <>
+                    Continue
+                    <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </>
+                ) : (
+                  <>
+                    Complete Setup
+                    <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -227,42 +227,19 @@ function TherapyButton({
         vapiInstanceRef.current = null
       }
       
-      // Get token with better error handling
-      let token
-      try {
-        console.log('Attempting to fetch Vapi token...');
-        
-        // Try getting token from our API
-        const tokenResponse = await fetch('/api/vapi/token');
-        
-        if (tokenResponse.ok) {
-          const data = await tokenResponse.json();
-          token = data.token;
-          console.log('Successfully received token from API');
-        } else {
-          // If API fails, log error and try fallback
-          const errorText = await tokenResponse.text().catch(() => 'Unknown error');
-          console.error('Token API error:', tokenResponse.status, errorText);
-          
-          // Fall back to direct API key
-          token = process.env.NEXT_PUBLIC_VAPI_API_KEY;
-          console.log('Falling back to direct API key');
-        }
-      } catch (e) {
-        console.error('Error fetching token:', e);
-        // Ultimate fallback to direct API key
-        token = process.env.NEXT_PUBLIC_VAPI_API_KEY;
-        console.log('Exception caught, using direct API key');
+      // SIMPLIFIED APPROACH: Use public API key directly
+      // This avoids any token-related issues while we debug
+      const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
+      
+      if (!apiKey) {
+        console.error('NEXT_PUBLIC_VAPI_API_KEY is not set in environment variables');
+        throw new Error('Vapi API key not configured');
       }
       
-      if (!token) {
-        throw new Error('No Vapi credentials available - check your API key configuration');
-      }
+      console.log('Using direct API key for Vapi authentication');
       
-      console.log('Token obtained:', token ? 'Token available (not shown for security)' : 'No token');
-      
-      // Create instance
-      vapiInstanceRef.current = new Vapi(token)
+      // Create instance directly with API key
+      vapiInstanceRef.current = new Vapi(apiKey)
       
       // Customize assistant if profile available
       if (userProfile && vapiInstanceRef.current) {
@@ -306,7 +283,7 @@ function TherapyButton({
       
       vapiInstanceRef.current.on('call-end', (event: any) => {
         // Log the complete event for debugging
-        console.log('Vapi call ended, complete event:', event);
+        console.log('Vapi call ended, complete event:', event || {});
         
         // Extract reason if available
         let reason = 'No reason provided';
@@ -319,9 +296,13 @@ function TherapyButton({
         console.log('Call end reason:', reason);
         setIsCallActive(false);
         
-        // Always clear error messages for all session endings
-        setErrorMessage(null);
-        // Reason is logged but no error is shown to the user
+        // Show a user-friendly message about the call ending
+        if (reason && reason !== "NORMAL" && reason !== "No reason provided") {
+          setErrorMessage(`Session ended: ${reason}. This may be a temporary issue with the voice service.`);
+        } else {
+          // Clear error messages for normal endings
+          setErrorMessage(null);
+        }
         
         if (sessionId) {
           // Directly use the current ref value to avoid circular dependencies
@@ -331,7 +312,7 @@ function TherapyButton({
       
       vapiInstanceRef.current.on('error', (error: unknown) => {
         // Log the complete error for debugging
-        console.error('Vapi error (complete):', error)
+        console.error('Vapi error (complete):', error || {})
         
         // Create a more descriptive error message
         let errorDetail = "Unknown error";

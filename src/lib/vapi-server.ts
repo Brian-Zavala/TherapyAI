@@ -1,6 +1,7 @@
 // Server-side Vapi integration for managing assistants programmatically
 
 import { COUPLE_THERAPY_ASSISTANT_CONFIG } from './vapi';
+import jwt from 'jsonwebtoken';
 
 const VAPI_API_URL = 'https://api.vapi.ai';
 const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || process.env.NEXT_PUBLIC_VAPI_API_KEY;
@@ -115,29 +116,60 @@ export async function listAssistants() {
  */
 export async function generateClientToken(userId: string) {
   try {
-    const response = await fetch(`${VAPI_API_URL}/client-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VAPI_SERVER_API_KEY}`
-      },
-      body: JSON.stringify({
-        // You can add custom claims to the token
-        userId,
-        // Token expires in 1 hour
-        expiresIn: '1h'
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to generate client token');
+    // Check if we have the necessary environment variables
+    const orgId = process.env.VAPI_ORG_ID;
+    const privateKey = process.env.VAPI_PRIVATE_KEY;
+    
+    if (!orgId || !privateKey) {
+      console.error('Missing VAPI_ORG_ID or VAPI_PRIVATE_KEY environment variables');
+      throw new Error('Missing required JWT authentication credentials');
     }
-
-    const data = await response.json();
-    return data.token;
+    
+    // For Vapi, we need to construct the payload according to their requirements
+    // Documentation: https://docs.vapi.ai/customization/jwt-authentication
+    const payload = {
+      orgId: orgId,
+      token: {
+        tag: "public", // "public" for client-side usage
+        // Optional restrictions for public tokens:
+        userId: userId,
+        // List of assistant IDs this token can access
+        assistantIds: [
+          "f6844388-f547-40af-994e-4edf076f7e9c", // Dr. Maya Thompson (couple)
+          "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Dr. Elliot Mackaphy (solo)
+          "a22ad88a-0a5b-455e-ab41-f8c6802092bb"  // Dr. Jada Pearson (family)
+        ],
+      },
+    };
+    
+    try {
+      // For Vapi API keys in UUID format, we need to use them directly as the secret
+      // This approach uses the privateKey directly as the secret
+      const token = jwt.sign(payload, privateKey, { 
+        algorithm: 'HS256', // Using HMAC for UUID-format API keys
+        expiresIn: '1h' 
+      });
+      
+      console.log(`Generated JWT token for user ${userId} with expiry of 1 hour`);
+      return token;
+    } catch (jwtError) {
+      console.error('JWT signing failed:', jwtError);
+      
+      // As a fallback, return the direct API key - make sure this matches what Vapi expects
+      console.log('Falling back to direct API key');
+      const apiKey = process.env.VAPI_SERVER_API_KEY || process.env.NEXT_PUBLIC_VAPI_API_KEY;
+      return apiKey;
+    }
+    
   } catch (error) {
     console.error('Error generating client token:', error);
+    
+    // Fall back to API key if JWT generation fails
+    if (VAPI_SERVER_API_KEY) {
+      console.warn('Falling back to API key due to JWT generation failure');
+      return VAPI_SERVER_API_KEY;
+    }
+    
     throw error;
   }
 }

@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         where: { id: existingProgress.id },
         data: {
           closeness: (communicationScore + intimacyScore) / 2,
-          communication: (activeListeningScore + expressingNeedsScore) / 2,
+          communication: communicationScore, // Fix: use communicationScore directly
           date: new Date(),
         },
       });
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           userId: user.id,
           week: week,
           closeness: (communicationScore + intimacyScore) / 2,
-          communication: (communicationScore + conflictScore) / 2,
+          communication: communicationScore, // Fix: use communicationScore directly
           date: new Date(),
         },
       });

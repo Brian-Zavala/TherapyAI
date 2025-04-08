@@ -4,11 +4,8 @@
 import { useState, useEffect, useRef } from "react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, Brush, CartesianGrid } from "recharts"
 import { motion, useAnimation, AnimatePresence } from "framer-motion"
-import RelationshipAssessment from "@/components/RelationshipAssessment"
-import { useRouter } from "next/navigation"
 
 export default function RelationshipProgressCard() {
-  const router = useRouter()
   const [progressData, setProgressData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -17,7 +14,6 @@ export default function RelationshipProgressCard() {
   const [activeIndex, setActiveIndex] = useState(null)
   const [showAverage, setShowAverage] = useState(false)
   const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
-  const [isAssessmentOpen, setIsAssessmentOpen] = useState(false)
   const chartControls = useAnimation()
   const progressRef = useRef(null)
   
@@ -152,177 +148,35 @@ export default function RelationshipProgressCard() {
     </div>
   )
   
-  // Function to toggle assessment modal
-  const toggleAssessment = () => {
-    setIsAssessmentOpen(!isAssessmentOpen)
-  }
-
   if (progressData.length === 0) {
     return (
-      <>
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="h-80 flex items-center justify-center text-purple-600"
-        >
-          <div className="text-center p-6 bg-purple-50 rounded-lg max-w-sm">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            >
-              <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </motion.div>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <p className="text-lg font-medium">Begin tracking your progress</p>
-              <p className="text-sm mt-2 text-purple-500">
-                Complete your first assessment to start visualizing your relationship growth over time
-              </p>
-              <div className="flex flex-col sm:flex-row sm:space-x-3 justify-center mt-4">
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="mb-2 sm:mb-0 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium"
-                  onClick={toggleAssessment}
-                >
-                  Take Assessment
-                </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium"
-                  onClick={() => router.push('/schedule')}
-                >
-                  Schedule Session
-                </motion.button>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
-        
-        {/* Assessment Modal with AnimatePresence for smooth transitions */}
-        <AnimatePresence>
-          {isAssessmentOpen && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto"
-              onClick={(e) => {
-                // Close modal when clicking the overlay (outside the modal)
-                if (e.target === e.currentTarget) {
-                  toggleAssessment()
-                }
-              }}
-            >
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                transition={{ 
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                  duration: 0.4
-                }}
-                className="bg-white rounded-xl shadow-2xl w-full max-w-md lg:max-w-lg overflow-hidden relative mx-auto my-8"
-              >
-                {/* Decorative purple gradient at top of modal */}
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600"></div>
-                
-                <div className="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center">
-                  <div className="flex items-center">
-                    <div className="mr-3 bg-purple-100 p-2 rounded-full">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Relationship Assessment</h3>
-                  </div>
-                  
-                  <motion.button 
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={toggleAssessment} 
-                    className="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </motion.button>
-                </div>
-                
-                <div className="p-5 sm:p-6">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="mb-6 text-sm text-gray-600 bg-purple-50 p-4 rounded-lg"
-                  >
-                    <div className="flex items-start">
-                      <svg className="w-5 h-5 text-purple-500 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p>
-                        Your assessment results will be used to personalize your therapy experience and 
-                        track your progress over time. Answer honestly for the most accurate insights.
-                      </p>
-                    </div>
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="overflow-y-auto max-h-[60vh] pr-1 custom-scrollbar"
-                  >
-                    <RelationshipAssessment />
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="mt-6 pt-4 border-t border-gray-100 flex justify-end"
-                  >
-                    <button
-                      onClick={toggleAssessment}
-                      className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                    >
-                      Complete Later
-                    </button>
-                  </motion.div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* Add custom scrollbar styling */}
-        <style jsx global>{`
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #d8b4fe;
-            border-radius: 10px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #c084fc;
-          }
-        `}</style>
-      </>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="h-80 flex items-center justify-center text-purple-600"
+      >
+        <div className="text-center p-6 bg-purple-50 rounded-lg max-w-sm">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          >
+            <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </motion.div>
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <p className="text-lg font-medium">Begin tracking your progress</p>
+            <p className="text-sm mt-2 text-purple-500">
+              Complete relationship assessments during onboarding or therapy sessions to start visualizing your relationship growth over time
+            </p>
+          </motion.div>
+        </div>
+      </motion.div>
     )
   }
   
