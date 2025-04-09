@@ -108,7 +108,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       className: `min-h-screen transition-all duration-700 ease-in-out opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] ${
         isSessionActive 
           ? 'bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950' 
-          : 'bg-gradient-to-b from-slate-50 via-indigo-50/50 to-purple-50/50'
+          : 'bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40'
       }`
   }, [
     // Main content wrapper

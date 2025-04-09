@@ -488,20 +488,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-8 pb-12 px-4 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 pt-8 pb-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Dashboard Header with Welcome Message */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-indigo-600 to-indigo-900 rounded-xl shadow-lg mb-8 p-6 sm:p-10 text-white"
+          className="bg-green-500 rounded-xl shadow-lg mb-8 p-6 sm:p-10 text-white"
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {session?.user?.name?.split(' ')[0] || 'there'}</h1>
-              <p className="mt-2 text-indigo-100!">Track your progress and manage your relationship journey</p>
+              <p className="mt-2 text-white">Track your progress and manage your relationship journey</p>
             </div>
-            <Link href="/dashboard/therapy" className="mt-4 sm:mt-0 px-5 py-2 bg-white text-indigo-600 rounded-lg font-medium shadow-sm hover:bg-indigo-50 transition-colors duration-150 w-full sm:w-auto text-center">
+            <Link href="/dashboard/therapy" className="mt-4 sm:mt-0 px-5 py-2 bg-white text-blue-500 rounded-lg font-medium shadow-sm hover:bg-indigo-50 transition-colors duration-150 w-full sm:w-auto text-center">
               Start New Session
             </Link>
           </div>
@@ -513,7 +513,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab('overview')}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'overview' 
-                ? 'bg-indigo-100 text-indigo-800' 
+                ? 'bg-indigo-100 text-blue-500' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -523,7 +523,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab('progress')}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'progress' 
-                ? 'bg-indigo-100 text-indigo-800' 
+                ? 'bg-indigo-100 text-blue-500' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -533,7 +533,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab('communication')}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'communication' 
-                ? 'bg-indigo-100 text-indigo-800' 
+                ? 'bg-indigo-100 text-blue-500' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -543,7 +543,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab('sessions')}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === 'sessions' 
-                ? 'bg-indigo-100 text-indigo-800' 
+                ? 'bg-indigo-100 text-blue-500' 
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -561,7 +561,7 @@ export default function Dashboard() {
           {/* Session Time Visualization */}
           <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 pb-8 sm:pb-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200 overflow-hidden">
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-blue-500 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -587,7 +587,7 @@ export default function Dashboard() {
           {/* Communication Metrics */}
           <motion.div variants={item} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200 overflow-hidden">
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -622,7 +622,7 @@ export default function Dashboard() {
               className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
               <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-blue-500 mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -641,7 +641,7 @@ export default function Dashboard() {
               className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
               <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-500 mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                   </svg>
@@ -660,7 +660,7 @@ export default function Dashboard() {
               className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
               <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
@@ -679,7 +679,7 @@ export default function Dashboard() {
               className="bg-white rounded-xl shadow-md p-4 pb-12 mb-6 overflow-hidden"
             >
               <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-2">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-blue-500 mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>

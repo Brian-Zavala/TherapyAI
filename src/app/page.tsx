@@ -142,7 +142,7 @@ export default function Home() {
         {/* Hero content with enhanced animations */}
         <div className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] justify-center">
           <h1 
-            className="text-3xl sm:text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-purple-700 mb-8 md:mb-10 px-2 tracking-tight"
+            className="text-3xl sm:text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600 mb-8 md:mb-10 px-2 tracking-tight leading-normal py-1 overflow-visible"
           >
             Strengthen Your Relationships
           </h1>
@@ -151,8 +151,8 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-base sm:text-xl text-gray-700 max-w-2xl mb-8 leading-relaxed"
-          >
+            className="text-base sm:text-xl text-gray-700 max-w-2xl mb-12 md:mb-16 leading-relaxed"
+            >
             Discover AI-powered therapy that helps you build healthier, more fulfilling relationships with those who matter most.
           </motion.p>
           
@@ -171,29 +171,29 @@ export default function Home() {
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy" 
-                className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-700 
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 
                 text-white 
                 font-medium 
                 py-3 sm:py-4
                 px-8 sm:px-10
                 rounded-full 
                 text-base sm:text-lg 
-                shadow-lg shadow-indigo-500/30
+                shadow-lg shadow-blue-500/30
                 transition-all duration-300
-                hover:shadow-xl
-                hover:from-indigo-500
-                hover:to-purple-600
-                focus:outline-none 
+                hover:shadow-lg
+                hover:from-blue-600
+                hover:to-blue-600
                 focus:ring-4 
-                focus:ring-purple-500
+                focus:ring-blue-400
                 relative
                 overflow-hidden"
               >
-                <span className="relative z-10">Start Your Therapy Session</span>
-                <span className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
-                {/* Subtle animated glow behind button */}
-                <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 opacity-30 blur-lg"></span>
-              </ButtonWithSound>
+                  <span className="relative z-10">Start Your Therapy Session</span>
+                  {/* Replace the hover classes with this overlay approach */}
+                  <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                  {/* Adjust the glow to ensure it's properly contained */}
+                  <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+                </ButtonWithSound>
             </motion.div>
           </motion.div>
           
@@ -224,7 +224,7 @@ export default function Home() {
             whileHover={{ scale: 1.2 }}
             whileTap={{ scale: 0.9 }}
           >
-            <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-8 h-8 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </motion.div>
@@ -242,8 +242,8 @@ export default function Home() {
             className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16"
           >
             <span className="relative">
-              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-700">
-                Making Therapy <span className="underline decoration-purple-500 decoration-4 underline-offset-4">Accessible</span> for Everyone
+              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-blue-600 py-1 overflow-visible">
+                Making Therapy <span className="underline decoration-green-500 decoration-4 underline-offset-4">Accessible</span> for Everyone
               </span>
               <span className="absolute -inset-1 rounded-lg bg-gradient-to-r from-indigo-100 to-purple-100 -z-10 blur-lg opacity-50"></span>
             </span>
@@ -262,7 +262,7 @@ export default function Home() {
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/50 rounded-full -mr-16 -mt-16"></div>
               
-              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-indigo-700">Average Therapy Costs</h3>
+              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-blue-500">Average Therapy Costs</h3>
               <p className="text-gray-600 mb-6 sm:mb-8 relative z-10">Traditional therapy can be costly, creating barriers to mental healthcare for many individuals and families.</p>
               
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
@@ -333,8 +333,8 @@ export default function Home() {
                   <div className="absolute top-0 right-0 rounded-full bg-gradient-to-br from-indigo-200/50 to-purple-300/40 w-32 h-32 -mr-10 -mt-10 blur-md"></div>
                   <div className="absolute bottom-0 left-0 rounded-full bg-gradient-to-tr from-indigo-200/30 to-purple-200/30 w-32 h-32 -ml-10 -mb-10 blur-md"></div>
                   
-                  <h4 className="text-lg font-semibold text-indigo-800 mb-4 relative z-10 flex flex-wrap items-center gap-2">
-                    <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1 rounded-lg">AI-POWERED</span>
+                  <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
+                    <span className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-1 rounded-lg">AI-POWERED</span>
                     <span>Therapy</span>
                     <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
                       <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -348,11 +348,11 @@ export default function Home() {
                     <motion.div
                       className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative"
                     >
-                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
                         30-Minute Session
                       </div>
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-purple-800 font-bold">Quick Therapy</span>
+                        <span className="text-green-500 font-bold">Quick Therapy</span>
                         <div className="relative inline-block">
                           {/* Green pulsing animation around price */}
                           <motion.span 
@@ -371,7 +371,7 @@ export default function Home() {
                               delay: 0,
                             }}
                           />
-                          <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 relative z-10">$2.65</span>
+                          <span className="text-3xl font-bold text-green-500 relative z-10">$2.65</span>
                         </div>
                       </div>
                       <ul className="text-sm text-gray-600 space-y-2">
@@ -405,11 +405,11 @@ export default function Home() {
                     <motion.div
                       className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative"
                     >
-                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
                         60-Minute Session
                       </div>
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-purple-800 font-bold">Full Therapy</span>
+                        <span className="text-green-500 font-bold">Full Therapy</span>
                         <div className="relative inline-block">
                           {/* Green pulsing animation around price */}
                           <motion.span 
@@ -428,7 +428,7 @@ export default function Home() {
                               delay: 1.5,
                             }}
                           />
-                          <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 relative z-10">$5.25</span>
+                          <span className="text-3xl font-bold text-green-500 relative z-10">$5.25</span>
                         </div>
                       </div>
                       <ul className="text-sm text-gray-600 space-y-2">
@@ -465,7 +465,7 @@ export default function Home() {
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.6 }}
-                    className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base"
+                    className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base"
                   >
                     Save up to 97% compared to traditional therapy costs!
                   </motion.div>
@@ -573,7 +573,7 @@ export default function Home() {
                           delay: 2.66,
                         }}
                       />
-                      <span className="text-indigo-700 font-bold text-base sm:text-lg">{stat.value}</span>
+                      <span className="text-blue-500 font-bold text-base sm:text-lg">{stat.value}</span>
                     </motion.div>
                     <p className="text-sm sm:text-base text-white">{stat.text}</p>
                   </motion.div>
@@ -594,7 +594,7 @@ export default function Home() {
             <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-indigo-100/30 to-purple-100/30 rounded-full -ml-32 -mt-32"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-indigo-100/30 to-purple-100/30 rounded-full -mr-32 -mb-32"></div>
             
-            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-5 text-gray-800 relative z-10">Bridging the Access Gap</h3>
+            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-5 text-green-500 relative z-10">Bridging the Access Gap</h3>
             <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 relative z-10">
               Many people struggle to find suitable therapists due to cost, location, scheduling conflicts, or lengthy waitlists. 
               Our AI-powered therapy platform makes quality mental health support accessible to everyone - anytime, anywhere, at a fraction of the cost.
@@ -610,29 +610,29 @@ export default function Home() {
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy" 
-                className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-700 
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 
                 text-white 
                 font-medium 
                 py-3 sm:py-4 
                 px-8 sm:px-10 
                 rounded-full 
                 text-base sm:text-lg 
-                shadow-lg shadow-indigo-500/30
+                shadow-lg shadow-blue-500/30
                 transition-all 
                 duration-300
                 hover:shadow-xl
-                hover:from-indigo-500
-                hover:to-purple-600 
+                hover:from-blue-400
+                hover:to-blue-500 
                 focus:outline-none 
                 focus:ring-4 
-                focus:ring-purple-500
+                focus:ring-blue-400
                 relative
                 overflow-hidden"
               >
                 <span className="relative z-10">Experience Affordable Therapy</span>
-                <span className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
                 {/* Subtle glow behind button */}
-                <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 opacity-30 blur-lg"></span>
+                <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
               </ButtonWithSound>
             </motion.div>
           </motion.div>
@@ -647,7 +647,7 @@ export default function Home() {
             whileInView={{ opacity: 1 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true, margin: "-100px" }}
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-purple-700"
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600"
           >
             How We Support Your Relationship
           </motion.h2>
@@ -659,7 +659,7 @@ export default function Home() {
                 title: "Private Sessions",
                 description: "Connect with an AI therapist from the comfort of your home, with complete privacy and confidentiality.",
                 icon: (
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 )
@@ -668,7 +668,7 @@ export default function Home() {
                 title: "24/7 Availability",
                 description: "Get help whenever you need it - any time, any day. Our AI therapist is always ready to support your relationship.",
                 icon: (
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 )
@@ -677,7 +677,7 @@ export default function Home() {
                 title: "Proven Techniques",
                 description: "Our AI is trained in evidence-based therapeutic approaches that help couples build stronger, healthier relationships.",
                 icon: (
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 )
@@ -702,7 +702,7 @@ export default function Home() {
                 >
                   {feature.icon}
                 </motion.div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-indigo-800 group-hover:text-indigo-600 transition-colors duration-300">{feature.title}</h3>
+                <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-blue-700 group-hover:text-indigo-600 transition-colors duration-300">{feature.title}</h3>
                 <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
               </motion.div>
             ))}
@@ -720,7 +720,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-12 sm:mb-16"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-purple-700 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600 mb-4">
               What Our Clients Say
             </h2>
             <p className="text-gray-600 max-w-3xl mx-auto text-base sm:text-lg">
@@ -792,7 +792,7 @@ export default function Home() {
                   
                   <div className="flex items-center">
                     {/* Avatar placeholder */}
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 flex items-center justify-center text-white font-bold text-sm mr-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-green-500 flex items-center justify-center text-white font-bold text-sm mr-3">
                       {testimonial.name.split(' ')[0][0]}{testimonial.name.split(' ')[2] ? testimonial.name.split(' ')[2][0] : ''}
                     </div>
                     <div>
@@ -818,7 +818,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-12 sm:mb-16"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-purple-700 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text py-1 overflow-visible bg-gradient-to-r from-blue-500 to-blue-600 mb-4">
               Affordable Subscription Plans
             </h2>
             <p className="text-gray-600 max-w-3xl mx-auto text-base sm:text-lg">
@@ -839,9 +839,9 @@ export default function Home() {
               className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500"
             >
               <div className="p-6 sm:p-8">
-                <h3 className="text-xl font-bold text-indigo-800 mb-2">Basic Plan</h3>
+                <h3 className="text-xl font-bold text-blue-600 mb-2">Basic Plan</h3>
                 <div className="flex items-baseline mb-6">
-                  <span className="text-3xl font-bold text-indigo-700">$19</span>
+                  <span className="text-3xl font-bold text-blue-600">$19</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 
@@ -882,8 +882,8 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy" 
-                    className="w-full bg-indigo-600 text-white font-medium py-3 px-4 rounded-xl shadow-md 
-                    hover:bg-indigo-700 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-xl shadow-md 
+                    hover:bg-blue-700 transition duration-300 flex items-center justify-center"
                   >
                     Get Started
                   </ButtonWithSound>
@@ -900,15 +900,15 @@ export default function Home() {
               whileHover={{ 
                 boxShadow: "0 25px 50px -12px rgba(124, 58, 237, 0.25)"
               }}
-              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden border-2 border-indigo-400 md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500"
+              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden border-1 border-green-500 md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500"
             >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-lg"></div>
-              <div className="bg-indigo-500 text-white text-center text-sm font-semibold py-1">MOST POPULAR</div>
+              
+              <div className="bg-blue-500 text-white text-center text-sm font-semibold py-1">MOST POPULAR</div>
               
               <div className="p-6 sm:p-8">
-                <h3 className="text-xl font-bold text-indigo-800 mb-2">Standard Plan</h3>
+                <h3 className="text-xl font-bold text-blue-600 mb-2">Standard Plan</h3>
                 <div className="flex items-baseline mb-6">
-                  <span className="text-3xl font-bold text-indigo-700">$39</span>
+                  <span className="text-3xl font-bold text-blue-600">$39</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 
@@ -949,8 +949,8 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy" 
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg 
-                    hover:from-indigo-700 hover:to-purple-700 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-gradient-to-r from-green-400 to-green-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:overflow-hidden
+                    hover:ring-1 hover:ring-bg-blue-700 hover:from-green-500 hover:to-green-600 transition duration-300 flex items-center justify-center"
                   >
                     Select Plan
                   </ButtonWithSound>
@@ -970,9 +970,9 @@ export default function Home() {
               className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500"
             >
               <div className="p-6 sm:p-8">
-                <h3 className="text-xl font-bold text-indigo-800 mb-2">Premium Plan</h3>
+                <h3 className="text-xl font-bold text-blue-600 mb-2">Premium Plan</h3>
                 <div className="flex items-baseline mb-6">
-                  <span className="text-3xl font-bold text-indigo-700">$69</span>
+                  <span className="text-3xl font-bold text-blue-600">$69</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 
@@ -1013,8 +1013,8 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy" 
-                    className="w-full bg-indigo-600 text-white font-medium py-3 px-4 rounded-xl shadow-md 
-                    hover:bg-indigo-700 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-xl shadow-md 
+                    hover:bg-blue-700 transition duration-300 flex items-center justify-center"
                   >
                     Get Premium
                   </ButtonWithSound>
@@ -1036,7 +1036,7 @@ export default function Home() {
       </section>
       
       {/* Call to action section - decorative elements removed */}
-      <section className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-indigo-900 to-purple-900 text-white">
+      <section className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-900 to-green-900 text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           
           <div className="text-center relative z-10 mb-6">
@@ -1070,7 +1070,7 @@ export default function Home() {
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy" 
-                className="bg-white text-indigo-800 
+                className="bg-white text-blue-700 
                 font-medium 
                 py-3 sm:py-4 
                 px-8 sm:px-12 
@@ -1098,9 +1098,9 @@ export default function Home() {
       <section className="w-full py-10 bg-indigo-950 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm text-indigo-200 mb-4">© {new Date().getFullYear()} AI Couple Therapy. All rights reserved.</p>
+            <p className="text-sm text-indigo-200 mb-4">© {new Date().getFullYear()} TherapyAI. All rights reserved.</p>
             <p className="text-xs text-indigo-300">
-              Powered by advanced AI to help couples build stronger, healthier relationships
+              Powered by advanced AI to help the planet build stronger, healthier relationships
             </p>
           </div>
         </div>

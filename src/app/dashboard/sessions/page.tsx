@@ -96,7 +96,8 @@ export default function SessionsPage() {
   // Mobile tab view is handled above with the other state hooks
   
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -158,7 +159,7 @@ export default function SessionsPage() {
             animate="visible"
             className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100"
           >
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
               <h2 className="text-xl font-semibold text-white flex items-center">
                 <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -296,6 +297,7 @@ export default function SessionsPage() {
             </motion.div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

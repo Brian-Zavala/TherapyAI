@@ -136,19 +136,19 @@ export default function CommunicationMetrics() {
     return () => clearInterval(interval)
   }, [therapyType])
   
-  // Colors for different metrics
+  // Colors for different metrics - using therapy-themed colors
   const getColorForMetric = (name) => {
     const colors = {
-      activeListeningScore: "#6366F1", // Indigo
-      expressingNeedsScore: "#EC4899", // Pink
-      conflictResolutionScore: "#10B981", // Emerald
-      emotionalSupportScore: "#F59E0B", // Amber
+      activeListeningScore: "#7E57C2", // Soft purple - representing mindfulness
+      expressingNeedsScore: "#26A69A", // Teal - representing growth
+      conflictResolutionScore: "#5C6BC0", // Indigo blue - representing harmony
+      emotionalSupportScore: "#EF5350", // Soft red - representing empathy
     }
     
-    return colors[name] || "#6366F1"
+    return colors[name] || "#7E57C2"
   }
   
-  const COLORS = ["#6366F1", "#EC4899", "#10B981", "#F59E0B"]
+  const COLORS = ["#7E57C2", "#26A69A", "#5C6BC0", "#EF5350"]
   
   const onPieEnter = useCallback((_, index) => {
     setActiveIndex(index)
@@ -552,7 +552,14 @@ export default function CommunicationMetrics() {
                   animationDuration={1500}
                   animationEasing="ease-out"
                   isAnimationActive={true}
-                />
+                >
+                  {metricsData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </RadialBar>
                 <Tooltip content={<CustomTooltip />} />
                 <Legend 
                   iconSize={10} 

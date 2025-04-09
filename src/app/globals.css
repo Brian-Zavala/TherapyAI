@@ -1,76 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
+
 :root {
-  /* Therapeutic color palette */
+  --color-bg-light: #e5e5f7;
+  --color-bg-dark: #1e293b;
+  --color-text-light: #f8fafc;
+  --color-text-dark: /* Define your dark text color, e.g., #333 */ ;
+  --color-accent-radial-bg: rgba(218, 218, 218, 0.1);
+  --color-session-glow: rgba(99, 102, 241, 0.1);
+
+  --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Fraunces', serif;
 }
 
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  line-height: 1.6;
-  
-  background-color: #e5e5f7;
-  background-image: 
-    radial-gradient(circle at center center, rgba(218, 218, 218, 0.1), #e5e5f7), 
-    repeating-radial-gradient(circle at center center, rgba(218, 218, 218, 0.1), rgba(218, 218, 218, 0.1), 40px, transparent 80px, transparent 40px);
-  background-blend-mode: multiply;
-  
-  transition: background-color 700ms ease-in-out, color 700ms ease-in-out;
+html, body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark); /* Default text color */
+  /* Update background-image gradients to use variables */
 }
-/* Typography styling */
+
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Fraunces', serif;
-  font-weight: 500;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-h1 {
-  font-size: 2.25rem;
-  line-height: 1.2;
-}
-
-h2 {
-  font-size: 1.875rem;
-  line-height: 1.3;
-}
-
-h3 {
-  font-size: 1.5rem;
-  line-height: 1.4;
-}
-
-h4 {
-  font-size: 1.25rem;
-  line-height: 1.4;
-}
-
-h5 {
-  font-size: 1.125rem;
-  line-height: 1.4;
-}
-
-h6 {
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-p {
-  margin-bottom: 1rem;
-}
-
-small {
-  font-size: 0.875rem;
+   font-family: var(--font-heading);
 }
 
 body.session-active {
-  background-color: #1e293b;
-  color: #f8fafc;
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-light);
 }
 
+body.session-active::before {
+  /* Update background to use variable */
+  background: radial-gradient(circle, var(--color-session-glow) 0%, rgba(0, 0, 0, 0) 70%);
+}
 /* Enhanced animations with optimized performance */
 @keyframes ambient-float {
   0% { transform: translate(0, 0); }

@@ -96,12 +96,12 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="md:flex">
            {/* Left Column - Illustration and Info */}
-    <div className="bg-gray-700 !text-white md:w-2/5 p-8 flex flex-col justify-between">
+    <div className="bg-gradient-to-br from-blue-900 to-green-900 !text-white md:w-2/5 p-8 flex flex-col justify-between">
       <div>
         <h2 className="text-3xl font-bold mb-6 text-white">Schedule Your Therapy Session</h2>
         <p className="mb-6 opacity-28 !text-white">Take a step towards better mental wellness by scheduling your personalized therapy session.</p>
@@ -253,7 +253,7 @@ export default function SchedulePage() {
                   <button
                     type="submit"
                     disabled={!selectedDate || loading}
-                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-gray-700 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? (
                       <>

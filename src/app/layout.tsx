@@ -28,7 +28,7 @@ export default function RootLayout({
         <AuthProvider>
           <SoundProvider>
             <Navigation />
-            <main className="container mx-auto py-8 px-4 overflow-x-hidden">
+            <main className="overflow-x-hidden">
               {children}
             </main>
           </SoundProvider>

@@ -337,7 +337,7 @@ export default function Resources() {
   }, [searchQuery, filteredResources.length, isMobile]);
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 py-8 px-4 sm:px-6 lg:px-8">
       {/* Mobile tabs */}
       {isMobile && (
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 mb-6 -mx-4 px-4 py-3">
@@ -386,7 +386,7 @@ export default function Resources() {
           <motion.h1 
             variants={fadeIn}
             transition={{ duration: 0.5 }}
-            className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+            className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent"
           >
             Relationship Resources
           </motion.h1>
