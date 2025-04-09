@@ -50,7 +50,7 @@ const staggerContainer = {
 }
 
 export default function Home() {
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 })
+  // Cursor position tracking removed for performance
   const heroRef = useRef(null)
   const featuresRef = useRef(null)
   const statsControls = useAnimation()
@@ -61,22 +61,7 @@ export default function Home() {
   // Enhanced parallax effect for hero image with smoother motion
   const bgY = useTransform(scrollYProgress, [0, 0.3], [0, -50])
   
-  // Optimized cursor movement with throttling for better performance
-  useEffect(() => {
-    let lastTime = 0
-    const throttleAmount = 16 // ~60fps, adjust for smoother or more responsive movement
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      const now = Date.now()
-      if (now - lastTime < throttleAmount) return
-      
-      lastTime = now
-      setCursorPosition({ x: e.clientX, y: e.clientY })
-    }
-    
-    window.addEventListener('mousemove', handleMouseMove, { passive: true })
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  // Cursor tracking effect removed for performance
   
   // Animation trigger based on scroll position with enhanced performance
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
@@ -117,17 +102,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center w-full overflow-hidden">
-      {/* Optimized cursor glow effect with improved performance */}
-      <div 
-        className="fixed w-64 h-64 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-3xl pointer-events-none z-0 opacity-70"
-        style={{ 
-          left: `${cursorPosition.x - 128}px`, 
-          top: `${cursorPosition.y - 128}px`,
-          transition: 'left 0.3s cubic-bezier(0.32, 0.72, 0.24, 0.95), top 0.3s cubic-bezier(0.32, 0.72, 0.24, 0.95)',
-          willChange: 'transform, left, top',
-          transform: 'translateZ(0)' // Force GPU acceleration
-        }}
-      />
+      {/* Cursor glow effect removed for performance */}
       
       {/* Hero section with enhanced animations */}
       <section ref={heroRef} className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] shadow-lg shadow-indigo-500/10 rounded-b-[3rem]">
@@ -294,7 +269,7 @@ export default function Home() {
             {/* Therapy Costs Card with animated price tags */}
             <motion.div
               variants={fadeInUp}
-              whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+              whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
               className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/50 rounded-full -mr-16 -mt-16"></div>
@@ -459,15 +434,29 @@ export default function Home() {
               </div>
             </motion.div>
             
-            {/* Mental Health Statistics Card with animated counters */}
+            {/* Mental Health Statistics Card with video background */}
             <motion.div
               variants={fadeInUp}
-              whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
-              className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 relative overflow-hidden"
+              whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+              className="bg-black/25 backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-200 relative overflow-hidden"
             >
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-100/50 rounded-full -ml-16 -mb-16"></div>
+              {/* Rain video background */}
+              <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-3xl">
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover opacity-80"
+                >
+                  <source src="/videos/rain-background.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                {/* Overlay to ensure text readability */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-indigo-900/30 to-purple-900/30 z-0"></div>
+              </div>
               
-              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-indigo-700 relative z-10">Mental Health Challenges</h3>
+              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-white relative z-10">Mental Health Challenges</h3>
               <div className="space-y-5 sm:space-y-6 relative z-10">
                 {[
                   { value: "1/5", text: "Nearly one in five adults experience mental illness each year in the United States." },
@@ -547,7 +536,7 @@ export default function Home() {
                       />
                       <span className="text-indigo-700 font-bold text-base sm:text-lg">{stat.value}</span>
                     </motion.div>
-                    <p className="text-sm sm:text-base text-gray-600">{stat.text}</p>
+                    <p className="text-sm sm:text-base text-white">{stat.text}</p>
                   </motion.div>
                 ))}
               </div>
@@ -662,7 +651,6 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true, margin: "-50px" }}
                 whileHover={{ 
-                  y: -8,
                   boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
                   backgroundColor: "rgb(249, 250, 255)" // Very light indigo
                 }}
@@ -732,7 +720,6 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: index * 0.2 }}
                   viewport={{ once: true }}
                   whileHover={{ 
-                    y: -5,
                     boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
                   }}
                   className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-indigo-100 relative overflow-hidden"
@@ -778,43 +765,6 @@ export default function Home() {
               ))}
             </div>
             
-            {/* View more testimonials button */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="text-center mt-10"
-            >
-              <motion.div
-                variants={floatingButtonVariants}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                className="inline-block"
-              >
-                <ButtonWithSound
-                  as={Link}
-                  href="/dashboard/therapy" 
-                  className="bg-white text-indigo-700 
-                  font-medium 
-                  py-2 sm:py-3
-                  px-6 sm:px-8
-                  rounded-full 
-                  text-sm sm:text-base
-                  shadow-md
-                  border border-indigo-200
-                  hover:shadow-lg
-                  transition-all 
-                  duration-300
-                  focus:outline-none 
-                  focus:ring-2
-                  focus:ring-indigo-300"
-                >
-                  See More Success Stories
-                </ButtonWithSound>
-              </motion.div>
-            </motion.div>
           </div>
         </div>
       </section>
@@ -845,7 +795,6 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
               whileHover={{ 
-                y: -8,
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)"
               }}
               className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500"
@@ -910,7 +859,6 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.1 }}
               viewport={{ once: true }}
               whileHover={{ 
-                y: -8,
                 boxShadow: "0 25px 50px -12px rgba(124, 58, 237, 0.25)"
               }}
               className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden border-2 border-indigo-400 md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500"
@@ -978,7 +926,6 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
               viewport={{ once: true }}
               whileHover={{ 
-                y: -8,
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)"
               }}
               className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500"
