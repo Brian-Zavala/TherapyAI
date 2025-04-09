@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from "react"
 import { ComposedChart, Bar, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Rectangle } from "recharts"
-import { motion, AnimatePresence } from "framer-motion"
-import { ClockIcon, UsersIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentChartBarIcon } from '@heroicons/react/24/outline' // Example icons
+import { motion } from "framer-motion"
+import { ClockIcon, UsersIcon, ExclamationTriangleIcon, DocumentChartBarIcon } from '@heroicons/react/24/outline' // Example icons
 
 // Helper function for number formatting (optional, but nice for tooltips)
 const formatNumber = (num: number) => num.toLocaleString();
@@ -83,15 +83,15 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-[380px] flex items-center justify-center" // Increased height slightly
+      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center" // Updated height to match main container
     >
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center px-4">
         {/* Enhanced Spinner */}
-        <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p className="mt-4 text-indigo-700 font-medium text-sm">Loading your therapy insights...</p>
+        <p className="mt-4 text-indigo-700 font-medium text-xs sm:text-sm text-center">Loading your therapy insights...</p>
       </div>
     </motion.div>
   )
@@ -102,17 +102,17 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-[380px] flex items-center justify-center p-4" // Increased height slightly
+      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center p-2 sm:p-4" // Updated height to match main container
     >
-      <div className="text-center p-6 bg-red-50 border border-red-200 rounded-lg max-w-md">
-        <ExclamationTriangleIcon className="w-12 h-12 mx-auto text-red-400 mb-3" />
-        <p className="text-lg font-semibold text-red-800">Couldn't load session data</p>
-        <p className="text-sm mt-2 text-red-600">{error}</p>
+      <div className="text-center p-4 sm:p-6 bg-red-50 border border-red-200 rounded-lg w-full max-w-[90%] sm:max-w-md">
+        <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-red-400 mb-3" />
+        <p className="text-base sm:text-lg font-semibold text-red-800">Couldn&apos;t load session data</p>
+        <p className="text-xs sm:text-sm mt-2 text-red-600">{error}</p>
          <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => fetchSessionData(therapyType)} // Add a retry button
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-700 transition-colors"
           >
             Try Again
           </motion.button>
@@ -122,19 +122,19 @@ export default function SessionTimeChart() {
 
   // --- Reusable Therapy Type Selector ---
   const TherapyTypeSelector = () => (
-    <div className="flex justify-center mb-4">
+    <div className="flex justify-center mb-4 px-2 sm:px-0">
       {/* Added subtle shadow and slightly more padding */}
-      <div className="inline-flex p-1.5 bg-indigo-100 rounded-lg shadow-sm w-full max-w-xs sm:max-w-sm overflow-x-auto">
+      <div className="inline-flex p-1.5 bg-gradient-to-r from-transparent to-green-100 rounded-lg shadow-sm w-full max-w-full sm:max-w-xs md:max-w-sm overflow-x-auto">
         {['couple', 'solo', 'family'].map((type) => (
           <motion.button
             key={type}
             whileHover={{ scale: 1.03 }} // Slightly more subtle hover
             whileTap={{ scale: 0.97 }}
             onClick={() => setTherapyType(type)}
-            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ease-in-out flex-1 min-w-[70px] ${
+            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ease-in-out flex-1 min-w-[60px] sm:min-w-[70px] ${
               therapyType === type
-                ? 'bg-indigo-600 text-white shadow-md' // Added shadow to active
-                : 'text-indigo-700 hover:bg-indigo-200'
+                ? 'bg-blue-600 text-white shadow-md' // Added shadow to active
+                : 'text-blue-700 hover:bg-indigo-200'
             }`}
             // Animate layout changes for smooth background transition (optional but nice)
             layout // Requires Framer Motion's layout animations feature
@@ -154,20 +154,20 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="h-[380px] flex flex-col mb-6 sm:mb-0 overflow-hidden" // Increased height slightly
+        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex flex-col mb-6 sm:mb-0" // Updated height to match main container
       >
         <TherapyTypeSelector />
-        <div className="flex-grow flex items-center justify-center p-4">
-          <div className="text-center p-6 bg-indigo-50 border border-indigo-100 rounded-lg max-w-sm">
-             <DocumentChartBarIcon className="w-12 h-12 mx-auto text-indigo-400 mb-4" />
-             <p className="text-lg font-medium text-indigo-800">No {therapyType} sessions recorded yet</p>
-             <p className="text-sm mt-2 text-indigo-600">
+        <div className="flex-grow flex items-center justify-center p-2 sm:p-4">
+          <div className="text-center p-4 sm:p-6 bg-indigo-50 border border-indigo-100 rounded-lg w-full max-w-[90%] sm:max-w-sm">
+             <DocumentChartBarIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-indigo-400 mb-3 sm:mb-4" />
+             <p className="text-base sm:text-lg font-medium text-indigo-800">No {therapyType} sessions recorded yet</p>
+             <p className="text-xs sm:text-sm mt-2 text-indigo-600">
                Start logging your {therapyType} therapy sessions to visualize your progress and insights over time.
              </p>
              <motion.button
                whileHover={{ scale: 1.05, y: -2 }}
                whileTap={{ scale: 0.95 }}
-               className="mt-5 px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all duration-150 ease-in-out shadow hover:shadow-md"
+               className="mt-4 sm:mt-5 px-4 sm:px-5 py-2 bg-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-700 transition-all duration-150 ease-in-out shadow hover:shadow-md"
                onClick={() => window.location.href = '/dashboard/therapy'} // Assuming this is the correct link
              >
                Log First Session
@@ -187,16 +187,16 @@ export default function SessionTimeChart() {
 
       return (
         <div className="bg-white p-4 shadow-xl rounded-lg border border-gray-200 min-w-[250px]">
-          <p className="font-semibold text-indigo-900 mb-3 border-b pb-2">{monthData.month}</p>
+          <p className="font-semibold text-blue-900 mb-3 border-b pb-2">{monthData.month}</p>
           <div className="space-y-2">
             {/* Total Time */}
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center text-gray-700">
-                <span className="inline-block w-3 h-3 bg-indigo-500 rounded-full mr-2 flex-shrink-0"></span>
+                <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2 flex-shrink-0"></span>
                 Total Time:
               </div>
               <span className="font-medium text-gray-800">{formatNumber(monthData.sessionTime)} mins
-                <span className="text-xs text-indigo-500 ml-1">
+                <span className="text-xs text-blue-500 ml-1">
                    ({Math.round(monthData.sessionTime / 60 * 10) / 10} hrs)
                  </span>
               </span>
@@ -251,48 +251,49 @@ export default function SessionTimeChart() {
        initial={{ opacity: 0, y: 15 }}
        animate={{ opacity: 1, y: 0 }}
        transition={{ duration: 0.6, ease: "easeOut" }}
-        // Increased height slightly, adjust as needed based on content
-       className="h-[380px] sm:h-[400px] lg:h-[420px] mb-6 sm:mb-0 flex flex-col overflow-hidden"
+        // Adjusted height for better content fit
+       className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col"
      >
        <TherapyTypeSelector />
 
        {/* Summary Stats */}
-       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 px-1">
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4 px-2 sm:px-1">
          <motion.div
            whileHover={{ y: -3, boxShadow: "0 4px 10px rgba(99, 102, 241, 0.2)" }}
-           className="px-4 py-3 bg-indigo-50 rounded-lg flex items-center gap-3 transition-all duration-150 ease-in-out"
+           className="px-3 sm:px-4 py-2 sm:py-3 bg-indigo-50 rounded-lg flex items-center gap-2 sm:gap-3 transition-all duration-150 ease-in-out"
          >
-           <ClockIcon className="w-6 h-6 text-indigo-500 flex-shrink-0" />
+           <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500 flex-shrink-0" />
            <div>
-             <p className="text-xs text-indigo-600 font-medium uppercase tracking-wide">Total Time</p>
+             <p className="text-[10px] sm:text-xs text-indigo-600 font-medium uppercase tracking-wide">Total Time</p>
              {/* Consider adding number animation here if desired */}
-             <p className="text-xl font-bold text-indigo-800">
-               {totalHours}<span className="text-sm font-medium text-indigo-500 ml-1">hours</span>
+             <p className="text-lg sm:text-xl font-bold text-indigo-800">
+               {totalHours}<span className="text-xs sm:text-sm font-medium text-indigo-500 ml-1">hours</span>
              </p>
            </div>
          </motion.div>
          <motion.div
            whileHover={{ y: -3, boxShadow: "0 4px 10px rgba(20, 184, 166, 0.2)" }}
-           className="px-4 py-3 bg-teal-50 rounded-lg flex items-center gap-3 transition-all duration-150 ease-in-out"
+           className="px-3 sm:px-4 py-2 sm:py-3 bg-teal-50 rounded-lg flex items-center gap-2 sm:gap-3 transition-all duration-150 ease-in-out"
          >
-           <UsersIcon className="w-6 h-6 text-teal-500 flex-shrink-0" />
+           <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6 text-teal-500 flex-shrink-0" />
            <div>
-             <p className="text-xs text-teal-600 font-medium uppercase tracking-wide">Overall Avg. Session</p>
-             <p className="text-xl font-bold text-teal-800">
-               {averageSessionLength}<span className="text-sm font-medium text-teal-500 ml-1">mins</span>
+             <p className="text-[10px] sm:text-xs text-teal-600 font-medium uppercase tracking-wide">Overall Avg. Session</p>
+             <p className="text-lg sm:text-xl font-bold text-teal-800">
+               {averageSessionLength}<span className="text-xs sm:text-sm font-medium text-teal-500 ml-1">mins</span>
              </p>
            </div>
          </motion.div>
        </div>
 
        {/* Chart Area */}
-       {/* Added flex-grow to allow chart to take remaining space */}
-       <div className="flex-grow min-h-[250px] w-full overflow-hidden">
-         <ResponsiveContainer width="100%" height="100%">
+       {/* Fixed chart container without scrolling */}
+       <div className="min-h-[250px] w-full px-2 flex justify-center">
+         <div className="h-[250px] max-w-[800px] w-full">
+         <ResponsiveContainer width="95%" height="100%">
            <ComposedChart
              data={sessionData}
-             margin={{ top: 5, right: 5, left: -15, bottom: 5 }} // Adjusted margins slightly
-             barGap={4} // Increase gap slightly
+             margin={{ top: 5, right: 30, left: 10, bottom: 5 }} /* Balanced margins */
+             barGap={4} // Original gap between bars
            >
              <defs>
                <linearGradient id="sessionTimeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -312,11 +313,12 @@ export default function SessionTimeChart() {
 
              <XAxis
                dataKey="monthFormatted"
-               tick={{ fill: '#4F46E5', fontSize: 11, fontWeight: 500 }}
+               tick={{ fill: '#4F46E5', fontSize: 10, fontWeight: 500 }}
                axisLine={{ stroke: '#E0E7FF', strokeWidth: 1 }}
                tickLine={false}
                padding={{ left: 10, right: 10 }}
-               interval="preserveStartEnd" // Ensure first/last ticks are shown
+               interval="preserveStartEnd" // Original tick display
+               height={30} // Original height
              />
 
              <YAxis
@@ -325,16 +327,17 @@ export default function SessionTimeChart() {
                tick={{ fill: '#4F46E5', fontSize: 10 }}
                axisLine={false} // Cleaner look
                tickLine={false}
-               domain={[0, 'dataMax + 50']} // Dynamic padding
-               width={40} // Allocate space for label
+               domain={[0, 'dataMax + 50']} // Original dynamic padding
+               width={35} // Balanced width for visibility
                label={{
                  value: "Minutes",
                  angle: -90,
                  position: "insideLeft",
                  style: { fill: '#6366F1', fontSize: 11, fontWeight: 500, textAnchor: 'middle' },
-                 offset: 10 // Adjust offset if needed
+                 offset: 8 // Adjusted offset
                }}
                tickFormatter={(value) => formatNumber(value)} // Format Y-axis numbers
+               tickCount={5} // Original tick count
              />
 
              <YAxis
@@ -343,16 +346,17 @@ export default function SessionTimeChart() {
                tick={{ fill: '#0D9488', fontSize: 10 }}
                axisLine={false} // Cleaner look
                tickLine={false}
-               domain={[0, 'dataMax + 5']} // Dynamic padding
-               width={40} // Allocate space for label
+               domain={[0, 'dataMax + 5']} // Original padding
+               width={35} // Balanced width for visibility
                label={{
                  value: "Sessions",
                  angle: 90,
                  position: "insideRight",
                  style: { fill: '#0D9488', fontSize: 11, fontWeight: 500, textAnchor: 'middle' },
-                 offset: 10 // Adjust offset if needed
+                 offset: 8 // Adjusted offset
                }}
-                tickFormatter={(value) => formatNumber(value)} // Format Y-axis numbers
+               tickFormatter={(value) => formatNumber(value)} // Format Y-axis numbers
+               tickCount={4} // Original tick count
              />
 
              <Tooltip
@@ -365,14 +369,15 @@ export default function SessionTimeChart() {
              <Legend
                verticalAlign="top"
                align="center"
-               height={30}
+               height={25}
                wrapperStyle={{
-                 paddingBottom: '10px', // More space below legend
-                 fontSize: '11px',
+                 paddingBottom: '5px', // Original padding
+                 fontSize: '10px', // Original font size
                  fontWeight: 500,
                  color: '#4B5563'
                }}
-               iconSize={10} // Smaller legend icons
+               iconSize={8} // Original icon size
+               margin={{ top: 0, bottom: 0 }}
              />
 
              {/* Session Time Bar */}
@@ -381,7 +386,7 @@ export default function SessionTimeChart() {
                dataKey="sessionTime"
                name="Total Time (mins)"
                fill="url(#sessionTimeGradient)"
-               radius={[4, 4, 0, 0]} // Slightly smaller radius
+               radius={[4, 4, 0, 0]} // Original radius
                animationDuration={1000}
                animationEasing="ease-out"
                isAnimationActive={true}
@@ -414,8 +419,8 @@ export default function SessionTimeChart() {
                 dataKey="avgSessionLength"
                 name="Avg. Length (mins)"
                 stroke="#A855F7" // Violet color
-                strokeWidth={2.5} // Slightly thicker line
-                fillOpacity={0.3} // Adjust opacity
+                strokeWidth={2.5} // Original line thickness
+                fillOpacity={0.3} // Original opacity
                 fill="url(#avgLengthGradient)" // Use new gradient
                 activeDot={{ r: 6, stroke: '#8B5CF6', strokeWidth: 2, fill: '#EDE9FE' }}
                 animationDuration={1200} // Longer duration for area
@@ -425,13 +430,73 @@ export default function SessionTimeChart() {
              />
            </ComposedChart>
          </ResponsiveContainer>
+         </div>
        </div>
 
        {/* Chart annotation */}
-       <div className="flex justify-center mt-1">
-         <p className="text-xs text-gray-500 italic text-center">
+       <div className="flex justify-center mt-0.5 sm:mt-1">
+         <p className="text-[9px] sm:text-xs text-gray-500 italic text-center px-2">
            Hover over the chart elements for detailed insights.
          </p>
+       </div>
+       
+       {/* Insights Section */}
+       <div className="mt-6 sm:mt-4 mx-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 sm:p-4 border border-indigo-100 w-auto overflow-hidden">
+         <h3 className="text-sm sm:text-base font-semibold text-indigo-900 mb-2">Session Insights</h3>
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full">
+           <div className="bg-white rounded p-3 shadow-sm border border-indigo-50">
+             <h4 className="text-xs sm:text-sm font-medium text-indigo-700 mb-1">Trends</h4>
+             <p className="text-xs text-gray-600">
+               {sessionData.length > 0 && totalHours > 0 
+                 ? `You&apos;ve spent ${totalHours} hours in therapy over ${
+                     sessionData.filter(s => s.sessionCount > 0).length
+                   } active months. ${
+                     sessionData.reduce((sum, month) => sum + month.sessionCount, 0) > 1
+                     ? `Your average session length is ${averageSessionLength} minutes.` 
+                     : ""
+                   }`
+                 : "Start booking regular sessions to see your therapy trends over time."}
+             </p>
+           </div>
+           <div className="bg-white rounded p-3 shadow-sm border border-indigo-50">
+             <h4 className="text-xs sm:text-sm font-medium text-teal-700 mb-1">Consistency</h4>
+             <p className="text-xs text-gray-600">
+               {sessionData.length > 0 
+                 ? `Your current therapy type is ${therapyType}. ${
+                     sessionData.filter(session => session.sessionCount > 0).length > 2 
+                     ? `You&apos;ve been consistent with ${sessionData.filter(session => session.sessionCount > 0).length} active months.` 
+                     : "Regular sessions can lead to better outcomes."
+                   }`
+                 : "Consistent therapy scheduling helps build momentum toward your goals."}
+             </p>
+           </div>
+           {sessionData.length > 1 && (
+             <div className="bg-white rounded p-3 shadow-sm border border-indigo-50 sm:col-span-2">
+               <h4 className="text-xs sm:text-sm font-medium text-purple-700 mb-1">Progress Analysis</h4>
+               <p className="text-xs text-gray-600">
+                 {(() => {
+                   // Get recent months with sessions
+                   const recentMonths = sessionData.slice(-3).filter(s => s.sessionCount > 0);
+                   const totalRecentSessions = recentMonths.reduce((total, month) => total + month.sessionCount, 0);
+                   const trend = recentMonths.length >= 2 
+                     ? recentMonths[recentMonths.length-1].sessionTime > recentMonths[0].sessionTime 
+                       ? "increasing" : "consistent"
+                     : "beginning";
+                     
+                   if (totalHours > 5) {
+                     return `With ${totalHours} hours across ${sessionData.reduce((sum, month) => sum + month.sessionCount, 0)} 
+                       sessions, your time investment is significant. Your recent engagement is ${
+                       trend === "increasing" ? "growing well" : trend === "consistent" ? "steadily maintained" : "just starting"}.`;
+                   } else {
+                     return `Your therapy journey shows ${totalRecentSessions} recent sessions. 
+                       ${trend === "increasing" ? "Your growing commitment" : "Continuing this pattern"} 
+                       can lead to meaningful relationship improvements over 3-6 months.`;
+                   }
+                 })()}
+               </p>
+             </div>
+           )}
+         </div>
        </div>
      </motion.div>
    )

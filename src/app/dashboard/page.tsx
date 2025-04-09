@@ -249,7 +249,7 @@ export default function Dashboard() {
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter your name"
                         required
                       />
@@ -274,7 +274,7 @@ export default function Dashboard() {
                         name="partnerName"
                         value={formData.partnerName}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter your partner's name"
                       />
                       <p className="text-xs text-gray-500 mt-1">Our AI assistant will include your partner in conversations</p>
@@ -296,7 +296,7 @@ export default function Dashboard() {
                         name="relationshipStatus"
                         value={formData.relationshipStatus}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="Married">Married</option>
                         <option value="Dating">Dating</option>
@@ -375,7 +375,7 @@ export default function Dashboard() {
                           name="familyMember4"
                           value={formData.familyMember4}
                           onChange={handleInputChange}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Enter name"
                         />
                       </div>
@@ -429,7 +429,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={skipStep}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-indigo-600 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-blue-600 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
                 >
                   Skip this step
                 </button>
@@ -439,7 +439,7 @@ export default function Dashboard() {
                 type="button"
                 onClick={nextStep}
                 disabled={(onboardingStep === 0 && !formData.name) || isSaving}
-                className={`px-6 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
+                className={`px-6 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
               >
                 {isSaving ? (
                   <>
@@ -700,7 +700,7 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
               <Link href="/dashboard/therapy" className="flex flex-col items-center p-3 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mb-1">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-blue-600 mb-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
@@ -792,7 +792,7 @@ export default function Dashboard() {
             </Link>
             
             <Link href="/dashboard/profile" className="flex items-center p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">
-              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-purple-100 flex items-center justify-center text-blue-600 mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>

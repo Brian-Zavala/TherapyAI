@@ -111,7 +111,7 @@ export default function CommunicationMetrics() {
           }}
           className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-all flex-1 min-w-[60px] ${
             therapyType === 'couple' 
-              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
+              ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md' 
               : 'text-indigo-800 hover:bg-purple-100'
           }`}
         >

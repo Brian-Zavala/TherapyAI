@@ -47,102 +47,110 @@ export default function SessionTranscript({ sessionId }: { sessionId: string }) 
   function formatTranscript(transcript: string) {
     if (!transcript) return []
     
-    // Split by newlines and process each line
+    // Split by newlines and filter empty lines
     const lines = transcript.split('\n').filter(line => line.trim() !== '');
-    
-    // Remove duplicate consecutive therapist messages
     const deduplicatedLines = [];
-    let lastSpeaker = '';
-    let lastContent = '';
+    
+    // Track messages we've seen to avoid duplicates
+    const seenMessages = new Set();
     
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      // Check for patterns like "USER:", "User:", "HUMAN:", "CLIENT:", etc. (case insensitive)
-      let isUserMessage = /^(user|human|client|customer|you|person)\s*:/i.test(line);
-      // Check for patterns like "THERAPIST:", "ASSISTANT:", "AI:", etc. (case insensitive)
-      const isTherapist = /^(therapist|assistant|ai|claude|dr|doctor|counselor|advisor)\s*:/i.test(line);
+      const line = lines[i].trim();
+      if (!line) continue;
       
-      // Extract the speaker and content
+      // Check for speaker patterns
       let speaker = '';
-      let content = line;
+      let isUserMessage = false;
       let speakerPrefix = '';
+      let content = '';
       
-      if (isUserMessage) {
+      // Check for explicit speaker prefixes
+      const userPrefixMatch = /^(user|human|client|customer|you|person)\s*:/i.exec(line);
+      const therapistPrefixMatch = /^(therapist|assistant|ai|claude|dr|doctor|counselor|advisor)\s*:/i.exec(line);
+      
+      if (userPrefixMatch) {
+        // User message with explicit prefix
         speaker = 'You';
-        // Find the colon position to extract content properly regardless of case
-        const colonPos = line.indexOf(':');
-        content = colonPos >= 0 ? line.substring(colonPos + 1).trim() : line;
-        speakerPrefix = line.substring(0, colonPos).trim();
-      } else if (isTherapist) {
+        speakerPrefix = userPrefixMatch[0].trim();
+        isUserMessage = true;
+        content = line.substring(speakerPrefix.length).trim();
+      } else if (therapistPrefixMatch) {
+        // Therapist message with explicit prefix
         speaker = 'AI Therapist';
-        // Find the colon position to extract content properly regardless of case
-        const colonPos = line.indexOf(':');
-        content = colonPos >= 0 ? line.substring(colonPos + 1).trim() : line;
-        speakerPrefix = line.substring(0, colonPos).trim();
-      } else if (line.trim() !== '') {
-        // If no explicit speaker prefix detected, try to infer from context
-        
-        // Check for question marks or first-person pronouns to guess if it's the user
+        speakerPrefix = therapistPrefixMatch[0].trim();
+        content = line.substring(speakerPrefix.length).trim();
+      } else {
+        // No explicit prefix - infer based on content
         const probablyUser = /\?\s*$/.test(line) || 
-                            /\b(I feel|I think|I am|I'm|I need|I want|I have|I've|I'd|I would|my)\b/i.test(line);
+                           /\b(I feel|I think|I am|I'm|I need|I want|I have|I've|I'd|I would|my)\b/i.test(line);
         
-        // Check for therapeutic language to guess if it's the therapist
         const probablyTherapist = /\b(let me|what I hear|I understand|it sounds like|have you considered|tell me more|how does that make you|you mentioned|would you like to|we could|let's explore)\b/i.test(line);
         
         if (probablyUser && !probablyTherapist) {
           speaker = 'You';
           isUserMessage = true;
-        } else if (probablyTherapist || !lastSpeaker || lastSpeaker === 'You') {
-          // If it sounds like a therapist OR the last speaker was the user OR there's no last speaker yet
-          speaker = 'AI Therapist';
         } else {
-          // Fallback: continue with the previous speaker
-          speaker = lastSpeaker;
-          isUserMessage = speaker === 'You';
+          // Default to therapist for unlabeled messages
+          speaker = 'AI Therapist';
         }
         
-        content = line.trim();
+        content = line;
       }
       
-      // Skip if this is a duplicate therapist message (exact duplicate or significant overlap)
-      if (speaker === 'AI Therapist' && speaker === lastSpeaker && 
-          (content === lastContent || 
-           (lastContent.length > 20 && (lastContent.includes(content) || content.includes(lastContent))))) {
+      // Skip empty content
+      if (!content) continue;
+      
+      // Check for duplicates
+      const messageKey = `${speaker}:${content}`;
+      
+      // Skip exact duplicates
+      if (seenMessages.has(messageKey)) {
         continue;
       }
       
-      // Format JSON strings that might be in the transcript for better readability
-      if (content.includes('{') && content.includes('}')) {
-        try {
-          // Find any JSON-like structure and format it
-          const jsonMatches = content.match(/{[^{}]*({[^{}]*})*[^{}]*}/g);
-          if (jsonMatches) {
-            jsonMatches.forEach(match => {
-              try {
-                // Try to parse and re-stringify the JSON for better formatting
-                const parsed = JSON.parse(match);
-                const formatted = JSON.stringify(parsed, null, 2);
-                content = content.replace(match, '\n' + formatted + '\n');
-              } catch (e) {
-                // If parsing fails, keep the original text
-              }
-            });
+      // Check for partial duplicates - messages that are subsets or supersets of seen messages
+      let isDuplicate = false;
+      const toDelete = [];
+      
+      for (const seen of seenMessages) {
+        const [seenSpeaker, ...seenContentParts] = seen.split(':');
+        const seenContent = seenContentParts.join(':'); // Handle colons in the content
+        
+        // Only compare messages from the same speaker
+        if (seenSpeaker === speaker) {
+          // Case 1: This message is contained within a message we've already seen
+          if (seenContent.includes(content) && content.length < seenContent.length) {
+            isDuplicate = true;
+            break;
           }
-        } catch (e) {
-          // If overall JSON detection fails, keep the original content
+          
+          // Case 2: A message we've seen is contained within this message 
+          // (this is a more complete version)
+          if (content.includes(seenContent) && seenContent.length < content.length) {
+            toDelete.push(seen);
+          }
         }
       }
       
-      deduplicatedLines.push({ 
-        id: deduplicatedLines.length, 
-        speaker, 
+      // If this is a less complete version of a message we've already seen, skip it
+      if (isDuplicate) continue;
+      
+      // Remove any less complete versions we've seen before
+      for (const del of toDelete) {
+        seenMessages.delete(del);
+      }
+      
+      // Add this message to our seen set
+      seenMessages.add(messageKey);
+      
+      // Add to results
+      deduplicatedLines.push({
+        id: deduplicatedLines.length,
+        speaker,
         content,
-        prefix: speakerPrefix, 
+        prefix: speakerPrefix,
         isUser: isUserMessage
       });
-      
-      lastSpeaker = speaker;
-      lastContent = content;
     }
     
     return deduplicatedLines;
