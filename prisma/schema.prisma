@@ -15,15 +15,13 @@ model User {
   password             String
   partnerName          String?
   relationshipStatus   String?                @default("Married")
+  assistantId          String?
   familyMember1        String?
   familyMember2        String?
   familyMember3        String?
   familyMember4        String?
-  assistantId          String?                // Vapi assistant ID
   communicationMetrics CommunicationMetrics[]
   progressTracking     ProgressTracking[]
-  soloTherapyMetrics   SoloTherapyMetrics[]
-  familyTherapyMetrics FamilyTherapyMetrics[]
   sessions             Session[]
   therapySessions      TherapySession[]
 }
@@ -37,7 +35,7 @@ model Session {
   notes        String?  @default("")
   status       String   @default("scheduled")
   reminderSent Boolean  @default(false)
-  transcript   String?  @db.Text
+  transcript   String?
   user         User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
@@ -50,24 +48,11 @@ model ProgressTracking {
   closenessScore     Int
   communicationScore Int
   therapyType        String   @default("couple")
-  notes              String?  @db.Text
-  sessionId          String?  // Reference to the session that generated this progress
+  notes              String?
+  sessionId          String?
   user               User     @relation(fields: [userId], references: [id])
 
-  @@index([userId])
   @@index([therapyType])
-}
-
-model RelationshipProgress {
-  id            String   @id @default(cuid())
-  userId        String
-  week          Int
-  date          DateTime @default(now())
-  closeness     Float
-  communication Float
-
-  @@index([userId])
-  @@index([week])
 }
 
 model CommunicationMetrics {
@@ -79,34 +64,6 @@ model CommunicationMetrics {
   conflictResolutionScore Int
   emotionalSupportScore   Int
   user                    User     @relation(fields: [userId], references: [id])
-  
-  @@index([userId])
-}
-
-model SoloTherapyMetrics {
-  id                       String   @id @default(cuid())
-  userId                   String
-  date                     DateTime @default(now())
-  selfAwarenessScore       Int
-  emotionalRegulationScore Int
-  personalGrowthScore      Int
-  copingSkillsScore        Int
-  user                     User     @relation(fields: [userId], references: [id])
-  
-  @@index([userId])
-}
-
-model FamilyTherapyMetrics {
-  id                       String   @id @default(cuid())
-  userId                   String
-  date                     DateTime @default(now())
-  familyCommunicationScore Int
-  roleDefinitionScore      Int
-  conflictManagementScore  Int
-  familyBondingScore       Int
-  user                     User     @relation(fields: [userId], references: [id])
-  
-  @@index([userId])
 }
 
 model TherapySession {

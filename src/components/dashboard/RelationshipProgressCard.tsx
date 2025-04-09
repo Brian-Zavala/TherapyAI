@@ -1,4 +1,3 @@
-// src/components/dashboard/RelationshipProgressCard.tsx
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
@@ -62,39 +61,6 @@ export default function RelationshipProgressCard() {
   const [chartMetrics, setChartMetrics] = useState<ChartMetrics>(null); // Moved UP
 
   // --- Helper Functions & Callbacks (Defined using useCallback/useMemo) ---
-
-  // Generate sample data for the chart
-  const generateSampleData = useCallback((type = 'couple'): DataPoint[] => { // Added useCallback & type
-    const sampleData: DataPoint[] = []
-    const today = new Date()
-
-    // Generate 5 weeks of data
-    for (let i = 0; i < 5; i++) {
-      const weekDate = new Date(today)
-      weekDate.setDate(today.getDate() - (i * 7)) // Go back i weeks
-
-      const weekLabel = `Week ${weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-
-      // Base values that increase over time
-      const baseCloseness = 60 + (i * 3)
-      const baseCommunication = 55 + (i * 4)
-
-      // Add random variation
-      const randomVariance = Math.floor(Math.random() * 6) - 3 // -3 to +3
-
-      sampleData.push({
-        name: weekLabel,
-        closeness: type === 'family' ?
-          baseCloseness + randomVariance + 5 :
-          baseCloseness + randomVariance,
-        communication: baseCommunication + randomVariance,
-        amt: 100 // Used for domain calculation
-      })
-    }
-
-    // Return in chronological order (oldest first)
-    return sampleData.reverse()
-  }, []); // Empty dependency array as it doesn't depend on component state/props
 
   // Function to navigate to session transcript if available
   const viewSessionTranscript = useCallback((sessionId?: string) => { // Changed to useCallback
@@ -183,29 +149,26 @@ export default function RelationshipProgressCard() {
           setDataSource('api')
           console.log("Using real data from API")
         } else {
-          // If API returned invalid/empty data, use sample data
-          console.log("API returned invalid or empty data, using sample data")
-          const sampleData = generateSampleData(therapyType)
-          setData(sampleData)
-          setDataSource('sample')
-          // Differentiate error message
-          setError('No relationship data found. Displaying sample.')
+          // If API returned invalid/empty data, show empty state
+          console.log("API returned invalid or empty data, showing empty state")
+          setData([])
+          setDataSource('api')
+          setError('No relationship data found for the selected timeframe.')
         }
       } catch (error: any) { // Catch specific type if possible, otherwise 'any' or 'unknown'
         console.error("Error fetching relationship progress data:", error)
-        // On error, use sample data as fallback
-        console.log("Using sample data due to error")
-        const sampleData = generateSampleData(therapyType)
-        setData(sampleData)
-        setDataSource('sample')
-        setError(`Failed to load data: ${error.message}. Displaying sample.`)
+        // On error, show empty state
+        console.log("Error fetching data, showing empty state")
+        setData([])
+        setDataSource('api')
+        setError(`Error loading data: ${error.message}`)
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [therapyType, timeframe, generateSampleData]); // Added generateSampleData dependency
+  }, [therapyType, timeframe]); // Removed unused dependency
 
 
   // Calculate metrics from data - Moved UP, effect depends on data and getChartMetrics
