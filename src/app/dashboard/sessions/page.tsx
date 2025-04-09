@@ -61,6 +61,19 @@ export default function SessionsPage() {
     }
   }, [status, router])
   
+  // Check URL for session parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sessionParam = params.get('session');
+      
+      if (sessionParam) {
+        setSelectedSessionId(sessionParam);
+        setActiveTab('details');
+      }
+    }
+  }, []);
+  
   function viewSessionTranscript(sessionId: string) {
     setSelectedSessionId(sessionId)
   }

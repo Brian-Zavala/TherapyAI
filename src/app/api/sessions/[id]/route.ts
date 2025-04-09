@@ -166,9 +166,35 @@ export async function PATCH(
     // Generate metrics if session was completed
     if (status === 'completed') {
       try {
-        // Make sure we're using the database user ID, not the session user ID
-        // Pass transcript to generate more accurate metrics based on conversation content
-        await generateMetricsFromSession(user.id, updatedSession.duration, transcript)
+        // Determine therapy type from session theme
+        let therapyType = 'couple';
+        if (existingSession.theme && existingSession.theme.toLowerCase().includes('family')) {
+          therapyType = 'family';
+        }
+        
+        // Create or update metrics - first, check if metrics already exist for this session
+        const existingMetrics = await prisma.progressTracking.findFirst({
+          where: {
+            sessionId: sessionId
+          }
+        });
+        
+        if (!existingMetrics) {
+          // No metrics exist yet, create new ones
+          // Make sure we're using the database user ID, not the session user ID
+          await generateMetricsFromSession(
+            user.id, 
+            updatedSession.duration, 
+            sessionId, 
+            transcript, 
+            therapyType
+          );
+          
+          console.log(`Generated ${therapyType} metrics for session ${sessionId}`);
+        } else {
+          // Metrics already exist, update them
+          console.log(`Metrics already exist for session ${sessionId}, not generating new ones`);
+        }
       } catch (metricsError) {
         console.error('Error generating metrics, but continuing:', metricsError)
         // Don't fail the whole request if metrics generation fails

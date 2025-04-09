@@ -1,686 +1,323 @@
 // src/components/dashboard/RelationshipProgressCard.tsx
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, Brush, CartesianGrid } from "recharts"
-import { motion, useAnimation, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from "recharts"
+import { motion } from "framer-motion"
 
 export default function RelationshipProgressCard() {
-  const [progressData, setProgressData] = useState([])
+  const [therapyType, setTherapyType] = useState('couple')
+  const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [dataSource, setDataSource] = useState('loading') // 'api', 'sample', 'loading'
   const [error, setError] = useState(null)
-  const [focusedPoint, setFocusedPoint] = useState(null)
-  const [averageScores, setAverageScores] = useState({ closeness: 0, communication: 0 })
-  const [activeIndex, setActiveIndex] = useState(null)
-  const [showAverage, setShowAverage] = useState(false)
-  const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
-  const chartControls = useAnimation()
-  const progressRef = useRef(null)
-  
-  // For pulse effect on points
-  useEffect(() => {
-    if (progressData.length > 0) {
-      const interval = setInterval(() => {
-        const randomIndex = Math.floor(Math.random() * progressData.length)
-        setActiveIndex(randomIndex)
-        setTimeout(() => setActiveIndex(null), 1500)
-      }, 4000)
+
+  // Generate sample data for the chart
+  const generateSampleData = (type = 'couple') => {
+    const sampleData = []
+    const today = new Date()
+    
+    // Generate 5 weeks of data
+    for (let i = 0; i < 5; i++) {
+      const weekDate = new Date(today)
+      weekDate.setDate(today.getDate() - (i * 7)) // Go back i weeks
       
-      return () => clearInterval(interval)
+      const weekLabel = `Week ${weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+      
+      // Base values that increase over time
+      const baseCloseness = 60 + (i * 3)
+      const baseCommunication = 55 + (i * 4)
+      
+      // Add random variation
+      const randomVariance = Math.floor(Math.random() * 6) - 3 // -3 to +3
+      
+      sampleData.push({
+        name: weekLabel,
+        closeness: type === 'family' ? 
+          baseCloseness + randomVariance + 5 : 
+          baseCloseness + randomVariance,
+        communication: baseCommunication + randomVariance,
+        amt: 100 // Used for domain calculation
+      })
     }
-  }, [progressData])
-  
-  const fetchProgressData = async (type = 'couple') => {
-    try {
+    
+    // Return in chronological order (oldest first)
+    return sampleData.reverse()
+  }
+
+  // Fetch real data from API, fallback to mock data if needed
+  useEffect(() => {
+    const fetchData = async () => {
       setLoading(true)
-      const response = await fetch(`/api/dashboard/relationship-progress?type=${type}`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch relationship progress data')
+      setError(null)
+      setDataSource('loading')
+      console.log(`Fetching data for ${therapyType} therapy`)
+
+      try {
+        // Fetch data from the real API
+        const response = await fetch(`/api/dashboard/relationship-progress?type=${therapyType}`)
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+        
+        const apiData = await response.json()
+        console.log("API returned data:", apiData)
+        
+        // Check if we got valid data
+        if (Array.isArray(apiData) && apiData.length > 0 && apiData[0].hasOwnProperty('closeness')) {
+          // Transform API data to match our chart format
+          const formattedData = apiData.map(item => ({
+            name: item.week,
+            closeness: item.closeness,
+            communication: item.communication,
+            amt: 100,
+            // Keep additional fields for tooltip/details
+            notes: item.notes,
+            insight: item.insight,
+            sessionId: item.sessionId
+          }))
+          
+          setData(formattedData)
+          setDataSource('api')
+          console.log("Using real data from API")
+        } else {
+          // If API returned invalid/empty data, use sample data
+          console.log("API returned invalid data, using sample data")
+          const sampleData = generateSampleData(therapyType)
+          setData(sampleData)
+          setDataSource('sample')
+          setError('No real data available')
+        }
+      } catch (error) {
+        console.error("Error fetching relationship progress data:", error)
+        // On error, use sample data as fallback
+        console.log("Using sample data due to error")
+        const sampleData = generateSampleData(therapyType)
+        setData(sampleData)
+        setDataSource('sample')
+        setError(`Failed to load data: ${error.message}`)
+      } finally {
+        setLoading(false)
       }
-      
-      const data = await response.json()
-      
-      // Calculate average scores
-      if (data.length > 0) {
-        const totalCloseness = data.reduce((sum, item) => sum + item.closeness, 0)
-        const totalCommunication = data.reduce((sum, item) => sum + item.communication, 0)
-        
-        setAverageScores({
-          closeness: Math.round(totalCloseness / data.length),
-          communication: Math.round(totalCommunication / data.length)
-        })
-      }
-      
-      // Add trend indicators
-      const enhancedData = data.map((item, index, arr) => {
-        let closenessChange = 0
-        let commChange = 0
-        
-        if (index > 0) {
-          closenessChange = item.closeness - arr[index-1].closeness
-          commChange = item.communication - arr[index-1].communication
-        }
-        
-        return {
-          ...item,
-          closenessChange,
-          commChange,
-          trend: (closenessChange + commChange) / 2
-        }
-      })
-      
-      setProgressData(enhancedData)
-    } catch (err) {
-      console.error(`Error fetching ${type} relationship progress data:`, err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
     }
-  }
-  
-  // Separate useEffect for animations that depends on progressData changes
-  useEffect(() => {
-    if (progressData.length > 0) {
-      // Animate in the chart data only after data is loaded and component is mounted
-      chartControls.start({
-        opacity: 1,
-        y: 0,
-        transition: { 
-          duration: 0.5,
-          delay: 0.2
-        }
-      })
-    }
-  }, [progressData, chartControls])
-  
-  useEffect(() => {
-    fetchProgressData(therapyType)
+
+    fetchData()
   }, [therapyType])
-  
-  const toggleAverageLines = () => {
-    setShowAverage(!showAverage)
-  }
-  
-  if (loading) return (
-    <div className="h-80 flex items-center justify-center">
-      <div className="flex flex-col items-center">
-        <motion.div 
-          animate={{ 
-            rotate: 360,
-            scale: [1, 1.1, 1] 
-          }}
-          transition={{ 
-            rotate: { duration: 1.5, repeat: Infinity, ease: "linear" },
-            scale: { duration: 1, repeat: Infinity, repeatType: "reverse" }
-          }}
-          className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center"
-        >
-          <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        </motion.div>
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-4 text-purple-600 font-medium"
-        >
-          Analyzing your relationship growth...
-        </motion.p>
-      </div>
-    </div>
-  )
-  
-  if (error) return (
-    <div className="h-80 flex items-center justify-center text-purple-600">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center p-6 bg-purple-50 rounded-lg"
-      >
-        <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-lg font-medium">Couldn't load your progress data</p>
-        <p className="text-sm mt-2 text-purple-500">{error}</p>
-      </motion.div>
-    </div>
-  )
-  
-  // Create a reusable component for the therapy type selector
+
+  // Helper for therapy type selection
   const TherapyTypeSelector = () => (
-    <div className="flex justify-center mb-2 sm:mb-4">
-      <div className="inline-flex p-1 bg-purple-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+    <div className="flex justify-center mb-4">
+      <div className="inline-flex p-1 bg-purple-100 rounded-lg shadow-sm">
+        <button
           onClick={() => setTherapyType('couple')}
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+          className={`px-4 py-2 text-sm font-medium rounded-md ${
             therapyType === 'couple' 
               ? 'bg-purple-600 text-white' 
-              : 'text-purple-800 hover:bg-purple-100'
+              : 'text-purple-700 hover:bg-purple-200'
           }`}
         >
           Couple
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setTherapyType('solo')}
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-            therapyType === 'solo' 
-              ? 'bg-purple-600 text-white' 
-              : 'text-purple-800 hover:bg-purple-100'
-          }`}
-        >
-          Individual
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        </button>
+        <button
           onClick={() => setTherapyType('family')}
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+          className={`px-4 py-2 text-sm font-medium rounded-md ${
             therapyType === 'family' 
               ? 'bg-purple-600 text-white' 
-              : 'text-purple-800 hover:bg-purple-100'
+              : 'text-purple-700 hover:bg-purple-200'
           }`}
         >
           Family
-        </motion.button>
+        </button>
       </div>
     </div>
-  );
+  )
 
-  if (progressData.length === 0) {
+  // Loading state
+  if (loading) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="h-[340px] sm:h-80 lg:h-96 overflow-hidden"
-      >
-        {/* Keep the therapy type selector visible even when there's no data */}
-        <TherapyTypeSelector />
-
-        <div className="h-[calc(100%-45px)] flex items-center justify-center text-purple-600">
-          <div className="text-center p-6 bg-purple-50 rounded-lg max-w-sm">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            >
-              <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </motion.div>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <p className="text-lg font-medium">No {therapyType} progress data yet</p>
-              <p className="text-sm mt-2 text-purple-500">
-                Complete {therapyType} therapy sessions or assessments to start visualizing your relationship growth over time
-              </p>
-            </motion.div>
-          </div>
+      <div className="bg-white p-6 rounded-lg shadow-md h-[500px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-purple-600">Loading relationship progress data...</p>
         </div>
-      </motion.div>
+      </div>
     )
   }
-  
-  // Custom tooltip component for the chart
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      const weekData = progressData.find(d => d.week === label);
-      
-      return (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-4 shadow-lg rounded-lg border border-purple-100"
-        >
-          <div className="flex items-center">
-            <span className="text-purple-800 font-medium">Week {label}</span>
-            <motion.span 
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                weekData.trend > 0 
-                  ? 'bg-green-100 text-green-800' 
-                  : weekData.trend < 0 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-gray-100 text-gray-800'
-              }`}
-            >
-              {weekData.trend > 0 
-                ? '+' + Math.round(weekData.trend) 
-                : weekData.trend < 0 
-                  ? Math.round(weekData.trend) 
-                  : 'No change'}
-            </motion.span>
-          </div>
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <span className="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
-                <span className="text-sm">Closeness:</span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium text-sm mr-1">{payload[0].value}/100</span>
-                {weekData.closenessChange !== 0 && (
-                  <span className={`text-xs ${
-                    weekData.closenessChange > 0 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-                  }`}>
-                    {weekData.closenessChange > 0 ? '↑' : '↓'}{Math.abs(weekData.closenessChange)}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <span className="inline-block w-3 h-3 bg-pink-500 rounded-full mr-2"></span>
-                <span className="text-sm">Communication:</span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium text-sm mr-1">{payload[1].value}/100</span>
-                {weekData.commChange !== 0 && (
-                  <span className={`text-xs ${
-                    weekData.commChange > 0 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-                  }`}>
-                    {weekData.commChange > 0 ? '↑' : '↓'}{Math.abs(weekData.commChange)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500 flex justify-between items-center">
-            <span>Click to highlight</span>
-            {weekData.trend !== 0 && (
-              <span className={`text-xs font-medium ${
-                weekData.trend > 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {weekData.trend > 0 ? 'Improving' : 'Needs focus'}
-              </span>
-            )}
-          </div>
-        </motion.div>
-      );
-    }
-    return null;
-  };
-  
-  // Get the most recent score for display
-  const latestWeek = progressData[progressData.length - 1]
-  
-  // Determine improvement from previous week
-  const prevWeekIndex = progressData.length - 2;
-  const prevWeek = prevWeekIndex >= 0 ? progressData[prevWeekIndex] : null;
-  
-  const closenessChange = prevWeek ? latestWeek.closeness - prevWeek.closeness : 0;
-  const commChange = prevWeek ? latestWeek.communication - prevWeek.communication : 0;
-  
-  const handlePointClick = (data, index) => {
-    setFocusedPoint(focusedPoint === index ? null : index)
-    
-    // Animate the progress indicator
-    if (progressRef.current) {
-      const percent = Math.min(95, Math.max(5, data.closeness * 0.8));
-      progressRef.current.style.width = `${percent}%`;
+
+  // Function to navigate to session transcript if available
+  const viewSessionTranscript = (sessionId) => {
+    if (sessionId) {
+      console.log("Navigating to session transcript:", sessionId)
+      // Use window.location for navigation
+      if (typeof window !== 'undefined') {
+        window.location.href = `/dashboard/sessions?session=${sessionId}`
+      }
     }
   }
-  
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="h-[340px] sm:h-80 lg:h-96 overflow-hidden"
-    >
-      {/* Use the reusable therapy type selector */}
-      <TherapyTypeSelector />
-      {/* Score indicators with subtle animations */}
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
-        <div className="flex flex-wrap gap-2 sm:gap-4">
-          <motion.div 
-            whileHover={{ 
-              y: -3,
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" 
-            }}
-            className="px-3 py-2 bg-purple-50 rounded-lg"
-          >
-            <p className="text-xs text-purple-600 font-medium">Closeness</p>
-            <div className="flex items-center">
-              <p className="text-xl font-bold text-purple-800">{latestWeek.closeness}<span className="text-xs text-purple-500">/100</span></p>
-              {closenessChange !== 0 && (
-                <motion.span 
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`ml-1 text-xs ${closenessChange > 0 ? 'text-green-600' : 'text-red-500'}`}
-                >
-                  {closenessChange > 0 ? '↑' : '↓'}{Math.abs(closenessChange)}
-                </motion.span>
-              )}
+
+  // Enhanced tooltip for the chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const dataPoint = payload[0].payload // Access the original data point
+
+      return (
+        <div className="bg-white p-4 shadow-md rounded-md border border-gray-200 max-w-[250px]">
+          <p className="font-medium text-gray-800">{label}</p>
+          
+          <div className="mt-3 space-y-2">
+            <p className="text-sm flex items-center justify-between">
+              <span className="flex items-center">
+                <span className="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                Closeness:
+              </span>
+              <span className="font-medium">{payload[0].value}/100</span>
+            </p>
+            
+            <p className="text-sm flex items-center justify-between">
+              <span className="flex items-center">
+                <span className="inline-block w-3 h-3 bg-pink-500 rounded-full mr-2"></span>
+                Communication:
+              </span>
+              <span className="font-medium">{payload[1].value}/100</span>
+            </p>
+          </div>
+          
+          {/* Show insight if available */}
+          {dataPoint.insight && (
+            <div className="mt-3 pt-2 border-t border-gray-100">
+              <p className="text-xs italic text-gray-600">{dataPoint.insight}</p>
             </div>
-          </motion.div>
-          <motion.div 
-            whileHover={{ 
-              y: -3,
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" 
-            }}
-            className="px-3 py-2 bg-pink-50 rounded-lg"
-          >
-            <p className="text-xs text-pink-600 font-medium">Communication</p>
-            <div className="flex items-center">
-              <p className="text-xl font-bold text-pink-800">{latestWeek.communication}<span className="text-xs text-pink-500">/100</span></p>
-              {commChange !== 0 && (
-                <motion.span 
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`ml-1 text-xs ${commChange > 0 ? 'text-green-600' : 'text-red-500'}`}
-                >
-                  {commChange > 0 ? '↑' : '↓'}{Math.abs(commChange)}
-                </motion.span>
-              )}
-            </div>
-          </motion.div>
-        </div>
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleAverageLines}
-            className={`text-xs px-2 py-1 rounded-md transition-colors ${
-              showAverage ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
-            }`}
-          >
-            {showAverage ? 'Hide Avg' : 'Show Avg'}
-          </motion.button>
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            className="text-right text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-md"
-          >
-            Week {progressData.length}
-          </motion.div>
-        </div>
-      </div>
-      
-      <div className="h-[70%] min-h-[200px] w-full max-h-[260px] lg:max-h-[290px] overflow-hidden">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
-            data={progressData}
-            margin={{ top: 5, right: 20, left: 10, bottom: 15 }}
-            onMouseLeave={() => setActiveIndex(null)}
-          >
-          <defs>
-            <linearGradient id="colorCloseness" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#C4B5FD" stopOpacity={0.2}/>
-            </linearGradient>
-            <linearGradient id="colorCommunication" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#EC4899" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#F9A8D4" stopOpacity={0.2}/>
-            </linearGradient>
-            <filter id="shadow" height="200%">
-              <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#8B5CF6" floodOpacity="0.3"/>
-            </filter>
-          </defs>
-          <CartesianGrid stroke="#F3F4F6" strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="week" 
-            tick={{ fill: '#6B7280' }}
-            tickLine={{ stroke: '#E5E7EB' }}
-            axisLine={{ stroke: '#E5E7EB' }}
-          />
-          <YAxis 
-            domain={[0, 100]} 
-            tick={{ fill: '#6B7280' }}
-            tickLine={{ stroke: '#E5E7EB' }}
-            axisLine={{ stroke: '#E5E7EB' }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend 
-            wrapperStyle={{ 
-              paddingTop: '10px',
-              fontSize: '12px',
-              fontWeight: 500
-            }} 
-          />
-          
-          {/* Reference lines for average scores - only shown when toggled */}
-          <AnimatePresence>
-            {showAverage && (
-              <>
-                <ReferenceLine 
-                  y={averageScores.closeness} 
-                  stroke="#8B5CF6" 
-                  strokeDasharray="3 3" 
-                  label={{ 
-                    value: `Avg: ${averageScores.closeness}`, 
-                    fill: '#8B5CF6', 
-                    fontSize: 12,
-                    position: 'right'
-                  }} 
-                />
-                <ReferenceLine 
-                  y={averageScores.communication} 
-                  stroke="#EC4899" 
-                  strokeDasharray="3 3" 
-                  label={{ 
-                    value: `Avg: ${averageScores.communication}`, 
-                    fill: '#EC4899', 
-                    fontSize: 12,
-                    position: 'left'
-                  }} 
-                />
-              </>
-            )}
-          </AnimatePresence>
-          
-          <Line 
-            type="monotone" 
-            dataKey="closeness" 
-            stroke="#8B5CF6" 
-            strokeWidth={3}
-            name="Closeness Score" 
-            dot={(props) => {
-              const { cx, cy, index } = props;
-              const isFocused = focusedPoint === index;
-              const isActive = activeIndex === index;
-              
-              return (
-                <g key={`dot-${index}`}>
-                  <circle
-                    key={`circle-${index}`}
-                    cx={cx}
-                    cy={cy}
-                    r={isFocused ? 6 : isActive ? 6 : 4}
-                    fill={isFocused ? "#8B5CF6" : "#F5F3FF"}
-                    stroke="#8B5CF6"
-                    strokeWidth={2}
-                    style={{
-                      filter: isFocused ? "url(#shadow)" : "none"
-                    }}
-                  />
-                  {isActive && !isFocused && (
-                    <circle
-                      key={`pulse-${index}`}
-                      cx={cx}
-                      cy={cy}
-                      r={10}
-                      fill="none"
-                      stroke="#8B5CF6"
-                      strokeWidth={1}
-                      strokeOpacity={0.5}
-                      style={{
-                        animation: "pulse 1.5s infinite"
-                      }}
-                    />
-                  )}
-                  
-                  <style key={`style-${index}`}>
-                    {`
-                      @keyframes pulse {
-                        0% { r: 4; stroke-opacity: 0.8; }
-                        70% { r: 10; stroke-opacity: 0; }
-                        100% { r: 4; stroke-opacity: 0; }
-                      }
-                    `}
-                  </style>
-                </g>
-              );
-            }}
-            activeDot={{ 
-              r: 6, 
-              stroke: '#8B5CF6',
-              strokeWidth: 2,
-              fill: '#F5F3FF',
-              onClick: handlePointClick
-            }}
-            connectNulls={true}
-            animationDuration={1500}
-            animationEasing="ease-out"
-            isAnimationActive={true}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="communication" 
-            stroke="#EC4899" 
-            strokeWidth={3}
-            name="Communication Score" 
-            dot={(props) => {
-              const { cx, cy, index } = props;
-              const isFocused = focusedPoint === index;
-              const isActive = activeIndex === index;
-              
-              return (
-                <g key={`dot-comm-${index}`}>
-                  <circle
-                    key={`circle-comm-${index}`}
-                    cx={cx}
-                    cy={cy}
-                    r={isFocused ? 6 : isActive ? 6 : 4}
-                    fill={isFocused ? "#EC4899" : "#FCE7F3"}
-                    stroke="#EC4899"
-                    strokeWidth={2}
-                    style={{
-                      filter: isFocused ? "url(#shadow)" : "none"
-                    }}
-                  />
-                  {isActive && !isFocused && (
-                    <circle
-                      key={`pulse-comm-${index}`}
-                      cx={cx}
-                      cy={cy}
-                      r={10}
-                      fill="none"
-                      stroke="#EC4899"
-                      strokeWidth={1}
-                      strokeOpacity={0.5}
-                      style={{
-                        animation: "pulsePink 1.5s infinite"
-                      }}
-                    />
-                  )}
-                  
-                  <style key={`style-comm-${index}`}>
-                    {`
-                      @keyframes pulsePink {
-                        0% { r: 4; stroke-opacity: 0.8; }
-                        70% { r: 10; stroke-opacity: 0; }
-                        100% { r: 4; stroke-opacity: 0; }
-                      }
-                    `}
-                  </style>
-                </g>
-              );
-            }}
-            activeDot={{ 
-              r: 6, 
-              stroke: '#EC4899',
-              strokeWidth: 2,
-              fill: '#FCE7F3',
-              onClick: handlePointClick
-            }}
-            connectNulls={true}
-            animationBegin={300}
-            animationDuration={1500}
-            animationEasing="ease-out"
-            isAnimationActive={true}
-          />
-          
-          {progressData.length > 6 && (
-            <Brush 
-              dataKey="week" 
-              height={20} 
-              stroke="#A78BFA" 
-              fill="#F5F3FF"
-              startIndex={Math.max(0, progressData.length - 6)}
-            />
           )}
-        </LineChart>
-      </ResponsiveContainer>
+          
+          {/* Show notes if available */}
+          {dataPoint.notes && dataPoint.notes !== "Sample data for demonstration" && (
+            <div className="mt-2">
+              <p className="text-xs text-gray-500 line-clamp-2">{dataPoint.notes}</p>
+            </div>
+          )}
+          
+          {/* Link to session transcript if available */}
+          {dataPoint.sessionId && (
+            <button 
+              onClick={() => viewSessionTranscript(dataPoint.sessionId)}
+              className="mt-3 text-xs flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                />
+              </svg>
+              View Session Transcript
+            </button>
+          )}
+        </div>
+      )
+    }
+    return null
+  }
+
+  // Chart title based on therapy type
+  const chartTitle = therapyType === 'couple' 
+    ? 'Relationship Progress' 
+    : 'Family Relationship Progress'
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md h-[500px]">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold text-gray-800">{chartTitle}</h3>
+        
+        {/* Data source indicator */}
+        {dataSource === 'api' && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <span className="w-2 h-2 mr-1 bg-green-400 rounded-full"></span>
+            Live Data
+          </span>
+        )}
+        {dataSource === 'sample' && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <span className="w-2 h-2 mr-1 bg-amber-400 rounded-full"></span>
+            Sample Data
+          </span>
+        )}
       </div>
       
-      {/* Animated progress & insight indicators */}
-      <div className="flex flex-col mt-1 space-y-1">
-        <motion.div 
-          className="h-1 bg-gray-100 rounded-full overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <motion.div
-            ref={progressRef}
-            className="h-full bg-gradient-to-r from-purple-400 to-pink-500 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ 
-              width: focusedPoint !== null 
-                ? `${60 + (focusedPoint / (progressData.length - 1)) * 35}%` 
-                : "60%" 
-            }}
-            transition={{ 
-              duration: 1,
-              ease: "easeInOut",
-            }}
-          />
-        </motion.div>
-        
-        <div className="flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            {focusedPoint !== null ? (
-              <motion.p
-                key="insight"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="text-xs text-center px-2 font-medium text-purple-700"
-              >
-                {progressData[focusedPoint].trend > 5 
-                  ? "Great progress! Keep up the good work!" 
-                  : progressData[focusedPoint].trend < -5
-                    ? "This period needs some attention. Try open communication."
-                    : "Steady relationship metrics. Focus on consistent growth."}
-              </motion.p>
-            ) : (
-              <motion.p
-                key="default"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="text-xs text-gray-500 italic text-center px-2"
-              >
-                Click on any point to see insights for that week
-              </motion.p>
-            )}
-          </AnimatePresence>
+      <TherapyTypeSelector />
+      
+      {/* Error message if present */}
+      {error && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-md text-xs mb-3">
+          {error}
         </div>
+      )}
+      
+      {/* Chart container with explicit height */}
+      <div style={{ width: '100%', height: 320 }}>
+        <ResponsiveContainer>
+          <LineChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis domain={[0, 100]} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend />
+            <Line 
+              type="monotone" 
+              dataKey="closeness" 
+              stroke="#8B5CF6" 
+              strokeWidth={2}
+              name="Closeness"
+              dot={{ r: 4, strokeWidth: 2 }}
+              activeDot={{ r: 6, strokeWidth: 2 }}
+              isAnimationActive={true}
+              animationDuration={1000}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="communication" 
+              stroke="#EC4899" 
+              strokeWidth={2}
+              name="Communication"
+              dot={{ r: 4, strokeWidth: 2 }}
+              activeDot={{ r: 6, strokeWidth: 2 }}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationBegin={300}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
-    </motion.div>
+      
+      {/* Metrics display */}
+      <div className="flex mt-6 space-x-4">
+        {data.length > 0 && (
+          <>
+            <div className="bg-purple-50 p-3 rounded-lg flex-1">
+              <p className="text-sm text-purple-700">Average Closeness</p>
+              <p className="text-2xl font-bold text-purple-900">
+                {Math.round(data.reduce((sum, item) => sum + item.closeness, 0) / data.length)}
+              </p>
+            </div>
+            <div className="bg-pink-50 p-3 rounded-lg flex-1">
+              <p className="text-sm text-pink-700">Average Communication</p>
+              <p className="text-2xl font-bold text-pink-900">
+                {Math.round(data.reduce((sum, item) => sum + item.communication, 0) / data.length)}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }

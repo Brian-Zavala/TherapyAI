@@ -594,7 +594,7 @@ export default function Home() {
             <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-indigo-100/30 to-purple-100/30 rounded-full -ml-32 -mt-32"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-indigo-100/30 to-purple-100/30 rounded-full -mr-32 -mb-32"></div>
             
-            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-5 text-green-500 relative z-10">Bridging the Access Gap</h3>
+            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-5 text-blue-500 relative z-10">Bridging the Access Gap</h3>
             <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 relative z-10">
               Many people struggle to find suitable therapists due to cost, location, scheduling conflicts, or lengthy waitlists. 
               Our AI-powered therapy platform makes quality mental health support accessible to everyone - anytime, anywhere, at a fraction of the cost.

@@ -49,9 +49,13 @@ model ProgressTracking {
   date               DateTime @default(now())
   closenessScore     Int
   communicationScore Int
+  therapyType        String   @default("couple")
+  notes              String?  @db.Text
+  sessionId          String?  // Reference to the session that generated this progress
   user               User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([therapyType])
 }
 
 model RelationshipProgress {

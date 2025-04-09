@@ -2,7 +2,7 @@
 import { prisma } from '@/lib/prisma'
 
 // Helper function to generate metrics from the session
-export async function generateMetricsFromSession(userId: string, duration: number, transcript?: string) {
+export async function generateMetricsFromSession(userId: string, duration: number, sessionId?: string, transcript?: string, therapyType: string = 'couple') {
   // Validate the userId exists first
   try {
     const userExists = await prisma.user.findUnique({
@@ -14,19 +14,99 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
       return;
     }
     
+    // Check the session's theme to determine therapy type if not provided
+    if (sessionId && !therapyType) {
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { theme: true }
+      });
+      
+      if (session) {
+        if (session.theme.toLowerCase().includes('family')) {
+          therapyType = 'family';
+        } else if (session.theme.toLowerCase().includes('relationship') || session.theme.toLowerCase().includes('couple')) {
+          therapyType = 'couple';
+        }
+      }
+    }
+
     // Base calculation using duration
     const baseScore = Math.min(85, 50 + Math.floor(duration / 5));
     const variability = 10; // Add some randomness to scores
     
     // Calculate enhanced metrics if transcript is available
-    const metrics = analyzeTranscriptForMetrics(transcript, baseScore, variability);
+    const metrics = analyzeTranscriptForMetrics(transcript, baseScore, variability, therapyType);
+    
+    // Extract notes from transcript for context
+    let notes = "";
+    if (transcript) {
+      // Prioritize extracting insights from important sections
+      // Look for a summary, conclusion, session notes or key insights section
+      const summaryMatch = transcript.match(/summary|conclusion|progress|next steps|key points|key insights|session notes|impression|assessment|plan/i);
+      if (summaryMatch) {
+        // Found a potential summary section
+        const startIndex = summaryMatch.index;
+        // Extract a larger portion (400 chars) to get more context
+        let extractedText = transcript.substring(startIndex, startIndex + 400);
+        
+        // Try to find the end of the summary section
+        const nextSectionMatch = extractedText.match(/\n\n|\r\n\r\n|next session|homework|follow up/i);
+        if (nextSectionMatch && nextSectionMatch.index > 30) {
+          // If we find a clear end to the section, trim to that
+          extractedText = extractedText.substring(0, nextSectionMatch.index);
+        }
+        
+        // Format and trim the notes
+        notes = extractedText.trim();
+        if (notes.length > 300) {
+          notes = notes.substring(0, 297) + "...";
+        }
+      } else {
+        // No clear summary section - try to identify therapeutic insights
+        const lines = transcript.split('\n');
+        const therapeuticLines = lines.filter(line => {
+          // Look for lines with therapeutic language
+          return /\b(progress|improve|goal|technique|skill|practice|homework|insight|pattern|relationship|feeling|emotion|thought|behavior|communication|understand|awareness)\b/i.test(line) &&
+            // That aren't too short
+            line.length > 30;
+        });
+        
+        if (therapeuticLines.length > 0) {
+          // Join the top 2-3 most valuable lines
+          notes = therapeuticLines.slice(0, Math.min(3, therapeuticLines.length)).join(" ");
+          if (notes.length > 300) {
+            notes = notes.substring(0, 297) + "...";
+          }
+        } else {
+          // Fallback to getting the last few meaningful exchanges
+          const lastPortionSize = Math.min(transcript.length, 400);
+          const lastPortion = transcript.substring(transcript.length - lastPortionSize);
+          
+          // Try to start at a clean line break for readability
+          const firstLineBreak = lastPortion.match(/\n/);
+          if (firstLineBreak && firstLineBreak.index > 20) {
+            notes = "..." + lastPortion.substring(firstLineBreak.index);
+          } else {
+            notes = "..." + lastPortion;
+          }
+          
+          // Trim to a reasonable size
+          if (notes.length > 300) {
+            notes = notes.substring(0, 297) + "...";
+          }
+        }
+      }
+    }
     
     // Create progress tracking data
     await prisma.progressTracking.create({
       data: {
         userId,
         closenessScore: metrics.closenessScore,
-        communicationScore: metrics.communicationScore
+        communicationScore: metrics.communicationScore,
+        therapyType,
+        notes,
+        sessionId
       }
     });
     
@@ -41,7 +121,20 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
       }
     });
     
-    console.log(`Successfully generated metrics for user ${userId} based on session transcript analysis`);
+    // If this is family therapy, also create family therapy metrics
+    if (therapyType === 'family') {
+      await prisma.familyTherapyMetrics.create({
+        data: {
+          userId,
+          familyCommunicationScore: Math.min(100, metrics.activeListeningScore + 5),
+          roleDefinitionScore: Math.min(100, metrics.expressingNeedsScore),
+          conflictManagementScore: Math.min(100, metrics.conflictResolutionScore + 3),
+          familyBondingScore: Math.min(100, metrics.emotionalSupportScore + 7)
+        }
+      });
+    }
+    
+    console.log(`Successfully generated ${therapyType} metrics for user ${userId} based on session transcript analysis`);
   } catch (error) {
     console.error('Error in generateMetricsFromSession:', error);
     throw error; // Re-throw to be caught by the caller
@@ -49,16 +142,19 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
 }
 
 // Helper function to analyze transcript and extract metrics
-export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60, variability = 10) {
+export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60, variability = 10, therapyType: string = 'couple') {
   // Default metrics if no transcript
   if (!transcript) {
+    // Adjust default scores based on therapy type
+    const typeBonus = therapyType === 'family' ? 3 : 0;
+    
     return {
-      closenessScore: baseScore + Math.floor(Math.random() * variability),
-      communicationScore: baseScore + Math.floor(Math.random() * variability),
-      activeListeningScore: baseScore + Math.floor(Math.random() * variability),
-      expressingNeedsScore: baseScore + Math.floor(Math.random() * variability),
-      conflictResolutionScore: baseScore + Math.floor(Math.random() * variability),
-      emotionalSupportScore: baseScore + Math.floor(Math.random() * variability)
+      closenessScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
+      communicationScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
+      activeListeningScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
+      expressingNeedsScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
+      conflictResolutionScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
+      emotionalSupportScore: baseScore + Math.floor(Math.random() * variability) + typeBonus
     };
   }
   
@@ -71,7 +167,7 @@ export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60,
   // Process transcript to find indicators of different communication qualities
   const transcriptLower = transcript.toLowerCase();
   
-  // Check for active listening indicators
+  // Common phrases for all therapy types
   const activeListeningPhrases = [
     'i understand', 'i hear you', 'what i\'m hearing is', 'it sounds like', 
     'you feel', 'you\'re saying', 'let me understand', 'tell me more',
@@ -82,7 +178,6 @@ export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60,
     'you\'re describing', 'what I\'m gathering', 'that makes sense', 'I see what you mean'
   ];
   
-  // Check for expressing needs indicators
   const expressingNeedsPhrases = [
     'i need', 'i want', 'i feel', 'i would like', 'from my perspective', 
     'my concern is', 'it\'s important to me', 'i wish', 'i prefer',
@@ -92,7 +187,6 @@ export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60,
     'i need you to understand', 'it would help me if', 'i feel strongly about'
   ];
   
-  // Check for conflict resolution indicators
   const conflictResolutionPhrases = [
     'let\'s find a solution', 'we can compromise', 'middle ground', 'agree to', 
     'resolve this', 'work together', 'common goal', 'both of us',
@@ -103,7 +197,6 @@ export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60,
     'agreeable to both', 'let\'s brainstorm', 'we can work through this'
   ];
   
-  // Check for emotional support indicators
   const emotionalSupportPhrases = [
     'i\'m here for you', 'i support you', 'thank you for sharing', 'i appreciate', 
     'that must be difficult', 'i care about', 'your feelings matter', 'i\'m sorry',
@@ -114,6 +207,56 @@ export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60,
     'that\'s valid', 'you have every right to feel', 'i empathize with',
     'i\'m proud of you', 'you\'re handling this well', 'thank you for trusting me'
   ];
+  
+  // Add therapy type-specific phrases
+  if (therapyType === 'family') {
+    // Family therapy specific phrases
+    activeListeningPhrases.push(...[
+      'each family member', 'as a family', 'your role in the family', 
+      'family dynamic', 'different perspectives in the family',
+      'family system', 'each person\'s viewpoint'
+    ]);
+    
+    expressingNeedsPhrases.push(...[
+      'as a parent', 'as a child', 'in my role', 'my responsibility',
+      'our family needs', 'our household', 'family rules', 'boundaries',
+      'family expectations'
+    ]);
+    
+    conflictResolutionPhrases.push(...[
+      'family meeting', 'family discussion', 'family agreement',
+      'respect each other\'s', 'family compromise', 'between family members',
+      'across generations', 'among siblings'
+    ]);
+    
+    emotionalSupportPhrases.push(...[
+      'family bond', 'family connection', 'family support',
+      'family tradition', 'family values', 'family love', 
+      'family unity', 'family roles'
+    ]);
+  } else {
+    // Couple therapy specific phrases
+    activeListeningPhrases.push(...[
+      'between you two', 'in your relationship', 'as a couple',
+      'partner\'s perspective', 'your partner feels', 'in your marriage'
+    ]);
+    
+    expressingNeedsPhrases.push(...[
+      'in our relationship', 'as your partner', 'our connection',
+      'our intimacy', 'romantic needs', 'quality time together',
+      'shared responsibilities'
+    ]);
+    
+    conflictResolutionPhrases.push(...[
+      'as a couple', 'relationship compromise', 'relationship goals',
+      'your partnership', 'your marriage', 'couple\'s agreement'
+    ]);
+    
+    emotionalSupportPhrases.push(...[
+      'partner support', 'relationship bond', 'love language',
+      'intimate connection', 'romantic support', 'couple\'s trust'
+    ]);
+  }
   
   // Count phrase occurrences and adjust scores
   activeListeningPhrases.forEach(phrase => {
@@ -142,14 +285,38 @@ export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60,
   conflictResolutionScore = Math.min(100, conflictResolutionScore);
   emotionalSupportScore = Math.min(100, emotionalSupportScore);
   
-  // Calculate aggregate scores
-  const communicationScore = Math.min(100, Math.floor(
-    (activeListeningScore + expressingNeedsScore + conflictResolutionScore) / 3
-  ));
+  // Apply therapy type specific adjustments
+  if (therapyType === 'family') {
+    // Family therapy places higher emphasis on clear communication
+    activeListeningScore = Math.min(100, activeListeningScore + 5);
+    conflictResolutionScore = Math.min(100, conflictResolutionScore + 3);
+  } else {
+    // Couple therapy places higher emphasis on emotional connection
+    emotionalSupportScore = Math.min(100, emotionalSupportScore + 5);
+    expressingNeedsScore = Math.min(100, expressingNeedsScore + 3);
+  }
   
-  const closenessScore = Math.min(100, Math.floor(
-    (emotionalSupportScore + activeListeningScore) / 2
-  ));
+  // Calculate aggregate scores with adjustments based on therapy type
+  let communicationScore, closenessScore;
+  
+  if (therapyType === 'family') {
+    communicationScore = Math.min(100, Math.floor(
+      (activeListeningScore * 0.4 + expressingNeedsScore * 0.3 + conflictResolutionScore * 0.3)
+    ));
+    
+    closenessScore = Math.min(100, Math.floor(
+      (emotionalSupportScore * 0.6 + activeListeningScore * 0.4)
+    ));
+  } else {
+    // Default couple therapy calculations
+    communicationScore = Math.min(100, Math.floor(
+      (activeListeningScore * 0.35 + expressingNeedsScore * 0.35 + conflictResolutionScore * 0.3)
+    ));
+    
+    closenessScore = Math.min(100, Math.floor(
+      (emotionalSupportScore * 0.7 + activeListeningScore * 0.3)
+    ));
+  }
   
   return {
     closenessScore,

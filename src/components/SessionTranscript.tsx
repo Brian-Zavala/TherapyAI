@@ -57,10 +57,10 @@ export default function SessionTranscript({ sessionId }: { sessionId: string }) 
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      // Check for patterns like "USER:" or "User:" (case insensitive)
-      let isUserMessage = /^user\s*:/i.test(line);
+      // Check for patterns like "USER:", "User:", "HUMAN:", "CLIENT:", etc. (case insensitive)
+      let isUserMessage = /^(user|human|client|customer|you|person)\s*:/i.test(line);
       // Check for patterns like "THERAPIST:", "ASSISTANT:", "AI:", etc. (case insensitive)
-      const isTherapist = /^(therapist|assistant|ai)\s*:/i.test(line);
+      const isTherapist = /^(therapist|assistant|ai|claude|dr|doctor|counselor|advisor)\s*:/i.test(line);
       
       // Extract the speaker and content
       let speaker = '';
@@ -80,18 +80,57 @@ export default function SessionTranscript({ sessionId }: { sessionId: string }) 
         content = colonPos >= 0 ? line.substring(colonPos + 1).trim() : line;
         speakerPrefix = line.substring(0, colonPos).trim();
       } else if (line.trim() !== '') {
-        // If no speaker prefix, assume continuation of previous speaker
-        // Default to AI Therapist if it's the first line without a prefix
-        speaker = lastSpeaker || 'AI Therapist';
+        // If no explicit speaker prefix detected, try to infer from context
+        
+        // Check for question marks or first-person pronouns to guess if it's the user
+        const probablyUser = /\?\s*$/.test(line) || 
+                            /\b(I feel|I think|I am|I'm|I need|I want|I have|I've|I'd|I would|my)\b/i.test(line);
+        
+        // Check for therapeutic language to guess if it's the therapist
+        const probablyTherapist = /\b(let me|what I hear|I understand|it sounds like|have you considered|tell me more|how does that make you|you mentioned|would you like to|we could|let's explore)\b/i.test(line);
+        
+        if (probablyUser && !probablyTherapist) {
+          speaker = 'You';
+          isUserMessage = true;
+        } else if (probablyTherapist || !lastSpeaker || lastSpeaker === 'You') {
+          // If it sounds like a therapist OR the last speaker was the user OR there's no last speaker yet
+          speaker = 'AI Therapist';
+        } else {
+          // Fallback: continue with the previous speaker
+          speaker = lastSpeaker;
+          isUserMessage = speaker === 'You';
+        }
+        
         content = line.trim();
-        // Check if this should be treated as a user message
-        isUserMessage = speaker === 'You';
       }
       
-      // Skip if this is a duplicate therapist message
+      // Skip if this is a duplicate therapist message (exact duplicate or significant overlap)
       if (speaker === 'AI Therapist' && speaker === lastSpeaker && 
-          (content === lastContent || lastContent.includes(content) || content.includes(lastContent))) {
+          (content === lastContent || 
+           (lastContent.length > 20 && (lastContent.includes(content) || content.includes(lastContent))))) {
         continue;
+      }
+      
+      // Format JSON strings that might be in the transcript for better readability
+      if (content.includes('{') && content.includes('}')) {
+        try {
+          // Find any JSON-like structure and format it
+          const jsonMatches = content.match(/{[^{}]*({[^{}]*})*[^{}]*}/g);
+          if (jsonMatches) {
+            jsonMatches.forEach(match => {
+              try {
+                // Try to parse and re-stringify the JSON for better formatting
+                const parsed = JSON.parse(match);
+                const formatted = JSON.stringify(parsed, null, 2);
+                content = content.replace(match, '\n' + formatted + '\n');
+              } catch (e) {
+                // If parsing fails, keep the original text
+              }
+            });
+          }
+        } catch (e) {
+          // If overall JSON detection fails, keep the original content
+        }
       }
       
       deduplicatedLines.push({ 

@@ -181,7 +181,7 @@ export default function Dashboard() {
   if (status === 'loading' || isProfileLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
@@ -197,7 +197,7 @@ export default function Dashboard() {
         >
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -215,7 +215,7 @@ export default function Dashboard() {
                 return steps.map((step) => (
                   <div 
                     key={step} 
-                    className={`relative flex-1 ${step < onboardingStep ? 'bg-indigo-500' : step === onboardingStep ? 'bg-indigo-500' : 'bg-gray-200'} h-2 rounded-full ${step === 0 ? 'rounded-l-full' : step === maxStep ? 'rounded-r-full' : ''}`}
+                    className={`relative flex-1 ${step < onboardingStep ? 'bg-blue-500' : step === onboardingStep ? 'bg-indigo-500' : 'bg-gray-200'} h-2 rounded-full ${step === 0 ? 'rounded-l-full' : step === maxStep ? 'rounded-r-full' : ''}`}
                   >
                     <div 
                       className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${step < onboardingStep ? 'bg-indigo-500 text-white' : step === onboardingStep ? 'bg-white border-2 border-indigo-500 text-indigo-500' : 'bg-white border-2 border-gray-300 text-gray-500'}`}
@@ -249,7 +249,7 @@ export default function Dashboard() {
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
                         placeholder="Enter your name"
                         required
                       />
@@ -264,7 +264,7 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Relationship</h3>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+                      <label htmlFor="partnerName" className="text-sm font-medium text-gray-700 mb-1 flex justify-between">
                         Partner's Name
                         <span className="text-xs text-gray-500">Optional - can skip</span>
                       </label>
@@ -274,7 +274,7 @@ export default function Dashboard() {
                         name="partnerName"
                         value={formData.partnerName}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
                         placeholder="Enter your partner's name"
                       />
                       <p className="text-xs text-gray-500 mt-1">Our AI assistant will include your partner in conversations</p>
@@ -296,7 +296,7 @@ export default function Dashboard() {
                         name="relationshipStatus"
                         value={formData.relationshipStatus}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
                       >
                         <option value="Married">Married</option>
                         <option value="Dating">Dating</option>
@@ -330,7 +330,7 @@ export default function Dashboard() {
                           name="familyMember1"
                           value={formData.familyMember1}
                           onChange={handleInputChange}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-indigo-500"
                           placeholder="Enter name"
                         />
                       </div>
@@ -345,7 +345,7 @@ export default function Dashboard() {
                           name="familyMember2"
                           value={formData.familyMember2}
                           onChange={handleInputChange}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Enter name"
                         />
                       </div>
@@ -360,7 +360,7 @@ export default function Dashboard() {
                           name="familyMember3"
                           value={formData.familyMember3}
                           onChange={handleInputChange}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Enter name"
                         />
                       </div>
