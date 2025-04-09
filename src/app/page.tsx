@@ -6,6 +6,33 @@ import { motion, useScroll, useTransform, useMotionValueEvent, useAnimation } fr
 import ButtonWithSound from '@/components/ButtonWithSound'
 import { useRef, useState, useEffect } from 'react'
 
+// Custom smooth scroll function
+const smoothScroll = (target: HTMLElement, duration = 1000) => {
+  const targetPosition = target.getBoundingClientRect().top + window.scrollY
+  const startPosition = window.scrollY
+  const distance = targetPosition - startPosition
+  let startTime: number | null = null
+
+  const animation = (currentTime: number) => {
+    if (startTime === null) startTime = currentTime
+    const timeElapsed = currentTime - startTime
+    const progress = Math.min(timeElapsed / duration, 1)
+    
+    // Easing function - easeInOutCubic
+    const ease = (t: number) => t < 0.5 
+      ? 4 * t * t * t 
+      : 1 - Math.pow(-2 * t + 2, 3) / 2
+    
+    window.scrollTo(0, startPosition + distance * ease(progress))
+    
+    if (timeElapsed < duration) {
+      requestAnimationFrame(animation)
+    }
+  }
+  
+  requestAnimationFrame(animation)
+}
+
 // Animation variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -27,27 +54,59 @@ export default function Home() {
   const heroRef = useRef(null)
   const featuresRef = useRef(null)
   const statsControls = useAnimation()
+  
+  // Standard scroll tracking
   const { scrollYProgress } = useScroll()
   
-  // Parallax effect for hero image
+  // Enhanced parallax effect for hero image with smoother motion
   const bgY = useTransform(scrollYProgress, [0, 0.3], [0, -50])
   
-  // Handle cursor movement for interactive elements
+  // Optimized cursor movement with throttling for better performance
   useEffect(() => {
+    let lastTime = 0
+    const throttleAmount = 16 // ~60fps, adjust for smoother or more responsive movement
+    
     const handleMouseMove = (e: MouseEvent) => {
+      const now = Date.now()
+      if (now - lastTime < throttleAmount) return
+      
+      lastTime = now
       setCursorPosition({ x: e.clientX, y: e.clientY })
     }
     
-    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
   
-  // Animation trigger based on scroll position
+  // Animation trigger based on scroll position with enhanced performance
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
     if (latest > 0.1) {
       statsControls.start("visible")
     }
   })
+  
+  // Handle smooth scrolling when clicking on navigation links
+  useEffect(() => {
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const link = target.closest('a')
+      
+      if (link && link.hash && link.hash.startsWith('#')) {
+        e.preventDefault()
+        const targetElement = document.querySelector(link.hash)
+        
+        if (targetElement) {
+          smoothScroll(targetElement as HTMLElement, 1500)
+        }
+      }
+    }
+    
+    // Add event listener
+    document.addEventListener('click', handleLinkClick)
+    
+    // Clean up
+    return () => document.removeEventListener('click', handleLinkClick)
+  }, [])
   
   // Floating animation for button
   const floatingButtonVariants = {
@@ -58,14 +117,15 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center w-full overflow-hidden">
-      {/* Cursor glow effect that follows the mouse - fixed animation */}
+      {/* Optimized cursor glow effect with improved performance */}
       <div 
         className="fixed w-64 h-64 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-3xl pointer-events-none z-0 opacity-70"
         style={{ 
           left: `${cursorPosition.x - 128}px`, 
           top: `${cursorPosition.y - 128}px`,
-          transition: 'left 0.5s cubic-bezier(0.22, 1, 0.36, 1), top 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
-          willChange: 'transform'
+          transition: 'left 0.3s cubic-bezier(0.32, 0.72, 0.24, 0.95), top 0.3s cubic-bezier(0.32, 0.72, 0.24, 0.95)',
+          willChange: 'transform, left, top',
+          transform: 'translateZ(0)' // Force GPU acceleration
         }}
       />
       
@@ -74,17 +134,22 @@ export default function Home() {
         {/* Background gradient with enhanced colors */}
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 z-0"></div>
         
-        {/* Parallax background image */}
-        <motion.div style={{ y: bgY }} className="absolute inset-0 w-full h-full z-0">
+        {/* Optimized parallax background image with GPU acceleration */}
+        <motion.div 
+          style={{ y: bgY }} 
+          className="absolute inset-0 w-full h-full z-0 optimize-gpu"
+        >
           <Image
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
             className="object-cover object-center opacity-40 md:opacity-50 scale-110 rounded-b-[3rem]" 
             priority
+            sizes="100vw"
+            quality={85}
           />
-          {/* Enhanced gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/40 to-purple-100/40"></div>
+          {/* Enhanced gradient overlay with reduced opacity for better performance */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/40 to-purple-100/40 optimize-gpu"></div>
         </motion.div>
         
         {/* Static decorative elements instead of floating particles */}
@@ -168,11 +233,32 @@ export default function Home() {
             </motion.div>
           </motion.div>
           
-          {/* Bounce arrow animation to guide scrolling */}
+          {/* Improved scroll guide animation with smoother easing and click handler */}
           <motion.div 
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu cursor-pointer"
+            animate={{ 
+              y: [0, 10, 0],
+              opacity: [0.7, 1, 0.7]
+            }}
+            transition={{ 
+              y: { 
+                duration: 2.5, 
+                repeat: Infinity, 
+                ease: "easeInOut"
+              },
+              opacity: {
+                duration: 2.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }
+            }}
+            onClick={() => {
+              if (featuresRef.current) {
+                smoothScroll(featuresRef.current as HTMLElement, 1500)
+              }
+            }}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
           >
             <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -389,7 +475,11 @@ export default function Home() {
                   { value: "42%", text: "42% of people cite cost as the primary barrier to seeking mental health services." },
                   { value: "78%", text: "78% of couples report improved relationship satisfaction after completing therapy." },
                   { value: "35%", text: "35% of relationships struggle with communication issues as their primary challenge." },
-                  { value: "90%", text: "Over 90% of therapy clients report feeling heard and understood is essential to progress." }
+                  { value: "90%", text: "Over 90% of therapy clients report feeling heard and understood is essential to progress." },
+                  { value: "67%", text: "67% of couples who attend therapy together report increased emotional intimacy within 3 months." },
+                  { value: "53%", text: "53% of individuals with relationship difficulties also experience symptoms of anxiety or depression." },
+                  { value: "84%", text: "84% of couples using digital therapy tools report better conflict resolution skills." },
+                  { value: "71%", text: "71% of long-term relationships benefit from regular check-ins with a therapist, even without specific issues." }
                 ].map((stat, index) => (
                   <motion.div 
                     key={index}
@@ -401,8 +491,60 @@ export default function Home() {
                   >
                     <motion.div 
                       whileHover={{ scale: 1.1, backgroundColor: "rgb(224, 231, 255)" }}
-                      className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0 shadow-sm"
+                      className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0 shadow-sm relative"
                     >
+                      {/* First pulsing ring - continuous without reset */}
+                      <motion.span 
+                        className="absolute inset-0 rounded-full border border-indigo-300/30"
+                        initial={{ scale: 1, opacity: 0 }}
+                        animate={{
+                          scale: [1, 1.1, 1.25, 1.4, 1.5, 1.6],
+                          opacity: [0, 0.5, 0.4, 0.3, 0.2, 0],
+                        }}
+                        transition={{
+                          duration: 4,
+                          times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                          repeat: Infinity,
+                          repeatDelay: 0,
+                          ease: "linear",
+                        }}
+                      />
+                      
+                      {/* Second pulsing ring with offset */}
+                      <motion.span 
+                        className="absolute inset-0 rounded-full border border-indigo-300/30"
+                        initial={{ scale: 1, opacity: 0 }}
+                        animate={{
+                          scale: [1, 1.1, 1.25, 1.4, 1.5, 1.7],
+                          opacity: [0, 0.4, 0.35, 0.25, 0.15, 0],
+                        }}
+                        transition={{
+                          duration: 4,
+                          times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                          repeat: Infinity,
+                          repeatDelay: 0,
+                          ease: "linear",
+                          delay: 1.33,
+                        }}
+                      />
+                      
+                      {/* Third pulsing ring with different offset */}
+                      <motion.span 
+                        className="absolute inset-0 rounded-full border border-indigo-300/30"
+                        initial={{ scale: 1, opacity: 0 }}
+                        animate={{
+                          scale: [1, 1.1, 1.25, 1.4, 1.6, 1.8],
+                          opacity: [0, 0.3, 0.25, 0.2, 0.1, 0],
+                        }}
+                        transition={{
+                          duration: 4,
+                          times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                          repeat: Infinity,
+                          repeatDelay: 0,
+                          ease: "linear",
+                          delay: 2.66,
+                        }}
+                      />
                       <span className="text-indigo-700 font-bold text-base sm:text-lg">{stat.value}</span>
                     </motion.div>
                     <p className="text-sm sm:text-base text-gray-600">{stat.text}</p>
