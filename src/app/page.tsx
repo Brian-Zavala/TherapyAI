@@ -189,9 +189,14 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true, margin: "-100px" }}
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16 text-gray-800"
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16"
           >
-            Making Therapy <span className="text-indigo-600">Accessible</span> for Everyone
+            <span className="relative">
+              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-700">
+                Making Therapy <span className="underline decoration-purple-500 decoration-4 underline-offset-4">Accessible</span> for Everyone
+              </span>
+              <span className="absolute -inset-1 rounded-lg bg-gradient-to-r from-indigo-100 to-purple-100 -z-10 blur-lg opacity-50"></span>
+            </span>
           </motion.h2>
           
           <motion.div 
@@ -212,8 +217,12 @@ export default function Home() {
               <p className="text-gray-600 mb-6 sm:mb-8 relative z-10">Traditional therapy can be costly, creating barriers to mental healthcare for many individuals and families.</p>
               
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 sm:p-6 rounded-xl shadow-sm">
-                  <h4 className="text-lg font-semibold text-indigo-800 mb-3">Traditional Therapy</h4>
+                <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-5 sm:p-6 rounded-xl shadow-sm border-2 border-gray-300">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2">
+                    <span className="bg-gray-700 text-white px-3 py-1 rounded-lg">TRADITIONAL</span> 
+                    <span>Therapy</span>
+                    <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-200 px-2 py-1 rounded-lg">HIGH COST</span>
+                  </h4>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
                     {[
@@ -231,13 +240,16 @@ export default function Home() {
                           scale: 1.05,
                           boxShadow: "0 4px 6px -1px rgba(99, 102, 241, 0.4)"
                         }}
-                        className="bg-white p-4 rounded-xl text-center shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden"
+                        className="bg-white p-4 rounded-xl text-center shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden border border-gray-200"
                       >
-                        <span className="absolute top-0 right-0 bg-indigo-200/50 w-12 h-12 rounded-full -mr-6 -mt-6"></span>
-                        <span className="block text-indigo-800 font-bold text-xl sm:text-2xl mb-2">
+                        <span className="absolute top-0 right-0 bg-gray-200/50 w-12 h-12 rounded-full -mr-6 -mt-6"></span>
+                        <span className="block text-red-600 font-bold text-xl sm:text-2xl mb-2">
                           {session.price}
                         </span>
-                        <span className="text-sm text-gray-600 relative z-10">{session.title}</span>
+                        <div className="mt-1">
+                          <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">EXPENSIVE</span>
+                        </div>
+                        <span className="text-sm text-gray-700 font-medium relative z-10">{session.title}</span>
                       </motion.div>
                     ))}
                   </div>
@@ -252,21 +264,33 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: 0.3 }}
-                  className="bg-gradient-to-r from-purple-50 to-indigo-50 p-5 sm:p-6 rounded-xl shadow-sm relative overflow-hidden"
+                  className="bg-gradient-to-r from-indigo-50 to-purple-100 p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden border-2 border-indigo-300"
                 >
                   <div className="absolute top-0 right-0 rounded-full bg-gradient-to-br from-indigo-200/50 to-purple-300/40 w-32 h-32 -mr-10 -mt-10 blur-md"></div>
                   <div className="absolute bottom-0 left-0 rounded-full bg-gradient-to-tr from-indigo-200/30 to-purple-200/30 w-32 h-32 -ml-10 -mb-10 blur-md"></div>
                   
-                  <h4 className="text-lg font-semibold text-indigo-800 mb-4 relative z-10">Our AI-Powered Therapy <span className="text-xs align-top bg-purple-100 text-purple-800 py-1 px-2 rounded-full ml-1">Save 95%+</span></h4>
+                  <h4 className="text-lg font-semibold text-indigo-800 mb-4 relative z-10 flex flex-wrap items-center gap-2">
+                    <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1 rounded-lg">AI-POWERED</span>
+                    <span>Therapy</span>
+                    <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      AFFORDABLE
+                    </span>
+                  </h4>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
                     <motion.div
                       whileHover={{ scale: 1.03, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-                      className="bg-white rounded-xl p-4 shadow-md"
+                      className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 hover:border-indigo-400 transition-colors duration-300"
                     >
+                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                        30-Minute Session
+                      </div>
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-purple-800 font-bold">30-Minute Session</span>
-                        <span className="text-2xl font-bold text-indigo-800">$2.65</span>
+                        <span className="text-purple-800 font-bold">Quick Therapy</span>
+                        <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">$2.65</span>
                       </div>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li className="flex items-start">
@@ -298,11 +322,14 @@ export default function Home() {
                     
                     <motion.div
                       whileHover={{ scale: 1.03, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-                      className="bg-white rounded-xl p-4 shadow-md"
+                      className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 hover:border-indigo-400 transition-colors duration-300"
                     >
+                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                        60-Minute Session
+                      </div>
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-purple-800 font-bold">60-Minute Session</span>
-                        <span className="text-2xl font-bold text-indigo-800">$5.25</span>
+                        <span className="text-purple-800 font-bold">Full Therapy</span>
+                        <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">$5.25</span>
                       </div>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li className="flex items-start">
@@ -338,9 +365,9 @@ export default function Home() {
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.6 }}
-                    className="text-center text-indigo-900 font-semibold p-3 bg-white/70 rounded-xl relative z-10"
+                    className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl relative z-10 shadow-lg transform hover:scale-105 transition-transform duration-300 text-sm sm:text-base"
                   >
-                    Save up to 97% compared to traditional therapy costs
+                    Save up to 97% compared to traditional therapy costs!
                   </motion.div>
                 </motion.div>
               </div>
@@ -359,7 +386,10 @@ export default function Home() {
                 {[
                   { value: "1/5", text: "Nearly one in five adults experience mental illness each year in the United States." },
                   { value: "60%", text: "Approximately 60% of adults with mental illness didn't receive treatment in the past year." },
-                  { value: "42%", text: "42% of people cite cost as the primary barrier to seeking mental health services." }
+                  { value: "42%", text: "42% of people cite cost as the primary barrier to seeking mental health services." },
+                  { value: "78%", text: "78% of couples report improved relationship satisfaction after completing therapy." },
+                  { value: "35%", text: "35% of relationships struggle with communication issues as their primary challenge." },
+                  { value: "90%", text: "Over 90% of therapy clients report feeling heard and understood is essential to progress." }
                 ].map((stat, index) => (
                   <motion.div 
                     key={index}
