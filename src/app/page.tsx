@@ -109,11 +109,8 @@ export default function Home() {
         {/* Background gradient with enhanced colors */}
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 z-0"></div>
         
-        {/* Optimized parallax background image with GPU acceleration */}
-        <motion.div 
-          style={{ y: bgY }} 
-          className="absolute inset-0 w-full h-full z-0 optimize-gpu"
-        >
+        {/* Static background image */}
+        <div className="absolute inset-0 w-full h-full z-0">
           <Image
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
@@ -123,9 +120,9 @@ export default function Home() {
             sizes="100vw"
             quality={85}
           />
-          {/* Enhanced gradient overlay with reduced opacity for better performance */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/40 to-purple-100/40 optimize-gpu"></div>
-        </motion.div>
+          {/* Gradient overlay with reduced opacity */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/40 to-purple-100/40"></div>
+        </div>
         
         {/* Static decorative elements instead of floating particles */}
         <div className="absolute inset-0 w-full h-full overflow-hidden z-1 opacity-40">
@@ -144,19 +141,11 @@ export default function Home() {
         
         {/* Hero content with enhanced animations */}
         <div className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] justify-center">
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ 
-              duration: 0.8, 
-              type: "spring",
-              stiffness: 100,
-              damping: 12
-            }}
+          <h1 
             className="text-3xl sm:text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-purple-700 mb-8 md:mb-10 px-2 tracking-tight"
           >
             Strengthen Your Relationships
-          </motion.h1>
+          </h1>
           
           <motion.p
             initial={{ opacity: 0 }}
@@ -269,7 +258,6 @@ export default function Home() {
             {/* Therapy Costs Card with animated price tags */}
             <motion.div
               variants={fadeInUp}
-              whileHover={{ boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
               className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/50 rounded-full -mr-16 -mt-16"></div>
@@ -278,8 +266,8 @@ export default function Home() {
               <p className="text-gray-600 mb-6 sm:mb-8 relative z-10">Traditional therapy can be costly, creating barriers to mental healthcare for many individuals and families.</p>
               
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
-                <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-5 sm:p-6 rounded-xl shadow-sm border-2 border-gray-300">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2">
+                <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-5 sm:p-6 rounded-xl shadow-sm border-2 border-gray-300 relative">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
                     <span className="bg-gray-700 text-white px-3 py-1 rounded-lg">TRADITIONAL</span> 
                     <span>Therapy</span>
                     <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-200 px-2 py-1 rounded-lg">HIGH COST</span>
@@ -297,16 +285,31 @@ export default function Home() {
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.4, delay: index * 0.2 }}
-                        whileHover={{ 
-                          scale: 1.05,
-                          boxShadow: "0 4px 6px -1px rgba(99, 102, 241, 0.4)"
-                        }}
-                        className="bg-white p-4 rounded-xl text-center shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden border border-gray-200"
+                        className="bg-white p-4 rounded-xl text-center shadow-sm relative overflow-hidden border border-gray-200"
                       >
                         <span className="absolute top-0 right-0 bg-gray-200/50 w-12 h-12 rounded-full -mr-6 -mt-6"></span>
-                        <span className="block text-red-600 font-bold text-xl sm:text-2xl mb-2">
-                          {session.price}
-                        </span>
+                        <div className="relative inline-block mb-2">
+                          {/* Red pulsing animation around price */}
+                          <motion.span 
+                            className="absolute inset-0 border-2 border-red-300/70"
+                            initial={{ scale: 1, opacity: 0 }}
+                            animate={{
+                              scale: [1, 1.15, 1.3],
+                              opacity: [0, 0.7, 0],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              times: [0, 0.4, 1],
+                              repeat: Infinity,
+                              repeatDelay: 2,
+                              ease: "easeOut",
+                              delay: index * 3,
+                            }}
+                          />
+                          <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
+                            {session.price}
+                          </span>
+                        </div>
                         <div className="mt-1">
                           <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">EXPENSIVE</span>
                         </div>
@@ -343,15 +346,33 @@ export default function Home() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
                     <motion.div
-                      whileHover={{ scale: 1.03, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-                      className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 hover:border-indigo-400 transition-colors duration-300"
+                      className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative"
                     >
                       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
                         30-Minute Session
                       </div>
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-purple-800 font-bold">Quick Therapy</span>
-                        <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">$2.65</span>
+                        <div className="relative inline-block">
+                          {/* Green pulsing animation around price */}
+                          <motion.span 
+                            className="absolute inset-0 border-2 border-green-400/70"
+                            initial={{ scale: 1, opacity: 0 }}
+                            animate={{
+                              scale: [1, 1.15, 1.3],
+                              opacity: [0, 0.7, 0],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              times: [0, 0.4, 1],
+                              repeat: Infinity,
+                              repeatDelay: 2,
+                              ease: "easeOut",
+                              delay: 0,
+                            }}
+                          />
+                          <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 relative z-10">$2.65</span>
+                        </div>
                       </div>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li className="flex items-start">
@@ -382,15 +403,33 @@ export default function Home() {
                     </motion.div>
                     
                     <motion.div
-                      whileHover={{ scale: 1.03, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-                      className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 hover:border-indigo-400 transition-colors duration-300"
+                      className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative"
                     >
                       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
                         60-Minute Session
                       </div>
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-purple-800 font-bold">Full Therapy</span>
-                        <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">$5.25</span>
+                        <div className="relative inline-block">
+                          {/* Green pulsing animation around price */}
+                          <motion.span 
+                            className="absolute inset-0 border-2 border-green-400/70"
+                            initial={{ scale: 1, opacity: 0 }}
+                            animate={{
+                              scale: [1, 1.15, 1.3],
+                              opacity: [0, 0.7, 0],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              times: [0, 0.4, 1],
+                              repeat: Infinity,
+                              repeatDelay: 2,
+                              ease: "easeOut",
+                              delay: 1.5,
+                            }}
+                          />
+                          <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 relative z-10">$5.25</span>
+                        </div>
                       </div>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li className="flex items-start">
@@ -426,7 +465,7 @@ export default function Home() {
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.6 }}
-                    className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl relative z-10 shadow-lg transform hover:scale-105 transition-transform duration-300 text-sm sm:text-base"
+                    className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base"
                   >
                     Save up to 97% compared to traditional therapy costs!
                   </motion.div>
