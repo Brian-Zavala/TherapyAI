@@ -95,7 +95,7 @@ export const getPersonalizedFirstMessage = (userProfile?: any) => {
 
 // Configuration for the couple therapy assistant
 export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
-  id: "f6844388-f547-40af-994e-4edf076f7e9c", // Correct ID for Dr. Maya Thompson (couple therapy)
+  id: process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID, // From environment variables
   name: "Dr. Maya Thompson",
   type: "couple",
   model: {
@@ -122,14 +122,14 @@ Use therapeutic techniques to help couples communicate better and resolve confli
   },
   voice: {
     provider: "11labs",
-    voiceId: "Crm8VULvkVs5ZBDa1lxm", // Dr. Maya Hawkins
+    voiceId: process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID, // From environment variables
   },
   firstMessage: "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really good to meet you both today. How are you feeling? I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for both of you.",
 };
 
 // Configuration for the individual therapy assistant
 export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
-  id: "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Correct ID for Dr. Elliot Mackaphy (solo therapy)
+  id: process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID, // From environment variables
   name: "Dr. Elliot Mackaphy",
   type: "solo",
   model: {
@@ -161,14 +161,14 @@ Use therapeutic techniques to help individuals process emotions, develop coping 
   },
   voice: {
     provider: "vapi",
-    voiceId: "Elliot", // Dr. Elliot Mackaphy
+    voiceId: process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID, // From environment variables
   },
   firstMessage: "Hello, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really good to meet you today. How are you feeling? *gentle pause* I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for you to explore whatever's on your mind.",
 };
 
 // Configuration for the family therapy assistant
 export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
-  id: "a22ad88a-0a5b-455e-ab41-f8c6802092bb", // Static ID for the family therapy assistant without prefix
+  id: process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID, // From environment variables
   name: "Dr. Jada Pearson",
   type: "family",
   model: {
@@ -200,7 +200,7 @@ Use therapeutic techniques to help families improve communication, resolve confl
   },
   voice: {
     provider: "11labs",
-    voiceId: "oWAxZDx7w5VEj9dCyTzz", // Dr. Jada Pearson
+    voiceId: process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID, // From environment variables
   },
   firstMessage: "Hello everyone, I'm Dr. Jada Pearson, your family therapist. *warm pause* It's really wonderful to meet you all today. How is everyone feeling? *gentle pause* I'm curious about what brings your family to therapy - is there something specific you'd like to talk about? This is a safe space where everyone's voice matters equally.",
 };

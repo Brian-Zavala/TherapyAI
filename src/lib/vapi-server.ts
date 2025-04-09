@@ -135,10 +135,10 @@ export async function generateClientToken(userId: string) {
         userId: userId,
         // List of assistant IDs this token can access
         assistantIds: [
-          "f6844388-f547-40af-994e-4edf076f7e9c", // Dr. Maya Thompson (couple)
-          "4a9d4d49-3294-4be7-9537-9537d503bfb4", // Dr. Elliot Mackaphy (solo)
-          "a22ad88a-0a5b-455e-ab41-f8c6802092bb"  // Dr. Jada Pearson (family)
-        ],
+          process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID, // Dr. Maya Thompson (couple)
+          process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID, // Dr. Elliot Mackaphy (solo)
+          process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID  // Dr. Jada Pearson (family)
+        ].filter(Boolean), // Filter out any undefined values
       },
     };
     
