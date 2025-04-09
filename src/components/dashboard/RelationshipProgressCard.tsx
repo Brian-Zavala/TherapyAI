@@ -148,33 +148,82 @@ export default function RelationshipProgressCard() {
     </div>
   )
   
+  // Create a reusable component for the therapy type selector
+  const TherapyTypeSelector = () => (
+    <div className="flex justify-center mb-2 sm:mb-4">
+      <div className="inline-flex p-1 bg-purple-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTherapyType('couple')}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+            therapyType === 'couple' 
+              ? 'bg-purple-600 text-white' 
+              : 'text-purple-800 hover:bg-purple-100'
+          }`}
+        >
+          Couple
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTherapyType('solo')}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+            therapyType === 'solo' 
+              ? 'bg-purple-600 text-white' 
+              : 'text-purple-800 hover:bg-purple-100'
+          }`}
+        >
+          Individual
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTherapyType('family')}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+            therapyType === 'family' 
+              ? 'bg-purple-600 text-white' 
+              : 'text-purple-800 hover:bg-purple-100'
+          }`}
+        >
+          Family
+        </motion.button>
+      </div>
+    </div>
+  );
+
   if (progressData.length === 0) {
     return (
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="h-80 flex items-center justify-center text-purple-600"
+        className="h-[340px] sm:h-80 lg:h-96 overflow-hidden"
       >
-        <div className="text-center p-6 bg-purple-50 rounded-lg max-w-sm">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          >
-            <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </motion.div>
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <p className="text-lg font-medium">Begin tracking your progress</p>
-            <p className="text-sm mt-2 text-purple-500">
-              Complete relationship assessments during onboarding or therapy sessions to start visualizing your relationship growth over time
-            </p>
-          </motion.div>
+        {/* Keep the therapy type selector visible even when there's no data */}
+        <TherapyTypeSelector />
+
+        <div className="h-[calc(100%-45px)] flex items-center justify-center text-purple-600">
+          <div className="text-center p-6 bg-purple-50 rounded-lg max-w-sm">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            >
+              <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </motion.div>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <p className="text-lg font-medium">No {therapyType} progress data yet</p>
+              <p className="text-sm mt-2 text-purple-500">
+                Complete {therapyType} therapy sessions or assessments to start visualizing your relationship growth over time
+              </p>
+            </motion.div>
+          </div>
         </div>
       </motion.div>
     )
@@ -293,47 +342,8 @@ export default function RelationshipProgressCard() {
       transition={{ duration: 0.5 }}
       className="h-[340px] sm:h-80 lg:h-96 overflow-hidden"
     >
-      {/* Therapy type selector at the very top */}
-      <div className="flex justify-center mb-2 sm:mb-4">
-        <div className="inline-flex p-1 bg-purple-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setTherapyType('couple')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-              therapyType === 'couple' 
-                ? 'bg-purple-600 text-white' 
-                : 'text-purple-800 hover:bg-purple-100'
-            }`}
-          >
-            Couple
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setTherapyType('solo')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-              therapyType === 'solo' 
-                ? 'bg-purple-600 text-white' 
-                : 'text-purple-800 hover:bg-purple-100'
-            }`}
-          >
-            Individual
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setTherapyType('family')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-              therapyType === 'family' 
-                ? 'bg-purple-600 text-white' 
-                : 'text-purple-800 hover:bg-purple-100'
-            }`}
-          >
-            Family
-          </motion.button>
-        </div>
-      </div>
+      {/* Use the reusable therapy type selector */}
+      <TherapyTypeSelector />
       {/* Score indicators with subtle animations */}
       <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
         <div className="flex flex-wrap gap-2 sm:gap-4">

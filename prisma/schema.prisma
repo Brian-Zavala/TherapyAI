@@ -22,6 +22,8 @@ model User {
   assistantId          String?                // Vapi assistant ID
   communicationMetrics CommunicationMetrics[]
   progressTracking     ProgressTracking[]
+  soloTherapyMetrics   SoloTherapyMetrics[]
+  familyTherapyMetrics FamilyTherapyMetrics[]
   sessions             Session[]
   therapySessions      TherapySession[]
 }
@@ -73,6 +75,34 @@ model CommunicationMetrics {
   conflictResolutionScore Int
   emotionalSupportScore   Int
   user                    User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+}
+
+model SoloTherapyMetrics {
+  id                       String   @id @default(cuid())
+  userId                   String
+  date                     DateTime @default(now())
+  selfAwarenessScore       Int
+  emotionalRegulationScore Int
+  personalGrowthScore      Int
+  copingSkillsScore        Int
+  user                     User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+}
+
+model FamilyTherapyMetrics {
+  id                       String   @id @default(cuid())
+  userId                   String
+  date                     DateTime @default(now())
+  familyCommunicationScore Int
+  roleDefinitionScore      Int
+  conflictManagementScore  Int
+  familyBondingScore       Int
+  user                     User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
 }
 
 model TherapySession {

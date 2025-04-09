@@ -24,7 +24,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User not found in database" }, { status: 404 });
     }
     
+    // Define theme value for consistent filtering
+    const themeValue = therapyType === 'couple' ? 'Relationship Counseling' : 
+                     therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy';
+
     // Get progress metrics from the ProgressTracking table
+    // Note: ProgressTracking doesn't have a therapyType field yet
     const progressData = await prisma.progressTracking.findMany({
       where: {
         userId: user.id
@@ -71,7 +76,7 @@ export async function GET(request: Request) {
         where: {
           userId: user.id,
           status: 'completed',
-          type: therapyType
+          theme: themeValue
         },
         select: {
           id: true,

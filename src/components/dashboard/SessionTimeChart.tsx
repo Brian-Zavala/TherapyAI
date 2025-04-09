@@ -96,29 +96,78 @@ export default function SessionTimeChart() {
     </div>
   )
   
+  // Create a reusable component for the therapy type selector
+  const TherapyTypeSelector = () => (
+    <div className="flex justify-center mb-2 sm:mb-4">
+      <div className="inline-flex p-1 bg-indigo-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTherapyType('couple')}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+            therapyType === 'couple' 
+              ? 'bg-indigo-600 text-white' 
+              : 'text-indigo-800 hover:bg-indigo-100'
+          }`}
+        >
+          Couple
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTherapyType('solo')}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+            therapyType === 'solo' 
+              ? 'bg-indigo-600 text-white' 
+              : 'text-indigo-800 hover:bg-indigo-100'
+          }`}
+        >
+          Individual
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTherapyType('family')}
+          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
+            therapyType === 'family' 
+              ? 'bg-indigo-600 text-white' 
+              : 'text-indigo-800 hover:bg-indigo-100'
+          }`}
+        >
+          Family
+        </motion.button>
+      </div>
+    </div>
+  );
+  
   if (sessionData.length === 0) {
     return (
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="h-80 flex items-center justify-center text-indigo-600"
+        className="h-[340px] sm:h-80 lg:h-96 mb-6 sm:mb-0 overflow-hidden"
       >
-        <div className="text-center p-6 bg-indigo-50 rounded-lg max-w-sm">
-          <svg className="w-12 h-12 mx-auto text-indigo-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <p className="text-lg font-medium">No sessions yet</p>
-          <p className="text-sm mt-2 text-indigo-500">
-            Begin your therapy journey to see insights about your sessions over time
-          </p>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium"
-            onClick={() => window.location.href = '/dashboard/therapy'}
-          >
-            Start First Session
-          </motion.button>
+        {/* Keep the therapy type selector visible even when there's no data */}
+        <TherapyTypeSelector />
+
+        <div className="h-[calc(100%-45px)] flex items-center justify-center text-indigo-600">
+          <div className="text-center p-6 bg-indigo-50 rounded-lg max-w-sm">
+            <svg className="w-12 h-12 mx-auto text-indigo-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <p className="text-lg font-medium">No {therapyType} sessions yet</p>
+            <p className="text-sm mt-2 text-indigo-500">
+              Begin your {therapyType} therapy journey to see insights about your sessions over time
+            </p>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium"
+              onClick={() => window.location.href = '/dashboard/therapy'}
+            >
+              Start First Session
+            </motion.button>
+          </div>
         </div>
       </motion.div>
     )
@@ -198,47 +247,8 @@ export default function SessionTimeChart() {
       transition={{ duration: 0.5 }}
       className="h-[340px] sm:h-80 lg:h-96 mb-6 sm:mb-0 overflow-hidden"
     >
-      {/* Therapy type selector at the very top */}
-      <div className="flex justify-center mb-2 sm:mb-4">
-        <div className="inline-flex p-1 bg-indigo-50 rounded-lg w-full max-w-[250px] overflow-x-auto">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setTherapyType('couple')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-              therapyType === 'couple' 
-                ? 'bg-indigo-600 text-white' 
-                : 'text-indigo-800 hover:bg-indigo-100'
-            }`}
-          >
-            Couple
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setTherapyType('solo')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-              therapyType === 'solo' 
-                ? 'bg-indigo-600 text-white' 
-                : 'text-indigo-800 hover:bg-indigo-100'
-            }`}
-          >
-            Individual
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setTherapyType('family')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-colors flex-1 min-w-[60px] ${
-              therapyType === 'family' 
-                ? 'bg-indigo-600 text-white' 
-                : 'text-indigo-800 hover:bg-indigo-100'
-            }`}
-          >
-            Family
-          </motion.button>
-        </div>
-      </div>
+      {/* Use the reusable therapy type selector */}
+      <TherapyTypeSelector />
 
       {/* Summary Stats */}
       <div className="flex flex-wrap justify-between items-center mb-4 gap-3">

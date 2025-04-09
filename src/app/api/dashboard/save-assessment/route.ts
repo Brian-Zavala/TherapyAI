@@ -37,15 +37,48 @@ export async function POST(request: Request) {
       conflictScore = 50
     } = results;
     
-    // Save to CommunicationMetrics
+    // Get recent completed sessions to incorporate data
+    const recentSessions = await prisma.session.findMany({
+      where: {
+        userId: user.id,
+        status: 'completed'
+      },
+      orderBy: {
+        date: 'desc'
+      },
+      take: 3
+    });
+    
+    // Factor to adjust assessment scores based on session history
+    let sessionAdjustmentFactor = 1.0;
+    
+    // If there are recent sessions, adjust scores slightly to reflect progress
+    if (recentSessions.length > 0) {
+      // More recent sessions = higher adjustment (max 1.15 for 3+ sessions)
+      sessionAdjustmentFactor = 1.0 + (Math.min(recentSessions.length, 3) * 0.05);
+      
+      // Additional boost if sessions have transcripts (evidence of engagement)
+      const sessionsWithTranscripts = recentSessions.filter(s => s.transcript && s.transcript.length > 0);
+      if (sessionsWithTranscripts.length > 0) {
+        sessionAdjustmentFactor += 0.05;
+      }
+    }
+    
+    // Calculate adjusted scores (never exceeding 100)
+    const adjustedCommunicationScore = Math.min(100, Math.round(communicationScore * sessionAdjustmentFactor));
+    const adjustedTrustScore = Math.min(100, Math.round(trustScore * sessionAdjustmentFactor));
+    const adjustedConflictScore = Math.min(100, Math.round(conflictScore * sessionAdjustmentFactor));
+    const adjustedIntimacyScore = Math.min(100, Math.round(intimacyScore * sessionAdjustmentFactor));
+    
+    // Save to CommunicationMetrics with adjusted scores
     const savedMetrics = await prisma.communicationMetrics.create({
       data: {
         userId: user.id,
         date: new Date(date),
-        activeListeningScore: communicationScore,
-        expressingNeedsScore: trustScore,
-        conflictResolutionScore: conflictScore,
-        emotionalSupportScore: intimacyScore,
+        activeListeningScore: adjustedCommunicationScore,
+        expressingNeedsScore: adjustedTrustScore,
+        conflictResolutionScore: adjustedConflictScore,
+        emotionalSupportScore: adjustedIntimacyScore,
       },
     });
     

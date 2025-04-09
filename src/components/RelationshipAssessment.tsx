@@ -28,11 +28,33 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
   const [saveSuccess, setSaveSuccess] = useState(false)
   
   const questions: Question[] = [
+    // Communication questions
     { id: 1, text: "We communicate openly about our feelings", category: 'communication' },
-    { id: 2, text: "We resolve conflicts without lasting resentment", category: 'conflict' },
-    { id: 3, text: "I feel emotionally connected to my partner", category: 'intimacy' },
-    { id: 4, text: "I trust my partner completely", category: 'trust' },
-    { id: 5, text: "We make decisions together", category: 'communication' }
+    { id: 2, text: "I feel heard and understood when I speak", category: 'communication' },
+    { id: 3, text: "We can discuss difficult topics without significant tension", category: 'communication' },
+    { id: 4, text: "We make decisions together through effective communication", category: 'communication' },
+    { id: 5, text: "We express appreciation and gratitude to each other regularly", category: 'communication' },
+    
+    // Conflict resolution questions
+    { id: 6, text: "We resolve conflicts without lasting resentment", category: 'conflict' },
+    { id: 7, text: "We can disagree respectfully without it damaging our relationship", category: 'conflict' },
+    { id: 8, text: "We find compromises that work for both of us", category: 'conflict' },
+    { id: 9, text: "We avoid blaming each other when discussing problems", category: 'conflict' },
+    { id: 10, text: "We can repair our relationship quickly after arguments", category: 'conflict' },
+    
+    // Intimacy questions
+    { id: 11, text: "I feel emotionally connected to my partner", category: 'intimacy' },
+    { id: 12, text: "We regularly show affection toward each other", category: 'intimacy' },
+    { id: 13, text: "We make time to nurture our relationship", category: 'intimacy' },
+    { id: 14, text: "I feel comfortable being vulnerable with my partner", category: 'intimacy' },
+    { id: 15, text: "We maintain a satisfying level of physical intimacy", category: 'intimacy' },
+    
+    // Trust questions
+    { id: 16, text: "I trust my partner completely", category: 'trust' },
+    { id: 17, text: "My partner follows through on commitments", category: 'trust' },
+    { id: 18, text: "I feel secure in our relationship", category: 'trust' },
+    { id: 19, text: "We are honest with each other, even when it's difficult", category: 'trust' },
+    { id: 20, text: "I can rely on my partner for support when needed", category: 'trust' }
   ]
   
   const handleAnswer = (value: number) => {
