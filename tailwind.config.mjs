@@ -3,6 +3,9 @@ const config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      screens: {
+        'xs': '480px',
+      },
       keyframes: {
         "gradient-xy": {
           "0%, 100%": {
