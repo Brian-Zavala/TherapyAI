@@ -25,6 +25,7 @@ export default function CommunicationMetrics() {
   const [isExpanded, setIsExpanded] = useState(false) // For expanding/collapsing the card
   const expandedRef = useRef(false) // Use ref to track expansion state for scroll timing
   const [userInteracted, setUserInteracted] = useState(false) // Track if user has interacted with chart types
+  const [isSmallScreen, setIsSmallScreen] = useState(false) // Track small screen size for responsive adjustments
   const playSound = useButtonSound() // Sound effect for interactions
   
   // Mount and initialize component
@@ -38,6 +39,21 @@ export default function CommunicationMetrics() {
       // Set initial userInteracted state from localStorage
       const hasInteracted = localStorage.getItem('chartUserInteracted') === 'true';
       setUserInteracted(hasInteracted);
+      
+      // Check initial screen size
+      setIsSmallScreen(window.innerWidth < 480);
+      
+      // Add resize listener for responsive adjustments
+      const handleResize = () => {
+        setIsSmallScreen(window.innerWidth < 480);
+      };
+      
+      window.addEventListener('resize', handleResize);
+      
+      // Clean up
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
     }
   }, []);
   
@@ -179,10 +195,25 @@ export default function CommunicationMetrics() {
         return;
       }
       
+      // Create shorter names for very small screens (like mobile)
+      const getShortenedName = (name) => {
+        name = name.replace('Score', ''); // First remove 'Score' suffix
+        
+        // For mobile displays, create even shorter versions
+        // Only keep the first word for long metric names
+        if (name === 'Active Listening') return 'Listening';
+        if (name === 'Expressing Needs') return 'Needs';
+        if (name === 'Conflict Resolution') return 'Conflict';
+        if (name === 'Emotional Support') return 'Support';
+        
+        return name;
+      };
+      
       // Transform data for different chart types
       const transformed = data.map((item) => ({
         ...item,
-        name: item.name.replace('Score', ''), // Shorten names
+        name: item.name.replace('Score', ''), // Standard shortened name
+        shortName: getShortenedName(item.name), // Ultra-short name for small screens
         fullMark: 100, // For radar chart
         fill: getColorForMetric(item.name), // For radial bar chart
       }))
@@ -266,17 +297,142 @@ export default function CommunicationMetrics() {
     return colors[name] || "#7E57C2"
   }
   
+  // Helper function to calculate the path for a pie slice
+  const getPieSlicePath = (index, data, innerRadius, outerRadius) => {
+    if (!data || data.length === 0 || index === null || index >= data.length) {
+      return '';
+    }
+    
+    // Calculate angles based on data values - use clockwise angles from 12 o'clock position
+    const total = data.reduce((sum, entry) => sum + entry.value, 0);
+    let startAngle = 0;
+    
+    // Calculate the start angle for the specific slice
+    for (let i = 0; i < index; i++) {
+      startAngle += (data[i].value / total) * 360;
+    }
+    
+    // Calculate the end angle
+    const sliceAngle = (data[index].value / total) * 360;
+    const endAngle = startAngle + sliceAngle;
+    
+    // Convert to radians - adjust for SVG coordinate system (0 at 3 o'clock, clockwise)
+    const startRad = ((startAngle - 90) * Math.PI) / 180;
+    const endRad = ((endAngle - 90) * Math.PI) / 180;
+    
+    // Center point
+    const cx = 50;
+    const cy = 50;
+    
+    // Calculate points
+    const innerStartX = cx + innerRadius * Math.cos(startRad);
+    const innerStartY = cy + innerRadius * Math.sin(startRad);
+    const outerStartX = cx + outerRadius * Math.cos(startRad);
+    const outerStartY = cy + outerRadius * Math.sin(startRad);
+    const innerEndX = cx + innerRadius * Math.cos(endRad);
+    const innerEndY = cy + innerRadius * Math.sin(endRad);
+    const outerEndX = cx + outerRadius * Math.cos(endRad);
+    const outerEndY = cy + outerRadius * Math.sin(endRad);
+    
+    // Determine if the slice is large enough to require the large-arc-flag
+    const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+    
+    // Create SVG path - more compact without extra whitespace
+    return `M${innerStartX},${innerStartY} L${outerStartX},${outerStartY} A${outerRadius},${outerRadius} 0 ${largeArcFlag} 1 ${outerEndX},${outerEndY} L${innerEndX},${innerEndY} A${innerRadius},${innerRadius} 0 ${largeArcFlag} 0 ${innerStartX},${innerStartY} Z`;
+  }
+  
   const COLORS = ["#7E57C2", "#26A69A", "#5C6BC0", "#EF5350"]
   
   const onPieEnter = useCallback((_, index) => {
+    // Set active indices for pie section highlighting
     setActiveIndex(index);
     setActivePieSection(index);
+    
+    // Create a SUPER dramatic animation effect when entering a pie slice
+    const pieElement = document.getElementById(`pie-cell-${index}`);
+    if (pieElement) {
+      // Add class for CSS-based animation
+      document.body.classList.add('animate-pie-active');
+      
+      // Apply dramatic scale transform to the cell
+      pieElement.style.transform = 'scale(1.20)';
+      pieElement.style.transformOrigin = 'center';
+      pieElement.style.zIndex = '100';
+      pieElement.style.position = 'relative';
+      pieElement.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+      
+      // Add dramatic visual effects
+      pieElement.style.filter = `drop-shadow(0 0 15px ${COLORS[index % COLORS.length]}) brightness(1.5)`;
+      
+      // Create explosion animation effect
+      const chartContainer = document.querySelector('.recharts-wrapper');
+      if (chartContainer) {
+        // Add explosion animation overlay
+        const explosionOverlay = document.createElement('div');
+        explosionOverlay.id = 'pie-explosion-overlay';
+        explosionOverlay.style.position = 'absolute';
+        explosionOverlay.style.top = '0';
+        explosionOverlay.style.left = '0';
+        explosionOverlay.style.width = '100%';
+        explosionOverlay.style.height = '100%';
+        explosionOverlay.style.pointerEvents = 'none';
+        explosionOverlay.style.background = `radial-gradient(circle at center, ${COLORS[index % COLORS.length]}99 0%, transparent 70%)`;
+        explosionOverlay.style.animation = 'explodeEffect 0.5s ease-out forwards';
+        explosionOverlay.style.zIndex = '90';
+        
+        // Add keyframe animation
+        const styleSheet = document.createElement('style');
+        styleSheet.id = 'explode-animation-style';
+        styleSheet.textContent = `
+          @keyframes explodeEffect {
+            0% { opacity: 0; transform: scale(0.1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 0; transform: scale(1.5); }
+          }
+          
+          @keyframes vibrate {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(2px, -2px); }
+            60% { transform: translate(-2px, -2px); }
+            80% { transform: translate(2px, 2px); }
+            100% { transform: translate(0); }
+          }
+        `;
+        
+        document.head.appendChild(styleSheet);
+        chartContainer.appendChild(explosionOverlay);
+        
+        // Remove the explosion overlay after animation completes
+        setTimeout(() => {
+          if (explosionOverlay && explosionOverlay.parentNode) {
+            explosionOverlay.parentNode.removeChild(explosionOverlay);
+          }
+          if (styleSheet && styleSheet.parentNode) {
+            styleSheet.parentNode.removeChild(styleSheet);
+          }
+        }, 600);
+      }
+      
+      // Reset after animation completes
+      setTimeout(() => {
+        pieElement.style.transform = '';
+        pieElement.style.zIndex = 'auto';
+        pieElement.style.filter = '';
+        pieElement.style.transition = '';
+        document.body.classList.remove('animate-pie-active');
+      }, 1000);
+    }
+    
+    // Register user interaction
     if (!userInteracted) {
       setUserInteracted(true);
       localStorage.setItem('chartUserInteracted', 'true');
     }
+    
+    // Play sound for tactile feedback
     playSound();
-  }, [playSound, userInteracted])
+  }, [playSound, userInteracted, COLORS])
   
   // Custom radial label
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value }) => {
@@ -299,17 +455,103 @@ export default function CommunicationMetrics() {
     )
   }
   
+  // Descriptions for each metric
+  const getDescriptionForMetric = (name) => {
+    const descriptions = {
+      // Couple therapy metrics
+      'Active Listening': 'Your ability to fully concentrate, understand, respond, and remember what your partner is saying without interrupting or preparing rebuttals',
+      'Expressing Needs': 'How effectively you communicate your own desires, boundaries, and requirements in a clear, direct, and non-accusatory manner',
+      'Conflict Resolution': 'Your ability to address disagreements constructively without escalation, using problem-solving approaches and finding mutually satisfactory solutions',
+      'Emotional Support': 'How well you recognize, validate, and respond to each other\'s emotional experiences with empathy and compassion',
+      
+      // Solo therapy metrics
+      'Self-awareness': 'Your ability to recognize and understand your own emotions, reactions, patterns, and how they influence your behavior',
+      'Emotional Regulation': 'How effectively you manage and respond to emotional experiences, especially during stressful situations',
+      'Personal Growth': 'Your progress in developing new perspectives, skills, and behaviors that enhance your well-being and relationships',
+      'Coping Skills': 'Your repertoire of strategies to handle life challenges, stress, and difficult emotions in healthy ways',
+      
+      // Family therapy metrics
+      'Family Communication': 'How clearly and effectively family members express thoughts and feelings to one another with openness and respect',
+      'Role Definition': 'The clarity and appropriateness of expectations, responsibilities, and boundaries within the family system',
+      'Conflict Management': 'How the family addresses disagreements, navigates differences, and resolves problems collaboratively',
+      'Family Bonding': 'The emotional connections, trust, and supportive relationships between family members'
+    }
+    
+    return descriptions[name] || ''
+  }
+  
+  // Provide skill-building tips based on metric scores
+  const getSkillBuildingTips = (name, score) => {
+    // Only show tips for scores under 70
+    if (score >= 70) return null;
+    
+    const tips = {
+      'Active Listening': [
+        'Practice reflecting back what your partner says before responding',
+        'Maintain eye contact and put away distractions when talking',
+        'Ask clarifying questions instead of making assumptions',
+        'Notice when your mind wanders and gently bring attention back'
+      ],
+      'Expressing Needs': [
+        'Use "I" statements instead of "you" accusations',
+        'Be specific about what you need rather than generalizing',
+        'Express feelings without blaming your partner',
+        'Practice stating needs calmly, even during difficult conversations'
+      ],
+      'Conflict Resolution': [
+        'Take breaks when emotions run high, but commit to returning to the discussion',
+        'Focus on the current issue rather than bringing up past problems',
+        'Look for compromise rather than winning the argument',
+        'Acknowledge your partner\'s perspective before offering solutions'
+      ],
+      'Emotional Support': [
+        'Validate emotions even when you don\'t understand them',
+        'Show compassion through both words and physical comfort',
+        'Check in regularly about how your partner is feeling',
+        'Express appreciation for your partner\'s vulnerabilities'
+      ],
+      'Self-awareness': [
+        'Keep a daily emotions journal to track patterns',
+        'Ask trusted friends for feedback about your blind spots',
+        'Notice your physical reactions during emotional moments',
+        'Reflect on how your past experiences influence current reactions'
+      ],
+      'Family Communication': [
+        'Hold regular family meetings where everyone can speak',
+        'Practice active listening without interrupting',
+        'Create a "no judgment" rule for expressing feelings',
+        'Use visual aids or written notes for important information'
+      ]
+    };
+    
+    return tips[name] ? tips[name] : null;
+  }
+
+  // Ref to track if the tooltip has triggered interaction
+  const tooltipInteractionRef = useRef(false);
+  
+  // Effect to handle tooltip interaction
+  useEffect(() => {
+    if (tooltipInteractionRef.current && !userInteracted) {
+      setUserInteracted(true);
+      localStorage.setItem('chartUserInteracted', 'true');
+      tooltipInteractionRef.current = false;
+    }
+  }, [userInteracted]);
+  
   // Enhanced custom tooltip for all chart types with styled components and animations
-  const CustomTooltip = ({ active, payload }) => {
+  const CustomTooltip = useCallback(({ active, payload }) => {
+    // Mark that tooltip was interacted with through ref instead of setState during render
+    if (active && payload?.length && !userInteracted) {
+      // Use ref to defer state update
+      setTimeout(() => {
+        tooltipInteractionRef.current = true;
+      }, 0);
+    }
+    
     if (active && payload && payload.length) {
       const data = payload[0];
       const tips = getSkillBuildingTips(data.name, data.value);
-      
-      // Pause the chart auto-rotation when hovering on a tooltip
-      if (!userInteracted) {
-        setUserInteracted(true);
-        localStorage.setItem('chartUserInteracted', 'true');
-      }
       
       // Determine color based on metric type
       const metricIndex = COLORS.indexOf(getColorForMetric(data.name)) !== -1 
@@ -433,79 +675,7 @@ export default function CommunicationMetrics() {
       )
     }
     return null
-  }
-  
-  // Descriptions for each metric
-  const getDescriptionForMetric = (name) => {
-    const descriptions = {
-      // Couple therapy metrics
-      'Active Listening': 'Your ability to fully concentrate, understand, respond, and remember what your partner is saying without interrupting or preparing rebuttals',
-      'Expressing Needs': 'How effectively you communicate your own desires, boundaries, and requirements in a clear, direct, and non-accusatory manner',
-      'Conflict Resolution': 'Your ability to address disagreements constructively without escalation, using problem-solving approaches and finding mutually satisfactory solutions',
-      'Emotional Support': 'How well you recognize, validate, and respond to each other\'s emotional experiences with empathy and compassion',
-      
-      // Solo therapy metrics
-      'Self-awareness': 'Your ability to recognize and understand your own emotions, reactions, patterns, and how they influence your behavior',
-      'Emotional Regulation': 'How effectively you manage and respond to emotional experiences, especially during stressful situations',
-      'Personal Growth': 'Your progress in developing new perspectives, skills, and behaviors that enhance your well-being and relationships',
-      'Coping Skills': 'Your repertoire of strategies to handle life challenges, stress, and difficult emotions in healthy ways',
-      
-      // Family therapy metrics
-      'Family Communication': 'How clearly and effectively family members express thoughts and feelings to one another with openness and respect',
-      'Role Definition': 'The clarity and appropriateness of expectations, responsibilities, and boundaries within the family system',
-      'Conflict Management': 'How the family addresses disagreements, navigates differences, and resolves problems collaboratively',
-      'Family Bonding': 'The emotional connections, trust, and supportive relationships between family members'
-    }
-    
-    return descriptions[name] || ''
-  }
-  
-  // Provide skill-building tips based on metric scores
-  const getSkillBuildingTips = (name, score) => {
-    // Only show tips for scores under 70
-    if (score >= 70) return null;
-    
-    const tips = {
-      'Active Listening': [
-        'Practice reflecting back what your partner says before responding',
-        'Maintain eye contact and put away distractions when talking',
-        'Ask clarifying questions instead of making assumptions',
-        'Notice when your mind wanders and gently bring attention back'
-      ],
-      'Expressing Needs': [
-        'Use "I" statements instead of "you" accusations',
-        'Be specific about what you need rather than generalizing',
-        'Express feelings without blaming your partner',
-        'Practice stating needs calmly, even during difficult conversations'
-      ],
-      'Conflict Resolution': [
-        'Take breaks when emotions run high, but commit to returning to the discussion',
-        'Focus on the current issue rather than bringing up past problems',
-        'Look for compromise rather than winning the argument',
-        'Acknowledge your partner\'s perspective before offering solutions'
-      ],
-      'Emotional Support': [
-        'Validate emotions even when you don\'t understand them',
-        'Show compassion through both words and physical comfort',
-        'Check in regularly about how your partner is feeling',
-        'Express appreciation for your partner\'s vulnerabilities'
-      ],
-      'Self-awareness': [
-        'Keep a daily emotions journal to track patterns',
-        'Ask trusted friends for feedback about your blind spots',
-        'Notice your physical reactions during emotional moments',
-        'Reflect on how your past experiences influence current reactions'
-      ],
-      'Family Communication': [
-        'Hold regular family meetings where everyone can speak',
-        'Practice active listening without interrupting',
-        'Create a "no judgment" rule for expressing feelings',
-        'Use visual aids or written notes for important information'
-      ]
-    };
-    
-    return tips[name] ? tips[name] : null;
-  }
+  }, [userInteracted, tooltipInteractionRef, COLORS, getColorForMetric, getSkillBuildingTips, getDescriptionForMetric])
   
   // Find the highest and lowest scoring metrics
   const highestMetric = metricsData.length > 0 ? [...metricsData].sort((a, b) => b.value - a.value)[0] : null
@@ -762,6 +932,28 @@ export default function CommunicationMetrics() {
             </div>
           </div>
           
+          <style>
+            {`
+              /* Custom styling for radar chart labels to fit on small screens */
+              @media (max-width: 480px) {
+                .recharts-polar-angle-axis-tick text {
+                  font-size: 9px !important;
+                  text-anchor: middle;
+                }
+              }
+              
+              /* Fix text wrapping issue */
+              .recharts-polar-angle-axis-tick {
+                text-anchor: middle;
+              }
+              
+              /* Ensure no text is cut off */
+              .recharts-wrapper {
+                overflow: visible !important;
+              }
+            `}
+          </style>
+          
           <div className="relative h-[300px] xs:h-[320px] sm:h-[350px] md:h-[400px] lg:h-[450px] w-full overflow-visible"
             onClick={() => {
               if (!userInteracted) {
@@ -781,7 +973,11 @@ export default function CommunicationMetrics() {
                 {metricsData && metricsData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'radar' ? (
-                      <RadarChart outerRadius="80%" data={metricsData}>
+                      <RadarChart 
+                        outerRadius="70%" 
+                        data={metricsData}
+                        margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
+                      >
                         <defs>
                           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -794,16 +990,25 @@ export default function CommunicationMetrics() {
                         </defs>
                         <PolarGrid stroke="#E5E7EB" />
                         <PolarAngleAxis 
-                          dataKey="name" 
-                          tick={{ fill: '#4B5563', fontSize: 12 }}
+                          dataKey={isSmallScreen ? "shortName" : "name"}
+                          tick={{ 
+                            fill: '#4B5563', 
+                            fontSize: isSmallScreen ? 10 : 11,
+                            dy: 3, // Move labels slightly outward
+                            className: 'radar-axis-label' // For custom styling
+                          }}
+                          tickSize={4}
+                          cx="50%" 
+                          cy="50%"
                         />
                         <PolarRadiusAxis 
                           angle={30} 
                           domain={[0, 100]} 
                           tick={{ fill: '#4B5563' }}
+                          tickCount={5}
                         />
                         <Radar
-                          name="Communication"
+                          name=""
                           dataKey="value"
                           stroke="#7E57C2"
                           fill="url(#radarFill)"
@@ -822,16 +1027,39 @@ export default function CommunicationMetrics() {
                           }}
                         />
                         <Tooltip content={<CustomTooltip />} />
+                        {/* We're skipping the Legend component for the radar chart since 
+                           it already has axis labels and doesn't need a separate legend */}
                       </RadarChart>
                     ) : chartType === 'pie' ? (
                       <PieChart>
                         <defs>
+                          {/* Regular gradients for inactive slices */}
                           {COLORS.map((color, index) => (
                             <linearGradient key={`gradient-${index}`} id={`colorGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor={color} stopOpacity={0.9} />
                               <stop offset="100%" stopColor={color} stopOpacity={0.6} />
                             </linearGradient>
                           ))}
+                          
+                          {/* Enhanced gradients for active slices */}
+                          {COLORS.map((color, index) => (
+                            <linearGradient key={`active-gradient-${index}`} id={`activeGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={color} stopOpacity={1} />
+                              <stop offset="50%" stopColor={color} stopOpacity={0.85} />
+                              <stop offset="100%" stopColor={color} stopOpacity={0.7} />
+                              <animate attributeName="x1" values="0;0.1;0" dur="2s" repeatCount="indefinite" />
+                              <animate attributeName="y1" values="0;0.1;0" dur="2s" repeatCount="indefinite" />
+                            </linearGradient>
+                          ))}
+                          
+                          {/* Add gleaming effect filter */}
+                          <filter id="pieGleam">
+                            <feGaussianBlur stdDeviation="2.5" result="blur" />
+                            <feSpecularLighting result="specOut" specularExponent="20" lightingColor="white">
+                              <fePointLight x="100" y="100" z="200" />
+                            </feSpecularLighting>
+                            <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" />
+                          </filter>
                         </defs>
                         <Pie
                           activeIndex={activeIndex}
@@ -849,43 +1077,188 @@ export default function CommunicationMetrics() {
                           animationEasing="ease-out"
                           isAnimationActive={true}
                         >
-                          {metricsData.map((entry, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={activeIndex === index ? 'transparent' : `url(#colorGradient-${index})`} 
-                              stroke={COLORS[index % COLORS.length]}
-                              strokeWidth={activeIndex === index ? 2 : 1}
-                            />
-                          ))}
+                          {metricsData.map((entry, index) => {
+                            const isActive = activeIndex === index;
+                            const currentColor = COLORS[index % COLORS.length];
+                            
+                            // Use a SUPER obvious hover effect with extreme visual changes
+                            return (
+                              <Cell 
+                                key={`cell-${index}`}
+                                id={`pie-cell-${index}`}
+                                fill={isActive ? "white" : `url(#colorGradient-${index})`} 
+                                stroke={isActive ? "#FFFFFF" : currentColor}
+                                strokeWidth={isActive ? 6 : 1}
+                                style={{
+                                  filter: isActive ? `drop-shadow(0 0 20px ${currentColor}) brightness(1.5)` : 'none',
+                                  transition: 'none', // Remove transition to make changes immediate
+                                  transformOrigin: 'center center',
+                                  position: 'relative',
+                                  cursor: 'pointer',
+                                  outline: isActive ? `3px solid ${currentColor}` : 'none',
+                                  outlineOffset: '2px'
+                                }}
+                              />
+                            );
+                          })}
                           
-                          {/* Pulsing effect for active pie section */}
+                          {/* Simple, high-contrast highlight for active pie section */}
                           {activePieSection !== null && (
                             <g className="pie-active-section">
-                              <defs>
-                                <radialGradient id="pulseGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                                  <stop offset="0%" stopColor={COLORS[activePieSection % COLORS.length]} stopOpacity="0.8" />
-                                  <stop offset="100%" stopColor={COLORS[activePieSection % COLORS.length]} stopOpacity="0" />
-                                </radialGradient>
-                              </defs>
+                              {/* Multiple animated rings for extreme visibility */}
                               <circle
                                 cx="50%"
                                 cy="50%"
-                                r={95}
-                                fill="url(#pulseGradient)"
-                                className="animate-pulse"
+                                r={88}
+                                fill="none"
+                                stroke={COLORS[activePieSection % COLORS.length]}
+                                strokeWidth={5}
                                 style={{
-                                  transformOrigin: 'center',
-                                  transform: 'scale(1)',
-                                  animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite'
+                                  animation: 'simplePulse 0.6s ease-in-out infinite alternate',
+                                  filter: `drop-shadow(0 0 8px ${COLORS[activePieSection % COLORS.length]})`,
                                 }}
                               />
+                              
+                              {/* Second pulse ring with offset timing */}
+                              <circle
+                                cx="50%"
+                                cy="50%"
+                                r={98}
+                                fill="none"
+                                stroke="white"
+                                strokeWidth={3}
+                                strokeDasharray="10 5"
+                                style={{
+                                  animation: 'simplePulse 0.8s ease-in-out infinite alternate-reverse',
+                                  opacity: 0.8,
+                                }}
+                              />
+                              
+                              {/* Third outer blast ring */}
+                              <circle
+                                cx="50%"
+                                cy="50%"
+                                r={110}
+                                fill="none"
+                                stroke={COLORS[activePieSection % COLORS.length]}
+                                strokeWidth={2}
+                                strokeDasharray="3 6"
+                                style={{
+                                  animation: 'spin 5s linear infinite',
+                                  opacity: 0.5,
+                                }}
+                              />
+                              
+                              {/* Multiple large white selector arrows for extreme visibility */}
+                              <g>
+                                {/* Primary arrow - thick white with color shadow */}
+                                <path
+                                  d={`M50,50 L${50 + 120 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
+                                    (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)},
+                                    ${50 + 120 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
+                                    (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}`}
+                                  stroke="white"
+                                  strokeWidth={7}
+                                  fill="none"
+                                  strokeLinecap="round"
+                                  style={{
+                                    animation: 'arrowMove 0.5s ease-in-out infinite alternate',
+                                    filter: `drop-shadow(0 0 10px ${COLORS[activePieSection % COLORS.length]})`,
+                                  }}
+                                />
+                                
+                                {/* Secondary colored arrow - follows primary */}
+                                <path
+                                  d={`M50,50 L${50 + 115 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
+                                    (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)},
+                                    ${50 + 115 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
+                                    (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}`}
+                                  stroke={COLORS[activePieSection % COLORS.length]}
+                                  strokeWidth={3}
+                                  fill="none"
+                                  strokeLinecap="round"
+                                  style={{
+                                    animation: 'arrowMove 0.5s ease-in-out infinite alternate-reverse',
+                                    filter: 'brightness(1.5)',
+                                  }}
+                                />
+                              </g>
+                              
+                              {/* Add a big pulsing dot at the end of the path */}
+                              <circle
+                                cx={50 + 120 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
+                                  (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}
+                                cy={50 + 120 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
+                                  (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}
+                                r={8}
+                                fill="white"
+                                stroke={COLORS[activePieSection % COLORS.length]}
+                                strokeWidth={2}
+                                style={{
+                                  animation: 'dotPulse 0.7s ease-in-out infinite alternate',
+                                  filter: `drop-shadow(0 0 8px ${COLORS[activePieSection % COLORS.length]})`,
+                                }}
+                              />
+
                               <style>
                                 {`
-                                  @keyframes ping {
-                                    75%, 100% {
-                                      transform: scale(1.2);
-                                      opacity: 0;
+                                  @keyframes simplePulse {
+                                    from { 
+                                      opacity: 0.3;
+                                      stroke-width: 2px;
+                                      transform: scale(0.95);
                                     }
+                                    to { 
+                                      opacity: 1;
+                                      stroke-width: 8px;
+                                      transform: scale(1.05);
+                                    }
+                                  }
+                                  
+                                  @keyframes arrowMove {
+                                    from {
+                                      stroke-width: 3px;
+                                      opacity: 0.7;
+                                      transform: translateX(-3px) translateY(-3px) scale(0.9);
+                                    }
+                                    to {
+                                      stroke-width: 8px;
+                                      opacity: 1;
+                                      transform: translateX(4px) translateY(4px) scale(1.1);
+                                    }
+                                  }
+                                  
+                                  @keyframes dotPulse {
+                                    from {
+                                      r: 5;
+                                      opacity: 0.7;
+                                      fill: white;
+                                    }
+                                    to {
+                                      r: 12;
+                                      opacity: 1;
+                                      fill: #ffffff;
+                                    }
+                                  }
+                                  
+                                  @keyframes spin {
+                                    from {
+                                      transform: rotate(0deg);
+                                    }
+                                    to {
+                                      transform: rotate(360deg);
+                                    }
+                                  }
+                                  
+                                  /* Add flash animation for the pie section */
+                                  .pie-highlight-flash {
+                                    animation: flashHighlight 0.5s ease-out forwards;
+                                  }
+                                  
+                                  @keyframes flashHighlight {
+                                    0% { filter: brightness(1); }
+                                    50% { filter: brightness(2) saturate(2) drop-shadow(0 0 15px white); }
+                                    100% { filter: brightness(1.5) saturate(1.5); }
                                   }
                                 `}
                               </style>
@@ -913,10 +1286,25 @@ export default function CommunicationMetrics() {
                           }}
                           wrapperStyle={{ 
                             paddingTop: '10px',
-                            fontSize: '12px',
+                            fontSize: '13px',
                             fontWeight: 500,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            marginBottom: '15px'
                           }}
+                          formatter={(value, entry, index) => (
+                            <div className="flex flex-col items-center px-2 py-1 mx-1 rounded-md hover:bg-gray-100" style={{
+                              borderBottom: activeIndex === index ? `2px solid ${COLORS[index % COLORS.length]}` : 'none',
+                              background: activeIndex === index ? `${COLORS[index % COLORS.length]}10` : 'transparent'
+                            }}>
+                              <span style={{ 
+                                color: activeIndex === index ? COLORS[index % COLORS.length] : '#666',
+                                fontWeight: activeIndex === index ? 600 : 500,
+                                fontSize: '13px'
+                              }}>
+                                {value}
+                              </span>
+                            </div>
+                          )}
                         />
                       </PieChart>
                     ) : (
@@ -984,16 +1372,15 @@ export default function CommunicationMetrics() {
                             }
                           }}
                           wrapperStyle={{ 
-                            paddingBottom: '10px',
-                            fontSize: '12px',
+                            paddingBottom: '15px',
+                            paddingTop: '10px',
+                            fontSize: '13px',
                             fontWeight: 500
                           }}
                           formatter={(value, entry, index) => (
-                            <span style={{ 
-                              color: focusedMetric === value ? COLORS[index % COLORS.length] : '#666',
-                              fontWeight: focusedMetric === value ? 600 : 400,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
+                            <div className="flex flex-col items-center px-2 py-1 mx-1 rounded-md hover:bg-gray-100" style={{
+                              borderBottom: focusedMetric === value ? `2px solid ${COLORS[index % COLORS.length]}` : 'none',
+                              background: focusedMetric === value ? `${COLORS[index % COLORS.length]}10` : 'transparent'
                             }}
                             onClick={() => {
                               handleMetricFocus(value);
@@ -1003,8 +1390,16 @@ export default function CommunicationMetrics() {
                               }
                             }}
                             >
-                              {value}
-                            </span>
+                              <span style={{ 
+                                color: focusedMetric === value ? COLORS[index % COLORS.length] : '#666',
+                                fontWeight: focusedMetric === value ? 600 : 500,
+                                fontSize: '13px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {value}
+                              </span>
+                            </div>
                           )}
                         />
                       </RadialBarChart>
@@ -1024,34 +1419,53 @@ export default function CommunicationMetrics() {
             </AnimatePresence>
           </div>
           
-          {/* Chart type and focus indicator */}
+          {/* Chart type and focus indicator - NOW WITH LABELS */}
           <div className="flex justify-center mt-4">
-            <div className="flex space-x-3 items-center bg-white px-3 py-1.5 rounded-full shadow-sm">
-              {['radar', 'pie', 'radial'].map((type) => (
-                <motion.div 
+            <div className="flex space-x-6 items-center bg-white px-4 py-2 rounded-lg shadow-sm">
+              {[
+                { type: 'radar', label: 'Radar' },
+                { type: 'pie', label: 'Pie' },
+                { type: 'radial', label: 'Bars' }
+              ].map(({ type, label }) => (
+                <div 
                   key={type}
-                  animate={{
-                    scale: chartType === type ? 1.2 : 1,
-                    opacity: chartType === type ? 1 : 0.5
-                  }}
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  className={`w-2.5 h-2.5 rounded-full cursor-pointer ${
-                    chartType === type 
-                      ? type === 'radar' 
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600' 
-                        : type === 'pie' 
-                          ? 'bg-gradient-to-r from-teal-600 to-emerald-600' 
-                          : 'bg-gradient-to-r from-rose-500 to-red-500'
-                      : 'bg-gray-300'
-                  }`}
+                  className="flex flex-col items-center gap-1 cursor-pointer"
                   onClick={() => {
                     setChartType(type);
                     setUserInteracted(true);
                     localStorage.setItem('chartUserInteracted', 'true');
                     playSound();
                   }}
-                />
+                >
+                  <motion.div 
+                    animate={{
+                      scale: chartType === type ? 1.2 : 1,
+                      opacity: chartType === type ? 1 : 0.5
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    className={`w-3 h-3 rounded-full ${
+                      chartType === type 
+                        ? type === 'radar' 
+                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600' 
+                          : type === 'pie' 
+                            ? 'bg-gradient-to-r from-teal-600 to-emerald-600' 
+                            : 'bg-gradient-to-r from-rose-500 to-red-500'
+                        : 'bg-gray-300'
+                    }`}
+                  />
+                  <span className={`text-xs font-medium ${
+                    chartType === type 
+                      ? type === 'radar' 
+                        ? 'text-purple-600' 
+                        : type === 'pie' 
+                          ? 'text-teal-600' 
+                          : 'text-rose-500'
+                      : 'text-gray-400'
+                  }`}>
+                    {label}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
