@@ -37,8 +37,22 @@ model Session {
   reminderSent Boolean  @default(false)
   transcript   String?
   user         User     @relation(fields: [userId], references: [id])
+  transcriptEntries TranscriptEntry[]
 
   @@index([userId])
+}
+
+model TranscriptEntry {
+  id        String   @id @default(cuid())
+  sessionId String
+  speaker   String
+  text      String
+  timestamp DateTime @default(now())
+  isFinal   Boolean  @default(true)
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
 }
 
 model ProgressTracking {

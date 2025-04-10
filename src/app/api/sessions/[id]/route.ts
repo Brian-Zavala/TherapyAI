@@ -50,11 +50,28 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
     
+    // Include ALL transcript entries with the session data
     const therapySession = await prisma.session.findUnique({
       where: {
         id: sessionId
+      },
+      include: {
+        transcriptEntries: {
+          // Removed isFinal filter to include all entries
+          orderBy: {
+            timestamp: 'asc'
+          }
+        }
       }
     })
+    
+    if (therapySession?.transcriptEntries?.length) {
+      console.log(`Fetched session ${sessionId} with ${therapySession.transcriptEntries.length} transcript entries`);
+      console.log(`First entry: ${JSON.stringify(therapySession.transcriptEntries[0]).substring(0, 100)}...`);
+      console.log(`Last entry: ${JSON.stringify(therapySession.transcriptEntries[therapySession.transcriptEntries.length-1]).substring(0, 100)}...`);
+    } else {
+      console.log(`Fetched session ${sessionId} with NO transcript entries`);
+    }
     
     // Verify the session belongs to this user
     if (!therapySession || therapySession.userId !== user.id) {
@@ -121,6 +138,9 @@ export async function PATCH(
     const existingSession = await prisma.session.findUnique({
       where: {
         id: sessionId
+      },
+      include: {
+        transcriptEntries: true
       }
     })
 
@@ -128,9 +148,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const { status, endTime, notes, transcript } = await request.json()
+    const { status, endTime, notes, transcript, transcriptEntry } = await request.json()
     
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     
     // Update status if provided
     if (status) {
@@ -142,7 +162,7 @@ export async function PATCH(
       updateData.notes = notes
     }
     
-    // Update transcript if provided
+    // Update legacy transcript field if provided (for backward compatibility)
     if (transcript !== undefined) {
       updateData.transcript = transcript
     }
@@ -157,10 +177,66 @@ export async function PATCH(
       updateData.duration = durationInMinutes
     }
     
+    // Handle new transcript entry if provided
+    if (transcriptEntry) {
+      try {
+        // Validate the transcript entry data
+        if (!transcriptEntry.speaker || !transcriptEntry.text || transcriptEntry.text.trim() === '') {
+          console.error(`Invalid transcript entry data for session ${sessionId}:`, transcriptEntry);
+        } else {
+          console.log(`SESSIONS API: Creating transcript entry for session ${sessionId}:`, 
+            JSON.stringify({
+              speaker: transcriptEntry.speaker,
+              textLength: transcriptEntry.text.length,
+              textPreview: transcriptEntry.text.substring(0, 50) + '...',
+              timestamp: transcriptEntry.timestamp,
+              isFinal: transcriptEntry.isFinal
+            }, null, 2)
+          );
+          
+          // Create a new transcript entry with proper error handling
+          try {
+            const newEntry = await prisma.transcriptEntry.create({
+              data: {
+                sessionId,
+                speaker: transcriptEntry.speaker,
+                text: transcriptEntry.text,
+                timestamp: transcriptEntry.timestamp || new Date(),
+                isFinal: transcriptEntry.isFinal !== undefined ? transcriptEntry.isFinal : true
+              }
+            });
+            console.log(`SESSIONS API SUCCESS: Added transcript entry with ID ${newEntry.id} for session ${sessionId}`);
+            
+            // Verify the entry was created
+            const verifyEntry = await prisma.transcriptEntry.findUnique({
+              where: { id: newEntry.id }
+            });
+            
+            if (verifyEntry) {
+              console.log(`VERIFIED: Entry ${newEntry.id} exists in database`);
+            } else {
+              console.error(`VERIFICATION FAILED: Entry ${newEntry.id} not found after creation`);
+            }
+          } catch (createError) {
+            console.error(`DATABASE ERROR creating transcript entry in sessions API:`, createError);
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing transcript entry in sessions API:`, error);
+      }
+    }
+    
     // Update the session
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
-      data: updateData
+      data: updateData,
+      include: {
+        transcriptEntries: {
+          orderBy: {
+            timestamp: 'asc'
+          }
+        }
+      }
     })
 
     // Generate metrics if session was completed
@@ -180,13 +256,23 @@ export async function PATCH(
         });
         
         if (!existingMetrics) {
+          // Get a combined transcript from structured entries if available
+          let transcriptText = transcript; // Default to the passed transcript
+          
+          // If we have structured entries, build a string transcript from them for the metrics analysis
+          if (updatedSession.transcriptEntries && updatedSession.transcriptEntries.length > 0) {
+            transcriptText = updatedSession.transcriptEntries
+              .map(entry => `${entry.speaker}: ${entry.text}`)
+              .join('\n');
+          }
+          
           // No metrics exist yet, create new ones
           // Make sure we're using the database user ID, not the session user ID
           await generateMetricsFromSession(
             user.id, 
             updatedSession.duration, 
             sessionId, 
-            transcript, 
+            transcriptText, 
             therapyType
           );
           

@@ -43,3 +43,13 @@ next-env.d.ts
 # claude
 /CLAUDE.md
 **/CLAUDE.local.md
+DEEPGRAM-SETUP.md
+CUSTOM-TRANSCRIBER.md
+TRANSCRIPT-GUIDE.md
+TRANSCRIPT-MIGRATION.md
+
+# utility scripts
+create-test-user.js
+test-transcript.js
+migrate-transcripts.js
+debug.txt

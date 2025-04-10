@@ -32,6 +32,13 @@ async function main() {
   const today = new Date()
   
   // Clear existing data for clean seed
+  await prisma.transcriptEntry.deleteMany({ 
+    where: { 
+      session: { 
+        userId: user.id 
+      } 
+    } 
+  })
   await prisma.session.deleteMany({ where: { userId: user.id } })
   await prisma.progressTracking.deleteMany({ where: { userId: user.id } })
   await prisma.communicationMetrics.deleteMany({ where: { userId: user.id } })
@@ -42,7 +49,7 @@ async function main() {
     sessionDate.setMonth(today.getMonth() - i)
     sessionDate.setDate(15) // Middle of the month
     
-    await prisma.session.create({
+    const session = await prisma.session.create({
       data: {
         id: uuidv4(),
         userId: user.id,
@@ -55,6 +62,46 @@ async function main() {
         reminderSent: false
       }
     })
+    
+    // Create transcript entries for this session
+    if (i % 2 === 0) {
+      const transcriptEntries = [
+        {
+          sessionId: session.id,
+          speaker: 'user',
+          text: "Hello, I'm having communication issues with my partner.",
+          timestamp: new Date(sessionDate.getTime() + 0),
+          isFinal: true
+        },
+        {
+          sessionId: session.id,
+          speaker: 'assistant',
+          text: "I understand that can be frustrating. Can you tell me more about what's happening?",
+          timestamp: new Date(sessionDate.getTime() + 10000),
+          isFinal: true
+        },
+        {
+          sessionId: session.id,
+          speaker: 'user',
+          text: "We often talk past each other and don't really listen.",
+          timestamp: new Date(sessionDate.getTime() + 20000),
+          isFinal: true
+        },
+        {
+          sessionId: session.id,
+          speaker: 'assistant',
+          text: "That's a common challenge. Let's explore some active listening techniques that might help both of you feel more heard.",
+          timestamp: new Date(sessionDate.getTime() + 30000),
+          isFinal: true
+        }
+      ];
+      
+      await prisma.transcriptEntry.createMany({
+        data: transcriptEntries
+      });
+      
+      console.log(`Created ${transcriptEntries.length} transcript entries for session ${session.id}`);
+    }
     
     console.log(`Created past session for ${sessionDate.toISOString().split('T')[0]}`)
   }

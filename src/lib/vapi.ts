@@ -1,8 +1,56 @@
 import Vapi from '@vapi-ai/web';
 
-// Initialize Vapi with API key or JWT token
-export const initVapi = (token: string) => {
-  return new Vapi(token);
+/**
+ * Initialize Vapi with API key or JWT token
+ * Optionally configure with custom transcriber settings
+ */
+export const initVapi = async (token: string, options: { useCustomTranscriber?: boolean } = {}) => {
+  // Create the Vapi instance with the provided token
+  const vapiInstance = new Vapi(token);
+  
+  // Add universal event logging for debugging
+  const events = [
+    'call-start', 'call-end', 'error', 'message', 'transcript',
+    'transcript-response', 'model-output', 'status-update'
+  ];
+  
+  events.forEach(eventType => {
+    vapiInstance.on(eventType, (data: any) => {
+      console.log(`✶✶✶ VAPI EVENT [${eventType}]: `, JSON.stringify(data, null, 2));
+    });
+  });
+
+  // If custom transcriber is enabled, prepare the configuration for later use
+  if (options.useCustomTranscriber) {
+    try {
+      // Get the base URL for the custom transcriber
+      const baseUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      
+      console.log('Getting transcriber config from API...');
+      
+      // Get configuration from the API
+      const configResponse = await fetch(`${baseUrl}/api/vapi/transcriber`);
+      
+      if (configResponse.ok) {
+        const transcriberConfig = await configResponse.json();
+        console.log('Using Deepgram transcriber config (API key redacted)');
+        
+        // Store the config on the instance for use during calls
+        // This is safer than trying to use setTranscriberOptions which might not exist
+        (vapiInstance as any)._transcriberConfig = transcriberConfig;
+        console.log('✅ Custom transcriber config stored successfully');
+      } else {
+        console.warn('Failed to get transcriber config from API');
+      }
+    } catch (error) {
+      console.error('Error getting custom transcriber config:', error);
+      // Continue without custom transcriber
+    }
+  }
+  
+  return vapiInstance;
 };
 
 // Helper type for assistant configuration with system prompt and first message

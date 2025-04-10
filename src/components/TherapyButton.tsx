@@ -81,6 +81,27 @@ function TherapyButton({
   useEffect(() => {
     checkForActiveSession()
     
+    // Debug function to check transcriber configuration
+    const debugTranscriberConfig = async () => {
+      try {
+        console.log('🔍 DEBUG: Checking transcriber configuration...');
+        const response = await fetch('/api/vapi/transcriber');
+        if (response.ok) {
+          const config = await response.json();
+          console.log('🔍 DEBUG: Transcriber config available:', config);
+        } else {
+          console.log('🔍 DEBUG: Transcriber config not available:', response.status);
+        }
+      } catch (error) {
+        console.error('🔍 DEBUG: Error checking transcriber config:', error);
+      }
+    };
+    
+    // Only run in development mode
+    if (process.env.NODE_ENV === 'development') {
+      debugTranscriberConfig();
+    }
+    
     // Cleanup on unmount
     return () => {
       cleanupResources()
@@ -238,8 +259,27 @@ function TherapyButton({
       
       console.log('Using direct API key for Vapi authentication');
       
-      // Create instance directly with API key
-      vapiInstanceRef.current = new Vapi(apiKey)
+      // Import and use initVapi which has debugging built in
+      const { initVapi } = await import('@/lib/vapi');
+      
+      // Create instance directly with API key (no custom transcriber)
+      console.log('🎙️ Initializing Vapi with default transcriber');
+      vapiInstanceRef.current = await initVapi(apiKey, { useCustomTranscriber: false });
+      console.log('✅ Vapi initialized successfully with default transcriber');
+      
+      // Store session ID in the Vapi instance for message handling
+      if (vapiInstanceRef.current && sessionId) {
+        (vapiInstanceRef.current as any)._sessionId = sessionId;
+        console.log(`#### SETTING SESSION ID ${sessionId} FOR TRANSCRIPT RECORDING ####`);
+        
+        // Also store in sessionStorage for backup
+        try {
+          sessionStorage.setItem('current-session-id', sessionId);
+          console.log(`Saved session ID to sessionStorage: ${sessionId}`);
+        } catch (storageError) {
+          console.warn('Could not save session ID to sessionStorage:', storageError);
+        }
+      }
       
       // Customize assistant if profile available
       if (userProfile && vapiInstanceRef.current) {
@@ -276,6 +316,34 @@ function TherapyButton({
         console.log('Vapi call started')
         setIsCallActive(true)
         setErrorMessage(null)
+        
+        // Add initial transcript entry to mark start of session
+        if (sessionId) {
+          try {
+            setTimeout(async () => {
+              // Import transcript service
+              const { addTranscriptEntry } = await import('@/lib/transcript-service');
+              
+              try {
+                const result = await addTranscriptEntry({
+                  sessionId,
+                  speaker: 'assistant',
+                  text: 'Therapy session started. The AI therapist is connecting...',
+                  timestamp: new Date().toISOString(),
+                  isFinal: true
+                });
+                console.log('Successfully added session start entry with ID:', result?.id);
+                
+                // Force UI update
+                setTranscriptChunks(prev => [...prev, 'SYSTEM: Session started']);
+              } catch (err) {
+                console.error('Failed to add session start entry:', err);
+              }
+            }, 1000); // Small delay to ensure session is fully initialized
+          } catch (error) {
+            console.error('Error adding initial transcript entry:', error);
+          }
+        }
         
         // Force audio setup on call start
         setupAudioAnalyzer()
@@ -362,12 +430,206 @@ function TherapyButton({
         }
       })
       
-      // Transcript handling
-      vapiInstanceRef.current.on('message', (message: any) => {
-        if (message.type === 'transcript') {
-          setTranscriptChunks(prev => [...prev, `USER: ${message.transcript}`])
-        } else if (message.type === 'model-output' && message.content) {
-          setTranscriptChunks(prev => [...prev, `THERAPIST: ${message.content}`])
+      // Enhanced transcript handling with structured entries
+      vapiInstanceRef.current.on('message', async (message: any) => {
+        try {
+          // Enhanced logging for debugging transcript issues
+          console.log('VAPI MESSAGE EVENT:', JSON.stringify(message, null, 2));
+          
+          // Try to get session ID from multiple sources with better fallbacks
+          let currentSessionId = null;
+          
+          // 1. Try from component state first
+          if (sessionId) {
+            currentSessionId = sessionId;
+            console.log(`Using session ID from component state: ${sessionId}`);
+          } 
+          // 2. Try from Vapi instance reference
+          else if ((vapiInstanceRef.current as any)?._sessionId) {
+            currentSessionId = (vapiInstanceRef.current as any)?._sessionId;
+            console.log(`Using session ID from Vapi instance: ${currentSessionId}`);
+          }
+          // 3. Try from sessionStorage as last resort
+          else {
+            try {
+              const storedSessionId = sessionStorage.getItem('current-session-id');
+              if (storedSessionId) {
+                currentSessionId = storedSessionId;
+                console.log(`Using session ID from sessionStorage: ${storedSessionId}`);
+                
+                // Also update our state and Vapi instance for future use
+                setSessionId(storedSessionId);
+                if (vapiInstanceRef.current) {
+                  (vapiInstanceRef.current as any)._sessionId = storedSessionId;
+                }
+              }
+            } catch (storageError) {
+              console.warn('Error accessing sessionStorage:', storageError);
+            }
+          }
+          
+          if (!currentSessionId) {
+            console.log('Processing transcript without session ID (test mode)');
+            
+            // Add this transcript to UI state at minimum
+            const text = message.transcript || message.content || message.text || '';
+            const speaker = message.role || 'user';
+            
+            if (text && text.trim() !== '') {
+              const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
+              setTranscriptChunks(prev => [...prev, `${displaySpeaker}: ${text}`]);
+              console.log(`Added to transcript chunks: ${displaySpeaker}: ${text.substring(0, 50)}...`);
+            }
+            return;
+          }
+          
+          // IMPROVED TRANSCRIPT HANDLING
+          // Now handling both transcript types the same way regardless of partial or final
+          if (message.type === 'transcript') {
+            const text = message.transcript;
+            const speaker = message.role || 'user'; // Default to user if no role
+            
+            if (!text || text.trim() === '') {
+              console.log('Skipping empty transcript message');
+              return;
+            }
+            
+            console.log(`✨ TRANSCRIPT: [${speaker}] ${text.substring(0, 100)}...`);
+            
+            // Simple direct storage to sessionStorage for reliability
+            try {
+              // 1. Store in main transcript array
+              const storageKey = `transcript-${currentSessionId}`;
+              let existingTranscripts = [];
+              
+              try {
+                const stored = sessionStorage.getItem(storageKey);
+                existingTranscripts = stored ? JSON.parse(stored) : [];
+              } catch (parseError) {
+                console.warn('Error parsing existing transcripts, starting fresh:', parseError);
+                existingTranscripts = [];
+              }
+              
+              // Add new entry
+              existingTranscripts.push({
+                speaker: speaker === 'assistant' ? 'assistant' : 'user',
+                text: text,
+                timestamp: new Date().toISOString()
+              });
+              
+              // Save back to storage
+              sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
+              console.log(`✓ Saved to main transcript storage (${existingTranscripts.length} total entries)`);
+              
+              // 2. Also save as individual backup with unique timestamp
+              const backupKey = `backup-${speaker}-${currentSessionId}-${Date.now()}`;
+              sessionStorage.setItem(backupKey, text);
+              console.log(`✓ Saved backup with key: ${backupKey}`);
+              
+              // 3. Update UI state
+              const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
+              setTranscriptChunks(prev => {
+                const newChunks = [...prev, `${displaySpeaker}: ${text}`];
+                console.log(`Updated UI with transcript chunks (${newChunks.length} total)`);
+                return newChunks;
+              });
+              
+              // 4. Also try to save to database via transcript service
+              // Import inside try/catch to avoid blocking main functionality
+              try {
+                const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                const normalizedSpeaker = speaker === 'assistant' ? 'assistant' : 'user';
+                
+                const result = await addTranscriptEntry({
+                  sessionId: currentSessionId,
+                  speaker: normalizedSpeaker,
+                  text,
+                  timestamp: new Date().toISOString(),
+                  isFinal: message.transcriptType !== 'partial'
+                });
+                
+                console.log(`✓ DB SAVE: Successfully saved to database with ID: ${result?.id || 'unknown'}`);
+              } catch (dbError) {
+                console.warn('Failed to save to database, but transcript is in sessionStorage:', dbError);
+                // We still have the transcript in sessionStorage, so we're good
+              }
+            } catch (storageError) {
+              console.error('💥 ERROR STORING TRANSCRIPT:', storageError);
+            }
+          }
+          // Also handle assistant messages (usually contain assistant responses)
+          else if (
+            (message.type === 'transcript-response') || 
+            (message.type === 'assistant-response') ||
+            (message.type === 'model-output' && message.content) ||
+            (message.role === 'assistant' && message.content)
+          ) {
+            const text = message.transcript || message.content || message.text || '';
+            
+            if (!text || text.trim() === '') {
+              return;
+            }
+            
+            console.log(`✨ ASSISTANT MESSAGE: ${text.substring(0, 100)}...`);
+            
+            // Store in the same way as regular transcripts
+            try {
+              // 1. Store in main transcript array
+              const storageKey = `transcript-${currentSessionId}`;
+              let existingTranscripts = [];
+              
+              try {
+                const stored = sessionStorage.getItem(storageKey);
+                existingTranscripts = stored ? JSON.parse(stored) : [];
+              } catch (parseError) {
+                console.warn('Error parsing existing transcripts, starting fresh:', parseError);
+                existingTranscripts = [];
+              }
+              
+              // Add new entry
+              existingTranscripts.push({
+                speaker: 'assistant',
+                text: text,
+                timestamp: new Date().toISOString()
+              });
+              
+              // Save back to storage
+              sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
+              console.log(`✓ Saved assistant message to storage (${existingTranscripts.length} total entries)`);
+              
+              // 2. Also save as individual backup with unique timestamp
+              const backupKey = `backup-assistant-${currentSessionId}-${Date.now()}`;
+              sessionStorage.setItem(backupKey, text);
+              
+              // 3. Update UI state
+              setTranscriptChunks(prev => {
+                const newChunks = [...prev, `THERAPIST: ${text}`];
+                return newChunks;
+              });
+              
+              // 4. Try to save to database
+              try {
+                const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                
+                const result = await addTranscriptEntry({
+                  sessionId: currentSessionId,
+                  speaker: 'assistant',
+                  text,
+                  timestamp: new Date().toISOString(),
+                  isFinal: true
+                });
+                
+                console.log(`✓ DB SAVE: Successfully saved assistant message to database`);
+              } catch (dbError) {
+                console.warn('Failed to save assistant message to database:', dbError);
+              }
+            } catch (storageError) {
+              console.error('💥 ERROR STORING ASSISTANT MESSAGE:', storageError);
+            }
+          }
+        } catch (error) {
+          console.error('Error handling transcript message:', error);
+          // Continue with the session despite transcript storage errors
         }
       })
       
@@ -451,7 +713,7 @@ function TherapyButton({
         throw new Error('Failed to parse session data')
       }
       
-      // Initialize Vapi
+      // Initialize Vapi with custom transcriber
       const initialized = await createVapiInstance(userProfile)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
@@ -500,9 +762,10 @@ function TherapyButton({
           firstMessage: vapiInstanceRef.current?._customData?.firstMessage
         };
         
+        // Log the config we're using (omit any sensitive info)
         console.log('Starting call with config:', JSON.stringify(assistantConfig, null, 2));
         
-        // First attempt with the standard config
+        // Start the call with the standard config
         try {
           await vapiInstanceRef.current?.start(assistantId, assistantConfig);
           console.log('Successfully started call with standard config');
@@ -554,7 +817,37 @@ function TherapyButton({
   
   // End therapy session
   const endTherapySession = useCallback(async () => {
-    if (!sessionId) {
+    // Try to get session ID from multiple sources
+    let currentSessionId = null;
+    
+    // 1. Try from component state first
+    if (sessionId) {
+      currentSessionId = sessionId;
+      console.log(`Using session ID from component state: ${sessionId}`);
+    } 
+    // 2. Try from Vapi instance reference
+    else if ((vapiInstanceRef.current as any)?._sessionId) {
+      currentSessionId = (vapiInstanceRef.current as any)?._sessionId;
+      console.log(`Using session ID from Vapi instance: ${currentSessionId}`);
+    }
+    // 3. Try from sessionStorage as last resort
+    else {
+      try {
+        const storedSessionId = sessionStorage.getItem('current-session-id');
+        if (storedSessionId) {
+          currentSessionId = storedSessionId;
+          console.log(`Using session ID from sessionStorage: ${storedSessionId}`);
+          
+          // Also update our state for future use
+          setSessionId(storedSessionId);
+        }
+      } catch (storageError) {
+        console.warn('Error accessing sessionStorage:', storageError);
+      }
+    }
+    
+    if (!currentSessionId) {
+      console.warn('No session ID available for ending therapy session');
       return
     }
     
@@ -571,8 +864,408 @@ function TherapyButton({
         vapiInstanceRef.current = null
       }
       
-      // Update session in database
-      const transcript = transcriptChunks.join('\n')
+      // Explicitly clean up resources
+      cleanupResources()
+      
+      // ENHANCED TRANSCRIPT RECOVERY
+      console.log('🔍 BEGINNING COMPREHENSIVE TRANSCRIPT RECOVERY');
+      console.log(`Session ${sessionId} ending - recovering all transcripts from all sources`);
+      
+      // Create master list of all recovered transcript entries
+      const allRecoveredEntries: Array<{speaker: string, text: string, timestamp: string}> = [];
+      const allTranscriptErrors: Array<string> = [];
+      
+      // 1. First, collect all transcript entries from component state
+      console.log('STEP 1: Collecting transcripts from component state');
+      let currentTranscriptChunks = [...transcriptChunks];
+      
+      if (currentTranscriptChunks.length > 0) {
+        console.log(`Found ${currentTranscriptChunks.length} transcript chunks in component state`);
+        
+        for (const chunk of currentTranscriptChunks) {
+          // Parse the chunk format "SPEAKER: Text content"
+          const match = chunk.match(/^([A-Z]+):\s*(.*)/);
+          if (match) {
+            const rawSpeaker = match[1].toLowerCase();
+            const text = match[2];
+            
+            // Normalize speaker names
+            const normalizedSpeaker = 
+              rawSpeaker === 'user' || 
+              rawSpeaker === 'you' || 
+              rawSpeaker === 'client' || 
+              rawSpeaker === 'human' ? 'user' : 'assistant';
+            
+            // Add to recovered entries
+            allRecoveredEntries.push({
+              speaker: normalizedSpeaker,
+              text: text,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      } else {
+        console.log('No transcript chunks found in component state');
+      }
+      
+      // 2. Check the main transcript storage in sessionStorage
+      console.log('STEP 2: Checking main transcript storage in sessionStorage');
+      try {
+        const storageKey = `transcript-${sessionId}`;
+        const storedTranscripts = sessionStorage.getItem(storageKey);
+        
+        if (storedTranscripts) {
+          try {
+            const parsedTranscripts = JSON.parse(storedTranscripts);
+            console.log(`Found ${parsedTranscripts.length} stored transcripts in session storage`);
+            
+            // Add all entries to our master list
+            if (Array.isArray(parsedTranscripts) && parsedTranscripts.length > 0) {
+              parsedTranscripts.forEach(entry => {
+                if (entry && entry.speaker && entry.text) {
+                  allRecoveredEntries.push({
+                    speaker: entry.speaker === 'user' ? 'user' : 'assistant',
+                    text: entry.text,
+                    timestamp: entry.timestamp || new Date().toISOString()
+                  });
+                }
+              });
+            }
+          } catch (parseError) {
+            console.error('Error parsing stored transcripts:', parseError);
+            allTranscriptErrors.push(`Parse storage error: ${parseError.message}`);
+          }
+        } else {
+          console.log('No transcripts found in main session storage');
+        }
+      } catch (storageError) {
+        console.error('Error accessing session storage:', storageError);
+        allTranscriptErrors.push(`Storage access error: ${storageError.message}`);
+      }
+      
+      // 3. Check for individual backup entries in sessionStorage
+      console.log('STEP 3: Checking for individual backup entries in sessionStorage');
+      try {
+        const backupPrefix = `backup-`;
+        const speakerPrefixes = ['user', 'assistant', 'therapist'];
+        
+        // Search all sessionStorage for matching backup entries
+        let backupCount = 0;
+        
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          
+          if (key && key.startsWith(backupPrefix) && key.includes(sessionId)) {
+            try {
+              const text = sessionStorage.getItem(key);
+              if (text) {
+                // Determine speaker from key
+                let speaker = 'assistant'; // Default
+                
+                // Check which speaker prefix is in the key
+                for (const prefix of speakerPrefixes) {
+                  if (key.includes(prefix)) {
+                    speaker = prefix === 'therapist' ? 'assistant' : prefix;
+                    break;
+                  }
+                }
+                
+                // Add to recovered entries
+                allRecoveredEntries.push({
+                  speaker,
+                  text,
+                  timestamp: new Date().toISOString()
+                });
+                
+                backupCount++;
+              }
+            } catch (entryError) {
+              console.warn(`Could not process backup entry ${key}:`, entryError);
+            }
+          }
+        }
+        
+        console.log(`Found ${backupCount} individual backup entries in session storage`);
+      } catch (backupError) {
+        console.error('Error processing backup entries:', backupError);
+        allTranscriptErrors.push(`Backup recovery error: ${backupError.message}`);
+      }
+      
+      // 4. Check for msg-prefixed entries (additional backups) in sessionStorage
+      console.log('STEP 4: Checking for msg-prefixed entries in sessionStorage');
+      try {
+        const msgPrefix = `msg-${sessionId}`;
+        let msgCount = 0;
+        
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          
+          if (key && key.startsWith(msgPrefix)) {
+            try {
+              const rawEntry = sessionStorage.getItem(key);
+              if (rawEntry) {
+                const entry = JSON.parse(rawEntry);
+                
+                if (entry && entry.speaker && entry.text) {
+                  // Add to recovered entries
+                  allRecoveredEntries.push({
+                    speaker: entry.speaker === 'user' ? 'user' : 'assistant',
+                    text: entry.text,
+                    timestamp: entry.timestamp || new Date().toISOString()
+                  });
+                  
+                  msgCount++;
+                }
+              }
+            } catch (msgError) {
+              console.warn(`Could not process msg entry ${key}:`, msgError);
+            }
+          }
+        }
+        
+        console.log(`Found ${msgCount} msg-prefixed entries in session storage`);
+      } catch (msgError) {
+        console.error('Error processing msg entries:', msgError);
+        allTranscriptErrors.push(`Msg recovery error: ${msgError.message}`);
+      }
+      
+      // 5. Try to get entries from database
+      console.log('STEP 5: Retrieving entries from database');
+      try {
+        const entriesResponse = await fetch(`/api/sessions/${sessionId}/transcript`);
+        
+        if (entriesResponse.ok) {
+          const entries = await entriesResponse.json();
+          
+          if (entries && Array.isArray(entries) && entries.length > 0) {
+            console.log(`Retrieved ${entries.length} entries from database API`);
+            
+            // Filter for only user and assistant entries (not system)
+            const validEntries = entries.filter(entry => 
+              (entry.speaker === 'user' || entry.speaker === 'assistant') &&
+              !entry.text.includes('This session does not have any recorded conversation yet.')
+            );
+            
+            if (validEntries.length > 0) {
+              console.log(`Found ${validEntries.length} valid entries in database`);
+              
+              validEntries.forEach(entry => {
+                allRecoveredEntries.push({
+                  speaker: entry.speaker,
+                  text: entry.text,
+                  timestamp: entry.timestamp || new Date().toISOString()
+                });
+              });
+            } else {
+              console.log('No valid entries found in database (only system entries)');
+            }
+          } else {
+            console.log('No entries found in database response');
+          }
+        } else {
+          console.warn(`Database API returned status: ${entriesResponse.status}`);
+          allTranscriptErrors.push(`Database API error: ${entriesResponse.status}`);
+        }
+      } catch (dbError) {
+        console.error('Error retrieving from database:', dbError);
+        allTranscriptErrors.push(`Database retrieval error: ${dbError.message}`);
+      }
+      
+      // 6. Check legacy transcript field
+      console.log('STEP 6: Checking legacy transcript field');
+      try {
+        const sessionResponse = await fetch(`/api/sessions/${sessionId}`);
+        
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          
+          if (sessionData && sessionData.transcript && typeof sessionData.transcript === 'string') {
+            console.log('Found legacy transcript field in session');
+            
+            // Parse the legacy transcript into entries
+            const lines = sessionData.transcript.split('\n').filter(line => line.trim() !== '');
+            console.log(`Found ${lines.length} lines in legacy transcript`);
+            
+            if (lines.length > 0) {
+              lines.forEach(line => {
+                const speakerMatch = line.match(/^([^:]+):\s*(.+)$/);
+                
+                if (speakerMatch) {
+                  const rawSpeaker = speakerMatch[1].trim().toLowerCase();
+                  const text = speakerMatch[2].trim();
+                  
+                  // Normalize speaker names
+                  const speaker = 
+                    rawSpeaker === 'user' || 
+                    rawSpeaker === 'you' || 
+                    rawSpeaker === 'client' || 
+                    rawSpeaker === 'human' ? 'user' : 'assistant';
+                  
+                  if (text) {
+                    allRecoveredEntries.push({
+                      speaker,
+                      text,
+                      timestamp: new Date().toISOString()
+                    });
+                  }
+                }
+              });
+            }
+          } else {
+            console.log('No legacy transcript found in session data');
+          }
+        } else {
+          console.warn(`Session API returned status: ${sessionResponse.status}`);
+          allTranscriptErrors.push(`Session API error: ${sessionResponse.status}`);
+        }
+      } catch (legacyError) {
+        console.error('Error checking legacy transcript:', legacyError);
+        allTranscriptErrors.push(`Legacy transcript error: ${legacyError.message}`);
+      }
+      
+      // 7. DEDUPLICATE ENTRIES
+      console.log('STEP 7: Deduplicating all transcript entries');
+      
+      // ADDITIONAL CHECK: Look for transcripts directly in UI state
+      if (transcriptChunks.length > 0) {
+        console.log(`Found ${transcriptChunks.length} transcript chunks in state, adding to recovery`);
+        
+        for (const chunk of transcriptChunks) {
+          const match = chunk.match(/^([A-Z]+):\s*(.+)/);
+          if (match) {
+            const rawSpeaker = match[1].toLowerCase();
+            const text = match[2];
+            
+            // Normalize speaker names
+            const normalizedSpeaker = 
+              rawSpeaker === 'user' || 
+              rawSpeaker === 'you' || 
+              rawSpeaker === 'client' || 
+              rawSpeaker === 'human' ? 'user' : 'assistant';
+            
+            // Add to recovered entries
+            allRecoveredEntries.push({
+              speaker: normalizedSpeaker,
+              text: text,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+      
+      // Create map using the text content as key to eliminate duplicates
+      const uniqueEntries = new Map();
+      
+      // First pass: Group by exact speaker and text
+      allRecoveredEntries.forEach(entry => {
+        const key = `${entry.speaker}:${entry.text}`;
+        
+        if (!uniqueEntries.has(key)) {
+          uniqueEntries.set(key, entry);
+        } else {
+          // If we've seen this before, keep the one with the earliest timestamp
+          const existing = uniqueEntries.get(key);
+          if (new Date(entry.timestamp) < new Date(existing.timestamp)) {
+            uniqueEntries.set(key, entry);
+          }
+        }
+      });
+      
+      // Convert back to array and sort by timestamp
+      const dedupedEntries = Array.from(uniqueEntries.values())
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      console.log(`Deduplication complete: ${allRecoveredEntries.length} total entries reduced to ${dedupedEntries.length} unique entries`);
+      
+      // If we still don't have entries, create a placeholder entry to avoid empty transcript
+      if (dedupedEntries.length === 0) {
+        console.warn('⚠️ NO TRANSCRIPT ENTRIES FOUND IN ANY SOURCE! Creating placeholder entry');
+        
+        // Only add placeholder if absolutely nothing was found
+        if (allTranscriptErrors.length > 0) {
+          console.error('Recovery errors encountered:', allTranscriptErrors);
+          dedupedEntries.push({
+            speaker: 'system',
+            text: `This session encountered transcript issues: ${allTranscriptErrors.join(' | ')}`,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          dedupedEntries.push({
+            speaker: 'system',
+            text: 'This session does not have any recorded conversation yet.',
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+      
+      // 8. SAVE ALL RECOVERED ENTRIES TO DATABASE
+      console.log('STEP 8: Saving all unique recovered entries to database');
+      
+      // Convert the deduped entries into transcript format for legacy compatibility
+      const transcriptBuilder = dedupedEntries.map(entry => {
+        const displaySpeaker = entry.speaker === 'user' ? 'USER' : 
+                               entry.speaker === 'assistant' ? 'THERAPIST' : 'SYSTEM';
+        return `${displaySpeaker}: ${entry.text}`;
+      });
+      
+      const combinedTranscript = transcriptBuilder.join('\n');
+      console.log(`Generated combined transcript with ${transcriptBuilder.length} entries`);
+      
+      // 8a. Import transcript service for adding entries
+      try {
+        const { addTranscriptEntry } = await import('@/lib/transcript-service');
+        let savedCount = 0;
+        
+        // Save each entry individually
+        for (const entry of dedupedEntries) {
+          try {
+            // Skip system entries for the database
+            if (entry.speaker === 'system') continue;
+            
+            await addTranscriptEntry({
+              sessionId,
+              speaker: entry.speaker,
+              text: entry.text,
+              timestamp: entry.timestamp,
+              isFinal: true
+            });
+            
+            savedCount++;
+          } catch (entryError) {
+            console.warn(`Error saving individual entry: ${entryError.message}`);
+          }
+        }
+        
+        console.log(`Successfully saved ${savedCount} individual entries to database`);
+      } catch (importError) {
+        console.error('Error importing transcript service:', importError);
+      }
+      
+      // 8b. Also update the legacy transcript field for backward compatibility
+      try {
+        // In a separate try block in case individual entry saving failed
+        await fetch(`/api/sessions/${sessionId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcript: combinedTranscript
+          })
+        });
+        
+        console.log('Successfully updated legacy transcript field');
+      } catch (legacyUpdateError) {
+        console.error('Error updating legacy transcript:', legacyUpdateError);
+      }
+      
+      // 9. FINALIZE SESSION
+      console.log('STEP 9: Finalizing session');
+      
+      // Calculate approximate duration based on number of entries
+      const entryCount = dedupedEntries.length;
+      const estimatedDuration = Math.max(1, Math.round(entryCount / 3)); // At least 1 minute
+      
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: {
@@ -581,26 +1274,28 @@ function TherapyButton({
         body: JSON.stringify({
           endTime: new Date().toISOString(),
           status: 'completed',
-          transcript,
-          notes: `Therapy session ${new Date().toLocaleDateString()} - Duration: ${Math.round(transcriptChunks.length / 3)} minutes of conversation`,
+          notes: `Therapy session ${new Date().toLocaleDateString()} - Duration: ${estimatedDuration} minutes - ${entryCount} transcript entries`,
         }),
-      })
+      });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || 'Failed to update session')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to update session');
       }
       
+      console.log('📋 TRANSCRIPT RECOVERY COMPLETE');
+      console.log(`Successfully saved ${dedupedEntries.length} unique transcript entries`);
+      
       // Clean up
-      cleanupResources()
+      cleanupResources();
     } catch (error) {
-      console.error('Failed to end session:', error)
-      setErrorMessage(`End session error: ${error}`)
+      console.error('Failed to end session:', error);
+      setErrorMessage(`End session error: ${error}`);
     } finally {
-      setSessionId(null)
-      setIsCallActive(false)
-      setTranscriptChunks([])
-      setIsLoading(false)
+      setSessionId(null);
+      setIsCallActive(false);
+      setTranscriptChunks([]);
+      setIsLoading(false);
     }
   }, [sessionId, transcriptChunks])
   

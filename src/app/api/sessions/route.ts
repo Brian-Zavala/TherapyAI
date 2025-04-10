@@ -50,15 +50,27 @@ export async function GET(request: Request) {
     
     console.log('Found/created user in database:', user.id);
     
-    // Fetch all sessions for this user
+    // Fetch all sessions for this user with transcript entries
     const sessions = await prisma.session.findMany({
       where: {
         userId: user.id
+      },
+      include: {
+        transcriptEntries: {
+          // Include all transcript entries, not just final ones
+          orderBy: {
+            timestamp: 'asc'
+          }
+        }
       },
       orderBy: {
         date: 'desc'
       }
     });
+    
+    // IMPORTANT: do not filter out or delete any sessions or transcripts automatically
+    // This ensures all data created by the user is preserved
+    console.log(`Returning all ${sessions.length} sessions without filtering any data`);
     
     console.log(`Found ${sessions.length} sessions for user`);
     return NextResponse.json(sessions);

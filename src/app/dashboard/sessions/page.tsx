@@ -7,6 +7,15 @@ import SessionTranscript from '@/components/SessionTranscript'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
+type TranscriptEntry = {
+  id: string
+  sessionId: string
+  speaker: string
+  text: string
+  timestamp: string
+  isFinal: boolean
+}
+
 type Session = {
   id: string
   date: string
@@ -15,6 +24,7 @@ type Session = {
   status: string
   transcript?: string | null
   notes?: string | null
+  transcriptEntries?: TranscriptEntry[]
 }
 
 export default function SessionsPage() {
@@ -119,7 +129,7 @@ export default function SessionsPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
           <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Your Sessions</span>
           <span className="ml-2 text-xs bg-indigo-100 text-indigo-800 py-1 px-2 rounded-full">
-            {sessions.filter(s => s.status === 'completed').length} Total
+            {sessions.length} Total
           </span>
         </h1>
         
@@ -165,6 +175,7 @@ export default function SessionsPage() {
       )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
         <div className={`md:col-span-1 ${activeTab === 'details' ? 'hidden md:block' : ''}`}>
           <motion.div 
             variants={containerVariants}
@@ -200,7 +211,7 @@ export default function SessionsPage() {
                 </motion.div>
               ) : (
                 sessions
-                  .filter(s => s.status === 'completed')
+                  // Display all sessions, even those not marked as completed yet (status could be 'active')
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map(session => (
                     <motion.div
@@ -230,14 +241,12 @@ export default function SessionsPage() {
                         <span className="mx-1">•</span>
                         <span className="capitalize">{session.theme}</span>
                       </div>
-                      {session.transcript && (
-                        <div className="mt-2 text-xs text-indigo-600 font-medium flex items-center">
-                          <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Transcript available
-                        </div>
-                      )}
+                      <div className="mt-2 text-xs text-indigo-600 font-medium flex items-center">
+                        <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        View Session Transcript
+                      </div>
                     </motion.div>
                   ))
               )}
@@ -267,7 +276,12 @@ export default function SessionsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <SessionTranscript sessionId={selectedSessionId} />
+              {/* Pass the sessionId and initial session data for efficient loading */}
+            <SessionTranscript 
+              sessionId={selectedSessionId} 
+              initialSession={sessions.find(s => s.id === selectedSessionId)} 
+              key={selectedSessionId} // Force re-render when session changes
+            />
             </motion.div>
           ) : (
             <motion.div 
