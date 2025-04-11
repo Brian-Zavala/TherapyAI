@@ -40,7 +40,7 @@ type TherapyButtonProps = {
 
 function TherapyButton({ 
   userId, 
-  assistantConfig = COUPLE_THERAPY_ASSISTANT_CONFIG as AssistantConfigType, 
+  assistantConfig = COUPLE_THERAPY_ASSISTANT_CONFIG, 
   therapyType = 'couple' 
 }: TherapyButtonProps) {
   // State management
@@ -356,8 +356,7 @@ function TherapyButton({
         setupAudioAnalyzer()
       })
       
-      // Using void function to handle the event parameter explicitly
-      vapiInstanceRef.current.on('call-end', function(event: any) {
+      vapiInstanceRef.current.on('call-end', (event: any) => {
         // Log the complete event for debugging
         console.log('Vapi call ended, complete event:', event || {});
         
@@ -513,8 +512,8 @@ function TherapyButton({
               try {
                 const stored = sessionStorage.getItem(storageKey);
                 existingTranscripts = stored ? JSON.parse(stored) : [];
-              } catch (parseError: unknown) {
-                console.warn('Error parsing existing transcripts, starting fresh:', (parseError instanceof Error) ? parseError.message : String(parseError));
+              } catch (parseError) {
+                console.warn('Error parsing existing transcripts, starting fresh:', parseError);
                 existingTranscripts = [];
               }
               
@@ -561,8 +560,8 @@ function TherapyButton({
                 console.warn('Failed to save to database, but transcript is in sessionStorage:', dbError);
                 // We still have the transcript in sessionStorage, so we're good
               }
-            } catch (storageError: unknown) {
-              console.error('💥 ERROR STORING TRANSCRIPT:', (storageError instanceof Error) ? storageError.message : String(storageError));
+            } catch (storageError) {
+              console.error('💥 ERROR STORING TRANSCRIPT:', storageError);
             }
           }
           // Also handle assistant messages (usually contain assistant responses)
@@ -589,8 +588,8 @@ function TherapyButton({
               try {
                 const stored = sessionStorage.getItem(storageKey);
                 existingTranscripts = stored ? JSON.parse(stored) : [];
-              } catch (parseError: unknown) {
-                console.warn('Error parsing existing transcripts, starting fresh:', (parseError instanceof Error) ? parseError.message : String(parseError));
+              } catch (parseError) {
+                console.warn('Error parsing existing transcripts, starting fresh:', parseError);
                 existingTranscripts = [];
               }
               
@@ -631,8 +630,8 @@ function TherapyButton({
               } catch (dbError) {
                 console.warn('Failed to save assistant message to database:', dbError);
               }
-            } catch (storageError: unknown) {
-              console.error('💥 ERROR STORING ASSISTANT MESSAGE:', (storageError instanceof Error) ? storageError.message : String(storageError));
+            } catch (storageError) {
+              console.error('💥 ERROR STORING ASSISTANT MESSAGE:', storageError);
             }
           }
         } catch (error) {
@@ -863,8 +862,8 @@ function TherapyButton({
           // Also update our state for future use
           setSessionId(storedSessionId);
         }
-      } catch (storageError: unknown) {
-        console.warn('Error accessing sessionStorage:', (storageError instanceof Error) ? storageError.message : String(storageError));
+      } catch (storageError) {
+        console.warn('Error accessing sessionStorage:', storageError);
       }
     }
     
@@ -900,7 +899,7 @@ function TherapyButton({
       
       // 1. First, collect all transcript entries from component state
       console.log('STEP 1: Collecting transcripts from component state');
-      const currentTranscriptChunks = [...transcriptChunks];
+      let currentTranscriptChunks = [...transcriptChunks];
       
       if (currentTranscriptChunks.length > 0) {
         console.log(`Found ${currentTranscriptChunks.length} transcript chunks in component state`);
@@ -954,16 +953,16 @@ function TherapyButton({
                 }
               });
             }
-          } catch (parseError: unknown) {
-            console.error('Error parsing stored transcripts:', (parseError instanceof Error) ? parseError.message : String(parseError));
-            allTranscriptErrors.push(`Parse storage error: ${(parseError instanceof Error) ? parseError.message : String(parseError)}`);
+          } catch (parseError) {
+            console.error('Error parsing stored transcripts:', parseError);
+            allTranscriptErrors.push(`Parse storage error: ${parseError.message}`);
           }
         } else {
           console.log('No transcripts found in main session storage');
         }
-      } catch (storageError: unknown) {
-        console.error('Error accessing session storage:', (storageError instanceof Error) ? storageError.message : String(storageError));
-        allTranscriptErrors.push(`Storage access error: ${(storageError instanceof Error) ? storageError.message : String(storageError)}`);
+      } catch (storageError) {
+        console.error('Error accessing session storage:', storageError);
+        allTranscriptErrors.push(`Storage access error: ${storageError.message}`);
       }
       
       // 3. Check for individual backup entries in sessionStorage
@@ -1009,9 +1008,9 @@ function TherapyButton({
         }
         
         console.log(`Found ${backupCount} individual backup entries in session storage`);
-      } catch (backupError: unknown) {
-        console.error('Error processing backup entries:', (backupError instanceof Error) ? backupError.message : String(backupError));
-        allTranscriptErrors.push(`Backup recovery error: ${(backupError instanceof Error) ? backupError.message : String(backupError)}`);
+      } catch (backupError) {
+        console.error('Error processing backup entries:', backupError);
+        allTranscriptErrors.push(`Backup recovery error: ${backupError.message}`);
       }
       
       // 4. Check for msg-prefixed entries (additional backups) in sessionStorage
@@ -1040,16 +1039,16 @@ function TherapyButton({
                   msgCount++;
                 }
               }
-            } catch (msgError: unknown) {
-              console.warn(`Could not process msg entry ${key}:`, (msgError instanceof Error) ? msgError.message : String(msgError));
+            } catch (msgError) {
+              console.warn(`Could not process msg entry ${key}:`, msgError);
             }
           }
         }
         
         console.log(`Found ${msgCount} msg-prefixed entries in session storage`);
-      } catch (msgError: unknown) {
-        console.error('Error processing msg entries:', (msgError instanceof Error) ? msgError.message : String(msgError));
-        allTranscriptErrors.push(`Msg recovery error: ${(msgError instanceof Error) ? msgError.message : String(msgError)}`);
+      } catch (msgError) {
+        console.error('Error processing msg entries:', msgError);
+        allTranscriptErrors.push(`Msg recovery error: ${msgError.message}`);
       }
       
       // 5. Try to get entries from database
@@ -1089,9 +1088,9 @@ function TherapyButton({
           console.warn(`Database API returned status: ${entriesResponse.status}`);
           allTranscriptErrors.push(`Database API error: ${entriesResponse.status}`);
         }
-      } catch (dbError: unknown) {
-        console.error('Error retrieving from database:', (dbError instanceof Error) ? dbError.message : String(dbError));
-        allTranscriptErrors.push(`Database retrieval error: ${(dbError instanceof Error) ? dbError.message : String(dbError)}`);
+      } catch (dbError) {
+        console.error('Error retrieving from database:', dbError);
+        allTranscriptErrors.push(`Database retrieval error: ${dbError.message}`);
       }
       
       // 6. Check legacy transcript field
@@ -1106,11 +1105,11 @@ function TherapyButton({
             console.log('Found legacy transcript field in session');
             
             // Parse the legacy transcript into entries
-            const lines = sessionData.transcript.split('\n').filter((line: string) => line.trim() !== '');
+            const lines = sessionData.transcript.split('\n').filter(line => line.trim() !== '');
             console.log(`Found ${lines.length} lines in legacy transcript`);
             
             if (lines.length > 0) {
-              lines.forEach((line: string) => {
+              lines.forEach(line => {
                 const speakerMatch = line.match(/^([^:]+):\s*(.+)$/);
                 
                 if (speakerMatch) {
@@ -1141,9 +1140,9 @@ function TherapyButton({
           console.warn(`Session API returned status: ${sessionResponse.status}`);
           allTranscriptErrors.push(`Session API error: ${sessionResponse.status}`);
         }
-      } catch (legacyError: unknown) {
-        console.error('Error checking legacy transcript:', (legacyError instanceof Error) ? legacyError.message : String(legacyError));
-        allTranscriptErrors.push(`Legacy transcript error: ${(legacyError instanceof Error) ? legacyError.message : String(legacyError)}`);
+      } catch (legacyError) {
+        console.error('Error checking legacy transcript:', legacyError);
+        allTranscriptErrors.push(`Legacy transcript error: ${legacyError.message}`);
       }
       
       // 7. DEDUPLICATE ENTRIES
@@ -1245,19 +1244,17 @@ function TherapyButton({
             // Skip system entries for the database
             if (entry.speaker === 'system') continue;
             
-            if (sessionId) {
-              await addTranscriptEntry({
-                sessionId,
-                speaker: entry.speaker,
-                text: entry.text,
-                timestamp: entry.timestamp,
-                isFinal: true
-              });
-              
-              savedCount++;
-            }
-          } catch (entryError: unknown) {
-            console.warn(`Error saving individual entry: ${(entryError instanceof Error) ? entryError.message : String(entryError)}`);
+            await addTranscriptEntry({
+              sessionId,
+              speaker: entry.speaker,
+              text: entry.text,
+              timestamp: entry.timestamp,
+              isFinal: true
+            });
+            
+            savedCount++;
+          } catch (entryError) {
+            console.warn(`Error saving individual entry: ${entryError.message}`);
           }
         }
         
@@ -1362,13 +1359,29 @@ function TherapyButton({
             exit={{ opacity: 0, y: -40 }}
             transition={{ duration: 0.5 }}
           >
-          </motion.div>
-        )}
+          <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-2 border-blue-300 shadow-lg">
+            <img 
+              src="/images/dr-maya-thompson.jpg" 
+              alt="Dr. Maya Thompson" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <h3 className="text-xl font-semibold text-blue-700 mb-2">Dr. Maya Thompson</h3>
+          <h4 className="text-lg text-blue-600 mb-4">AI Relationship Therapist</h4>
+          <p className="text-gray-700 mb-6">
+            Welcome to your confidential couple therapy space. I am Dr. Maya Thompson, your AI relationship therapist, 
+            here to support your journey toward a healthier relationship.
+          </p>
+          <p className="text-gray-600 italic">
+            Click the button below to start a session whenever you're ready to talk.
+          </p>
+        </motion.div>
+      )}
       </AnimatePresence>
       
       {/* Apple Phone Call Style UI - with animations */}
       <motion.div 
-        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] overflow-visible z-10 relative mx-auto ${isCallActive ? 'mt-0' : 'mt-8'}`}
+        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-visible z-10 relative mx-auto ${isCallActive ? 'mt-0' : 'mt-8'}`}
         animate={{ 
           height: isCallActive ? 'auto' : '80px',
           y: isCallActive ? 0 : 0,
@@ -1541,7 +1554,7 @@ function TherapyButton({
             </motion.button>
           </motion.div>
         )}
-      </motion.div>
+      </div>
       
       {/* Session status message */}
       {isCallActive && (

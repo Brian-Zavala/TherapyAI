@@ -2,10 +2,13 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, useMotionValueEvent, useAnimation, useInView } from 'framer-motion'
+import { motion, useScroll, useTransform, useMotionValueEvent, useAnimation, useInView, useReducedMotion } from 'framer-motion'
 import ButtonWithSound from '@/components/ButtonWithSound'
 import SpiralTextAnimation from '@/components/SpiralTextAnimation'
 import { useRef, useState, useEffect } from 'react'
+
+// Media query helper
+const MOBILE_BREAKPOINT = 768 // px
 
 // Custom smooth scroll function
 const smoothScroll = (target: HTMLElement, duration = 1000) => {
@@ -36,8 +39,8 @@ const smoothScroll = (target: HTMLElement, duration = 1000) => {
 
 // Animation variants
 const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
 }
 
 const staggerContainer = {
@@ -45,13 +48,55 @@ const staggerContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.2
+      staggerChildren: 0.1
     }
   }
 }
 
 export default function Home() {
-  // Cursor position tracking removed for performance
+  // Hook to detect reduced motion preference
+  const prefersReducedMotion = useReducedMotion()
+  
+  // Detect if screen is narrow (likely mobile)
+  const [isMobileView, setIsMobileView] = useState(false)
+  
+  useEffect(() => {
+    // Check if window is available (client-side)
+    if (typeof window !== 'undefined') {
+      // Initial check
+      setIsMobileView(window.innerWidth < MOBILE_BREAKPOINT)
+      
+      // Update on resize
+      const handleResize = () => {
+        setIsMobileView(window.innerWidth < MOBILE_BREAKPOINT)
+      }
+      
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+  
+  // Optimize animations for mobile
+  const getOptimizedDuration = (defaultDuration: number) => {
+    if (prefersReducedMotion) return 0
+    if (isMobileView) return defaultDuration * 0.5 // Much faster animations on mobile
+    return defaultDuration
+  }
+  
+  // Optimize threshold for mobile
+  const getOptimizedThreshold = (defaultThreshold: number) => {
+    if (isMobileView) return 0.05 // Fixed low threshold for mobile makes animations trigger very early
+    return defaultThreshold
+  }
+  
+  // Optimize animation delays for mobile
+  const getOptimizedDelay = (defaultDelay: number) => {
+    if (prefersReducedMotion) return 0
+    if (isMobileView) return defaultDelay * 0.3 // Almost no delay on mobile
+    return defaultDelay
+  }
+  
+  // Refs
   const heroRef = useRef(null)
   const featuresRef = useRef(null)
   const statsRef = useRef(null)
@@ -59,10 +104,10 @@ export default function Home() {
   const plansRef = useRef(null)
   const statsControls = useAnimation()
   
-  // InView hooks for scroll animations
-  const isStatsInView = useInView(statsRef, { once: false, amount: 0.3 })
-  const isTestimonialsInView = useInView(testimonialsRef, { once: false, amount: 0.3 })
-  const isPlansInView = useInView(plansRef, { once: false, amount: 0.3 })
+  // InView hooks for scroll animations - with optimized thresholds for mobile
+  const isStatsInView = useInView(statsRef, { once: false, amount: getOptimizedThreshold(0.3) })
+  const isTestimonialsInView = useInView(testimonialsRef, { once: false, amount: getOptimizedThreshold(0.3) })
+  const isPlansInView = useInView(plansRef, { once: false, amount: getOptimizedThreshold(0.3) })
   
   // Standard scroll tracking
   const { scrollYProgress } = useScroll()
@@ -74,7 +119,7 @@ export default function Home() {
   
   // Animation trigger based on scroll position with enhanced performance
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    if (latest > 0.1) {
+    if (latest > (isMobileView ? 0.05 : 0.1)) {
       statsControls.start("visible")
     }
   })
@@ -232,17 +277,17 @@ export default function Home() {
           <motion.div 
             className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu cursor-pointer"
             animate={{ 
-              y: [0, 10, 0],
+              y: isMobileView ? [0, 7, 0] : [0, 10, 0],
               opacity: [0.7, 1, 0.7]
             }}
             transition={{ 
               y: { 
-                duration: 2.5, 
+                duration: isMobileView ? 1.5 : 2.5, 
                 repeat: Infinity, 
                 ease: "easeInOut"
               },
               opacity: {
-                duration: 2.5,
+                duration: isMobileView ? 1.5 : 2.5,
                 repeat: Infinity,
                 ease: "easeInOut"
               }
@@ -269,8 +314,8 @@ export default function Home() {
         className="w-full py-20 bg-gradient-to-r from-indigo-50 to-purple-50"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: false, amount: 0.2 }}
-        transition={{ duration: 0.8 }}
+        viewport={{ once: false, amount: 0.1 }}
+        transition={{ duration: 0.5 }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2 
@@ -281,7 +326,7 @@ export default function Home() {
               type: "spring",
               damping: 15 
             }}
-            viewport={{ once: false, margin: "-100px" }}
+            viewport={{ once: false, margin: "-50px" }}
             className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16"
           >
             <motion.span 
@@ -351,12 +396,12 @@ export default function Home() {
                               opacity: [0, 0.7, 0],
                             }}
                             transition={{
-                              duration: 1.5,
+                              duration: isMobileView ? 1 : 1.5,
                               times: [0, 0.4, 1],
                               repeat: Infinity,
-                              repeatDelay: 2,
+                              repeatDelay: isMobileView ? 3 : 2, // Longer delay on mobile saves resources
                               ease: "easeOut",
-                              delay: index * 3,
+                              delay: isMobileView ? Math.min(index, 1) * 1.5 : index * 3, // Fewer staggered animations on mobile
                             }}
                           />
                           <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
@@ -720,8 +765,8 @@ export default function Home() {
             className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            viewport={{ once: false, amount: 0.1 }}
+            transition={{ duration: getOptimizedDuration(0.4), delay: getOptimizedDelay(0.1) }}
           >
             {/* Enhanced feature cards with icon animations */}
             {[
@@ -792,14 +837,14 @@ export default function Home() {
                        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))"]
         }}
         transition={{ 
-          opacity: { duration: 0.8 },
+          opacity: { duration: getOptimizedDuration(0.5) },
           background: { 
-            duration: 5,
+            duration: isMobileView ? 7 : 5, // Slower background cycling on mobile to save resources
             repeat: Infinity,
             repeatType: "reverse"
           }
         }}
-        viewport={{ once: false, amount: 0.2 }}
+        viewport={{ once: false, amount: 0.1 }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -847,9 +892,9 @@ export default function Home() {
               ].map((testimonial, index) => (
                 <motion.div 
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.2 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
                   viewport={{ once: true }}
                   whileHover={{ 
                     boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
@@ -907,8 +952,8 @@ export default function Home() {
         className="w-full py-16 sm:py-20 bg-white"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: false, amount: 0.2 }}
-        transition={{ duration: 0.8 }}
+        viewport={{ once: false, amount: 0.1 }}
+        transition={{ duration: 0.5 }}
       >
         <motion.div 
           className="absolute left-0 w-full h-32 overflow-hidden -top-16 opacity-50"
@@ -1165,11 +1210,11 @@ export default function Home() {
       
       {/* Call to action section - decorative elements removed */}
       <motion.section 
-        className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-500 to-green-500 text-white overflow-hidden"
+        className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: false, amount: 0.2 }}
-        transition={{ duration: 0.8 }}
+        viewport={{ once: false, amount: isMobileView ? 0.05 : 0.2 }}
+        transition={{ duration: getOptimizedDuration(0.8) }}
       >
         {/* Animated gradient slide */}
         <motion.div 

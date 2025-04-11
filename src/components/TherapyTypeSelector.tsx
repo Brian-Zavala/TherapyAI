@@ -59,8 +59,8 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
         <div className="p-6 sm:p-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">Choose Your Therapist</h2>
-              <div className="h-1 w-48 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-2"></div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent">Choose Your Therapist</h2>
+              <div className="h-1 bg-gradient-to-r from-blue-400 via-blue/10 to-transparent rounded-full mt-2"></div>
             </div>
             <button 
               onClick={onClose}
@@ -72,10 +72,13 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
               </svg>
             </button>
           </div>
-          
-          <p className="text-gray-600 mb-8 max-w-2xl">
-            Select your preferred therapist and therapy type that best meets your current needs.
+          <div>
+          <p className="text-green-600 font-bold mb-8 max-w-2xl">
+            Select your therapist and therapy type that best meets your current needs.
+            <div className="h-1 w-56 bg-gradient-to-r  from-green-400 via-green/10 to-transparent rounded-full mt-2"></div>
           </p>
+          </div>
+          
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {therapyOptions.map((option) => (
@@ -87,7 +90,7 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                   onClose();
                 }}
               >
-                <div className="w-full h-36 bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                <div className="w-full h-36 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                   <div className="text-center">
                     <div className="flex items-center justify-center mb-2">
                       {option.type === 'couple' ? (
@@ -116,14 +119,7 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                   </p>
                   <div className="flex flex-col items-center text-center">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 p-1 mb-3 border-2 border-indigo-200 shadow-md overflow-hidden">
-                      {/* 
-                        IMPORTANT: To use AI-generated doctor images:
-                        1. Create the following files in the /public/images/ directory:
-                           - dr-maya-thompson.jpg (for couples therapy)
-                           - dr-elliot-mackaphy.jpg (for individual therapy)
-                           - dr-jada-pearson.jpg (for family therapy)
-                        2. Make sure the images are square (1:1 aspect ratio) for best results
-                      */}
+                    
                       <div className="w-full h-full rounded-full bg-white overflow-hidden relative">
                         {/* Simple img element for doctor photo */}
                         <img 
@@ -155,8 +151,8 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                         </div>
                       </div>
                     </div>
-                    <h4 className="font-bold text-lg mb-1 text-indigo-700">{option.therapist}</h4>
-                    <span className="text-sm bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                    <h4 className="font-bold text-lg mb-1 text-blue-700">{option.therapist}</h4>
+                    <span className="text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 rounded-full font-medium">
                       {option.type === 'couple' ? 'AI Relationship Therapist' :
                        option.type === 'solo' ? 'AI Personal Therapist' : 'AI Family Therapist'}
                     </span>

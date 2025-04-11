@@ -26,13 +26,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 body.session-active {
-  background-color: var(--color-bg-dark);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: var(--color-text-light);
+  transition: background 0.5s ease-in-out;
 }
 
 body.session-active::before {
-  /* Update background to use variable */
-  background: radial-gradient(circle, var(--color-session-glow) 0%, rgba(0, 0, 0, 0) 70%);
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 70%);
+  z-index: -1;
 }
 /* Enhanced animations with optimized performance */
 @keyframes ambient-float {
@@ -70,14 +77,14 @@ html {
   }
 }
 
-body.session-active::before {
-  content: '';
+/* Ambient background effect */
+.ambient-glow {
   position: fixed;
   top: 20%;
   left: 20%;
   width: 60vw;
   height: 60vh;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.05) 70%);
   z-index: -1;
   animation: ambient-float 15s infinite ease-in-out;
 }
