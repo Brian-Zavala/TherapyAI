@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, useMotionValueEvent, useAnimation } from 'framer-motion'
+import { motion, useScroll, useTransform, useMotionValueEvent, useAnimation, useInView } from 'framer-motion'
 import ButtonWithSound from '@/components/ButtonWithSound'
+import SpiralTextAnimation from '@/components/SpiralTextAnimation'
 import { useRef, useState, useEffect } from 'react'
 
 // Custom smooth scroll function
@@ -53,15 +54,23 @@ export default function Home() {
   // Cursor position tracking removed for performance
   const heroRef = useRef(null)
   const featuresRef = useRef(null)
+  const statsRef = useRef(null)
+  const testimonialsRef = useRef(null)
+  const plansRef = useRef(null)
   const statsControls = useAnimation()
+  
+  // InView hooks for scroll animations
+  const isStatsInView = useInView(statsRef, { once: false, amount: 0.3 })
+  const isTestimonialsInView = useInView(testimonialsRef, { once: false, amount: 0.3 })
+  const isPlansInView = useInView(plansRef, { once: false, amount: 0.3 })
   
   // Standard scroll tracking
   const { scrollYProgress } = useScroll()
   
-  // Enhanced parallax effect for hero image with smoother motion
-  const bgY = useTransform(scrollYProgress, [0, 0.3], [0, -50])
+  // Parallax effect removed
   
-  // Cursor tracking effect removed for performance
+  // Additional scroll-driven animations (hero effects removed)
+  const featuresOpacity = useTransform(scrollYProgress, [0.2, 0.3, 0.4], [0, 1, 1])
   
   // Animation trigger based on scroll position with enhanced performance
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
@@ -69,6 +78,13 @@ export default function Home() {
       statsControls.start("visible")
     }
   })
+  
+  // Effect to trigger animations based on inView
+  useEffect(() => {
+    if (isStatsInView) {
+      statsControls.start("visible")
+    }
+  }, [isStatsInView, statsControls])
   
   // Handle smooth scrolling when clicking on navigation links
   useEffect(() => {
@@ -104,13 +120,20 @@ export default function Home() {
     <div className="flex flex-col items-center w-full overflow-hidden">
       {/* Cursor glow effect removed for performance */}
       
-      {/* Hero section with enhanced animations */}
-      <section ref={heroRef} className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] shadow-lg shadow-indigo-500/10 rounded-b-[3rem]">
+      {/* Hero section with static image */}
+      <section 
+        ref={heroRef} 
+        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] shadow-lg shadow-indigo-500/10 rounded-b-[3rem]"
+      >
         {/* Background gradient with enhanced colors */}
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 z-0"></div>
+        <div 
+          className="absolute inset-0 bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 z-0"
+        ></div>
         
-        {/* Static background image */}
-        <div className="absolute inset-0 w-full h-full z-0">
+        {/* Static background image without parallax effect */}
+        <div 
+          className="absolute inset-0 w-full h-full z-0"
+        >
           <Image
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
@@ -140,26 +163,34 @@ export default function Home() {
         </div>
         
         {/* Hero content with enhanced animations */}
-        <div className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] justify-center">
-          <h1 
-            className="text-3xl sm:text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600 mb-8 md:mb-10 px-2 tracking-tight leading-normal py-1 overflow-visible"
-          >
-            Strengthen Your Relationships
-          </h1>
-          
-          <motion.p
+        <motion.div 
+          className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] justify-center"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.6, 0.05, 0.01, 0.9] }}
+        >
+          <motion.div
+            className="w-full mb-8 md:mb-10 px-2 py-1 overflow-visible"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
+            <SpiralTextAnimation className="w-full" />
+          </motion.div>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
             className="text-base sm:text-xl text-gray-700 max-w-2xl mb-12 md:mb-16 leading-relaxed"
-            >
+          >
             Discover AI-powered therapy that helps you build healthier, more fulfilling relationships with those who matter most.
           </motion.p>
           
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
+            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6, type: "spring", stiffness: 200 }}
             className="w-full sm:w-auto px-4 sm:px-0"
           >
             <motion.div
@@ -228,31 +259,53 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </motion.div>
-        </div>
+        </motion.div>
+      
       </section>
       
       {/* Mental Health & Therapy Costs Section with enhanced visualization */}
-      <section className="w-full py-20 bg-gradient-to-r from-indigo-50 to-purple-50">
+      <motion.section 
+        ref={statsRef}
+        className="w-full py-20 bg-gradient-to-r from-indigo-50 to-purple-50"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, margin: "-100px" }}
+            transition={{ 
+              duration: 0.8, 
+              type: "spring",
+              damping: 15 
+            }}
+            viewport={{ once: false, margin: "-100px" }}
             className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16"
           >
-            <span className="relative">
+            <motion.span 
+              className="relative"
+              whileInView={{ 
+                textShadow: ["0px 0px 0px rgba(66, 153, 225, 0)", "0px 0px 10px rgba(66, 153, 225, 0.3)", "0px 0px 0px rgba(66, 153, 225, 0)"] 
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity, 
+                repeatType: "reverse" 
+              }}
+            >
               <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-blue-600 py-1 overflow-visible">
                 Making Therapy <span className="underline decoration-green-500 decoration-4 underline-offset-4">Accessible</span> for Everyone
               </span>
               <span className="absolute -inset-1 rounded-lg bg-gradient-to-r from-indigo-100 to-purple-100 -z-10 blur-lg opacity-50"></span>
-            </span>
+            </motion.span>
           </motion.h2>
           
           <motion.div 
             variants={staggerContainer}
             initial="hidden"
-            animate={statsControls}
+            animate={isStatsInView ? "visible" : "hidden"}
             className="grid lg:grid-cols-2 gap-8 mb-16"
           >
             {/* Therapy Costs Card with animated price tags */}
@@ -370,7 +423,7 @@ export default function Home() {
                               ease: "easeOut",
                               delay: 0,
                             }}
-                          />
+                          ></motion.span>
                           <span className="text-3xl font-bold text-green-500 relative z-10">$2.65</span>
                         </div>
                       </div>
@@ -427,7 +480,7 @@ export default function Home() {
                               ease: "easeOut",
                               delay: 1.5,
                             }}
-                          />
+                          ></motion.span>
                           <span className="text-3xl font-bold text-green-500 relative z-10">$5.25</span>
                         </div>
                       </div>
@@ -536,7 +589,7 @@ export default function Home() {
                           repeatDelay: 0,
                           ease: "linear",
                         }}
-                      />
+                      ></motion.span>
                       
                       {/* Second pulsing ring with offset */}
                       <motion.span 
@@ -554,7 +607,7 @@ export default function Home() {
                           ease: "linear",
                           delay: 1.33,
                         }}
-                      />
+                      ></motion.span>
                       
                       {/* Third pulsing ring with different offset */}
                       <motion.span 
@@ -572,7 +625,7 @@ export default function Home() {
                           ease: "linear",
                           delay: 2.66,
                         }}
-                      />
+                      ></motion.span>
                       <span className="text-blue-500 font-bold text-base sm:text-lg">{stat.value}</span>
                     </motion.div>
                     <p className="text-sm sm:text-base text-white">{stat.text}</p>
@@ -637,22 +690,39 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </div>
-      </section>
+      </motion.section>
       
       {/* Features section with creative card animations */}
-      <section ref={featuresRef} className="w-full py-16 sm:py-20 bg-white">
+      <motion.section 
+        ref={featuresRef} 
+        className="w-full py-16 sm:py-20 bg-white"
+        style={{ opacity: featuresOpacity }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, margin: "-100px" }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ 
+              duration: 0.7, 
+              type: "spring",
+              stiffness: 100 
+            }}
+            viewport={{ once: false, amount: 0.5 }}
             className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600"
           >
             How We Support Your Relationship
           </motion.h2>
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <motion.div 
+            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             {/* Enhanced feature cards with icon animations */}
             {[
               {
@@ -706,18 +776,41 @@ export default function Home() {
                 <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
       
       {/* Testimonials Section with Animation */}
-      <section className="w-full py-16 sm:py-20 bg-gradient-to-br from-indigo-50 to-purple-50">
+      <motion.section 
+        ref={testimonialsRef}
+        className="w-full py-16 sm:py-20 bg-gradient-to-br from-indigo-50 to-purple-50"
+        initial={{ opacity: 0 }}
+        whileInView={{ 
+          opacity: 1,
+          background: ["linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))", 
+                       "linear-gradient(to bottom right, rgba(224, 231, 255, 0.95), rgba(221, 214, 254, 0.95))",
+                       "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))"]
+        }}
+        transition={{ 
+          opacity: { duration: 0.8 },
+          background: { 
+            duration: 5,
+            repeat: Infinity,
+            repeatType: "reverse"
+          }
+        }}
+        viewport={{ once: false, amount: 0.2 }}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
+            transition={{ 
+              duration: 0.7,
+              type: "spring",
+              stiffness: 50
+            }}
+            viewport={{ once: false }}
             className="text-center mb-12 sm:mb-16"
           >
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600 mb-4">
@@ -806,16 +899,51 @@ export default function Home() {
             
           </div>
         </div>
-      </section>
+      </motion.section>
       
       {/* Subscription Plans Section */}
-      <section className="w-full py-16 sm:py-20 bg-white">
+      <motion.section 
+        ref={plansRef}
+        className="w-full py-16 sm:py-20 bg-white"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.8 }}
+      >
+        <motion.div 
+          className="absolute left-0 w-full h-32 overflow-hidden -top-16 opacity-50"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 0.7 }}
+          viewport={{ once: false }}
+          transition={{ duration: 1, delay: 0.5 }}
+        >
+          <motion.div
+            className="absolute h-[50px] w-[1000px] opacity-30"
+            style={{ 
+              background: "linear-gradient(90deg, rgba(79, 70, 229, 0) 0%, rgba(79, 70, 229, 0.3) 50%, rgba(79, 70, 229, 0) 100%)",
+              rotate: -30
+            }}
+            animate={{ 
+              x: ["-100%", "200%"]
+            }}
+            transition={{ 
+              duration: 5,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          ></motion.div>
+        </motion.div>
+        
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
+            transition={{ 
+              duration: 0.7,
+              type: "spring",
+              stiffness: 50
+            }}
+            viewport={{ once: false }}
             className="text-center mb-12 sm:mb-16"
           >
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text py-1 overflow-visible bg-gradient-to-r from-blue-500 to-blue-600 mb-4">
@@ -1033,18 +1161,51 @@ export default function Home() {
             All plans include a 7-day free trial. Cancel anytime. No credit card required to start.
           </motion.div>
         </div>
-      </section>
+      </motion.section>
       
       {/* Call to action section - decorative elements removed */}
-      <section className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-900 to-green-900 text-white">
+      <motion.section 
+        className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-500 to-green-500 text-white overflow-hidden"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.8 }}
+      >
+        {/* Animated gradient slide */}
+        <motion.div 
+          className="absolute top-0 left-0 w-full h-full overflow-hidden"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: false }}
+          transition={{ duration: 1 }}
+        >
+          <motion.div
+            className="absolute top-0 left-0 h-full w-[200%]"
+            style={{ 
+              background: "linear-gradient(90deg, rgba(30, 58, 138, 0) 0%, rgba(30, 58, 138, 0.3) 15%, rgba(30, 58, 138, 0) 30%)",
+            }}
+            animate={{ 
+              x: ["-100%", "0%"]
+            }}
+            transition={{ 
+              duration: 8,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          ></motion.div>
+        </motion.div>
+        
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          
           <div className="text-center relative z-10 mb-6">
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              viewport={{ once: true }}
+              transition={{ 
+                duration: 0.7,
+                type: "spring",
+                stiffness: 50
+              }}
+              viewport={{ once: false }}
               className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8"
             >
               Ready to Transform Your Relationship?
@@ -1070,7 +1231,7 @@ export default function Home() {
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy" 
-                className="bg-white text-blue-700 
+                className="bg-white text-blue-500 
                 font-medium 
                 py-3 sm:py-4 
                 px-8 sm:px-12 
@@ -1092,14 +1253,14 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
       
       {/* Footer section for better page balance */}
-      <section className="w-full py-10 bg-indigo-950 text-white">
+      <section className="w-full py-10 bg-slate-950 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm text-indigo-200 mb-4">© {new Date().getFullYear()} TherapyAI. All rights reserved.</p>
-            <p className="text-xs text-indigo-300">
+            <p className="text-sm text-white mb-4">© {new Date().getFullYear()} TherapyAI. All rights reserved.</p>
+            <p className="text-xs text-white">
               Powered by advanced AI to help the planet build stronger, healthier relationships
             </p>
           </div>

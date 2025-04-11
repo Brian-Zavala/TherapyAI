@@ -10,18 +10,14 @@ export async function middleware(request: NextRequest) {
   // Public paths that don't require authentication
   const isPublicPath = path === '/auth/login' || 
                         path === '/auth/register' || 
-                        path === '/api/auth'
+                        path === '/api/auth' ||
+                        path === '/' // Make homepage public
   
   // Check if the user is authenticated
   const token = await getToken({ 
     req: request,
     secret: process.env.NEXTAUTH_SECRET
   })
-  
-  // Redirect unauthenticated users from home page to login page
-  if (path === '/' && !token) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
   
   // Redirect unauthenticated users from protected routes to login
   if (!isPublicPath && !token) {

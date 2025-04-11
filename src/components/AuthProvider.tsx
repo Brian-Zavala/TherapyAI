@@ -12,7 +12,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, [])
 
   return (
-    <SessionProvider>
+    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
       {mounted ? children : null}
     </SessionProvider>
   )

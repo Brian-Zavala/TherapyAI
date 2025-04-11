@@ -3,21 +3,30 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
 
-  // Configure bundlers to handle ws module for WebSockets
+  // This top-level option tells Next.js (both Webpack in App Router and Turbopack)
+  // which packages should not be bundled within Server Components and should be
+  // treated as external dependencies on the server.
+  serverExternalPackages: ['ws', '@deepgram/sdk'],
+
+  // Configure the Webpack bundler specifically.
   webpack: (config, { isServer, webpack }) => {
+    // This specific configuration ensures 'ws' and '@deepgram/sdk' are treated
+    // as external modules in the server-side bundle when using Webpack.
+    // While `serverExternalPackages` handles Server Components, this `externals`
+    // config can be important for other server-side contexts (like Pages Router API routes
+    // or if `serverExternalPackages` doesn't cover all Webpack server use cases).
+    // It's generally safe to keep both if you need broad compatibility.
     if (isServer) {
-      // Add WebSocket as an external module for the server
       config.externals = [...(config.externals || []), 'ws', '@deepgram/sdk'];
     }
-    
+
     return config;
   },
-  
-  // Define experimental section for Turbopack configuration
-  experimental: {
-    // Turbopack needs to know about external packages used on the server
-    serverComponentsExternalPackages: ['ws', '@deepgram/sdk']
-  }
+
+  // The experimental section is no longer needed for this specific setting.
+  // You can remove it entirely if you aren't using any other experimental features.
+  // experimental: {
+  // }
 };
 
 export default nextConfig;
