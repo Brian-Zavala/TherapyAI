@@ -5,7 +5,7 @@
 .stars {
   width: 3px;
   height: 3px;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -23,7 +23,8 @@
     50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white,
     65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white,
     80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white,
-    95vw 75vh 2px white;
+    95vw 75vh 2px white, 50vw 98vh 2px white, 60vw 99vh 2px white,
+    75vw 100vh 2px white, 90vw 99vh 2px white, 30vw 100vh 1px white;
   pointer-events: none;
   animation: twinkle 8s infinite linear;
 }
@@ -33,7 +34,7 @@
   width: 100px;
   height: 2px;
   background: linear-gradient(90deg, white, transparent);
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
   animation: shoot 3s infinite ease-in;
 }
@@ -234,8 +235,8 @@ h1, h2, h3, h4, h5, h6 {
 
 html.session-active,
 body.session-active {
-  /* Just use a solid lighter blue background */
-  background-color: #3b82f6;
+  /* Remove the blue background entirely, will be handled by our starry background */
+  background-color: transparent !important;
   color: var(--color-text-light);
   transition: background 0.3s ease-in-out;
 }

@@ -111,7 +111,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     isSessionActive && React.createElement("div", {
       key: "stars-container",
       className: "fixed inset-0 w-full h-full overflow-hidden pointer-events-none",
-      style: { zIndex: 1 }
+      style: { 
+        zIndex: 1,
+        bottom: "-5px", // Extend below viewport
+        height: "calc(100vh + 5px)" // Make taller than viewport
+      }
     }, [
       React.createElement("div", { 
         key: "stars", 
@@ -134,8 +138,13 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // Night sky background
     isSessionActive && React.createElement("div", {
       key: "night-sky-bg",
-      className: "fixed inset-0 w-screen h-screen bg-gradient-to-b from-[#0b0b2b] via-[#1b2735] to-[#090a0f]",
-      style: { zIndex: 0, minHeight: "100vh", overflowX: "hidden" }
+      className: "fixed inset-0 w-screen h-screen min-h-screen bg-gradient-to-b from-[#0b0b2b] via-[#1b2735] to-[#090a0f]",
+      style: { 
+        zIndex: 0, 
+        overflowX: "hidden",
+        bottom: "-1px", // Extend slightly below to prevent any gap
+        height: "calc(100vh + 1px)" // Slightly taller than viewport
+      }
     }),
     
     // Gradient background with animated circles for inactive session
@@ -193,11 +202,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         }, [
           React.createElement("h1", {
             key: "title",
-            className: `text-3xl md:text-4xl font-bold transition-colors duration-500 ${isSessionActive ? 'text-white' : 'text-green-600/80'}`
+            className: `text-3xl md:text-4xl font-bold transition-colors duration-500 ${isSessionActive ? 'text-white' : 'text-black/80'}`
           }, isSessionActive ? 'Therapy Session' : 'Start a Session'),
           React.createElement("p", {
             key: "date",
-            className: `text-sm mt-1 transition-colors duration-500 ${isSessionActive ? 'text-green-500' : 'text-green-600/80'}`
+            className: `text-sm mt-1 transition-colors duration-500 ${isSessionActive ? 'text-green-500' : 'text-black/80'}`
           }, formattedDate)
         ]),
         
@@ -205,7 +214,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         React.createElement("div", {
           key: "time",
           className: `flex items-center transition-colors duration-500 ${
-            isSessionActive ? 'text-indigo-200' : 'text-indigo-700'
+            isSessionActive ? 'text-black' : 'text-black/80'
           } opacity-0 animate-[fadeIn_0.4s_ease-in-out_0.1s_forwards]`
         }, [
           React.createElement("svg", {
@@ -363,8 +372,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     key: "therapist-type",
                     className: `text-xs font-medium px-3 py-1 rounded-full transition-colors duration-500 ${
                       isSessionActive 
-                        ? 'bg-green-700/30 text-white' 
-                        : 'bg-green-500 text-black'
+                        ? 'bg-green-500/50 text-white' 
+                        : 'bg-indigo-50/50 backdrop-blur-lg text-black'
                     }`
                   }, sessionType === 'couple' ? 'AI Relationship Therapist' : 
                      sessionType === 'solo' ? 'AI Personal Therapist' : 
@@ -442,7 +451,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   // Decorative element
                   React.createElement("div", {
                     key: "decorative-line",
-                    className: "h-0.5 w-20 bg-gradient-to-r from-indigo-500/40 to-purple-500/40 mx-auto mb-2"
+                    className: "h-0.5 bg-gradient-to-r from-transparent via-black/50 to-transparent mx-auto mb-2"
                   }),
                   // Welcome message
                   React.createElement("p", {
@@ -458,14 +467,14 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   // CTA message
                   React.createElement("p", {
                     key: "cta-message",
-                    className: "text-indigo-600 font-medium py-2 px-4 border border-indigo-100 rounded-xl bg-indigo-50/50 inline-block"
+                    className: "text-gray-600/80 font-medium py-2 px-4 border border-blue-100 rounded-lg bg-indigo-50/50 inline-block text-sm"
                   }, "Click the button below to start a session whenever you're ready to talk.")
                 ]),
               
               // Therapy button with enhanced style - centered text on mobile only
               React.createElement("div", {
                 key: "button-container",
-                className: "flex justify-center items-center mt-8 w-full text-center sm:text-left"
+                className: "flex justify-center items-center w-full text-center sm:text-left -mt-14"
               }, 
                 React.createElement("div", {
                   key: "button-wrapper",
