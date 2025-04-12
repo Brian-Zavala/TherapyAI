@@ -51,7 +51,7 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-100">
       <div 
         className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-indigo-100"
         onClick={(e) => e.stopPropagation()}
@@ -60,7 +60,7 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent">Choose Your Therapist</h2>
-              <div className="h-1 bg-gradient-to-r from-blue-400 via-blue/10 to-transparent rounded-full mt-2"></div>
+              <div className="h-1 bg-gradient-to-r from-blue-500/10 via-blue-300/80 to-transparent rounded-full mt-2 motion-preset-pulse-sm "></div>
             </div>
             <button 
               onClick={onClose}
@@ -73,10 +73,10 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
             </button>
           </div>
           <div>
-          <p className="text-green-600 font-bold mb-8 max-w-2xl">
-            Select your therapist and therapy type that best meets your current needs.
-            <div className="h-1 w-56 bg-gradient-to-r  from-green-400 via-green/10 to-transparent rounded-full mt-2"></div>
-          </p>
+          <div className="bg-gradient-to-r from-gray-600 to-gray-600 bg-clip-text text-transparent font-bold mb-8 max-w-2xl">
+            <p>Select your therapist and therapy type that best meets your current needs.</p>
+            <div className="h-1 bg-gradient-to-r from-gray-600/10 via-gray-400/80 to-transparent rounded-full mt-2"></div>
+          </div>
           </div>
           
           
@@ -118,7 +118,7 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                     {option.description}
                   </p>
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 p-1 mb-3 border-2 border-indigo-200 shadow-md overflow-hidden">
+                    <div className="w-24 h-24 rounded-full bg-green-500/10 p-1 mb-3 border-2 border-blue-500/10 shadow-md overflow-hidden">
                     
                       <div className="w-full h-full rounded-full bg-white overflow-hidden relative">
                         {/* Simple img element for doctor photo */}
@@ -151,8 +151,8 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                         </div>
                       </div>
                     </div>
-                    <h4 className="font-bold text-lg mb-1 text-blue-700">{option.therapist}</h4>
-                    <span className="text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 rounded-full font-medium">
+                    <h4 className="font-bold text-lg mb-1 text-blue-500">{option.therapist}</h4>
+                    <span className="text-sm bg-blue-500/85 text-white px-3 py-1 rounded-full font-medium">
                       {option.type === 'couple' ? 'AI Relationship Therapist' :
                        option.type === 'solo' ? 'AI Personal Therapist' : 'AI Family Therapist'}
                     </span>

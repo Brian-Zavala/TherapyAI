@@ -13,7 +13,7 @@ const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), {
 })
 
 interface AssistantConfigType {
-  id: string;
+  id: string | undefined;
   name: string;
   type: string;
   model: {
@@ -27,7 +27,7 @@ interface AssistantConfigType {
   };
   voice: {
     provider: string;
-    voiceId: string;
+    voiceId: string | undefined;
   };
   firstMessage: string;
 }
@@ -50,6 +50,7 @@ function TherapyButton({
   const [transcriptChunks, setTranscriptChunks] = useState<string[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [audioLevel, setAudioLevel] = useState<number>(0)
+  const [isMuted, setIsMuted] = useState(false)
   
   // Refs for performance optimization
   // Using ExtendedVapi type to handle custom properties
@@ -58,6 +59,7 @@ function TherapyButton({
   const analyser = useRef<AnalyserNode | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
+  const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
   
   // Check for existing session on component mount using useCallback for performance
   const checkForActiveSession = useCallback(async () => {
@@ -124,15 +126,18 @@ function TherapyButton({
       audioStreamRef.current = null
     }
     
-    // Remove session styling
+    // Remove session styling immediately
     document.body.classList.remove('session-active')
     
-    // Restore opacity of main content
+    // Restore opacity of main content with faster transition
     const main = document.querySelector('main')
     if (main) {
-      main.style.transition = 'opacity 0.5s ease-in-out'
+      main.style.transition = 'opacity 0.15s ease-in-out'
       main.style.opacity = '1'
     }
+    
+    // Remove blur effect from background
+    document.body.style.backdropFilter = 'none'
   }
   
   // Simplified audio analyzer setup
@@ -154,6 +159,13 @@ function TherapyButton({
       
       // Store stream for cleanup
       audioStreamRef.current = stream
+      
+      // Store the audio track for muting functionality
+      const audioTracks = stream.getAudioTracks()
+      if (audioTracks.length > 0) {
+        audioTrackRef.current = audioTracks[0]
+        console.log('Audio track stored for mute functionality')
+      }
       
       // Create audio context
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
@@ -240,6 +252,8 @@ function TherapyButton({
       systemPrompt?: string
       firstMessage?: string
     }
+    setMuted?: (muted: boolean) => void
+    isMuted?: () => boolean
   }
   
   // Create Vapi instance with optimizations
@@ -356,8 +370,8 @@ function TherapyButton({
         setupAudioAnalyzer()
       })
       
-      // Using void function to handle the event parameter explicitly
-      vapiInstanceRef.current.on('call-end', function(event: any) {
+      // Using proper type annotation for the event handler
+      vapiInstanceRef.current.on('call-end', function(event?: any) {
         // Log the complete event for debugging
         console.log('Vapi call ended, complete event:', event || {});
         
@@ -655,16 +669,49 @@ function TherapyButton({
     setIsLoading(true)
     
     try {
-      // Get user profile
-      let userProfile = null
-      try {
-        const profileResponse = await fetch('/api/user/profile')
-        if (profileResponse.ok) {
-          userProfile = await profileResponse.json()
-        }
-      } catch (err) {
-        console.warn('Could not load user profile, using default experience')
+      // Note: UI changes are now handled in the button click handler for immediate feedback
+      // So we don't need to duplicate them here, but we'll ensure they're applied
+      if (!document.body.classList.contains('session-active')) {
+        document.body.classList.add('session-active')
       }
+      
+      // Ensure call is marked as active
+      if (!isCallActive) {
+        setIsCallActive(true)
+      }
+      
+      // Store session start time for duration calculation
+      const sessionStartTime = new Date();
+      // Store in sessionStorage for recovery on browser refresh
+      try {
+        sessionStorage.setItem('session-start-time', sessionStartTime.toISOString());
+        console.log('Saved session start time:', sessionStartTime.toISOString());
+      } catch (err) {
+        console.warn('Could not save session start time to sessionStorage', err);
+      }
+      
+      // Start loading the setup in parallel
+      // User profile and session creation can happen in parallel
+      const [userProfilePromise, audioPromise] = [
+        // Get user profile
+        (async () => {
+          try {
+            const profileResponse = await fetch('/api/user/profile')
+            if (profileResponse.ok) {
+              return await profileResponse.json()
+            }
+          } catch (err) {
+            console.warn('Could not load user profile, using default experience')
+          }
+          return null
+        })(),
+        
+        // Start setting up audio in parallel - this can happen independently
+        setupAudioAnalyzer()
+      ]
+      
+      // Wait for user profile to complete
+      const userProfile = await userProfilePromise
       
       // Create session in database
       const response = await fetch('/api/sessions', {
@@ -673,8 +720,8 @@ function TherapyButton({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          startTime: new Date().toISOString(),
-          date: new Date().toISOString(), // This is required by the schema
+          startTime: sessionStartTime.toISOString(),
+          date: sessionStartTime.toISOString(), // This is required by the schema
           status: 'active',
           duration: 60, // Required by the schema, default 60 minutes
           theme: therapyType === 'couple' ? 'Relationship Counseling' : 
@@ -707,8 +754,9 @@ function TherapyButton({
         }
       }
       
+      let session;
       try {
-        const session = await response.json()
+        session = await response.json()
         console.log('Session created successfully:', session)
         
         if (!session.id) {
@@ -721,14 +769,25 @@ function TherapyButton({
         throw new Error('Failed to parse session data')
       }
       
-      // Initialize Vapi with custom transcriber
+      // Initialize Vapi with custom transcriber - this can now happen in parallel with audio setup
       const initialized = await createVapiInstance(userProfile)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
       }
       
-      // Set up audio analyzer
-      await setupAudioAnalyzer()
+      // Explicitly set the session ID on the Vapi instance for transcript recording
+      if (vapiInstanceRef.current && session.id) {
+        (vapiInstanceRef.current as any)._sessionId = session.id;
+        console.log(`#### SETTING SESSION ID ${session.id} FOR TRANSCRIPT RECORDING ####`);
+        
+        // Also store in sessionStorage for backup
+        try {
+          sessionStorage.setItem('current-session-id', session.id);
+          console.log(`Saved session ID to sessionStorage: ${session.id}`);
+        } catch (storageError) {
+          console.warn('Could not save session ID to sessionStorage:', storageError);
+        }
+      }
       
       // Get assistant ID - either from assistantConfig or from env vars
       let assistantId;
@@ -747,7 +806,6 @@ function TherapyButton({
       
       console.log(`Starting ${therapyType} therapy session with assistant: ${assistantConfig?.name || 'Unknown'} (ID: ${assistantId})`);
       console.log(`Voice configuration: ${JSON.stringify(assistantConfig?.voice || 'default')}`);
-      
       
       // Use a simpler approach similar to the one that worked previously
       try {
@@ -770,9 +828,6 @@ function TherapyButton({
           firstMessage: vapiInstanceRef.current?._customData?.firstMessage
         };
         
-        // Log the config we're using (omit any sensitive info)
-        console.log('Starting call with config:', JSON.stringify(assistantConfig, null, 2));
-        
         // Start the call with the standard config
         try {
           await vapiInstanceRef.current?.start(assistantId, assistantConfig);
@@ -793,18 +848,6 @@ function TherapyButton({
         console.error('Error starting call with all attempts:', err);
         throw err;
       }
-      
-      // Dim lights with blue gradient effect
-      document.body.classList.add('session-active')
-      
-      // Add smooth transition for background elements
-      setTimeout(() => {
-        const main = document.querySelector('main')
-        if (main) {
-          main.style.transition = 'opacity 0.5s ease-in-out'
-          main.style.opacity = '0.4'
-        }
-      }, 100)
     } catch (error) {
       console.error('Failed to start therapy session:', error)
       setErrorMessage(`Start session error: ${error}`)
@@ -835,9 +878,15 @@ function TherapyButton({
   
   // End therapy session
   const endTherapySession = useCallback(async () => {
-    // Immediately reset UI state to improve user experience
+    console.log('End therapy session called')
+    
+    // Immediately reset UI state to improve user experience and ensure UI updates
     setIsCallActive(false);
     setIsLoading(false);
+    setIsMuted(false); // Reset mute state when call ends
+    
+    // Explicitly clean up resources right away for immediate visual feedback
+    cleanupResources();
     
     // Try to get session ID from multiple sources
     let currentSessionId = null;
@@ -978,7 +1027,7 @@ function TherapyButton({
         for (let i = 0; i < sessionStorage.length; i++) {
           const key = sessionStorage.key(i);
           
-          if (key && key.startsWith(backupPrefix) && key.includes(sessionId)) {
+          if (key && key.startsWith(backupPrefix) && key.includes(currentSessionId)) {
             try {
               const text = sessionStorage.getItem(key);
               if (text) {
@@ -1017,7 +1066,7 @@ function TherapyButton({
       // 4. Check for msg-prefixed entries (additional backups) in sessionStorage
       console.log('STEP 4: Checking for msg-prefixed entries in sessionStorage');
       try {
-        const msgPrefix = `msg-${sessionId}`;
+        const msgPrefix = `msg-${currentSessionId}`;
         let msgCount = 0;
         
         for (let i = 0; i < sessionStorage.length; i++) {
@@ -1287,9 +1336,30 @@ function TherapyButton({
       // 9. FINALIZE SESSION
       console.log('STEP 9: Finalizing session');
       
-      // Calculate approximate duration based on number of entries
-      const entryCount = dedupedEntries.length;
-      const estimatedDuration = Math.max(1, Math.round(entryCount / 3)); // At least 1 minute
+      // Calculate actual duration based on start and end time
+      let sessionDuration = 1; // default 1 minute minimum
+      try {
+        const endTime = new Date();
+        const startTimeStr = sessionStorage.getItem('session-start-time');
+        
+        if (startTimeStr) {
+          const startTime = new Date(startTimeStr);
+          // Calculate duration in minutes and round to nearest minute
+          const durationMs = endTime.getTime() - startTime.getTime();
+          sessionDuration = Math.max(1, Math.round(durationMs / (1000 * 60)));
+          console.log(`Session duration: ${sessionDuration} minutes (${Math.round(durationMs/1000)} seconds)`);
+        } else {
+          // Fallback to entry-based estimation if no start time
+          const entryCount = dedupedEntries.length;
+          sessionDuration = Math.max(1, Math.round(entryCount / 3));
+          console.log(`Estimated session duration from ${entryCount} entries: ${sessionDuration} minutes`);
+        }
+      } catch (timeError) {
+        console.error('Error calculating duration:', timeError);
+        // Fallback to entry count based duration
+        const entryCount = dedupedEntries.length;
+        sessionDuration = Math.max(1, Math.round(entryCount / 3));
+      }
       
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: 'PATCH',
@@ -1299,7 +1369,8 @@ function TherapyButton({
         body: JSON.stringify({
           endTime: new Date().toISOString(),
           status: 'completed',
-          notes: `Therapy session ${new Date().toLocaleDateString()} - Duration: ${estimatedDuration} minutes - ${entryCount} transcript entries`,
+          duration: sessionDuration, // Update with actual duration
+          notes: `Therapy session ${new Date().toLocaleDateString()} - Duration: ${sessionDuration} minutes - ${dedupedEntries.length} transcript entries`,
         }),
       });
       
@@ -1321,6 +1392,31 @@ function TherapyButton({
       setTranscriptChunks([]);
     }
   }, [sessionId, transcriptChunks])
+  
+  // Toggle mute function
+  const toggleMute = useCallback(() => {
+    if (audioTrackRef.current) {
+      const newMuteState = !isMuted;
+      audioTrackRef.current.enabled = !newMuteState;
+      setIsMuted(newMuteState);
+      console.log(`Microphone ${newMuteState ? 'muted' : 'unmuted'}`);
+      
+      // If using Vapi, you can also signal to the Vapi instance that audio is muted
+      if (vapiInstanceRef.current) {
+        // Use the setMuted method from Vapi SDK
+        if (typeof vapiInstanceRef.current.setMuted === 'function') {
+          try {
+            vapiInstanceRef.current.setMuted(newMuteState);
+            console.log(`Vapi setMuted(${newMuteState}) called successfully`);
+          } catch (e) {
+            console.warn('Vapi setMuted method not available:', e);
+          }
+        }
+      }
+    } else {
+      console.warn('No audio track available to mute/unmute');
+    }
+  }, [isMuted]);
   
   // Use a ref to avoid circular dependencies with the callbacks
   const handleCallEndRef = useRef(endTherapySession);
@@ -1368,7 +1464,7 @@ function TherapyButton({
       
       {/* Apple Phone Call Style UI - with animations */}
       <motion.div 
-        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] overflow-visible z-10 relative mx-auto ${isCallActive ? 'mt-0' : 'mt-8'}`}
+        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-visible z-50 relative mx-auto border-zinc-700 ${isCallActive ? 'mt-0' : 'mt-8'}`}
         animate={{ 
           height: isCallActive ? 'auto' : '80px',
           y: isCallActive ? 0 : 0,
@@ -1389,18 +1485,24 @@ function TherapyButton({
         }}
         style={{
           height: isCallActive ? 'auto' : '80px',
-          minHeight: isCallActive ? '520px' : '80px'
+          minHeight: isCallActive ? '520px' : '80px',
+          boxShadow: isCallActive ? '0 0 50px rgba(0, 0, 0, 0.5)' : 'none',
+          background: isCallActive ? 'linear-gradient(180deg, rgba(59, 130, 246, 0.98) 0%, rgba(37, 99, 235, 0.98) 100%)' : '',
+          border: isCallActive ? '2px solid rgba(255, 255, 255, 0.15)' : 'none',
+          borderRadius: '28px',
+          zIndex: 100 // Ensure this is higher than any background
         }}
       >
         
         {/* Call Header - Only visible when call is active */}
         <div className="px-4 sm:px-6 pt-5 pb-3 flex flex-col items-center justify-center relative">
           {isCallActive && (
-            <div className="text-white text-center">
+            <div className="text-white text-center bg-gradient-to-r from-blue-900/90 to-indigo-900/90 px-6 py-3 rounded-t-[28px] shadow-inner w-full border-t border-x border-indigo-500/50">
               <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
                 {assistantConfig?.name || 'AI Therapist'}
               </h3>
-              <p className="text-xs sm:text-sm text-blue-300 font-medium">
+              <p className="text-xs sm:text-sm text-blue-300 font-medium flex items-center justify-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span>
                 Connected
               </p>
             </div>
@@ -1409,7 +1511,7 @@ function TherapyButton({
         
         {/* Call Active Content */}
         {isCallActive && (
-          <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto">
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto backdrop-blur-md bg-slate-800/90 rounded-b-[28px]">
             {/* Timer & Status */}
             <div className="text-center py-2 text-gray-300 text-xs sm:text-sm">
               <span>End-to-end encrypted</span>
@@ -1449,8 +1551,15 @@ function TherapyButton({
             </div>
             
             {/* Voice Waveform */}
-            <div className="w-full my-2 sm:my-3 opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards]">
-              <VoiceWaveform audioLevel={audioLevel} />
+            <div className="w-full my-2 sm:my-3 opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative">
+              <VoiceWaveform audioLevel={isMuted ? 0 : audioLevel} />
+              {isMuted && (
+                <div className="absolute inset-0 flex items-center justify-center z-20">
+                  <div className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full animate-pulse shadow-md">
+                    Microphone Muted
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Timer Indicator */}
@@ -1465,12 +1574,25 @@ function TherapyButton({
             <div className="flex items-center justify-around w-full py-2 sm:py-4 mt-1 sm:mt-2">
               {/* Mute Button */}
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center mb-1 sm:mb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </div>
-                <span className="text-white text-xs">Mute</span>
+                <button 
+                  onClick={toggleMute}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${isMuted ? 'bg-red-600' : 'bg-gray-700'} flex items-center justify-center mb-1 sm:mb-2 transition-colors duration-300 hover:bg-opacity-90`}
+                  aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                >
+                  {isMuted ? (
+                    // Muted microphone icon
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" strokeDasharray="2 2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                  ) : (
+                    // Active microphone icon
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  )}
+                </button>
+                <span className="text-white text-xs">{isMuted ? "Unmute" : "Mute"}</span>
               </div>
               
               {/* End Call Button */}
@@ -1516,7 +1638,23 @@ function TherapyButton({
             }}
           >
             <motion.button
-              onClick={startTherapySession}
+              onClick={() => {
+                console.log('Start button clicked');
+                // Set UI state immediately
+                setIsCallActive(true);
+                // Set blue gradient effect right away
+                document.body.classList.add('session-active');
+                // Add visualizing effect for better readability
+                const main = document.querySelector('main');
+                if (main) {
+                  main.style.transition = 'all 0.3s ease-in-out';
+                  main.style.opacity = '0.85'; // Less dim for better visibility
+                  // Apply blur to the background, not the content
+                  document.body.style.backdropFilter = 'blur(5px)';
+                }
+                // Then start the actual session process
+                startTherapySession();
+              }}
               disabled={isLoading}
               title={`Start a ${therapyType} therapy session with ${assistantConfig?.name}`}
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center shadow-lg hover:cursor-pointer hover:from-green-600 hover:to-green-700 disabled:opacity-50"

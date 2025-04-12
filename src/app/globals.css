@@ -1,6 +1,208 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
+/* Stars background for active sessions */
+.stars {
+  width: 3px;
+  height: 3px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  box-shadow: 2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white,
+    22vw 22vh 1px white, 28vw 12vh 2px white, 32vw 32vh 1px white,
+    38vw 18vh 2px white, 42vw 35vh 1px white, 48vw 25vh 2px white,
+    53vw 42vh 1px white, 58vw 15vh 2px white, 63vw 38vh 1px white,
+    68vw 28vh 2px white, 73vw 45vh 1px white, 78vw 32vh 2px white,
+    83vw 48vh 1px white, 88vw 20vh 2px white, 93vw 52vh 1px white,
+    98vw 35vh 2px white, 5vw 60vh 1px white, 12vw 65vh 2px white,
+    18vw 72vh 1px white, 25vw 78vh 2px white, 30vw 85vh 1px white,
+    35vw 68vh 2px white, 40vw 82vh 1px white, 45vw 92vh 2px white,
+    50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white,
+    65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white,
+    80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white,
+    95vw 75vh 2px white;
+  pointer-events: none;
+  animation: twinkle 8s infinite linear;
+}
+
+.shooting-star {
+  position: fixed;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, white, transparent);
+  z-index: 0;
+  pointer-events: none;
+  animation: shoot 3s infinite ease-in;
+}
+
+.shooting-star:nth-child(1) {
+  top: 20%;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.shooting-star:nth-child(2) {
+  top: 35%;
+  left: -100px;
+  animation-delay: 1s;
+}
+
+.shooting-star:nth-child(3) {
+  top: 50%;
+  left: -100px;
+  animation-delay: 2s;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shoot {
+  0% {
+    transform: translateX(0) translateY(0) rotate(25deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120vw) translateY(50vh) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+/* Additional twinkling stars with different animation timing */
+.stars::after {
+  content: "";
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  background: white;
+  box-shadow: 8vw 12vh 2px white, 16vw 18vh 1px white, 24vw 25vh 2px white,
+    33vw 15vh 1px white, 41vw 28vh 2px white, 49vw 35vh 1px white,
+    57vw 22vh 2px white, 65vw 42vh 1px white, 73vw 28vh 2px white,
+    81vw 48vh 1px white, 89vw 32vh 2px white, 97vw 45vh 1px white,
+    3vw 68vh 2px white, 11vw 75vh 1px white, 19vw 82vh 2px white,
+    27vw 88vh 1px white, 35vw 72vh 2px white, 43vw 85vh 1px white,
+    51vw 92vh 2px white, 59vw 78vh 1px white;
+  animation: twinkle 6s infinite linear reverse;
+}
+
+/* Animated background with circles */
+.gradient-bg {
+  background: #00adef;
+  background: -moz-linear-gradient(-45deg, #00adef 0%, #0076e5 100%);
+  background: -webkit-linear-gradient(-45deg, #00adef 0%,#0076e5 100%);
+  background: linear-gradient(135deg, #00adef 0%,#0076e5 100%);
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  width: 100vw;
+  z-index: 0;
+  overflow: hidden;
+  min-height: 100vh;
+}
+
+.gradient-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.circle-small {
+  animation: circle-small-scale 3s ease-in-out infinite alternate;
+  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  animation-delay: 0s;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.circle-medium {
+  animation: circle-small-scale 3s ease-in-out infinite alternate;
+  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  animation-delay: 0.3s;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.circle-large {
+  animation: circle-small-scale 3s ease-in-out infinite alternate;
+  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  animation-delay: 0.6s;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 900px;
+  height: 900px;
+  border-radius: 50%;
+  opacity: 0.2;
+}
+
+.circle-xlarge {
+  animation: circle-small-scale 3s ease-in-out infinite alternate;
+  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  animation-delay: 0.9s;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 1200px;
+  height: 1200px;
+  border-radius: 50%;
+  opacity: 0.1;
+}
+
+.circle-xxlarge {
+  animation: circle-small-scale 3s ease-in-out infinite alternate;
+  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  animation-delay: 1.2s;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 1500px;
+  height: 1500px;
+  border-radius: 50%;
+  opacity: 0.05;
+}
+
+@keyframes circle-small-scale {
+  0% {
+    transform: translate(-50%, -50%) scale(1.0);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
 
 :root {
   --color-bg-light: #e5e5f7;
@@ -16,40 +218,53 @@
 
 html, body {
   font-family: var(--font-body);
-  background-color: var(--color-bg-light);
+  background-color: var(--color-session-glow);
   color: var(--color-text-dark); /* Default text color */
-  /* Update background-image gradients to use variables */
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6 {
    font-family: var(--font-heading);
 }
 
+html.session-active,
 body.session-active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  /* Just use a solid lighter blue background */
+  background-color: #3b82f6;
   color: var(--color-text-light);
-  transition: background 0.5s ease-in-out;
+  transition: background 0.3s ease-in-out;
 }
 
-body.session-active::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 70%);
-  z-index: -1;
+/* Ensure the body fills the entire viewport and beyond */
+body.session-active {
+  min-height: 100vh; 
+  height: 100vh !important; /* Force it to expand beyond viewport if content is longer */
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+  overscroll-behavior: none; /* Prevent bounce effects that can reveal background */
+  position: relative; /* Create stacking context */
+  z-index: 0; /* Ensure proper stacking */
 }
-/* Enhanced animations with optimized performance */
-@keyframes ambient-float {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(10px, -10px); }
-  100% { transform: translate(0, 0); }
+
+/* Fix for mobile view */
+html, body {
+  overflow-x: hidden;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
 }
+
+/* Removed the overlay to simplify to a single blue background */
+/* Enhanced animations with optimized performance - ambient-float removed (unused) */
 
 @keyframes fadeIn {
-  0% { opacity: 0; transform: translateY(10px); }
+  0% { opacity: 0; transform: translateY(5px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
@@ -77,14 +292,23 @@ html {
   }
 }
 
-/* Ambient background effect */
-.ambient-glow {
-  position: fixed;
-  top: 20%;
-  left: 20%;
-  width: 60vw;
-  height: 60vh;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.05) 70%);
-  z-index: -1;
-  animation: ambient-float 15s infinite ease-in-out;
+/* Ambient background effect - Removed (unused) */
+
+/* Hide content during active sessions - can be used with JS */
+body.session-active .hide-during-session {
+  display: none !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s, visibility 0.1s;
+}
+
+.hide-during-session {
+  transition: opacity 0.1s, visibility 0.1s;
+}
+
+/* Ensure main content area extends to fill the screen during sessions */
+body.session-active main {
+  min-height: 100vh;
+  overflow-x: hidden;
+ 
 }

@@ -17,6 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        {/* Viewport meta tag for responsive design */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        
         {/* Preload critical assets */}
         <link 
           rel="preload" 
@@ -24,11 +27,11 @@ export default function RootLayout({
           as="image"
         />
       </head>
-      <body>
+      <body className="min-h-screen w-full overflow-x-hidden">
         <AuthProvider>
           <SoundProvider>
             <Navigation />
-            <main className="overflow-x-hidden">
+            <main className="overflow-x-hidden w-full min-h-screen">
               {children}
             </main>
           </SoundProvider>
