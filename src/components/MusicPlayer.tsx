@@ -150,19 +150,34 @@ export default function MusicPlayer() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const shouldPlayRef = useRef(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Save current playing state
+      if (audioRef.current) {
+        shouldPlayRef.current = isPlaying || !audioRef.current.paused
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+      
+      // Create new audio for current track
       audioRef.current = new Audio(tracks[currentTrack].src)
       
       audioRef.current.addEventListener('loadedmetadata', () => {
         if (audioRef.current) {
           setDuration(audioRef.current.duration)
+          
+          // Auto-play if needed
+          if (shouldPlayRef.current || isPlaying) {
+            audioRef.current.play().catch(err => {
+              console.debug('Music playback error:', err)
+              setIsPlaying(false)
+            })
+            setIsPlaying(true)
+            shouldPlayRef.current = false
+          }
         }
-      })
-      
-      audioRef.current.addEventListener('ended', () => {
-        nextTrack()
       })
     }
     
@@ -176,7 +191,7 @@ export default function MusicPlayer() {
         clearInterval(progressIntervalRef.current)
       }
     }
-  }, [currentTrack])
+  }, [currentTrack, isPlaying])
 
   useEffect(() => {
     if (audioRef.current) {
@@ -218,6 +233,7 @@ export default function MusicPlayer() {
   }
 
   const prevTrack = () => {
+    shouldPlayRef.current = true
     setCurrentTrack((prev) => (prev - 1 + tracks.length) % tracks.length)
     setIsPlaying(true)
   }
@@ -279,6 +295,13 @@ export default function MusicPlayer() {
       }
     }
   }, [isRepeatMode, isShuffleMode, currentTrack])
+  
+  // Handle repeat mode changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.loop = isRepeatMode
+    }
+  }, [isRepeatMode])
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (audioRef.current) {
