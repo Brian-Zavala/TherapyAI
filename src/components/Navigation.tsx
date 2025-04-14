@@ -25,9 +25,9 @@ export default function Navigation() {
       : 'text-indigo-100 hover:text-white'
   
   return (
-    <header className="bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm sticky top-0 z-40">
-      <div className="w-full px-2 py-3">
-        <div className="flex justify-between items-center">
+    <header className="bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm sticky top-0 z-40 w-full">
+      <div className="w-full py-3">
+        <div className="flex justify-between items-center w-full px-2">
           {/* Logo/Site Title - far left aligned */}
           <div className="flex-none pl-6">
             <Link href="/" className="text-white text-xl font-semibold flex items-center">

@@ -1487,7 +1487,7 @@ function TherapyButton({
           height: isCallActive ? 'auto' : '80px',
           minHeight: isCallActive ? '520px' : '80px',
           boxShadow: isCallActive ? '0 0 50px rgba(0, 0, 0, 0.5)' : 'none',
-          background: isCallActive ? 'linear-gradient(180deg, rgba(59, 130, 246, 0.98) 0%, rgba(37, 99, 235, 0.98) 100%)' : '',
+          background: isCallActive ? 'black' : '',
           border: isCallActive ? '2px solid rgba(255, 255, 255, 0.15)' : 'none',
           borderRadius: '28px',
           zIndex: 100 // Ensure this is higher than any background
@@ -1497,7 +1497,7 @@ function TherapyButton({
         {/* Call Header - Only visible when call is active */}
         <div className="px-4 sm:px-6 pt-5 pb-3 flex flex-col items-center justify-center relative">
           {isCallActive && (
-            <div className="text-white text-center bg-gradient-to-r from-blue-900/90 to-indigo-900/90 px-6 py-3 rounded-t-[28px] shadow-inner w-full border-t border-x border-indigo-500/50">
+            <div className="text-white text-center bg-black px-6 py-3 rounded-t-[28px] shadow-inner w-full border-t border-x border-gray-800">
               <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
                 {assistantConfig?.name || 'AI Therapist'}
               </h3>
@@ -1511,7 +1511,7 @@ function TherapyButton({
         
         {/* Call Active Content */}
         {isCallActive && (
-          <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto backdrop-blur-md bg-slate-800/90 rounded-b-[28px]">
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto rounded-b-[28px] bg-black">
             {/* Timer & Status */}
             <div className="text-center py-2 text-gray-300 text-xs sm:text-sm">
               <span>End-to-end encrypted</span>

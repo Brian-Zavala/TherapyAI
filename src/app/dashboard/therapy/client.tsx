@@ -17,6 +17,16 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [selectedAssistant, setSelectedAssistant] = useState(COUPLE_THERAPY_ASSISTANT_CONFIG);
   // Default to show the selector - user must explicitly choose session type
   const [showTypeSelector, setShowTypeSelector] = useState(true);
+  
+  // Digital clock state
+  const [hours, setHours] = useState<string>('');
+  const [minutes, setMinutes] = useState<string>('');
+  const [seconds, setSeconds] = useState<string>('');
+  const [ampm, setAmPm] = useState<string>('');
+  const [day, setDay] = useState<string>('');
+  const [month, setMonth] = useState<string>('');
+  const [date, setDate] = useState<number>(0);
+  const [year, setYear] = useState<number>(0);
 
   useEffect(() => {
     const checkActive = () => {
@@ -43,10 +53,41 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     
     observer.observe(document.body, { attributes: true });
     
-    // Update time every minute
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
+    // Update time every second for digital clock
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // Hours in 12-hour format
+      let hour = now.getHours();
+      const isAM = hour < 12;
+      if (hour === 0) hour = 12; // Convert midnight (0) to 12
+      if (hour > 12) hour -= 12; // Convert 13-23 to 1-11
+      
+      // Update time components
+      setHours(hour < 10 ? '0' + hour : hour.toString());
+      setMinutes(now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes().toString());
+      setSeconds(now.getSeconds() < 10 ? '0' + now.getSeconds() : now.getSeconds().toString());
+      setAmPm(isAM ? 'AM' : 'PM');
+      
+      // Update date components
+      const monthList = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const dayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      
+      setDay(dayList[now.getDay()]);
+      setMonth(monthList[now.getMonth()]);
+      setDate(now.getDate());
+      setYear(now.getFullYear());
+    };
+    
+    // Initial update
+    updateClock();
+    
+    // Set up interval
+    const timer = setInterval(updateClock, 1000);
     
     return () => {
       observer.disconnect();
@@ -77,19 +118,21 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     setSelectedAssistant(assistant);
   };
 
-  // Format time
+  // These are kept for compatibility with older code
   const formattedTime = currentTime.toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit',
     hour12: true 
   });
   
-  // Format date
   const formattedDate = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric'
   }).format(currentTime);
+  
+  // Format date in the style from the digital clock component
+  const digitalClockDate = `${day}, ${month} ${date} ${year}`;
 
 
   // Function to open therapist selection modal
@@ -138,12 +181,18 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // Night sky background
     isSessionActive && React.createElement("div", {
       key: "night-sky-bg",
-      className: "fixed inset-0 w-screen h-screen min-h-screen bg-gradient-to-b from-[#0b0b2b] via-[#1b2735] to-[#090a0f]",
+      className: "fixed inset-0 bg-gradient-to-b from-[#0b0b2b] via-[#1b2735] to-[#090a0f]",
       style: { 
         zIndex: 0, 
         overflowX: "hidden",
-        bottom: "-1px", // Extend slightly below to prevent any gap
-        height: "calc(100vh + 1px)" // Slightly taller than viewport
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        minWidth: "100vw",
+        minHeight: "100vh",
+        width: "100%",
+        height: "100%"
       }
     }),
     
@@ -183,12 +232,13 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // Main Content
     React.createElement("div", { 
       key: "main-container",
-      className: "min-h-screen w-full transition-all duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative z-10 bg-transparent overflow-x-hidden"
+      className: "min-h-screen w-full transition-all duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative z-10 bg-transparent overflow-x-hidden",
+      style: { minWidth: "412px" }
   }, [
     // Main content wrapper
     React.createElement("div", { 
       key: "main-content",
-      className: "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 relative z-10"
+      className: "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-10 pb-16 relative z-10"
     }, [
       // Date/Time Header
       React.createElement("div", {
@@ -200,54 +250,67 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           key: "title-date",
           className: "mb-4 md:mb-0 opacity-0 animate-[fadeIn_0.4s_ease-in-out_forwards]"
         }, [
-          React.createElement("h1", {
-            key: "title",
-            className: `text-3xl md:text-4xl font-bold transition-colors duration-500 ${isSessionActive ? 'text-white' : 'text-black/80'}`
-          }, isSessionActive ? 'Therapy Session' : 'Start a Session'),
-          React.createElement("p", {
-            key: "date",
-            className: `text-sm mt-1 transition-colors duration-500 ${isSessionActive ? 'text-green-500' : 'text-black/80'}`
-          }, formattedDate)
+          // Title removed as requested
         ]),
         
-        // Time display
+        // Digital clock component - centered on mobile
         React.createElement("div", {
-          key: "time",
-          className: `flex items-center transition-colors duration-500 ${
-            isSessionActive ? 'text-black' : 'text-black/80'
-          } opacity-0 animate-[fadeIn_0.4s_ease-in-out_0.1s_forwards]`
+          key: "digital-clock",
+          className: `digital-clock-container ${
+            isSessionActive ? 'text-white' : 'text-black/80'
+          } transition-all duration-500 opacity-0 animate-[fadeIn_0.4s_ease-in-out_0.1s_forwards] mx-auto md:mx-0`
         }, [
-          React.createElement("svg", {
-            key: "clock-icon",
-            className: "h-5 w-5 mr-2",
-            fill: "none",
-            viewBox: "0 0 24 24",
-            stroke: "currentColor"
-          }, React.createElement("path", {
-            strokeLinecap: "round",
-            strokeLinejoin: "round",
-            strokeWidth: 1.5,
-            d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          })),
-          React.createElement("span", {
-            key: "time-text",
-            className: "text-lg font-medium"
-          }, formattedTime)
+          // Digital time display
+          React.createElement("div", {
+            key: "digital-time",
+            className: `digital-time ${isSessionActive ? 'neon-text' : ''}`
+          }, [
+            React.createElement("div", {
+              key: "hours",
+              className: "hours"
+            }, hours),
+            React.createElement("div", {
+              key: "separator1",
+              className: "separator"
+            }, ":"),
+            React.createElement("div", {
+              key: "minutes",
+              className: "minutes"
+            }, minutes),
+            React.createElement("div", {
+              key: "separator2",
+              className: "separator"
+            }, ":"),
+            React.createElement("div", {
+              key: "seconds",
+              className: "seconds"
+            }, seconds),
+            React.createElement("div", {
+              key: "am-pm",
+              className: "am-pm"
+            }, ampm)
+          ]),
+          
+          // Digital date display
+          React.createElement("div", {
+            key: "digital-date",
+            className: `digital-date ${isSessionActive ? 'neon-text' : ''}`
+          }, digitalClockDate)
         ])
       ]),
       
       // Main card content
       React.createElement("div", {
         key: "main-card",
-        className: "grid grid-cols-1 md:grid-cols-3 gap-8 rounded-2xl"
+        className: "grid grid-cols-1 md:grid-cols-3 gap-8 rounded-xl backdrop-blur-md bg-transparent"
       }, [
         // Card session
         React.createElement("div", {
           key: "session-card",
           className: `md:col-span-3 relative overflow-hidden rounded-lg shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
             isSessionActive 
-              ? 'bg-black border border-zinc-900/40 p-6 rounded-xl' 
-              : 'bg-white/50 rounded-2xl p-8'
+              ? 'bg-transparent p-6 md:p-8 lg:p-10 rounded-xl' 
+              : 'bg-transparent rounded-xl p-10 sm:p-40 md:p-44 lg:p-48 backdrop-blur-md bg-transparent'
           }`
         }, [
           // Card content
@@ -373,7 +436,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     className: `text-xs font-medium px-3 py-1 rounded-full transition-colors duration-500 ${
                       isSessionActive 
                         ? 'bg-green-500/50 text-white' 
-                        : 'bg-indigo-50/50 backdrop-blur-lg text-black'
+                        : 'bg-indigo-50/50 text-black'
                     }`
                   }, sessionType === 'couple' ? 'AI Relationship Therapist' : 
                      sessionType === 'solo' ? 'AI Personal Therapist' : 
@@ -406,21 +469,21 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               // Session info - Enhanced styling
               isSessionActive ? 
                 React.createElement("div", {
-                  key: "",
-                  className: "p-6 rounded-2xl mb-8 shadow-inner"
+                  key: "active-info",
+                  className: "p-4 md:p-6 rounded-2xl mb-4 md:mb-8 shadow-inner bg-transparent"
                 }, [
-                  // Info icon at the top
+                  // Info icon at the top with pulsing animation
                   React.createElement("div", {
                     key: "info-header",
                     className: "flex justify-center mb-2"
                   }, [
                     React.createElement("div", {
                       key: "info-icon-container",
-                      className: "w-10 h-10 rounded-full bg-indigo-600/30 flex items-center justify-center mb-1"
+                      className: "w-10 h-1 rounded-full bg-transparent flex items-center justify-center mb-1 shadow-lg animate-[float_4s_ease-in-out_infinite]"
                     }, [
                       React.createElement("svg", {
                         key: "info-icon",
-                        className: "w-5 h-5 text-black",
+                        className: "w-5 h-5 text-white",
                         fill: "none",
                         viewBox: "0 0 24 24",
                         stroke: "currentColor"
@@ -432,16 +495,16 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                       }))
                     ])
                   ]),
-                  // Session message
+                  // Session message with enhanced styling - hidden on mobile
                   React.createElement("p", {
                     key: "active-message",
-                    className: "text-white text-center text-xs sm:text-md"
+                    className: "hidden sm:block text-white text-center text-xs sm:text-sm lg:text-base bg-transparent py-3 px-4 rounded-lg backdrop-blur-sm shadow-inner mt-2 z-50 relative mx-auto max-w-[95%] md:max-w-[90%] lg:max-w-[80%]"
                   }, 
                     sessionType === 'couple' ? 
-                      'Your session is now active. Speak naturally and I will respond to help with your relationship concerns. Everything you share is completely private and secure.' :
+                      'Speak naturally and I will respond to help with your relationship concerns. Everything shared is completely private and secure.' :
                      sessionType === 'solo' ?
-                      'Your session is now active. Speak naturally and I will respond to help with your personal concerns. Everything you share is completely private and secure.' :
-                      'Your session is now active. Speak naturally and I will respond to help with your family concerns. Everything you share is completely private and secure.'
+                      'Speak naturally and I will respond to help with your personal concerns. Everything shared is completely private and secure.' :
+                      'Speak naturally and I will respond to help with your family concerns. Everything shared is completely private and secure.'
                   )
                 ]) :
                 React.createElement("div", {
@@ -467,8 +530,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   // CTA message
                   React.createElement("p", {
                     key: "cta-message",
-                    className: "text-gray-600/80 font-medium py-2 px-4 border border-blue-100 rounded-lg bg-indigo-50/50 inline-block text-sm"
-                  }, "Click the button below to start a session whenever you're ready to talk.")
+                    className: "text-gray-600/80 font-medium py-2 px-4 border border-blue-100 rounded-lg bg-indigo-50/50 inline-block text-sm animate-[pulse_3s_ease-in-out_infinite]"
+                  }, "Ready to talk? Click the button below.")
                 ]),
               
               // Therapy button with enhanced style - centered text on mobile only
