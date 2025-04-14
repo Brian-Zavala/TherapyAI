@@ -19,64 +19,124 @@ import {
 // For now, we'll use the click.mp3 for all tracks as a placeholder
 const tracks = [
   { 
-    title: 'Peaceful Mind', 
-    artist: 'Mindful Melodies', 
-    src: '/sounds/click.mp3', 
-    image: '/images/happy-couple.jpg'
+    title: 'Balcony Nights', 
+    artist: 'Back to Nature', 
+    src: '/sounds/music/balconyNights.mp3', 
+    image: '/images/music/1.jpg'
   },
   { 
-    title: 'Calm Reflections', 
-    artist: 'Therapy Sounds', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-elliot-mackaphy.jpg'
+    title: 'Cascsades', 
+    artist: 'David Thomas', 
+    src: '/sounds/music/Cascades.mp3',
+    image: '/images/music/2.jpg' 
   },
   { 
-    title: 'Ocean Waves', 
-    artist: 'Nature Therapy', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-jada-pearson.jpg'
+    title: 'After The Rain', 
+    artist: 'Daniel James', 
+    src: '/sounds/music/AfterTheRain.mp3', 
+    image: '/images/music/3.jpg'
   },
   { 
-    title: 'Forest Whispers', 
-    artist: 'Woodland Sounds', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-maya-thompson.jpg'
+    title: 'Before The End', 
+    artist: 'Dan Phillipson', 
+    src: '/sounds/music/BeforeTheEnd.mp3', 
+    image: '/images/music/4.jpg'
   },
   { 
-    title: 'Gentle Rain', 
-    artist: 'Rain Therapy', 
-    src: '/sounds/click.mp3', 
-    image: '/images/happy-couple.jpg'
+    title: 'Circles Of Life', 
+    artist: 'Todd James Carlin Baker', 
+    src: '/sounds/music/CirclesOfLife.mp3', 
+    image: '/images/music/5.jpg'
   },
   { 
-    title: 'Meditation Flow', 
-    artist: 'Inner Peace', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-elliot-mackaphy.jpg'
+    title: 'DNA', 
+    artist: 'Rachael Irene Jones', 
+    src: '/sounds/music/DNA.mp3', 
+    image: '/images/music/6.jpg'
   },
   { 
-    title: 'Healing Tones', 
-    artist: 'Sound Healing', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-jada-pearson.jpg'
+    title: 'Focus Flow', 
+    artist: 'Runone', 
+    src: '/sounds/music/FocusFlow.mp3', 
+    image: '/images/music/7.jpg'
   },
   { 
-    title: 'Deep Relaxation', 
-    artist: 'Therapy Sessions', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-maya-thompson.jpg'
+    title: 'Fragile Balance', 
+    artist: 'Rainman', 
+    src: '/sounds/music/FragileBalance.mp3', 
+    image: '/images/music/8.jpg'
   },
   { 
-    title: 'Soft Piano', 
-    artist: 'Piano Therapy', 
-    src: '/sounds/click.mp3', 
-    image: '/images/happy-couple.jpg'
+    title: 'Fresh Air', 
+    artist: 'Mark Russell', 
+    src: '/sounds/music/FreshAir.mp3', 
+    image: '/images/music/9.jpg'
+  },
+  { 
+    title: 'Fresh Starts', 
+    artist: 'Rainman', 
+    src: '/sounds/music/FreshStarts.mp3', 
+    image: '/images/music/10.jpg'
+  },
+  { 
+    title: 'Full Moon', 
+    artist: 'Alexander Hitchens', 
+    src: '/sounds/music/FullMoon.mp3', 
+    image: '/images/music/11.jpg'
   },
   { 
     title: 'Mindful Journey', 
     artist: 'Journey Within', 
-    src: '/sounds/click.mp3', 
-    image: '/images/dr-elliot-mackaphy.jpg'
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/12.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/13.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/14.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/15.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/16.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/17.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/18.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/19.jpg'
+  },
+  { 
+    title: 'Mindful Journey', 
+    artist: 'Journey Within', 
+    src: '/sounds/music/.mp3', 
+    image: '/images/music/20.jpg'
   },
 ]
 
