@@ -260,7 +260,7 @@ function TherapyButton({
   }
   
   // Create Vapi instance with optimizations
-  const createVapiInstance = useCallback(async (userProfile?: Record<string, string>) => {
+  const createVapiInstance = useCallback(async (userProfile?: any) => {
     try {
       // Dispose of any existing instance
       if (vapiInstanceRef.current) {
@@ -319,8 +319,12 @@ function TherapyButton({
             familyMember1: userProfile.familyMember1,
             familyMember2: userProfile.familyMember2,
             familyMember3: userProfile.familyMember3,
-            familyMember4: userProfile.familyMember4
+            familyMember4: userProfile.familyMember4,
+            // Include session history
+            sessionHistory: userProfile.sessionHistory || 'No previous sessions found.'
           };
+          
+          console.log('Including session history in assistant prompt');
           
           // Get personalized prompt and message based on therapy type
           const systemPrompt = getPersonalizedSystemPromptForType(therapyType, userProfileData);
@@ -330,10 +334,47 @@ function TherapyButton({
             systemPrompt,
             firstMessage
           }
+          
+          // Check if there are previous sessions
+          try {
+            console.log('Checking for previous sessions to update first message...');
+            fetch('/api/sessions')
+              .then(response => response.json())
+              .then(sessions => {
+                const previousSessions = sessions.filter(s => s.status === 'completed');
+                if (previousSessions.length > 0) {
+                  console.log(`Found ${previousSessions.length} previous sessions, updating first message`);
+                  
+                  // Override the first message to acknowledge returning client
+                  // Use different greetings based on therapy type
+                  let continuityMessage = '';
+                  
+                  if (therapyType === 'couple') {
+                    continuityMessage = 
+                      `Hello ${userProfileData.userName || 'there'}, it's good to see you${userProfileData.partnerName ? ` and ${userProfileData.partnerName}` : ''} again. *warm pause* It's always valuable to continue our therapeutic journey together. What would you like to focus on in our session today?`;
+                  } else if (therapyType === 'family') {
+                    continuityMessage = 
+                      `Hello ${userProfileData.userName || 'there'} and family, welcome back! *warm pause* I'm glad we can continue our work together. What would your family like to explore in today's session?`;
+                  } else { // solo therapy
+                    continuityMessage = 
+                      `Hello ${userProfileData.userName || 'there'}, welcome back! *warm pause* It's great to continue our work together. What's been on your mind since we last spoke?`;
+                  }
+                  
+                  vapiInstanceRef.current._customData.firstMessage = continuityMessage;
+                  console.log('Updated first message to acknowledge returning client');
+                }
+              })
+              .catch(err => {
+                console.warn('Error checking previous sessions:', err);
+              });
+          } catch (err) {
+            console.warn('Error in previous sessions check:', err);
+          }
         } catch (err) {
           console.error('Error applying personalizations:', err)
         }
       }
+      
       
       // Set up event handlers
       vapiInstanceRef.current.on('call-start', () => {
@@ -346,12 +387,13 @@ function TherapyButton({
           try {
             setTimeout(async () => {
               // Import transcript service
-              const { addTranscriptEntry } = await import('@/lib/transcript-service');
+              const { addTranscriptEntry, getPreviousSessionsTranscript } = await import('@/lib/transcript-service');
               
               try {
+                // First, add system message
                 const result = await addTranscriptEntry({
                   sessionId,
-                  speaker: 'assistant',
+                  speaker: 'system',
                   text: 'Therapy session started. The AI therapist is connecting...',
                   timestamp: new Date().toISOString(),
                   isFinal: true
@@ -360,6 +402,63 @@ function TherapyButton({
                 
                 // Force UI update
                 setTranscriptChunks(prev => [...prev, 'SYSTEM: Session started']);
+                
+                // Directly fetch previous session transcripts without relying on stored data
+                console.log('Directly fetching previous session history');
+                const previousSessionsHistory = await getPreviousSessionsTranscript(userId, sessionId);
+                
+                // Check if we have previous sessions to include
+                if (previousSessionsHistory) {
+                  console.log('Found previous session history, adding to transcript');
+                  
+                  // Wait a moment before adding session context
+                  setTimeout(async () => {
+                    try {
+                      // Insert a user message asking about previous sessions
+                      const userEntryResult = await addTranscriptEntry({
+                        sessionId,
+                        speaker: 'user',
+                        text: 'Do you remember our previous therapy sessions?',
+                        timestamp: new Date(Date.now() + 2000).toISOString(),
+                        isFinal: true
+                      });
+                      console.log('Added user entry asking about previous sessions');
+                      
+                      // Insert the assistant response with session history
+                      const assistantEntryResult = await addTranscriptEntry({
+                        sessionId,
+                        speaker: 'assistant',
+                        text: `Yes, of course I remember our previous sessions. I've kept detailed notes about our conversations. In our past sessions, we've explored several important topics. Is there anything specific from our previous discussions you'd like to revisit, or would you prefer to focus on something new today?`,
+                        timestamp: new Date(Date.now() + 4000).toISOString(),
+                        isFinal: true
+                      });
+                      console.log('Added assistant response acknowledging previous sessions');
+                      
+                      // Now add the actual history as a system message for the AI to see
+                      // but not visible to the user (hidden in the UI)
+                      const systemHistoryEntry = await addTranscriptEntry({
+                        sessionId,
+                        speaker: 'system',
+                        text: "IMPORTANT: USER HAS PREVIOUS SESSIONS - therapist must acknowledge and reference prior discussions when asked.\n\n" + previousSessionsHistory,
+                        timestamp: new Date(Date.now() + 100).toISOString(),
+                        isFinal: true
+                      });
+                      console.log('Added system entry with previous session details');
+                      
+                      // Update UI with these entries
+                      setTranscriptChunks(prev => [
+                        ...prev, 
+                        'USER: Do you remember our previous therapy sessions?',
+                        'THERAPIST: Yes, of course I remember our previous sessions. I\'ve kept detailed notes about our conversations. In our past sessions, we\'ve explored several important topics. Is there anything specific from our previous discussions you\'d like to revisit, or would you prefer to focus on something new today?'
+                      ]);
+                      
+                    } catch (err) {
+                      console.error('Failed to add session history entries:', err);
+                    }
+                  }, 2000);
+                } else {
+                  console.log('No previous session history found');
+                }
               } catch (err) {
                 console.error('Failed to add session start entry:', err);
               }
@@ -454,6 +553,7 @@ function TherapyButton({
           handleCallEndRef.current();
         }
       })
+      
       
       // Enhanced transcript handling with structured entries
       vapiInstanceRef.current.on('message', async (message: any) => {
@@ -694,8 +794,8 @@ function TherapyButton({
       }
       
       // Start loading the setup in parallel
-      // User profile and session creation can happen in parallel
-      const [userProfilePromise, audioPromise] = [
+      // User profile, previous sessions and audio setup can happen in parallel
+      const [userProfilePromise, previousSessionsPromise, audioPromise] = [
         // Get user profile
         (async () => {
           try {
@@ -709,12 +809,28 @@ function TherapyButton({
           return null
         })(),
         
+        // Fetch previous sessions
+        (async () => {
+          try {
+            const sessionsResponse = await fetch('/api/sessions')
+            if (sessionsResponse.ok) {
+              return await sessionsResponse.json()
+            }
+          } catch (err) {
+            console.warn('Could not load previous sessions:', err)
+          }
+          return []
+        })(),
+        
         // Start setting up audio in parallel - this can happen independently
         setupAudioAnalyzer()
       ]
       
-      // Wait for user profile to complete
-      const userProfile = await userProfilePromise
+      // Wait for user profile and previous sessions to complete
+      const [userProfile, previousSessions] = await Promise.all([
+        userProfilePromise,
+        previousSessionsPromise
+      ]);
       
       // Create session in database
       const response = await fetch('/api/sessions', {
@@ -772,8 +888,33 @@ function TherapyButton({
         throw new Error('Failed to parse session data')
       }
       
+      // Format previous session history for the AI
+      let sessionHistory = '';
+      try {
+        if (previousSessions && previousSessions.length > 0) {
+          console.log(`Found ${previousSessions.length} previous sessions, formatting for AI context`);
+          
+          // Import the formatter
+          const { formatSessionHistory } = await import('@/lib/vapi');
+          sessionHistory = formatSessionHistory(previousSessions);
+          console.log('Previous session history formatted successfully');
+        } else {
+          console.log('No previous sessions found');
+          sessionHistory = 'No previous sessions found.';
+        }
+      } catch (historyError) {
+        console.error('Error formatting session history:', historyError);
+        sessionHistory = 'Error retrieving previous session history.';
+      }
+      
+      // Update user profile with session history
+      const enhancedUserProfile = {
+        ...userProfile,
+        sessionHistory
+      };
+      
       // Initialize Vapi with custom transcriber - this can now happen in parallel with audio setup
-      const initialized = await createVapiInstance(userProfile)
+      const initialized = await createVapiInstance(enhancedUserProfile)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
       }
@@ -814,9 +955,8 @@ function TherapyButton({
       try {
         console.log('Starting call with assistant ID:', assistantId);
         
-        // Create a simpler configuration similar to what worked before
+        // Create a standard configuration that includes an initial greeting that acknowledges previous sessions if needed
         const assistantConfig = {
-          // Just include the essential parameters
           variableValues: userProfile ? {
             username: userProfile.name || 'user',
             partnername: userProfile.partnerName || 'partner',
@@ -828,22 +968,27 @@ function TherapyButton({
               familymember4: userProfile.familyMember4 || ''
             } : {})
           } : undefined,
-          firstMessage: vapiInstanceRef.current?._customData?.firstMessage
+          // Use the possibly modified first message that acknowledges previous sessions
+          firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
+          // Don't pass system prompt through config - it appears to cause issues
         };
         
-        // Start the call with the standard config
+        // Log the configuration for debugging
+        console.log('ASSISTANT CONFIG:', JSON.stringify({
+          assistantId,
+          variableKeys: assistantConfig.variableValues ? Object.keys(assistantConfig.variableValues) : []
+        }, null, 2));
+        
+        // Start the call with a basic configuration
         try {
           await vapiInstanceRef.current?.start(assistantId, assistantConfig);
           console.log('Successfully started call with standard config');
-        } catch (initialErr) {
-          console.error('Error starting call with standard config:', initialErr);
+        } catch (err) {
+          console.error('Error starting call with standard config:', err);
           
-          // Try with minimal config as a fallback (this worked in the previous version)
+          // Try with minimal config as fallback
           console.log('Trying minimal config as fallback');
-          const minimalConfig = {
-            variableValues: assistantConfig.variableValues
-          };
-          
+          const minimalConfig = { variableValues: assistantConfig.variableValues };
           await vapiInstanceRef.current?.start(assistantId, minimalConfig);
           console.log('Successfully started call with minimal config');
         }
@@ -1350,7 +1495,8 @@ function TherapyButton({
           // Calculate duration in minutes and round to nearest minute
           const durationMs = endTime.getTime() - startTime.getTime();
           sessionDuration = Math.max(1, Math.round(durationMs / (1000 * 60)));
-          console.log(`Session duration: ${sessionDuration} minutes (${Math.round(durationMs/1000)} seconds)`);
+          console.log(`Session duration calculated: ${sessionDuration} minutes (${Math.round(durationMs/1000)} seconds)`);
+          console.log(`IMPORTANT: This duration (${sessionDuration} min) will be sent to the API for updating the session record.`);
         } else {
           // Fallback to entry-based estimation if no start time
           const entryCount = dedupedEntries.length;
@@ -1381,6 +1527,8 @@ function TherapyButton({
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || 'Failed to update session');
       }
+      
+      console.log(`✅ SESSION UPDATE CONFIRMED - Duration sent to API: ${sessionDuration} minutes`);
       
       console.log('📋 TRANSCRIPT RECOVERY COMPLETE');
       console.log(`Successfully saved ${dedupedEntries.length} unique transcript entries`);

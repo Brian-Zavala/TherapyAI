@@ -2,6 +2,8 @@
  * Transcript service for managing structured transcript entries
  * This service provides functions to add, get, and handle transcript entries
  * in a structured way, rather than using a single string.
+ * 
+ * Also includes functions for handling previous session information.
  */
 
 /**
@@ -544,4 +546,136 @@ export async function migrateTranscriptToEntries(sessionId: string, transcript: 
   }
   
   return createdEntries
+}
+
+/**
+ * Function to get transcripts from previous sessions for context
+ * Will be used to make the AI aware of past conversations
+ */
+export async function getPreviousSessionsTranscript(userId?: string, currentSessionId?: string, maxSessions = 3): Promise<string> {
+  try {
+    // If no user ID is provided, we can't fetch sessions
+    if (!userId) {
+      console.log('No user ID provided to getPreviousSessionsTranscript');
+      return '';
+    }
+    
+    // Fetch sessions from the API
+    console.log('Fetching previous sessions for user', userId);
+    const response = await fetch('/api/sessions');
+    
+    if (!response.ok) {
+      console.error('Failed to fetch previous sessions:', response.statusText);
+      return '';
+    }
+    
+    const sessions = await response.json();
+    
+    // Skip current session and only get completed ones
+    const previousSessions = sessions
+      .filter((s: any) => s.status === 'completed' && s.id !== currentSessionId)
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, maxSessions);
+    
+    if (previousSessions.length === 0) {
+      console.log('No previous completed sessions found');
+      return '';
+    }
+    
+    console.log(`Found ${previousSessions.length} previous sessions`);
+    
+    // Format sessions into a natural therapist notes format
+    let formattedTranscript = "I've reviewed my notes from our previous sessions before today. Here's what I recall:\n\n";
+    
+    for (const session of previousSessions) {
+      // Format the date
+      const sessionDate = new Date(session.date).toLocaleDateString();
+      formattedTranscript += `From our session on ${sessionDate} (${session.theme || 'Therapy Session'}):\n`;
+      
+      // Use transcript entries if available or legacy transcript if not
+      if (session.transcriptEntries && session.transcriptEntries.length > 0) {
+        // Get entries, sort by timestamp, remove system messages
+        const entries = session.transcriptEntries
+          .filter((entry: any) => entry.speaker !== 'system')
+          .sort((a: any, b: any) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        
+        // Separate user and therapist messages
+        const userMessages = entries
+          .filter((entry: any) => entry.speaker === 'user')
+          .map((entry: any) => entry.text);
+          
+        const therapistMessages = entries
+          .filter((entry: any) => entry.speaker === 'assistant')
+          .map((entry: any) => entry.text);
+        
+        // Create a summary of key topics from client
+        if (userMessages.length > 0) {
+          // Select sample user messages (beginning, middle, end)
+          const sampleUserMessages = userMessages.length > 3 
+            ? [userMessages[0], userMessages[Math.floor(userMessages.length/2)], userMessages[userMessages.length-1]]
+            : userMessages;
+            
+          formattedTranscript += "Key client concerns discussed:\n";
+          for (const msg of sampleUserMessages.slice(0, 3)) {
+            if (msg && msg.length > 20) {
+              formattedTranscript += `- ${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}\n`;
+            }
+          }
+        }
+        
+        // Add therapist guidance
+        if (therapistMessages.length > 0) {
+          // Select representative therapeutic interventions
+          const sample = therapistMessages.length > 2 
+            ? [therapistMessages[Math.floor(therapistMessages.length/2)], therapistMessages[therapistMessages.length-1]]
+            : therapistMessages;
+            
+          formattedTranscript += "\nGuidance I provided:\n";
+          for (const msg of sample.slice(0, 2)) {
+            if (msg && msg.length > 30) {
+              formattedTranscript += `- ${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}\n`;
+            }
+          }
+        }
+      } else if (session.transcript) {
+        // Use legacy transcript - extract client concerns and therapist responses
+        const lines = session.transcript.split('\n');
+        
+        // Extract user messages
+        const userLines = lines
+          .filter(line => line.startsWith('USER:') || line.startsWith('CLIENT:')) 
+          .map(line => line.replace(/^(USER|CLIENT):\s*/, ''));
+          
+        // Extract therapist messages
+        const therapistLines = lines
+          .filter(line => line.startsWith('THERAPIST:') || line.startsWith('ASSISTANT:'))
+          .map(line => line.replace(/^(THERAPIST|ASSISTANT):\s*/, ''));
+        
+        if (userLines.length > 0) {
+          formattedTranscript += "Key client concerns from our discussion:\n";
+          for (const line of userLines.slice(0, 3)) {
+            formattedTranscript += `- ${line.substring(0, 100)}${line.length > 100 ? '...' : ''}\n`;
+          }
+        }
+        
+        if (therapistLines.length > 0) {
+          formattedTranscript += "\nGuidance I provided:\n";
+          for (const line of therapistLines.slice(-2)) {
+            formattedTranscript += `- ${line.substring(0, 100)}${line.length > 100 ? '...' : ''}\n`;
+          }
+        }
+      } else {
+        formattedTranscript += 'I don\'t have detailed notes from this session, but I recall we had a productive conversation.\n';
+      }
+      
+      formattedTranscript += "\n-----\n\n";
+    }
+    
+    return formattedTranscript;
+  } catch (error) {
+    console.error('Error getting previous sessions transcript:', error);
+    return '';
+  }
 }

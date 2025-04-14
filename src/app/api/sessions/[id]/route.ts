@@ -148,7 +148,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const { status, endTime, notes, transcript, transcriptEntry } = await request.json()
+    const { status, endTime, notes, transcript, transcriptEntry, duration } = await request.json()
     
     const updateData: Record<string, unknown> = {}
     
@@ -167,14 +167,9 @@ export async function PATCH(
       updateData.transcript = transcript
     }
     
-    // Calculate duration if endTime is provided and status is completed
-    if (endTime && status === 'completed') {
-      const endDate = new Date(endTime)
-      const startDate = existingSession.date
-      
-      // Calculate duration in minutes
-      const durationInMinutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000)
-      updateData.duration = durationInMinutes
+    // Update duration if provided
+    if (duration !== undefined) {
+      updateData.duration = duration
     }
     
     // Handle new transcript entry if provided

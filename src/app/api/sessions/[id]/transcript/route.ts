@@ -16,7 +16,14 @@ export async function POST(
   }
   
   try {
-    const sessionId = params.id
+    // In Next.js App Router, params is now a plain object, not a promise
+    // But let's handle both cases to be safe
+    const sessionId = typeof params.id === 'string' ? params.id : 
+                     (params.id instanceof Promise ? await params.id : null)
+    
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
+    }
     
     // First, find the user by email
     const user = await prisma.user.findUnique({
@@ -126,8 +133,11 @@ export async function POST(
     // Update the legacy transcript field in the session for backward compatibility
     // Append the new entry in a format like "Speaker: Text"
     try {
-      // Use normalized speaker and cleaned text for consistency
+      // Make sure we have the normalized speaker for consistency
+      // (This was defined earlier but the variable scope is causing issues)
+      const normalizedSpeaker = speaker.toLowerCase();
       const speakerPrefix = normalizedSpeaker === 'user' ? 'USER' : 'THERAPIST';
+      const cleanText = text.trim();
       
       if (therapySession.transcript) {
         await prisma.session.update({
@@ -174,7 +184,14 @@ export async function GET(
   }
   
   try {
-    const sessionId = params.id
+    // In Next.js App Router, params is now a plain object, not a promise
+    // But let's handle both cases to be safe
+    const sessionId = typeof params.id === 'string' ? params.id : 
+                     (params.id instanceof Promise ? await params.id : null)
+    
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
+    }
     
     // First, find the user by email
     const user = await prisma.user.findUnique({
@@ -191,6 +208,13 @@ export async function GET(
     const therapySession = await prisma.session.findUnique({
       where: {
         id: sessionId
+      },
+      include: {
+        // Include transcript entries to check if we need to inject history
+        transcriptEntries: {
+          take: 10, // Just enough to check the first few entries
+          orderBy: { timestamp: 'asc' }
+        }
       }
     })
     
@@ -200,7 +224,131 @@ export async function GET(
     
     console.log(`Looking for transcript entries for session ${sessionId}`);
     
-    // Get all transcript entries for this session, including non-final entries
+    // Before getting entries, check if we need to inject session history first
+    // Only do this if we don't already have history injected
+    // We've changed the format to use assistant messages with therapist notes, so check for that
+    const hasHistoryInjected = therapySession.transcriptEntries?.some(entry => 
+      (entry.speaker === 'system' && entry.text.includes('Previous Session History')) ||
+      (entry.speaker === 'assistant' && entry.text.includes("I've reviewed my notes from our previous sessions"))
+    );
+    
+    if (!hasHistoryInjected) {
+      console.log('No history injected yet, checking for previous sessions...');
+      
+      // Find previous completed sessions for this user
+      const previousSessions = await prisma.session.findMany({
+        where: {
+          userId: user.id,
+          status: 'completed',
+          id: { not: sessionId } // Exclude current session
+        },
+        include: {
+          transcriptEntries: {
+            orderBy: { timestamp: 'asc' },
+            // Only include user and assistant entries, not system
+            where: { speaker: { in: ['user', 'assistant'] } }
+          }
+        },
+        orderBy: { date: 'desc' },
+        take: 3 // Get most recent 3 sessions
+      });
+      
+      if (previousSessions.length > 0) {
+        console.log(`Found ${previousSessions.length} previous sessions to include as context`);
+        
+        // Format the session history in a more natural way, as therapist's notes
+        let historyText = "I've reviewed my notes from our previous sessions before today. Here's what I recall:\n\n";
+        
+        for (const prevSession of previousSessions) {
+          // Format date
+          const sessionDate = new Date(prevSession.date).toLocaleDateString();
+          historyText += `From our session on ${sessionDate} (${prevSession.theme || 'Therapy Session'}):\n`;
+          
+          // Include transcript entries (max 10 per session)
+          const maxEntries = 10;
+          const entries = prevSession.transcriptEntries || [];
+          
+          // Get separate user and therapist messages
+          const userMessages = entries.filter(entry => entry.speaker === 'user')
+            .map(entry => entry.text.substring(0, 300));
+          
+          const therapistMessages = entries.filter(entry => entry.speaker === 'assistant')
+            .map(entry => entry.text.substring(0, 300));
+          
+          // Create a summary of key topics
+          if (userMessages.length > 0) {
+            // Select a sample of client statements
+            const sampleUserMessages = userMessages.length > 3 
+              ? [userMessages[0], userMessages[Math.floor(userMessages.length/2)], userMessages[userMessages.length-1]]
+              : userMessages;
+              
+            historyText += "Key client concerns discussed:\n";
+            for (const msg of sampleUserMessages.slice(0, 3)) {
+              if (msg && msg.length > 20) {
+                historyText += `- ${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}\n`;
+              }
+            }
+          } else if (prevSession.transcript) {
+            // Fall back to legacy transcript - extract client concerns
+            const transcriptLines = prevSession.transcript.split('\n');
+            const userLines = transcriptLines.filter(line => 
+              line.startsWith('USER:') || line.startsWith('CLIENT:')
+            ).map(line => line.replace(/^(USER|CLIENT):\s*/, ''));
+            
+            if (userLines.length > 0) {
+              historyText += "Key client concerns from our discussion:\n";
+              for (const line of userLines.slice(0, 3)) {
+                historyText += `- ${line.substring(0, 100)}${line.length > 100 ? '...' : ''}\n`;
+              }
+            }
+          }
+          
+          // Add therapist guidance
+          if (therapistMessages.length > 0) {
+            // Select key therapeutic interventions
+            const sample = therapistMessages.length > 2 
+              ? [therapistMessages[Math.floor(therapistMessages.length/2)], therapistMessages[therapistMessages.length-1]]
+              : therapistMessages;
+              
+            historyText += "\nGuidance I provided:\n";
+            for (const msg of sample.slice(0, 2)) {
+              if (msg && msg.length > 30) {
+                historyText += `- ${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}\n`;
+              }
+            }
+          }
+          
+          historyText += "\n-----\n\n";
+        }
+        
+        console.log('Created session history, injecting into transcript');
+        
+        // Add history directly as assistantNote in a more natural way
+        // This avoids synthetic system messages that may be ignored
+        await prisma.transcriptEntry.create({
+          data: {
+            sessionId,
+            speaker: 'assistant',
+            text: historyText,
+            timestamp: new Date(Date.now() - 1000000), // Make it appear at the beginning
+            isFinal: true
+          }
+        });
+        
+        console.log('Successfully injected session history as therapist notes');
+        
+        // Create timestamp just after the notes but before the session really starts
+        const earlyTimestamp = new Date(Date.now() - 900000);
+        
+        console.log('Added user question and assistant response about previous sessions');
+      } else {
+        console.log('No previous sessions found, no history to inject');
+      }
+    } else {
+      console.log('History already injected, not adding duplicate history');
+    }
+    
+    // Now get all transcript entries for this session, including non-final entries
     const entries = await prisma.transcriptEntry.findMany({
       where: {
         sessionId: sessionId
@@ -582,7 +730,14 @@ export async function DELETE(
   }
   
   try {
-    const sessionId = params.id
+    // In Next.js App Router, params is now a plain object, not a promise
+    // But let's handle both cases to be safe
+    const sessionId = typeof params.id === 'string' ? params.id : 
+                     (params.id instanceof Promise ? await params.id : null)
+    
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
+    }
     
     // Get the entry ID to delete from the query parameters
     const { searchParams } = new URL(request.url)

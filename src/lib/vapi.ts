@@ -75,6 +75,98 @@ export type AssistantConfig = {
   };
 };
 
+// Format session transcript for the AI assistant
+export const formatSessionHistory = (sessions: any[] = []) => {
+  if (!sessions || sessions.length === 0) {
+    return "No previous session history.";
+  }
+
+  // Get the most recent 3 completed sessions
+  const recentSessions = sessions
+    .filter(s => s.status === 'completed')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3);
+
+  if (recentSessions.length === 0) {
+    return "No completed sessions found.";
+  }
+
+  // Format each session
+  return recentSessions.map(session => {
+    const sessionDate = new Date(session.date).toLocaleDateString();
+    const theme = session.theme || 'Therapy Session';
+    
+    // Format transcript from transcript entries or legacy transcript
+    let conversationSummary = '';
+    
+    if (session.transcriptEntries && session.transcriptEntries.length > 0) {
+      // Use structured transcript entries and create summary
+      const userMessages = session.transcriptEntries
+        .filter((entry: any) => entry.speaker === 'user')
+        .map((entry: any) => entry.text);
+      
+      const assistantMessages = session.transcriptEntries
+        .filter((entry: any) => entry.speaker === 'assistant')
+        .map((entry: any) => entry.text);
+      
+      // Extract key topics by identifying frequent words
+      const allText = [...userMessages, ...assistantMessages].join(' ').toLowerCase();
+      const words = allText.split(/\W+/).filter(word => 
+        word.length > 3 && 
+        !['this', 'that', 'with', 'have', 'your', 'from', 'they', 'will', 'about', 'what', 'been', 'were'].includes(word)
+      );
+      
+      // Count word frequencies
+      const wordFrequency: Record<string, number> = {};
+      words.forEach(word => {
+        wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+      });
+      
+      // Get top key topics
+      const keyTopics = Object.entries(wordFrequency)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([word]) => word)
+        .join(', ');
+      
+      // Get a few representative messages
+      const sampleUserMessages = userMessages.length > 0 
+        ? userMessages.filter(msg => msg.length > 20).slice(0, 2) 
+        : ['No significant user messages'];
+      
+      const sampleAssistantResponses = assistantMessages.length > 0
+        ? assistantMessages.filter(msg => msg.length > 20).slice(0, 2)
+        : ['No significant assistant responses'];
+      
+      // Format conversation summary
+      conversationSummary = `
+Key topics discussed: ${keyTopics || 'Various relationship topics'}
+
+Sample statements from client:
+- ${sampleUserMessages.join('\n- ')}
+
+Sample therapeutic responses:
+- ${sampleAssistantResponses.join('\n- ')}`;
+    } else if (session.transcript) {
+      // Use legacy transcript format
+      const truncatedTranscript = session.transcript.length > 500 
+        ? session.transcript.substring(0, 500) + '...(truncated)' 
+        : session.transcript;
+      
+      conversationSummary = `
+Transcript summary:
+${truncatedTranscript}`;
+    } else {
+      conversationSummary = 'No transcript available for this session.';
+    }
+    
+    return `SESSION DATE: ${sessionDate}
+THEME: ${theme}
+${conversationSummary}
+---------------------`;
+  }).join('\n\n');
+};
+
 // Get personalized system prompt based on user profile
 export const getPersonalizedSystemPrompt = (userProfile?: any) => {
   if (!userProfile || !userProfile?.userName || !userProfile?.partnerName) {
@@ -87,7 +179,11 @@ export const getPersonalizedSystemPrompt = (userProfile?: any) => {
   const partnerName = userProfile?.partnerName || 'their partner';
   const relationshipStatus = userProfile?.relationshipStatus || 'In a relationship';
   
-  // Personalized system prompt with names and relationship status
+  // Include session history directly in the prompt (not as a variable)
+  // This avoids issues with Vapi variable substitution
+  const sessionHistory = userProfile?.sessionHistory || 'No previous sessions found.';
+  
+  // Personalized system prompt with names and relationship status and direct history inclusion
   const systemPrompt = `You are Dr. Maya Thompson, an empathetic couple therapist with 15 years of experience specializing in relationship dynamics and evidence-based couples therapy methods. 
 
 EXPERTISE:
@@ -102,6 +198,16 @@ Your therapeutic approach focuses on:
   
 IMPORTANT: Your client's name is ${userName} and their partner's name is ${partnerName}. 
 Their relationship status is: ${relationshipStatus}.
+
+PREVIOUS SESSION HISTORY:
+${sessionHistory}
+
+GUIDELINES FOR USING SESSION HISTORY:
+1. Reference key topics and insights from previous sessions when relevant
+2. Maintain continuity in the therapeutic relationship by following up on issues discussed before
+3. Note any patterns or themes across multiple sessions
+4. Don't explicitly state "In our last session, you mentioned..." but incorporate the knowledge naturally
+5. Use previous discussions to deepen your understanding of their relationship dynamics
 
 CRITICAL INSTRUCTIONS - You MUST do the following:
 1. Address ${userName} by name frequently in conversation (e.g., "So ${userName}, how did you feel when...")
@@ -131,7 +237,7 @@ Your ultimate goal is to help ${userName} and ${partnerName} improve their commu
 export const getPersonalizedFirstMessage = (userProfile?: any) => {
   if (!userProfile || !userProfile?.userName) {
     // Default first message
-    return "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really good to meet you today. How are you feeling? I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for you.";
+    return "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* How are you feeling today? *gentle pause* What would you like to focus on in our session? I'm here to create a safe space for you.";
   }
   
   // Get safe values with defaults
@@ -139,7 +245,7 @@ export const getPersonalizedFirstMessage = (userProfile?: any) => {
   const partnerName = userProfile?.partnerName || 'your partner';
   
   // Personalized first message with user's name
-  return `Hello ${userName}, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really wonderful to meet you and ${partnerName} today. How are you both feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific about your relationship you'd like to talk about? I want you to know this is a safe space where both of you can express yourselves openly.`;
+  return `Hello ${userName}${partnerName ? ` and ${partnerName}` : ''}, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* How are you both feeling today? *gentle pause* What would you like to focus on in our session? I want you to know this is a safe space where you can both express yourselves openly.`;
 };
 
 // Configuration for the couple therapy assistant
@@ -173,7 +279,7 @@ Use therapeutic techniques to help couples communicate better and resolve confli
     provider: "11labs",
     voiceId: process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID, // From environment variables
   },
-  firstMessage: "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* It's really good to meet you both today. How are you feeling? I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for both of you.",
+  firstMessage: "Hello, I'm Dr. Maya Thompson, your relationship therapist. *warm pause* How are you both feeling today? *gentle pause* What would you like to focus on in our session? I'm here to create a safe space where you can both express yourselves openly.",
 };
 
 // Configuration for the individual therapy assistant
@@ -212,7 +318,7 @@ Use therapeutic techniques to help individuals process emotions, develop coping 
     provider: "vapi",
     voiceId: process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID, // From environment variables
   },
-  firstMessage: "Hello, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really good to meet you today. How are you feeling? *gentle pause* I'm wondering what brings you to therapy - is there something specific you'd like to talk about? I'm here to create a safe space for you to explore whatever's on your mind.",
+  firstMessage: "Hello, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* How are you feeling today? *gentle pause* What would you like to focus on in our session? I'm here to create a safe space for you to explore whatever's on your mind.",
 };
 
 // Configuration for the family therapy assistant
@@ -251,7 +357,7 @@ Use therapeutic techniques to help families improve communication, resolve confl
     provider: "11labs",
     voiceId: process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID, // From environment variables
   },
-  firstMessage: "Hello everyone, I'm Dr. Jada Pearson, your family therapist. *warm pause* It's really wonderful to meet you all today. How is everyone feeling? *gentle pause* I'm curious about what brings your family to therapy - is there something specific you'd like to talk about? This is a safe space where everyone's voice matters equally.",
+  firstMessage: "Hello everyone, I'm Dr. Jada Pearson, your family therapist. *warm pause* How is everyone feeling today? *gentle pause* What would you like to focus on in our session? This is a safe space where everyone's voice matters equally.",
 };
 
 // Helper to get the appropriate assistant config based on type
@@ -278,9 +384,15 @@ export const getPersonalizedSystemPromptForType = (type: string = 'couple', user
     return config.model.messages[0].content;
   }
   
+  // Include session history if available
+  const sessionHistory = userProfile?.sessionHistory || 'No previous sessions found.';
+  
   if (type === 'solo') {
     // Get safe values with defaults
     const userName = userProfile?.userName || 'the client';
+    
+    // Include session history directly in the prompt (not as a variable)
+    const sessionHistory = userProfile?.sessionHistory || 'No previous sessions found.';
     
     return `You are Dr. Elliot Mackaphy, an empathetic individual therapist with 12 years of experience specializing in personal growth, emotional wellbeing, and evidence-based therapeutic approaches.
 
@@ -302,6 +414,16 @@ Your therapeutic approach emphasizes:
 5. Integrating mindfulness practices into daily life
     
 IMPORTANT: Your client's name is ${userName}.
+
+PREVIOUS SESSION HISTORY:
+${sessionHistory}
+
+GUIDELINES FOR USING SESSION HISTORY:
+1. Reference key topics and insights from previous sessions when relevant
+2. Maintain continuity in the therapeutic relationship by following up on issues discussed before
+3. Note any patterns or themes across multiple sessions
+4. Don't explicitly state "In our last session, you mentioned..." but incorporate the knowledge naturally
+5. Use previous discussions to deepen your understanding of their personal challenges and growth
 
 CRITICAL INSTRUCTIONS - You MUST do the following:
 1. Address ${userName} by name frequently in conversation (e.g., "So ${userName}, how did you feel when...")
@@ -342,6 +464,9 @@ Your ultimate goal is to help ${userName} develop greater psychological flexibil
       familyMembersString = `${userProfile?.userName || 'the client'}, ${familyMemberNames.join(', ')}, and ${lastMember}`;
     }
     
+    // Include session history directly in the prompt (not as a variable)
+    const sessionHistory = userProfile?.sessionHistory || 'No previous sessions found.';
+    
     return `You are Dr. Jada Pearson, an empathetic family therapist with 18 years of experience specializing in family dynamics, intergenerational relationships, and evidence-based family therapy approaches.
 
 EXPERTISE:
@@ -362,6 +487,16 @@ Your therapeutic approach emphasizes:
 5. Strengthening family resilience and cohesion through collaborative efforts
     
 IMPORTANT: You are working with ${familyMembersString}.
+
+PREVIOUS SESSION HISTORY:
+${sessionHistory}
+
+GUIDELINES FOR USING SESSION HISTORY:
+1. Reference key topics and insights from previous sessions when relevant
+2. Maintain continuity in the therapeutic relationship by following up on issues discussed before
+3. Note any patterns or themes across multiple sessions
+4. Don't explicitly state "In our last session, you mentioned..." but incorporate the knowledge naturally
+5. Use previous discussions to deepen your understanding of family dynamics and relationships
 
 CRITICAL INSTRUCTIONS - You MUST do the following:
 1. Address family members by name when they are specified
@@ -404,7 +539,7 @@ export const getPersonalizedFirstMessageForType = (type: string = 'couple', user
     // Get safe values with defaults
     const userName = userProfile?.userName || 'there';
     
-    return `Hello ${userName}, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* It's really wonderful to meet you today. How are you feeling? *gentle pause* I'm curious about what brings you to therapy - is there something specific you'd like to talk about? I want you to know this is a safe space where you can express yourself openly.`;
+    return `Hello ${userName}, I'm Dr. Elliot Mackaphy, your personal therapist. *warm pause* How are you feeling today? *gentle pause* What would you like to focus on in our session? I want you to know this is a safe space where you can express yourself openly.`;
   }
   
   if (type === 'family') {
@@ -428,7 +563,7 @@ export const getPersonalizedFirstMessageForType = (type: string = 'couple', user
       greeting = `Hello everyone`;
     }
     
-    return `${greeting}, I'm Dr. Jada Pearson, your family therapist. *warm pause* It's really wonderful to meet you all today. How is everyone feeling? *gentle pause* I'm curious about what brings your family to therapy - is there something specific you'd like to talk about? This is a safe space where everyone's voice matters equally.`;
+    return `${greeting}, I'm Dr. Jada Pearson, your family therapist. *warm pause* How is everyone feeling today? *gentle pause* What would you like to focus on in our session? This is a safe space where everyone's voice matters equally.`;
   }
   
   // Default to the couple therapy first message
