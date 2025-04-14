@@ -2,6 +2,7 @@
 import AuthProvider from '@/components/AuthProvider'
 import Navigation from '@/components/Navigation'
 import { SoundProvider } from '@/components/SoundProvider'
+import MusicPlayer from '@/components/MusicPlayer'
 import './globals.css'
 
 export const metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
             <main className="overflow-x-hidden w-full min-h-screen">
               {children}
             </main>
+            <MusicPlayer />
           </SoundProvider>
         </AuthProvider>
       </body>

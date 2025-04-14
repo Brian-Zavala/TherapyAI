@@ -21,7 +21,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Countdown overlay state
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
-  const [showBreathText, setShowBreathText] = useState(false);
+  const [meditationStep, setMeditationStep] = useState<'none' | 'countdown' | 'breathe' | 'begin' | 'done'>('none');
   
   // Digital clock state
   const [hours, setHours] = useState<string>('');
@@ -122,31 +122,36 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     console.log(`Selected ${type} therapy with assistant:`, assistant.name, 'ID:', assistant.id);
     setSelectedAssistant(assistant);
     
-    // Start the countdown overlay when a therapist is selected
-    setShowCountdown(true);
+    // Start the meditation sequence
+    setMeditationStep('countdown');
     setCountdownValue(3);
-    
-    // Set up the countdown sequence
-    const countdownTimer = setInterval(() => {
-      setCountdownValue(prev => {
-        if (prev === 1) {
-          clearInterval(countdownTimer);
-          // Show "Breath" text immediately after countdown reaches 1
+
+    // Show 3 for one second
+    setTimeout(() => {
+      // Show 2
+      setCountdownValue(2);
+      
+      setTimeout(() => {
+        // Show 1
+        setCountdownValue(1);
+        
+        setTimeout(() => {
+          // After showing 1, transition to "Breathe"
+          setMeditationStep('breathe');
+          
+          // After 10 seconds of breathing, transition to "Begin"
           setTimeout(() => {
-            setShowCountdown(false);
-            setShowBreathText(true);
+            setMeditationStep('begin');
             
-            // Hide breath text and show the therapy interface after 5 seconds
+            // After 5 seconds of "Begin", show therapy interface
             setTimeout(() => {
-              setShowBreathText(false);
+              setMeditationStep('done');
               setShowTypeSelector(false);
             }, 5000);
-          }, 800); // Slightly shorter delay for smoother transition
-          return 1;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+          }, 10000);
+        }, 1000); // Show 1 for 1 second
+      }, 1000); // Show 2 for 1 second
+    }, 1000); // Show 3 for 1 second
   };
 
   // These are kept for compatibility with older code
@@ -173,51 +178,71 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Use React.createElement to avoid JSX parsing issues
   return React.createElement(React.Fragment, null, [
-    // Countdown Overlay
-    React.createElement(AnimatePresence, { key: "countdown-overlay-presence" }, 
-      showCountdown && React.createElement(motion.div, {
+    
+    // Persistent blur background that stays throughout the meditation
+    meditationStep !== 'none' && meditationStep !== 'done' && React.createElement("div", {
+      key: "persistent-blur-bg",
+      className: "fixed inset-0 z-40 bg-black/70 backdrop-blur-xl",
+      style: { transition: "opacity 0.7s ease-in-out" }
+    }),
+    
+    // Unified Meditation Overlay with AnimatePresence to handle text transitions
+    React.createElement(AnimatePresence, { mode: "wait", key: "meditation-presence" }, 
+      // Countdown
+      meditationStep === 'countdown' && React.createElement(motion.div, {
         key: "countdown-overlay",
-        className: "fixed inset-0 flex items-center justify-center z-50 bg-black/80",
+        className: "fixed inset-0 flex items-center justify-center z-50",
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
-        transition: { duration: 0.5 }
+        transition: { duration: 0.7 }
       }, [
         React.createElement(motion.div, {
           key: "countdown-number",
-          className: "text-white text-9xl font-bold countdown-number",
-          initial: { scale: 0.5, opacity: 0 },
+          className: "text-white text-7xl sm:text-8xl md:text-9xl font-bold countdown-number",
+          initial: { scale: 0.8, opacity: 0 },
           animate: { scale: 1, opacity: 1 },
-          exit: { scale: 1.5, opacity: 0 },
+          exit: { scale: 1.2, opacity: 0 },
           transition: { duration: 0.5 }
         }, countdownValue)
-      ])
-    ),
-    
-    // "Breath" Text Overlay
-    React.createElement(AnimatePresence, { key: "breath-text-presence" }, 
-      showBreathText && React.createElement(motion.div, {
-        key: "breath-overlay",
-        className: "fixed inset-0 flex items-center justify-center z-50 bg-black/80",
+      ]),
+      
+      // Breathe Text
+      meditationStep === 'breathe' && React.createElement(motion.div, {
+        key: "breathe-overlay",
+        className: "fixed inset-0 flex items-center justify-center z-50",
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
-        transition: { duration: 0.5 }
+        transition: { duration: 0.7 }
       }, [
         React.createElement(motion.div, {
-          key: "breath-text",
-          className: "text-white text-9xl font-bold breath-text",
-          initial: { opacity: 0 },
-          animate: { 
-            opacity: [0, 1, 1, 1, 0],
-            scale: [0.9, 1, 1.08, 1, 0.9]
-          },
-          transition: { 
-            duration: 5,
-            times: [0, 0.15, 0.5, 0.85, 1],
-            ease: "easeInOut"
-          }
+          key: "breathe-text",
+          className: "text-white text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold breath-text",
+          initial: { opacity: 0, scale: 0.9 },
+          animate: { opacity: 1, scale: 1 },
+          exit: { opacity: 0, scale: 0.9 },
+          transition: { duration: 0.7 }
         }, "Breathe")
+      ]),
+      
+      // Begin Text
+      meditationStep === 'begin' && React.createElement(motion.div, {
+        key: "begin-overlay",
+        className: "fixed inset-0 flex items-center justify-center z-50",
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.7 }
+      }, [
+        React.createElement(motion.div, {
+          key: "begin-text",
+          className: "text-white text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold begin-text",
+          initial: { opacity: 0, scale: 0.9 },
+          animate: { opacity: 1, scale: 1 },
+          exit: { opacity: 0, scale: 0.9 },
+          transition: { duration: 0.7 }
+        }, "Begin")
       ])
     ),
     
