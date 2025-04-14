@@ -39,11 +39,11 @@ export default function ScrollDownArrow({ onClick }: ScrollDownArrowProps) {
         {isHovered ? (
           <motion.div
             key="text"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 7 }}
+            animate={{ opacity: 1, y: 8 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.3 }}
-            className="text-blue-700 font-medium text-sm"
+            className="text-blue-500 font-medium text-3xl"
           >
             Scroll Down
           </motion.div>
@@ -55,7 +55,7 @@ export default function ScrollDownArrow({ onClick }: ScrollDownArrowProps) {
             exit={{ opacity: 0, y: 5 }}
             transition={{ duration: 0.3 }}
           >
-            <svg className="w-8 h-8 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </motion.div>

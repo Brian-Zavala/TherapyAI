@@ -1281,7 +1281,7 @@ export default function Home() {
       </motion.section>
       
       {/* Footer section for better page balance */}
-      <section className="w-full py-10 bg-slate-950 text-white">
+      <section className="w-full py-10 bg-green-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-sm text-white mb-4">© {new Date().getFullYear()} TherapyAI. All rights reserved.</p>
