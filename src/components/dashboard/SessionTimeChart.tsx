@@ -448,7 +448,7 @@ export default function SessionTimeChart() {
              <h4 className="text-xs sm:text-sm font-medium text-indigo-700 mb-1">Trends</h4>
              <p className="text-xs text-gray-600">
                {sessionData.length > 0 && totalHours > 0 
-                 ? `You&apos;ve spent ${totalHours} hours in therapy over ${
+                 ? `You've spent ${totalHours} hours in therapy over ${
                      sessionData.filter(s => s.sessionCount > 0).length
                    } active months. ${
                      sessionData.reduce((sum, month) => sum + month.sessionCount, 0) > 1
@@ -464,7 +464,7 @@ export default function SessionTimeChart() {
                {sessionData.length > 0 
                  ? `Your current therapy type is ${therapyType}. ${
                      sessionData.filter(session => session.sessionCount > 0).length > 2 
-                     ? `You&apos;ve been consistent with ${sessionData.filter(session => session.sessionCount > 0).length} active months.` 
+                     ? `You've been consistent with ${sessionData.filter(session => session.sessionCount > 0).length} active months.` 
                      : "Regular sessions can lead to better outcomes."
                    }`
                  : "Consistent therapy scheduling helps build momentum toward your goals."}
