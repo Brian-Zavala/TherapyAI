@@ -45,7 +45,7 @@ const tracks = [
   { 
     title: 'Circles Of Life', 
     artist: 'Todd James Carlin Baker', 
-    src: '/sounds/music/CirclesOfLife.mp3', 
+    src: '/sounds/music/life.mp3', 
     image: '/images/music/5.jpg'
   },
   { 
@@ -85,57 +85,57 @@ const tracks = [
     image: '/images/music/11.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Great Void', 
+    artist: 'Benjamin Charles Francis Baptie', 
+    src: '/sounds/music/GreatVoid.mp3', 
     image: '/images/music/12.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Happy Endings', 
+    artist: 'Rainman', 
+    src: '/sounds/music/HappyEndings.mp3', 
     image: '/images/music/13.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Monkeying Around', 
+    artist: 'Carolina Vanessa James', 
+    src: '/sounds/music/MonkeyAround.mp3', 
     image: '/images/music/14.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Morning Chorus', 
+    artist: 'Rainman', 
+    src: '/sounds/music/Morning.mp3', 
     image: '/images/music/15.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Open Circle', 
+    artist: 'Jonathan Elias', 
+    src: '/sounds/music/openCircle.mp3', 
     image: '/images/music/16.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Serenading Stars', 
+    artist: 'Journey Sol Terrae', 
+    src: '/sounds/music/serenadingStars.mp3', 
     image: '/images/music/17.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Smooth It Out', 
+    artist: 'Josh Duplessis', 
+    src: '/sounds/music/SmoothItOut.mp3', 
     image: '/images/music/18.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Thinking Of You', 
+    artist: 'Pat McCusker', 
+    src: '/sounds/music/ThinkingOfYou.mp3', 
     image: '/images/music/19.jpg'
   },
   { 
-    title: 'Mindful Journey', 
-    artist: 'Journey Within', 
-    src: '/sounds/music/.mp3', 
+    title: 'Trouble Cleansing', 
+    artist: 'Ngok Ting Lam', 
+    src: '/sounds/music/troubleCleansing.mp3', 
     image: '/images/music/20.jpg'
   },
 ]
@@ -179,11 +179,15 @@ export default function MusicPlayer() {
         audioRef.current = null
       }
       
+      // Reset time and progress when changing tracks
+      setCurrentTime(0)
+      setProgress(0)
+      
       // Create new audio for current track
       audioRef.current = new Audio(tracks[currentTrack].src)
       
       audioRef.current.addEventListener('loadedmetadata', () => {
-        if (audioRef.current) {
+        if (audioRef.current && isFinite(audioRef.current.duration)) {
           setDuration(audioRef.current.duration)
           
           // Auto-play if needed
@@ -194,6 +198,9 @@ export default function MusicPlayer() {
             })
             setIsPlaying(true)
             shouldPlayRef.current = false
+            
+            // Setup progress interval immediately for the new track
+            setupProgressInterval()
           }
         }
       })
@@ -211,6 +218,26 @@ export default function MusicPlayer() {
     }
   }, [currentTrack, isPlaying])
 
+  // Setup or update the progress interval
+  const setupProgressInterval = () => {
+    // Clear any existing interval first
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+    }
+    
+    if (audioRef.current && isPlaying) {
+      // Update progress every second
+      progressIntervalRef.current = setInterval(() => {
+        if (audioRef.current && isFinite(audioRef.current.duration) && isFinite(audioRef.current.currentTime)) {
+          setCurrentTime(audioRef.current.currentTime)
+          const calculatedProgress = (audioRef.current.currentTime / audioRef.current.duration) * 100
+          setProgress(isFinite(calculatedProgress) ? calculatedProgress : 0)
+        }
+      }, 1000)
+    }
+  }
+
+  // Effect for handling play/pause state changes
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -219,16 +246,12 @@ export default function MusicPlayer() {
           setIsPlaying(false)
         })
         
-        // Update progress every second
-        progressIntervalRef.current = setInterval(() => {
-          if (audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime)
-            setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100)
-          }
-        }, 1000)
+        // Setup the progress interval
+        setupProgressInterval()
       } else {
         audioRef.current.pause()
         
+        // Clear interval when paused
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current)
         }
@@ -240,18 +263,20 @@ export default function MusicPlayer() {
         clearInterval(progressIntervalRef.current)
       }
     }
-  }, [isPlaying])
+  }, [isPlaying, currentTrack])
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying)
   }
 
   const nextTrack = () => {
+    // Progress and time will be reset in the useEffect that depends on currentTrack
     getNextTrack()
   }
 
   const prevTrack = () => {
     shouldPlayRef.current = true
+    // Progress and time will be reset in the useEffect that depends on currentTrack
     setCurrentTrack((prev) => (prev - 1 + tracks.length) % tracks.length)
     setIsPlaying(true)
   }
@@ -322,18 +347,23 @@ export default function MusicPlayer() {
   }, [isRepeatMode])
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (audioRef.current) {
+    if (audioRef.current && isFinite(audioRef.current.duration)) {
       const progressBar = e.currentTarget
       const clickPosition = (e.clientX - progressBar.getBoundingClientRect().left) / progressBar.clientWidth
       const newTime = clickPosition * audioRef.current.duration
       
-      audioRef.current.currentTime = newTime
-      setCurrentTime(newTime)
-      setProgress(clickPosition * 100)
+      if (isFinite(newTime)) {
+        audioRef.current.currentTime = newTime
+        setCurrentTime(newTime)
+        setProgress(clickPosition * 100)
+      }
     }
   }
 
   const formatTime = (time: number) => {
+    if (!isFinite(time) || time < 0) {
+      return '0:00'
+    }
     const minutes = Math.floor(time / 60)
     const seconds = Math.floor(time % 60)
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
@@ -345,7 +375,7 @@ export default function MusicPlayer() {
       <AnimatePresence>
         {!isOpen && (
           <motion.div 
-            className="fixed bottom-8 right-8 z-[60]"
+            className="fixed bottom-8 right-8  z-[60]"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0, transition: {
@@ -443,9 +473,22 @@ export default function MusicPlayer() {
                     </motion.button>
                   </AnimatePresence>
                   
-                  <div className="mt-4 sm:mt-6 md:mt-8">
-                    <h3 className="text-lg sm:text-xl md:text-2xl text-gray-800 font-medium truncate">{tracks[currentTrack].title}</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">{tracks[currentTrack].artist}</p>
+                  <div className="mt-3 sm:mt-5 md:mt-8 flex">
+                    {/* Small Album Image for Mobile */}
+                    <div className="flex-shrink-0 mr-3 md:hidden">
+                      <motion.img 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-md shadow-md border border-gray-200" 
+                        src={tracks[currentTrack].image} 
+                        alt={`${tracks[currentTrack].title} album cover`}
+                      />
+                    </div>
+                    <div className="flex-grow overflow-hidden">
+                      <h3 className="text-lg sm:text-xl md:text-2xl text-gray-800 font-medium truncate">{tracks[currentTrack].title}</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">{tracks[currentTrack].artist}</p>
+                    </div>
                   </div>
                   
                   <div className="flex justify-between items-center mt-4 sm:mt-6 md:mt-8">

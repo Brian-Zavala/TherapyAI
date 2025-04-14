@@ -136,8 +136,11 @@ function TherapyButton({
       main.style.opacity = '1'
     }
     
-    // Remove blur effect from background
+    // Ensure any backdrop filter is completely removed
     document.body.style.backdropFilter = 'none'
+    
+    // For extra safety, also remove any other potential overlay effects
+    document.body.style.filter = 'none'
   }
   
   // Simplified audio analyzer setup
@@ -1576,7 +1579,7 @@ function TherapyButton({
               <div className="flex flex-col items-center">
                 <button 
                   onClick={toggleMute}
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${isMuted ? 'bg-red-600' : 'bg-gray-700'} flex items-center justify-center mb-1 sm:mb-2 transition-colors duration-300 hover:bg-opacity-90`}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${isMuted ? 'bg-red-600' : 'bg-gray-700'} flex items-center justify-center mb-1 sm:mb-2 transition-colors duration-300 hover:bg-opacity-90 cursor-pointer`}
                   aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
                 >
                   {isMuted ? (
@@ -1600,7 +1603,7 @@ function TherapyButton({
                 <button
                   onClick={endTherapySession}
                   disabled={isLoading}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600 flex items-center justify-center mb-1 sm:mb-2 shadow-lg hover:bg-red-700 transition-all duration-300 disabled:opacity-50"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600 flex items-center justify-center mb-1 sm:mb-2 shadow-lg hover:bg-red-700 transition-all duration-300 disabled:opacity-50 cursor-pointer"
                   aria-label="End call"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 sm:h-10 sm:w-10 text-white rotate-135" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1648,16 +1651,16 @@ function TherapyButton({
                 const main = document.querySelector('main');
                 if (main) {
                   main.style.transition = 'all 0.3s ease-in-out';
-                  main.style.opacity = '0.85'; // Less dim for better visibility
-                  // Apply blur to the background, not the content
-                  document.body.style.backdropFilter = 'blur(5px)';
+                  main.style.opacity = '0.95'; // Less dim for better visibility
+                  // Remove the blur effect that was making the page hazy
+                  document.body.style.backdropFilter = 'none';
                 }
                 // Then start the actual session process
                 startTherapySession();
               }}
               disabled={isLoading}
               title={`Start a ${therapyType} therapy session with ${assistantConfig?.name}`}
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center shadow-lg hover:cursor-pointer hover:from-green-600 hover:to-green-700 disabled:opacity-50"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center shadow-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 cursor-pointer"
               aria-label="Start therapy session"
               whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(0, 255, 0, 0.3)" }}
               whileTap={{ scale: 0.95 }}

@@ -221,22 +221,200 @@ export async function GET(
       });
     }
     
-    // Remove duplicate content - keep only the latest timestamp for identical content
-    const uniqueEntries = new Map();
+    // Advanced deduplication with enhanced phrase matching and semantic similarity
+    let dedupedEntries = [];
+    const processedTexts = new Map();
     
-    // Group by speaker and text content
-    entries.forEach(entry => {
-      const key = `${entry.speaker}:${entry.text}`;
+    // Sort entries by timestamp to ensure proper order
+    const sortedEntries = [...entries].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    // Simplify text for comparison (lowercase, remove extra spaces, etc.)
+    const normalizeText = (text) => {
+      if (!text) return '';
+      return text.toLowerCase().trim().replace(/\s+/g, ' ');
+    };
+    
+    // Check if text is semantically similar to another text
+    const isSignificantlyDifferent = (text1, text2) => {
+      // Normalized versions for comparison
+      const norm1 = normalizeText(text1);
+      const norm2 = normalizeText(text2);
       
-      // If we've seen this content before, only keep the latest timestamp
-      if (!uniqueEntries.has(key) || 
-          new Date(entry.timestamp) > new Date(uniqueEntries.get(key).timestamp)) {
-        uniqueEntries.set(key, entry);
+      // Check if one string contains most of the other
+      const containsSignificantPart = (a, b) => {
+        // If a is a very short fragment, it's probably just the beginning of b
+        if (a.split(' ').length <= 3 && b.includes(a)) {
+          return true;
+        }
+        
+        // If a contains more than 80% of b's words, consider them similar
+        const aWords = new Set(a.split(' '));
+        const bWords = b.split(' ');
+        const commonWords = bWords.filter(word => aWords.has(word));
+        
+        return commonWords.length >= bWords.length * 0.8;
+      };
+      
+      // Check both directions of containment
+      return !containsSignificantPart(norm1, norm2) && !containsSignificantPart(norm2, norm1);
+    };
+    
+    // Process entries in chronological order
+    sortedEntries.forEach(entry => {
+      const speaker = entry.speaker.toLowerCase();
+      const text = entry.text.trim();
+      
+      // Skip empty entries
+      if (!text) return;
+      
+      // Get previous entries from this speaker
+      const speakerEntries = processedTexts.get(speaker) || [];
+      
+      // Check if this text is redundant with any existing entry
+      let isRedundant = false;
+      let replacedEntries = [];
+      
+      // Check the last 10 entries from this speaker (or all if fewer)
+      // Process in reverse to prioritize the most recent entries
+      for (let i = speakerEntries.length - 1; i >= Math.max(0, speakerEntries.length - 10); i--) {
+        const prevEntry = speakerEntries[i];
+        const prevText = prevEntry.text;
+        
+        // CASE 1: Current text is completely contained in a previous entry - skip it
+        if (normalizeText(prevText).includes(normalizeText(text))) {
+          // This text is fully contained in a previous message
+          isRedundant = true;
+          break;
+        }
+        
+        // CASE 2: Previous text is completely contained in current text - replace it
+        if (normalizeText(text).includes(normalizeText(prevText))) {
+          // Current text contains the previous one - mark for replacement
+          replacedEntries.push({
+            index: i,
+            id: prevEntry.id
+          });
+          continue;
+        }
+        
+        // CASE 3: Check for significant phrase overlap
+        // If a message starts with the same first few words (like greetings)
+        // or if one message is a small fragment of the beginning of the other
+        const normText = normalizeText(text);
+        const normPrevText = normalizeText(prevText);
+        
+        // Check if one is the beginning of the other
+        const isBeginningFragment = (
+          (normText.length < normPrevText.length * 0.5 && normPrevText.startsWith(normText)) ||
+          (normPrevText.length < normText.length * 0.5 && normText.startsWith(normPrevText))
+        );
+        
+        if (isBeginningFragment) {
+          // If current text is shorter, it's redundant with a more complete message
+          if (text.length < prevText.length) {
+            isRedundant = true;
+            break;
+          } else {
+            // Current text is more complete, replace the shorter one
+            replacedEntries.push({
+              index: i,
+              id: prevEntry.id
+            });
+            continue;
+          }
+        }
+        
+        // CASE 4: Check for semantically similar content
+        // Skip if entries are too different to be considered duplicates
+        if (!isSignificantlyDifferent(text, prevText)) {
+          // Keep the longer, more complete message
+          if (text.length >= prevText.length) {
+            // Current is more complete, replace the shorter one
+            replacedEntries.push({
+              index: i,
+              id: prevEntry.id
+            });
+          } else {
+            // Previous is more complete, skip the current one
+            isRedundant = true;
+            break;
+          }
+        }
       }
+      
+      // Skip adding this entry if it's redundant
+      if (isRedundant) return;
+      
+      // Remove all entries marked for replacement
+      if (replacedEntries.length > 0) {
+        // Sort indices in descending order to avoid index shifting issues
+        replacedEntries.sort((a, b) => b.index - a.index);
+        
+        for (const replaced of replacedEntries) {
+          // Remove from the speaker's history
+          speakerEntries.splice(replaced.index, 1);
+          
+          // Also remove from output array
+          const indexInDeduped = dedupedEntries.findIndex(e => e.id === replaced.id);
+          if (indexInDeduped >= 0) {
+            dedupedEntries.splice(indexInDeduped, 1);
+          }
+        }
+      }
+      
+      // Add this entry as a new entry
+      speakerEntries.push({
+        id: entry.id,
+        text: text
+      });
+      
+      // Update the speaker map
+      processedTexts.set(speaker, speakerEntries);
+      
+      // Add to deduped entries list
+      dedupedEntries.push(entry);
     });
     
-    // Convert map values back to array
-    const dedupedEntries = Array.from(uniqueEntries.values());
+    // Final quality check - remove very short greetings if longer ones exist
+    // Instead of reassigning dedupedEntries, we'll clear it and push new entries
+    
+    // Create a temporary map for grouping
+    const byIndex = new Map();
+    
+    // Group by speaker and index in conversation flow
+    dedupedEntries.forEach((entry, idx) => {
+      const speaker = entry.speaker.toLowerCase();
+      const key = `${speaker}-${Math.floor(idx / 2)}`; // Group by rough position in conversation
+      
+      if (!byIndex.has(key)) {
+        byIndex.set(key, []);
+      }
+      byIndex.get(key).push(entry);
+    });
+    
+    // Clear the existing entries and refill with grouped results
+    dedupedEntries.length = 0;
+    
+    // For each group, keep only the most informative message
+    byIndex.forEach(group => {
+      if (group.length === 1) {
+        dedupedEntries.push(group[0]);
+        return;
+      }
+      
+      // Sort by length (longer is usually more complete)
+      group.sort((a, b) => b.text.length - a.text.length);
+      
+      // Keep the longest message
+      dedupedEntries.push(group[0]);
+    });
+    
+    // Sort final entries by timestamp again to ensure order
+    dedupedEntries.sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
     
     console.log(`GET /api/sessions/${sessionId}/transcript - Found ${entries.length} entries, deduped to ${dedupedEntries.length}`);
     

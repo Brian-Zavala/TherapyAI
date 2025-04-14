@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { motion, useScroll, useTransform, useMotionValueEvent, useAnimation, useInView, useReducedMotion } from 'framer-motion'
 import ButtonWithSound from '@/components/ButtonWithSound'
 import SpiralTextAnimation from '@/components/SpiralTextAnimation'
+import ScrollDownArrow from '@/components/ScrollDownArrow'
 import { useRef, useState, useEffect } from 'react'
 
 // Media query helper
@@ -183,13 +184,13 @@ export default function Home() {
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
-            className="object-cover object-center opacity-40 md:opacity-50 scale-110 rounded-b-[3rem]" 
+            className="object-cover object-center opacity-70 rounded-b-[3rem]" 
             priority
             sizes="100vw"
-            quality={85}
+            quality={100}
           />
           {/* Gradient overlay with reduced opacity */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/40 to-purple-100/40"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-white/10 to-black-100/40"></div>
         </div>
         
         {/* Static decorative elements instead of floating particles */}
@@ -227,7 +228,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-base sm:text-xl text-gray-700 max-w-2xl mb-12 md:mb-16 leading-relaxed"
+            className="text-base sm:text-xl text-black max-w-2xl mb-12 md:mb-16 leading-relaxed"
           >
             Discover AI-powered therapy that helps you build healthier, more fulfilling relationships with those who matter most.
           </motion.p>
@@ -273,37 +274,16 @@ export default function Home() {
             </motion.div>
           </motion.div>
           
-          {/* Improved scroll guide animation with smoother easing and click handler */}
-          <motion.div 
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu cursor-pointer"
-            animate={{ 
-              y: isMobileView ? [0, 7, 0] : [0, 10, 0],
-              opacity: [0.7, 1, 0.7]
-            }}
-            transition={{ 
-              y: { 
-                duration: isMobileView ? 1.5 : 2.5, 
-                repeat: Infinity, 
-                ease: "easeInOut"
-              },
-              opacity: {
-                duration: isMobileView ? 1.5 : 2.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }
-            }}
-            onClick={() => {
-              if (featuresRef.current) {
-                smoothScroll(featuresRef.current as HTMLElement, 1500)
-              }
-            }}
-            whileHover={{ scale: 1.2 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <svg className="w-8 h-8 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          </motion.div>
+          {/* Improved scroll guide with hover text animation */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu">
+            <ScrollDownArrow
+              onClick={() => {
+                if (featuresRef.current) {
+                  smoothScroll(featuresRef.current as HTMLElement, 1500)
+                }
+              }}
+            />
+          </div>
         </motion.div>
       
       </section>

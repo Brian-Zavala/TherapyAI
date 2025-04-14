@@ -24,6 +24,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
   const [meditationStep, setMeditationStep] = useState<'none' | 'countdown' | 'breathe' | 'begin' | 'done'>('none');
+  // Quick actions menu state
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   // User profile data
   const [userProfile, setUserProfile] = useState<{
     name?: string;
@@ -205,6 +207,27 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const openTherapistSelector = () => {
     setShowTypeSelector(true);
   };
+  
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // If there's a click and it's not inside the quick actions menu or button
+      if (
+        quickActionsOpen && 
+        !target.closest('[data-quick-actions-menu]') && 
+        !target.closest('[data-quick-actions-button]')
+      ) {
+        setQuickActionsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [quickActionsOpen]);
 
   // Use React.createElement to avoid JSX parsing issues
   return React.createElement(React.Fragment, null, [
@@ -454,24 +477,222 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               key: "session-header",
               className: "mb-8 flex flex-col items-center hide-during-session"
             }, [
-              // Switch therapist button - moved to top
-              !isSessionActive ? 
-                React.createElement("div", {
-                  key: "action-buttons",
-                  className: "self-end mb-4"
+              // Navigation buttons at the top
+              !isSessionActive ? React.createElement("div", {
+                key: "action-buttons",
+                className: "w-full flex justify-between items-center -mt-7 sm:-mt-4 md:mt-0 lg:mt-1 mb-5 px-2 sm:px-4 md:px-6"
+              }, [
+                // Quick Actions Menu Button and Popup
+                React.createElement(motion.div, {
+                  key: "quick-actions-container",
+                  className: "relative z-20"
                 }, [
-                  React.createElement("button", {
-                    key: "switch-therapist",
-                    onClick: openTherapistSelector,
-                    className: `flex items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-300 hover:cursor-pointer ${
-                      isSessionActive 
-                        ? 'bg-red-700/30 text-white-300 hover:bg-red-700/40' 
-                        : 'bg-red-500/60 text-black hover:bg-red-500/70'
-                    }`
+                  // Main Quick Actions button
+                  React.createElement(motion.button, {
+                    key: "quick-actions-button",
+                    "data-quick-actions-button": "true",
+                    onClick: () => setQuickActionsOpen(!quickActionsOpen),
+                    className: `flex items-center rounded-lg px-3 py-2 text-xs font-medium ${
+                      quickActionsOpen 
+                        ? 'bg-blue-500/60 text-white shadow-lg shadow-blue-400/30 ring-2 ring-blue-200' 
+                        : isSessionActive 
+                          ? 'bg-blue-700/50 text-white hover:bg-blue-700/60' 
+                          : 'bg-blue-500/70 text-white hover:bg-blue-500/80'
+                    } transition-all duration-300 cursor-pointer`,
+                    whileHover: { scale: 1.05 },
+                    whileTap: { scale: 0.95 },
+                    initial: { opacity: 0, y: 20 },
+                    animate: { opacity: 1, y: 0 },
+                    transition: { 
+                      type: "spring", 
+                      stiffness: 500, 
+                      damping: 30 
+                    }
+                  }, [
+                    React.createElement("span", {
+                      key: "button-text",
+                      className: "flex items-center"
+                    }, [
+                      React.createElement("svg", {
+                        key: "menu-icon",
+                        className: "h-4 w-4 mr-1",
+                        fill: "none",
+                        viewBox: "0 0 24 24",
+                        stroke: "currentColor"
+                      }, React.createElement("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: 2,
+                        d: "M4 6h16M4 12h16M4 18h16"
+                      })),
+                      "Quick Actions",
+                      
+                      // Animated chevron
+                      React.createElement(motion.svg, {
+                        key: "chevron-icon",
+                        className: "h-4 w-4 ml-1",
+                        fill: "none",
+                        viewBox: "0 0 24 24",
+                        stroke: "currentColor",
+                        animate: { rotate: quickActionsOpen ? 180 : 0 },
+                        transition: { duration: 0.3 }
+                      }, React.createElement("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: 2,
+                        d: "M19 9l-7 7-7-7"
+                      }))
+                    ])
+                  ]),
+                  
+                  // Popup menu
+                  React.createElement(AnimatePresence, { mode: "wait", key: "quick-actions-presence" }, 
+                    quickActionsOpen && React.createElement(motion.div, {
+                      key: "popup-menu",
+                      "data-quick-actions-menu": "true",
+                      className: "absolute left-0 mt-2 w-48 rounded-md shadow-xl bg-white ring-1 ring-black/5 ring-opacity-5 z-30 overflow-hidden",
+                      initial: { opacity: 0, y: -10, scale: 0.95 },
+                      animate: { opacity: 1, y: 0, scale: 1 },
+                      exit: { opacity: 0, y: -10, scale: 0.95 },
+                      transition: { type: "spring", stiffness: 500, damping: 30 }
+                    }, [
+                      React.createElement(motion.div, {
+                        key: "popup-content",
+                        className: "py-1 divide-y divide-gray-100",
+                        variants: {
+                          open: {
+                            transition: { staggerChildren: 0.07, delayChildren: 0.05 }
+                          },
+                          closed: {
+                            transition: { staggerChildren: 0.05, staggerDirection: -1 }
+                          }
+                        },
+                        initial: "closed",
+                        animate: "open"
+                      }, [
+                        // Dashboard button
+                        React.createElement(motion.a, {
+                          key: "dashboard-button",
+                          href: "/dashboard",
+                          className: "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-green-500/80 cursor-pointer",
+                          variants: {
+                            open: { 
+                              opacity: 1, 
+                              y: 0,
+                              transition: { type: "spring", stiffness: 300, damping: 24 }
+                            },
+                            closed: { opacity: 0, y: 20 }
+                          },
+                          whileHover: { x: 5, transition: { type: "spring", stiffness: 400 } }
+                        }, [
+                          React.createElement("svg", {
+                            key: "dashboard-icon",
+                            className: "h-4 w-4 mr-2 text-blue-500",
+                            fill: "none",
+                            viewBox: "0 0 24 24",
+                            stroke: "currentColor"
+                          }, React.createElement("path", {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            strokeWidth: 2,
+                            d: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                          })),
+                          "Dashboard"
+                        ]),
+                        
+                        // Sessions button
+                        React.createElement(motion.a, {
+                          key: "sessions-button",
+                          href: "/dashboard/sessions",
+                          className: "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-green-500/80 cursor-pointer",
+                          variants: {
+                            open: { 
+                              opacity: 1, 
+                              y: 0,
+                              transition: { type: "spring", stiffness: 300, damping: 24 }
+                            },
+                            closed: { opacity: 0, y: 20 }
+                          },
+                          whileHover: { x: 5, transition: { type: "spring", stiffness: 400 } }
+                        }, [
+                          React.createElement("svg", {
+                            key: "sessions-icon",
+                            className: "h-4 w-4 mr-2 text-blue-500",
+                            fill: "none",
+                            viewBox: "0 0 24 24",
+                            stroke: "currentColor"
+                          }, React.createElement("path", {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            strokeWidth: 2,
+                            d: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          })),
+                          "Sessions"
+                        ]),
+                        
+                        // Resources button
+                        React.createElement(motion.a, {
+                          key: "resources-button",
+                          href: "/dashboard/resources",
+                          className: "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-green-500/80 cursor-pointer",
+                          variants: {
+                            open: { 
+                              opacity: 1, 
+                              y: 0,
+                              transition: { type: "spring", stiffness: 300, damping: 24 }
+                            },
+                            closed: { opacity: 0, y: 20 }
+                          },
+                          whileHover: { x: 5, transition: { type: "spring", stiffness: 400 } }
+                        }, [
+                          React.createElement("svg", {
+                            key: "resources-icon",
+                            className: "h-4 w-4 mr-2 text-blue-500",
+                            fill: "none",
+                            viewBox: "0 0 24 24",
+                            stroke: "currentColor"
+                          }, React.createElement("path", {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            strokeWidth: 2,
+                            d: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                          })),
+                          "Resources"
+                        ])
+                      ])
+                    ])
+                  )
+                ]),
+                // Switch therapist button - positioned separately on the right with animations
+                React.createElement(motion.button, {
+                  key: "switch-therapist",
+                  onClick: openTherapistSelector,
+                  className: `flex items-center rounded-lg px-3 py-2 text-xs font-medium ${
+                    isSessionActive 
+                      ? 'bg-rose-600/50 text-white hover:bg-rose-600/60' 
+                      : 'bg-rose-500/70 text-white hover:bg-rose-500/80'
+                  } cursor-pointer`,
+                  whileHover: { scale: 1.05 },
+                  whileTap: { scale: 0.95 },
+                  initial: { opacity: 0, y: 20 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { 
+                    type: "spring", 
+                    stiffness: 500, 
+                    damping: 30,
+                    delay: 0.1 // Slight delay for staggered animation
+                  }
+                }, [
+                  React.createElement(motion.div, {
+                    key: "button-content",
+                    className: "flex items-center",
+                    initial: { x: -5 },
+                    animate: { x: 0 },
+                    transition: { type: "spring", stiffness: 300 }
                   }, [
                     React.createElement("svg", {
                       key: "switch-icon",
-                      className: "h-3.5 w-3.5 mr-1",
+                      className: "h-4 w-4 mr-1",
                       fill: "none",
                       viewBox: "0 0 24 24",
                       stroke: "currentColor"
@@ -483,7 +704,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     })),
                     "Switch Therapist"
                   ])
-                ]) : null,
+                ])
+              ]) : null,
               // Therapist info - Enhanced centered layout
               React.createElement("div", {
                 key: "therapist",

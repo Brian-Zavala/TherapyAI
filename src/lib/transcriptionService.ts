@@ -163,14 +163,27 @@ export class TranscriptionService extends EventEmitter {
     // Determine if this is customer or assistant based on channel index
     const channel = channelIndex === 0 ? "customer" : "assistant";
 
-    this.logger.logDetailed("INFO", "Received transcript", "TranscriptionService", { channel, text });
+    this.logger.logDetailed("INFO", "Received transcript", "TranscriptionService", { 
+      channel, 
+      text,
+      is_final: transcription.is_final || transcription.speech_final 
+    });
+
+    // Only append with a space if the buffer is not empty
+    if (this.finalResult[channel]) {
+      this.finalResult[channel] += ` ${text}`;
+    } else {
+      this.finalResult[channel] = text;
+    }
 
     if (transcription.is_final || transcription.speech_final) {
-      this.finalResult[channel] += ` ${text}`;
+      // For final transcriptions, emit immediately
       this.emitTranscription();
+      
+      // Clear the buffer after emitting the final transcript
+      this.finalResult[channel] = "";
     } else {
-      this.finalResult[channel] += ` ${text}`;
-      // Emit if there's been no activity for the debounce period
+      // For interim transcriptions, emit only after inactivity period
       if (currentTime - this.lastTranscriptionTime >= DEBOUNCE_DELAY) {
         this.logger.logDetailed(
           "INFO",
@@ -186,19 +199,48 @@ export class TranscriptionService extends EventEmitter {
 
   /**
    * Emit transcription events for both customer and assistant channels
+   * with improved sentence handling and deduplication
    */
   private emitTranscription() {
     for (const chan of ["customer", "assistant"]) {
-      if (this.finalResult[chan].trim()) {
-        const transcript = this.finalResult[chan].trim();
-        
-        this.logger.logDetailed("INFO", "Emitting transcription", "TranscriptionService", {
+      const textBuffer = this.finalResult[chan].trim();
+      
+      if (!textBuffer) continue;
+      
+      // Process the text to create complete sentences when possible
+      let cleanedText = textBuffer;
+      
+      // Check if we have at least one complete sentence (with punctuation at the end)
+      const hasCompleteEndingRegex = /[.!?]\s*$/;
+      const hasCompleteSentence = hasCompleteEndingRegex.test(cleanedText);
+      
+      // If we have complete sentences, emit the entire buffer
+      if (hasCompleteSentence) {
+        this.logger.logDetailed("INFO", "Emitting complete sentence", "TranscriptionService", {
           channel: chan,
-          transcript,
+          transcript: cleanedText,
         });
         
-        this.emit("transcription", transcript, chan);
-        this.finalResult[chan] = "";
+        this.emit("transcription", cleanedText, chan);
+        this.finalResult[chan] = ""; // Clear buffer after emitting
+      } 
+      // For non-final incomplete sentences, only emit if the text is substantial (more than 4 words)
+      else if (cleanedText.split(/\s+/).length > 4) {
+        this.logger.logDetailed("INFO", "Emitting substantial fragment", "TranscriptionService", {
+          channel: chan,
+          transcript: cleanedText,
+        });
+        
+        this.emit("transcription", cleanedText, chan);
+        this.finalResult[chan] = ""; // Clear buffer after emitting
+      }
+      // For very short fragments, keep accumulating unless we've been explicitly told it's final
+      else {
+        this.logger.logDetailed("INFO", "Keeping short fragment in buffer", "TranscriptionService", {
+          channel: chan,
+          buffer: cleanedText,
+        });
+        // Keep the text in buffer - don't clear or emit
       }
     }
   }
