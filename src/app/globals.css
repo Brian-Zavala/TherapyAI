@@ -1,40 +1,112 @@
+/* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap');
+
+/* * Import Tailwind CSS. 
+ * Tailwind's base styles (Preflight) will be applied first. 
+ * Custom styles below may override Tailwind base styles.
+ * Tailwind utility classes used in HTML may override custom styles here.
+ */
 @import "tailwindcss";
 
-/* Countdown and breathing animation styles */
+/* --- CSS Variables --- */
+:root {
+  --color-bg-light: #e5e5f7;
+  --color-bg-dark: #1e293b; /* Default dark background if needed */
+  --color-text-light: #f8fafc; /* Text color for dark/session backgrounds */
+  --color-text-dark: #333; /* Default text color for light backgrounds */
+  --color-accent-radial-bg: rgba(218, 218, 218, 0.1);
+  --color-session-glow: rgba(99, 102, 241, 0.1); /* Initial body background */
+
+  --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Fraunces', serif;
+}
+
+/* --- Base HTML & Body Styles --- */
+html, body {
+  font-family: var(--font-body);
+  background-color: var(--color-session-glow); /* Default background */
+  color: var(--color-text-dark);             /* Default text color */
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%; /* Set initial height */
+  min-height: 100vh; /* Ensure it fills viewport height */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  position: relative; /* Needed for some positioning contexts and mobile fixes */
+  touch-action: manipulation; /* Improve touch interaction */
+  -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4, h5, h6 {
+   font-family: var(--font-heading);
+   /* Note: Tailwind's Preflight likely resets heading margins/sizes */
+}
+
+/* --- Custom Fonts --- */
+@font-face {
+  font-family: 'Digital';
+  src: url(/fonts/DS-DIGI.TTF) format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'DigitalBold';
+  src: url(/fonts/DS-DIGIB.TTF) format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* --- Session Active State --- */
+/* Styles applied when a breathing session is active */
+html.session-active,
+body.session-active {
+  /* Override default background for the starry night effect */
+  background-color: transparent !important; /* !important likely needed to override inline styles or highly specific selectors */
+  color: var(--color-text-light); /* Change text color for dark background */
+  transition: background 0.3s ease-in-out, color 0.3s ease-in-out; /* Smooth transition */
+  /* Ensure body can grow if content exceeds viewport height during session */
+  height: auto !important; /* !important ensures override if height was previously constrained */
+  min-height: 100vh; /* Reaffirm min-height */
+  background-attachment: fixed; /* Keep background fixed if one were applied directly here */
+  background-size: cover;
+  background-repeat: no-repeat;
+  overscroll-behavior: none; /* Prevent bounce effects revealing underlying backgrounds */
+  /* z-index: 0; /* Body acts as a base stacking layer (already relative) */
+}
+
+/* Ensure main content area extends to fill the screen during sessions */
+body.session-active main {
+  min-height: 100vh; /* Make main content area fill the screen */
+  overflow-x: hidden; /* Prevent horizontal scroll within main */
+}
+
+/* Hide specific elements during active sessions */
+.hide-during-session {
+  transition: opacity 0.1s, visibility 0.1s;
+}
+body.session-active .hide-during-session {
+  display: none !important; /* Use !important cautiously, ensure it's necessary */
+  opacity: 0;
+  visibility: hidden;
+}
+
+
+/* --- Animations --- */
+
+/* Keyframes */
 @keyframes pulse-glow {
   0%, 100% { 
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.7),
-                0 0 20px rgba(255, 255, 255, 0.4);
+                 0 0 20px rgba(255, 255, 255, 0.4);
     transform: scale(1);
   }
   50% { 
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.9),
-                0 0 30px rgba(255, 255, 255, 0.6);
+                 0 0 30px rgba(255, 255, 255, 0.6);
     transform: scale(1.05);
   }
-}
-
-.countdown-number {
-  animation: pulse-glow 1s ease-in-out infinite;
-  font-family: var(--font-heading);
-  letter-spacing: -0.05em;
-}
-
-.breath-text {
-  font-family: var(--font-heading);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  animation: breath-pulse 10s ease-in-out;
-}
-
-/* Apply the same animation to the Begin text but with a constant glow */
-.begin-text {
-  font-family: var(--font-heading);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  animation: begin-pulse 5s ease-in-out;
-  /* Base text shadow applied by default */
 }
 
 @keyframes begin-pulse {
@@ -72,316 +144,31 @@
 
 @keyframes breath-pulse {
   /* First breath cycle */
-  0% { 
-    opacity: 0; 
-    transform: scale(0.92);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-  }
-  5% { 
-    opacity: 1; 
-    transform: scale(0.95);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-  }
-  25% { 
-    opacity: 1; 
-    transform: scale(1.2); /* Still noticeable expansion but less extreme */
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
-                 0 0 40px rgba(255, 255, 255, 0.4);
-  }
-  45% { 
-    opacity: 1; 
-    transform: scale(0.95);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-  }
-  
+  0%   { opacity: 0; transform: scale(0.92); text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+  5%   { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
+  25%  { opacity: 1; transform: scale(1.2);  text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4); }
+  45%  { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
   /* Second breath cycle */
-  50% { 
-    opacity: 1; 
-    transform: scale(0.95);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-  }
-  75% { 
-    opacity: 1; 
-    transform: scale(1.2); /* Still noticeable expansion but less extreme */
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
-                 0 0 40px rgba(255, 255, 255, 0.4);
-  }
-  95% { 
-    opacity: 1; 
-    transform: scale(0.95);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-  }
-  100% { 
-    opacity: 0; 
-    transform: scale(0.92);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-  }
-}
-
-/* Stars background for active sessions */
-.stars {
-  width: 3px;
-  height: 3px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: transparent;
-  box-shadow: 2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white,
-    22vw 22vh 1px white, 28vw 12vh 2px white, 32vw 32vh 1px white,
-    38vw 18vh 2px white, 42vw 35vh 1px white, 48vw 25vh 2px white,
-    53vw 42vh 1px white, 58vw 15vh 2px white, 63vw 38vh 1px white,
-    68vw 28vh 2px white, 73vw 45vh 1px white, 78vw 32vh 2px white,
-    83vw 48vh 1px white, 88vw 20vh 2px white, 93vw 52vh 1px white,
-    98vw 35vh 2px white, 5vw 60vh 1px white, 12vw 65vh 2px white,
-    18vw 72vh 1px white, 25vw 78vh 2px white, 30vw 85vh 1px white,
-    35vw 68vh 2px white, 40vw 82vh 1px white, 45vw 92vh 2px white,
-    50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white,
-    65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white,
-    80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white,
-    95vw 75vh 2px white, 50vw 98vh 2px white, 60vw 99vh 2px white,
-    75vw 100vh 2px white, 90vw 99vh 2px white, 30vw 100vh 1px white;
-  pointer-events: none;
-  animation: twinkle 8s infinite linear;
-}
-
-.shooting-star {
-  position: fixed;
-  width: 100px;
-  height: 2px;
-  background: linear-gradient(90deg, white, transparent);
-  z-index: 1;
-  pointer-events: none;
-  animation: shoot 3s infinite ease-in;
-}
-
-.shooting-star:nth-child(1) {
-  top: 20%;
-  left: -100px;
-  animation-delay: 0s;
-}
-
-.shooting-star:nth-child(2) {
-  top: 35%;
-  left: -100px;
-  animation-delay: 1s;
-}
-
-.shooting-star:nth-child(3) {
-  top: 50%;
-  left: -100px;
-  animation-delay: 2s;
+  50%  { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); } /* Hold briefly */
+  75%  { opacity: 1; transform: scale(1.2);  text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4); }
+  95%  { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
+  100% { opacity: 0; transform: scale(0.92); text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
 }
 
 @keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.9;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.5; }
 }
 
 @keyframes shoot {
-  0% {
-    transform: translateX(0) translateY(0) rotate(25deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(120vw) translateY(50vh) rotate(25deg);
-    opacity: 0;
-  }
-}
-
-/* Additional twinkling stars with different animation timing */
-.stars::after {
-  content: "";
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  background: white;
-  box-shadow: 8vw 12vh 2px white, 16vw 18vh 1px white, 24vw 25vh 2px white,
-    33vw 15vh 1px white, 41vw 28vh 2px white, 49vw 35vh 1px white,
-    57vw 22vh 2px white, 65vw 42vh 1px white, 73vw 28vh 2px white,
-    81vw 48vh 1px white, 89vw 32vh 2px white, 97vw 45vh 1px white,
-    3vw 68vh 2px white, 11vw 75vh 1px white, 19vw 82vh 2px white,
-    27vw 88vh 1px white, 35vw 72vh 2px white, 43vw 85vh 1px white,
-    51vw 92vh 2px white, 59vw 78vh 1px white;
-  animation: twinkle 6s infinite linear reverse;
-}
-
-/* Animated background with circles */
-.gradient-bg {
-  background: #00adef;
-  background: -moz-linear-gradient(-45deg, #00adef 0%, #0076e5 100%);
-  background: -webkit-linear-gradient(-45deg, #00adef 0%,#0076e5 100%);
-  background: linear-gradient(135deg, #00adef 0%,#0076e5 100%);
-  position: fixed;
-  inset: 0;
-  height: 100vh;
-  width: 100vw;
-  z-index: 0;
-  overflow: hidden;
-  min-height: 100vh;
-}
-
-.gradient-container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.circle-small {
-  animation: circle-small-scale 3s ease-in-out infinite alternate;
-  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
-  animation-delay: 0s;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  opacity: 0.4;
-}
-
-.circle-medium {
-  animation: circle-small-scale 3s ease-in-out infinite alternate;
-  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
-  animation-delay: 0.3s;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  opacity: 0.3;
-}
-
-.circle-large {
-  animation: circle-small-scale 3s ease-in-out infinite alternate;
-  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
-  animation-delay: 0.6s;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  width: 900px;
-  height: 900px;
-  border-radius: 50%;
-  opacity: 0.2;
-}
-
-.circle-xlarge {
-  animation: circle-small-scale 3s ease-in-out infinite alternate;
-  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
-  animation-delay: 0.9s;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  width: 1200px;
-  height: 1200px;
-  border-radius: 50%;
-  opacity: 0.1;
-}
-
-.circle-xxlarge {
-  animation: circle-small-scale 3s ease-in-out infinite alternate;
-  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
-  animation-delay: 1.2s;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  width: 1500px;
-  height: 1500px;
-  border-radius: 50%;
-  opacity: 0.05;
+  0%   { transform: translateX(0) translateY(0) rotate(25deg); opacity: 1; }
+  100% { transform: translateX(120vw) translateY(50vh) rotate(25deg); opacity: 0; }
 }
 
 @keyframes circle-small-scale {
-  0% {
-    transform: translate(-50%, -50%) scale(1.0);
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.1);
-  }
+  0%   { transform: translate(-50%, -50%) scale(1.0); }
+  100% { transform: translate(-50%, -50%) scale(1.1); }
 }
-
-
-:root {
-  --color-bg-light: #e5e5f7;
-  --color-bg-dark: #1e293b;
-  --color-text-light: #f8fafc;
-  --color-text-dark: /* Define your dark text color, e.g., #333 */ ;
-  --color-accent-radial-bg: rgba(218, 218, 218, 0.1);
-  --color-session-glow: rgba(99, 102, 241, 0.1);
-
-  --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: 'Fraunces', serif;
-}
-
-html, body {
-  font-family: var(--font-body);
-  background-color: var(--color-session-glow);
-  color: var(--color-text-dark); /* Default text color */
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  min-height: 100vh;
-}
-
-h1, h2, h3, h4, h5, h6 {
-   font-family: var(--font-heading);
-}
-
-html.session-active,
-body.session-active {
-  /* Remove the blue background entirely, will be handled by our starry background */
-  background-color: transparent !important;
-  color: var(--color-text-light);
-  transition: background 0.3s ease-in-out;
-  min-height: 100vh;
-  height: 100%;
-}
-
-/* Ensure the body fills the entire viewport and beyond */
-body.session-active {
-  min-height: 100vh; 
-  height: auto !important; /* Allow it to expand with content */
-  background-attachment: fixed;
-  background-size: cover;
-  background-repeat: no-repeat;
-  overscroll-behavior: none; /* Prevent bounce effects that can reveal background */
-  position: relative; /* Create stacking context */
-  z-index: 0; /* Ensure proper stacking */
-}
-
-/* Fix for mobile view */
-html, body {
-  overflow-x: hidden;
-  position: relative;
-  touch-action: manipulation;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Removed the overlay to simplify to a single blue background */
-/* Enhanced animations with optimized performance - ambient-float removed (unused) */
 
 @keyframes fadeIn {
   0% { opacity: 0; transform: translateY(5px); }
@@ -390,7 +177,7 @@ html, body {
 
 @keyframes slideDown {
   0% { height: 0; opacity: 0; }
-  100% { height: auto; opacity: 1; }
+  100% { height: auto; opacity: 1; } /* Use auto height */
 }
 
 @keyframes pulse {
@@ -408,100 +195,8 @@ html, body {
   100% { transform: rotate(360deg); }
 }
 
-@font-face {
-  font-family: 'Digital';
-  src: url(/fonts/DS-DIGI.TTF) format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'DigitalBold';
-  src: url(/fonts/DS-DIGIB.TTF) format('truetype');
-  font-weight: bold;
-  font-style: normal;
-}
-
-/* Digital clock styling */
-.digital-clock {
-  font-family: 'Digital', sans-serif;
-  text-align: center;
-}
-
-.digital-clock-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-@media (min-width: 768px) {
-  .digital-clock-container {
-    align-items: flex-end;
-  }
-}
-
-.digital-time {
-  display: flex;
-  align-items: center;
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.digital-date {
-  font-size: 1rem;
-  margin-top: 0.25rem;
-}
-
-@media (min-width: 768px) {
-  .digital-time {
-    font-size: 2.5rem;
-  }
-  .digital-date {
-    font-size: 1.2rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .digital-time {
-    font-size: 3rem;
-  }
-  .digital-date {
-    font-size: 1.4rem;
-  }
-}
-
-.digital-time .hours,
-.digital-time .minutes,
-.digital-time .seconds {
-  min-width: 1.5em;
-  display: inline-block;
-  text-align: center;
-}
-
-.digital-time .separator {
-  animation: blink 1s infinite;
-}
-
 @keyframes blink {
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.digital-time .am-pm {
-  font-size: 0.5em;
-  margin-left: 0.25rem;
-  align-self: flex-start;
-}
-
-/* Digital clock neon effect */
-.neon-text {
-  text-shadow:
-    0 0 5px rgba(202, 228, 225, 0.8),
-    0 0 10px rgba(202, 228, 225, 0.3),
-    0 0 5px rgba(30, 132, 242, 0.5),
-    0 0 10px rgba(30, 132, 242, 0.8);
-  animation: neon 3s ease-in-out infinite alternate;
+  50% { opacity: 0.5; }
 }
 
 @keyframes neon {
@@ -521,9 +216,219 @@ html, body {
   }
 }
 
-/* Smooth scrolling behavior */
-html {
-  scroll-behavior: smooth;
+/* Animation Applications */
+
+/* Shared styles for animated heading text */
+.countdown-number,
+.breath-text,
+.begin-text {
+  font-family: var(--font-heading);
+  letter-spacing: 0.1em; /* Using 0.1em from breath/begin, adjust if needed */
+}
+
+.countdown-number {
+  animation: pulse-glow 1s ease-in-out infinite;
+  letter-spacing: -0.05em; /* Override shared spacing */
+}
+
+.breath-text {
+  text-transform: uppercase;
+  animation: breath-pulse 10s ease-in-out;
+}
+
+.begin-text {
+  text-transform: uppercase;
+  animation: begin-pulse 5s ease-in-out;
+}
+
+
+/* --- Background Effects (Stars & Gradient Circles) --- */
+
+/* Gradient Circles Background (appears behind stars when session is not active) */
+.gradient-bg {
+  background: linear-gradient(135deg, #00adef 0%,#0076e5 100%);
+  position: fixed;
+  inset: 0;
+  height: 100vh; /* Use vh for full viewport height */
+  width: 100vw;  /* Use vw for full viewport width */
+  z-index: -2; /* Ensure it's behind everything, including default body background */
+  overflow: hidden;
+}
+
+.gradient-container {
+  position: relative; /* Contains the absolute positioned circles */
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Prevent circles escaping container */
+}
+
+/* Base styles for circles */
+.circle-small, .circle-medium, .circle-large, .circle-xlarge, .circle-xxlarge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: #fff;
+  border-radius: 50%;
+  animation: circle-small-scale 3s ease-in-out infinite alternate;
+  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  transform: translate(-50%, -50%); /* Initial centering */
+}
+
+/* Individual circle styles */
+.circle-small  { width: 300px;  height: 300px;  opacity: 0.4; animation-delay: 0s;    }
+.circle-medium { width: 600px;  height: 600px;  opacity: 0.3; animation-delay: 0.3s;  }
+.circle-large  { width: 900px;  height: 900px;  opacity: 0.2; animation-delay: 0.6s;  }
+.circle-xlarge { width: 1200px; height: 1200px; opacity: 0.1; animation-delay: 0.9s;  }
+.circle-xxlarge{ width: 1500px; height: 1500px; opacity: 0.05; animation-delay: 1.2s; }
+
+
+/* Starry Night Background (visible during active session) */
+/* Base star layer */
+.stars {
+  /* These dimensions are tiny, the box-shadow creates the stars */
+  width: 3px; 
+  height: 3px;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0; /* Cover viewport */
+  background: transparent; /* Container is invisible */
+  box-shadow: /* Star definitions... */
+    2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white,
+    22vw 22vh 1px white, 28vw 12vh 2px white, 32vw 32vh 1px white,
+    38vw 18vh 2px white, 42vw 35vh 1px white, 48vw 25vh 2px white,
+    53vw 42vh 1px white, 58vw 15vh 2px white, 63vw 38vh 1px white,
+    68vw 28vh 2px white, 73vw 45vh 1px white, 78vw 32vh 2px white,
+    83vw 48vh 1px white, 88vw 20vh 2px white, 93vw 52vh 1px white,
+    98vw 35vh 2px white, 5vw 60vh 1px white, 12vw 65vh 2px white,
+    18vw 72vh 1px white, 25vw 78vh 2px white, 30vw 85vh 1px white,
+    35vw 68vh 2px white, 40vw 82vh 1px white, 45vw 92vh 2px white,
+    50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white,
+    65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white,
+    80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white,
+    95vw 75vh 2px white, 50vw 98vh 2px white, 60vw 99vh 2px white,
+    75vw 100vh 2px white, 90vw 99vh 2px white, 30vw 100vh 1px white;
+  pointer-events: none; /* Allow clicks through the star layer */
+  animation: twinkle 8s infinite linear;
+  z-index: -1; /* Position behind content, but potentially above gradient-bg if it exists */
+}
+
+/* Additional star layer using pseudo-element */
+.stars::after {
+  content: "";
+  position: absolute; /* Position relative to .stars */
+  top: 0; left: 0; /* Align with parent */
+  width: 1px; height: 1px; /* Base size for pseudo-element */
+  background: white; /* Needed for box-shadow to render */
+  box-shadow: /* More star definitions... */
+    8vw 12vh 2px white, 16vw 18vh 1px white, 24vw 25vh 2px white,
+    33vw 15vh 1px white, 41vw 28vh 2px white, 49vw 35vh 1px white,
+    57vw 22vh 2px white, 65vw 42vh 1px white, 73vw 28vh 2px white,
+    81vw 48vh 1px white, 89vw 32vh 2px white, 97vw 45vh 1px white,
+    3vw 68vh 2px white, 11vw 75vh 1px white, 19vw 82vh 2px white,
+    27vw 88vh 1px white, 35vw 72vh 2px white, 43vw 85vh 1px white,
+    51vw 92vh 2px white, 59vw 78vh 1px white;
+  animation: twinkle 6s infinite linear reverse; /* Different timing */
+  /* Inherits pointer-events: none from .stars */
+}
+
+/* Shooting stars */
+.shooting-star {
+  position: fixed;
+  width: 100px; height: 2px;
+  background: linear-gradient(90deg, white, transparent);
+  z-index: 0; /* Above stars background, below most content */
+  pointer-events: none;
+  animation: shoot 3s infinite ease-in;
+}
+
+/* Stagger shooting stars */
+.shooting-star:nth-child(1) { top: 20%; left: -100px; animation-delay: 0s; }
+.shooting-star:nth-child(2) { top: 35%; left: -100px; animation-delay: 1s; }
+.shooting-star:nth-child(3) { top: 50%; left: -100px; animation-delay: 2s; }
+
+
+/* --- Digital Clock Styles --- */
+.digital-clock {
+  font-family: 'Digital', sans-serif; /* Use custom digital font */
+  text-align: center;
+}
+
+.digital-clock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center on mobile */
+}
+
+.digital-time {
+  display: flex;
+  align-items: center; /* Vertically align time parts */
+  font-size: 2rem; /* Base size */
+  line-height: 1;
+}
+
+.digital-date {
+  font-size: 1rem; /* Base size */
+  margin-top: 0.25rem;
+}
+
+/* Responsive adjustments for clock */
+@media (min-width: 768px) { /* Medium screens */
+  .digital-clock-container {
+    align-items: flex-end; /* Align to right */
+  }
+  .digital-time { font-size: 2.5rem; }
+  .digital-date { font-size: 1.2rem; }
+}
+@media (min-width: 1024px) { /* Large screens */
+  .digital-time { font-size: 3rem; }
+  .digital-date { font-size: 1.4rem; }
+}
+
+/* Spacing for time digits */
+.digital-time .hours,
+.digital-time .minutes,
+.digital-time .seconds {
+  min-width: 1.5em; /* Ensure digits take up space */
+  display: inline-block;
+  text-align: center;
+}
+
+/* Blinking separator */
+.digital-time .separator {
+  animation: blink 1s infinite;
+}
+
+/* AM/PM style */
+.digital-time .am-pm {
+  font-size: 0.5em; /* Smaller */
+  margin-left: 0.25rem;
+  align-self: flex-start; /* Align to top */
+}
+
+/* Neon effect for clock text */
+.neon-text {
+  text-shadow: /* Base shadow */
+    0 0 5px rgba(202, 228, 225, 0.8),
+    0 0 10px rgba(202, 228, 225, 0.3),
+    0 0 5px rgba(30, 132, 242, 0.5),
+    0 0 10px rgba(30, 132, 242, 0.8);
+  animation: neon 3s ease-in-out infinite alternate; /* Apply neon animation */
+}
+
+
+/* --- Utilities & Optimizations --- */
+
+/* * Universal Scrollbar Hiding 
+ * WARNING: This applies to *all* elements using `*`. 
+ * It forcefully hides scrollbars using `!important`. 
+ * This might be too broad if specific elements need scrollbars.
+ * Consider targeting `html, body` instead if global hiding isn't strictly required.
+ */
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+*::-webkit-scrollbar { /* WebKit */
+  display: none; 
 }
 
 /* Optimize browser rendering for animations */
@@ -536,27 +441,6 @@ html {
 /* Control scrolling experience */
 @media (prefers-reduced-motion: no-preference) {
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: smooth; /* Enable smooth scrolling if user allows motion */
   }
-}
-
-/* Ambient background effect - Removed (unused) */
-
-/* Hide content during active sessions - can be used with JS */
-body.session-active .hide-during-session {
-  display: none !important;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.1s, visibility 0.1s;
-}
-
-.hide-during-session {
-  transition: opacity 0.1s, visibility 0.1s;
-}
-
-/* Ensure main content area extends to fill the screen during sessions */
-body.session-active main {
-  min-height: 100vh;
-  overflow-x: hidden;
- 
 }

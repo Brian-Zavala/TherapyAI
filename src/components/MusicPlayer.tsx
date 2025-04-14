@@ -147,10 +147,28 @@ export default function MusicPlayer() {
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
   
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const shouldPlayRef = useRef(false)
+  
+  // Check for mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    // Initial check
+    checkMobile()
+    
+    // Listen for resize events
+    window.addEventListener('resize', checkMobile)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -324,20 +342,34 @@ export default function MusicPlayer() {
   return (
     <>
       {/* Music Player Button */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-all duration-300 cursor-pointer"
-          aria-label={isOpen ? "Close music player" : "Open music player"}
-        >
-          {isOpen ? (
-            <X className="w-6 h-6 text-white" />
-          ) : (
-            <Music className="w-6 h-6 text-white" />
-          )}
-        </button>
-      </div>
-
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.div 
+            className="fixed bottom-8 right-8 z-[60]"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0, transition: {
+              duration: 0.1,
+              delay: 0
+            }}}
+            transition={{ 
+              type: "spring",
+              stiffness: 350,
+              damping: 25,
+              delay: 0.15
+            }}
+          >
+            <button 
+              onClick={() => setIsOpen(true)}
+              className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-all duration-300 cursor-pointer"
+              aria-label="Open music player"
+            >
+              <Music className="w-6 h-6 text-white" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       {/* Music Player */}
       <AnimatePresence>
         {isOpen && (
@@ -345,8 +377,13 @@ export default function MusicPlayer() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed bottom-8 right-8 z-40 w-11/12 sm:w-10/12 md:w-2/3 lg:w-1/2 max-w-lg"
+            transition={{ 
+              type: 'spring', 
+              stiffness: 300, 
+              damping: 30,
+              delay: 0.05 
+            }}
+            className="fixed bottom-8 right-8 z-[55] w-11/12 sm:w-10/12 md:w-2/3 lg:w-1/2 max-w-lg"
           >
             <div className="bg-white shadow-lg rounded-lg w-full">
               <div className="flex flex-col md:flex-row">
@@ -357,21 +394,54 @@ export default function MusicPlayer() {
                     alt={`${tracks[currentTrack].title} album cover`}
                   />
                 </div>
-                <div className="w-full md:w-3/5 p-3 sm:p-4 md:p-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <button 
-                        onClick={() => setIsOpen(false)}
-                        className="p-1 hover:bg-gray-100 rounded-full cursor-pointer"
-                        aria-label="Minimize music player"
-                      >
-                        <X className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                      </button>
-                    </div>
-                    <div className="cursor-pointer text-red-500">
-                      <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
+                <div className="w-full md:w-3/5 p-3 sm:p-4 md:p-6 relative">
+                  <div className="flex justify-end items-center">
+                    {/* Heart icon removed as it has no function */}
                   </div>
+                  
+                  {/* Animated Close Button - optimized for all screen sizes */}
+                  <AnimatePresence>
+                    <motion.button
+                      key="close-button"
+                      onClick={() => setIsOpen(false)}
+                      className="absolute p-0.5 sm:p-1 hover:bg-red-600 rounded-full cursor-pointer z-[65] bg-red-500 flex items-center justify-center shadow-md"
+                      initial={{ 
+                        // Start from bottom right of player container 
+                        bottom: "0.75rem",
+                        right: "0.75rem",
+                        width: "1.25rem",
+                        height: "1.25rem",
+                        opacity: 0 
+                      }}
+                      animate={{ 
+                        // Move to top right
+                        bottom: "auto",
+                        top: "0.5rem", 
+                        right: "0.5rem",
+                        width: "1.5rem",
+                        height: "1.5rem",
+                        opacity: 1 
+                      }}
+                      exit={{
+                        // Return to bottom right
+                        top: "auto",
+                        bottom: "0.75rem", 
+                        right: "0.75rem",
+                        width: "1.25rem",
+                        height: "1.25rem",
+                        opacity: 0
+                      }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 350, 
+                        damping: 25,
+                        delay: 0.05
+                      }}
+                      aria-label="Close music player"
+                    >
+                      <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
+                    </motion.button>
+                  </AnimatePresence>
                   
                   <div className="mt-4 sm:mt-6 md:mt-8">
                     <h3 className="text-lg sm:text-xl md:text-2xl text-gray-800 font-medium truncate">{tracks[currentTrack].title}</h3>

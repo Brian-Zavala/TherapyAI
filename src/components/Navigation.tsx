@@ -25,7 +25,7 @@ export default function Navigation() {
       : 'text-indigo-100 hover:text-white'
   
   return (
-    <header className="bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm sticky top-0 z-40 w-full">
+    <header className="bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm sticky top-0 z-40 w-full">
       <div className="w-full py-3">
         <div className="flex justify-between items-center w-full px-2">
           {/* Logo/Site Title - far left aligned */}
@@ -39,9 +39,9 @@ export default function Navigation() {
           <div className="flex-1"></div>
           
           {/* Hamburger button - visible on all screen sizes */}
-          <div className="flex-none">
+          <div className="flex-none pr-6">
             <button 
-              className="p-2 focus:outline-none cursor-pointer rounded-lg hover:bg-blue-700 transition-colors"
+              className="p-2 focus:outline-none cursor-pointer rounded-lg hover:bg-blue-500 transition-colors"
               onClick={toggleMenu}
               aria-label="Toggle menu"
             >
@@ -77,7 +77,7 @@ export default function Navigation() {
       
       {/* Menu drawer - appears for all screen sizes */}
       <div 
-        className={`fixed top-0 right-0 h-screen bg-gradient-to-r from-blue-500 to-blue-600 z-50 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out w-72 transform ${
+        className={`fixed top-0 right-0 h-screen bg-gradient-to-r from-blue-600 to-blue-500 z-50 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out w-72 transform ${
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -85,7 +85,7 @@ export default function Navigation() {
          
           <button
             onClick={toggleMenu}
-            className="p-2 text-white hover:bg-blue-700 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-white hover:bg-blue-500 rounded-full transition-colors cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -96,7 +96,7 @@ export default function Navigation() {
         <div className="px-4 py-6 flex flex-col space-y-2">
           <Link 
             href="/" 
-            className={`${linkStyles(pathname === '/')} py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center`}
+            className={`${linkStyles(pathname === '/')} py-2 px-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center`}
             onClick={() => setIsMenuOpen(false)}
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -117,7 +117,7 @@ export default function Navigation() {
             <>
               <Link 
                 href="/dashboard/therapy" 
-                className={`${linkStyles(pathname === '/dashboard/therapy')} py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center`}
+                className={`${linkStyles(pathname === '/dashboard/therapy')} py-2 px-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -127,7 +127,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/dashboard" 
-                className={`${linkStyles(pathname === '/dashboard')} py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center`}
+                className={`${linkStyles(pathname === '/dashboard')} py-2 px-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -137,7 +137,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/dashboard/sessions" 
-                className={`${linkStyles(pathname === '/dashboard/sessions')} py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center`}
+                className={`${linkStyles(pathname === '/dashboard/sessions')} py-2 px-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -147,7 +147,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/dashboard/resources" 
-                className={`${linkStyles(pathname.includes('/resources'))} py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center`}
+                className={`${linkStyles(pathname.includes('/resources'))} py-2 px-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -157,7 +157,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/dashboard/profile" 
-                className={`${linkStyles(pathname === '/dashboard/profile')} py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center`}
+                className={`${linkStyles(pathname === '/dashboard/profile')} py-2 px-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -172,7 +172,7 @@ export default function Navigation() {
                     logout()
                     setIsMenuOpen(false)
                   }}
-                  className="text-indigo-100 hover:cursor-pointer hover:text-white w-full py-2 px-3 text-left rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                  className="text-indigo-100 hover:cursor-pointer hover:text-white w-full py-2 px-3 text-left hover:bg-gradient-to-r from-red-500 via-red-500/50 to-red-500/5 rounded-lg hover:frombg-red-700 transition-colors flex items-center"
                 >
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -185,7 +185,7 @@ export default function Navigation() {
             <>
               <Link 
                 href="/auth/login" 
-                className={`${linkStyles(pathname === '/auth/login')} py-2 px-3 rounded-lg hover:bg-indigo-800 transition-colors flex items-center`}
+                className={`${linkStyles(pathname === '/auth/login')} py-2 px-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -195,7 +195,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/auth/register" 
-                className={`${linkStyles(pathname === '/auth/register')} py-2 px-3 rounded-lg hover:bg-indigo-800 transition-colors flex items-center`}
+                className={`${linkStyles(pathname === '/auth/register')} py-2 px-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

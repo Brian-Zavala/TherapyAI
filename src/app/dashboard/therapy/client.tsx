@@ -13,6 +13,8 @@ import {
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
+  
+  
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState(COUPLE_THERAPY_ASSISTANT_CONFIG);
@@ -22,6 +24,15 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
   const [meditationStep, setMeditationStep] = useState<'none' | 'countdown' | 'breathe' | 'begin' | 'done'>('none');
+  // User profile data
+  const [userProfile, setUserProfile] = useState<{
+    name?: string;
+    partnerName?: string;
+    familyMember1?: string;
+    familyMember2?: string;
+    familyMember3?: string;
+    familyMember4?: string;
+  }>({});
   
   // Digital clock state
   const [hours, setHours] = useState<string>('');
@@ -32,6 +43,25 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [month, setMonth] = useState<string>('');
   const [date, setDate] = useState<number>(0);
   const [year, setYear] = useState<number>(0);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const profileResponse = await fetch('/api/user/profile');
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          setUserProfile(profileData);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    if (userId) {
+      fetchUserProfile();
+    }
+  }, [userId]);
 
   useEffect(() => {
     const checkActive = () => {
@@ -182,7 +212,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // Persistent blur background that stays throughout the meditation
     meditationStep !== 'none' && meditationStep !== 'done' && React.createElement("div", {
       key: "persistent-blur-bg",
-      className: "fixed inset-0 z-40 bg-black/70 backdrop-blur-xl",
+      className: "fixed inset-0 z-40 bg-black/70 backdrop-blur-xl pointer-events-none",
       style: { transition: "opacity 0.7s ease-in-out" }
     }),
     
@@ -191,7 +221,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       // Countdown
       meditationStep === 'countdown' && React.createElement(motion.div, {
         key: "countdown-overlay",
-        className: "fixed inset-0 flex items-center justify-center z-50",
+        className: "fixed inset-0 flex items-center justify-center z-50 pointer-events-none",
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
@@ -210,7 +240,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       // Breathe Text
       meditationStep === 'breathe' && React.createElement(motion.div, {
         key: "breathe-overlay",
-        className: "fixed inset-0 flex items-center justify-center z-50",
+        className: "fixed inset-0 flex items-center justify-center z-50 pointer-events-none",
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
@@ -229,7 +259,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       // Begin Text
       meditationStep === 'begin' && React.createElement(motion.div, {
         key: "begin-overlay",
-        className: "fixed inset-0 flex items-center justify-center z-50",
+        className: "fixed inset-0 flex items-center justify-center z-50 pointer-events-none",
         initial: { opacity: 0 },
         animate: { opacity: 1 },
         exit: { opacity: 0 },
@@ -293,9 +323,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         left: 0,
         right: 0,
         bottom: 0,
-        minWidth: "100vw",
-        minHeight: "100vh",
-        width: "100%",
+        width: "100%", 
         height: "100%"
       }
     }),
@@ -336,8 +364,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // Main Content
     React.createElement("div", { 
       key: "main-container",
-      className: "min-h-screen w-full transition-all duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative z-10 bg-transparent overflow-x-hidden",
-      style: { minWidth: "412px" }
+      className: "min-h-screen w-full transition-all duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative z-10 bg-transparent overflow-x-hidden"
   }, [
     // Main content wrapper
     React.createElement("div", { 
@@ -406,7 +433,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       // Main card content
       React.createElement("div", {
         key: "main-card",
-        className: "grid grid-cols-1 md:grid-cols-3 gap-8 rounded-xl backdrop-blur-md bg-transparent"
+        className: "grid grid-cols-1 md:grid-cols-3 gap-8 rounded-xl backdrop-blur-xs bg-transparent"
       }, [
         // Card session
         React.createElement("div", {
@@ -414,13 +441,13 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           className: `md:col-span-3 relative overflow-hidden rounded-lg shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
             isSessionActive 
               ? 'bg-transparent p-6 md:p-8 lg:p-10 rounded-xl' 
-              : 'bg-transparent rounded-xl p-10 sm:p-40 md:p-44 lg:p-48 backdrop-blur-md bg-transparent'
+              : 'bg-transparent rounded-xl p-10 sm:p-40 md:p-44 lg:p-48 bg-transparent'
           }`
         }, [
           // Card content
           React.createElement("div", {
             key: "card-content",
-            className: "relative z-10 rounded-2xl"
+            className: "relative z-10 rounded-xl"
           }, [
             // Session header with status indicator and therapist info
             React.createElement("div", {
@@ -613,29 +640,59 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                 ]) :
                 React.createElement("div", {
                   key: "welcome-info",
-                  className: "space-y-5 mb-8 text-center max-w-xl mx-auto hide-during-session"
+                  className: "space-y-4 md:space-y-5 mb-8 text-center max-w-xl mx-auto hide-during-session p-7 sm:p-8 rounded-xl backdrop-blur-sm bg-white/60 shadow-md border border-white/40"
                 }, [
-                  // Decorative element
+                 
+                  // Welcome header
+                  React.createElement("h2", {
+                    key: "welcome-header",
+                    className: "text-xl sm:text-2xl font-medium text-black mb-3"
+                  }, 
+                    `Hello! Welcome to your session`
+                  ),
+                    // Decorative element
+                    React.createElement("div", {
+                      key: "decorative-line",
+                      className: "h-0.5 bg-gradient-to-r from-transparent via-black/50 to-transparent mx-auto mb-4"
+                    }),
+                  // Therapist intro 
                   React.createElement("div", {
-                    key: "decorative-line",
-                    className: "h-0.5 bg-gradient-to-r from-transparent via-black/50 to-transparent mx-auto mb-2"
-                  }),
-                  // Welcome message
+                    key: "therapist-intro",
+                    className: "flex flex-col items-center mb-4 space-y-2"
+                  }, [
+                    // Therapist name with emphasis
+                    React.createElement("p", {
+                      key: "therapist-name",
+                      className: "text-lg sm:text-xl font-medium text-gray-800"
+                    }, 
+                      `I'm ${selectedAssistant.name}`
+                    ),
+                    
+                  ]),
+                  
+                
+                  
+                  // Warm welcome message
                   React.createElement("p", {
-                    key: "welcome-message",
-                    className: "text-lg"
+                    key: "warm-welcome",
+                    className: "text-base text-gray-700 leading-relaxed max-w-md mx-auto px-2"
                   }, 
                     sessionType === 'couple' ? 
-                     `Welcome to your confidential couple therapy space. I am ${selectedAssistant.name}, your AI relationship therapist, here to support your journey toward a healthier relationship.` :
+                     `I'm delighted to meet you both${userProfile.name ? ', ' + userProfile.name : ''}${userProfile.partnerName ? ' and ' + userProfile.partnerName : ''}, today! This is a safe space where we can work together on strengthening your connection and understanding each other better.` :
                      sessionType === 'solo' ? 
-                     `Welcome to your confidential therapy space. I am ${selectedAssistant.name}, your AI personal therapist, here to support your journey toward personal growth and wellbeing.` :
-                     `Welcome to your confidential family therapy space. I am ${selectedAssistant.name}, your AI family therapist, here to support your journey toward healthier family dynamics and communication.`
+                     `I'm so glad you're here today${userProfile.name ? ', ' + userProfile.name : ''}! This is your private, judgment-free space where we can explore whatever is on your mind and work toward your personal goals.` :
+                     `Hello ${userProfile.name ? '  ' + userProfile.name : ''}${userProfile.partnerName ? ', ' + userProfile.partnerName : ''}${userProfile.familyMember1 ? ', ' + userProfile.familyMember1 : ''}${userProfile.familyMember2 ? ', ' + userProfile.familyMember2 : ''}${userProfile.familyMember3 ? ', ' + userProfile.familyMember3 : ''}${userProfile.familyMember4 ? ', ' + userProfile.familyMember4 : ''}!! I'm excited to meet everyone today This is a supportive environment where all family members can share openly as we work together to improve communication and connection.`
                   ),
                   // CTA message
-                  React.createElement("p", {
-                    key: "cta-message",
-                    className: "text-gray-600/80 font-medium py-2 px-4 border border-blue-100 rounded-lg bg-indigo-50/50 inline-block text-sm animate-[pulse_3s_ease-in-out_infinite]"
-                  }, "Ready to talk? Click the button below.")
+                  React.createElement("div", {
+                    key: "cta-container",
+                    className: "mt-6"
+                  }, 
+                    React.createElement("p", {
+                      key: "cta-message",
+                      className: "text-gray-700/90 font-medium py-3 px-6 border border-indigo-200 rounded-lg bg-indigo-50/70 backdrop-blur-sm inline-block text-sm shadow-sm"
+                    }, "Ready to talk? Click the button below.")
+                  )
                 ]),
               
               // Therapy button with enhanced style - centered text on mobile only

@@ -27,6 +27,7 @@ export default function RootLayout({
           href="/images/happy-couple.jpg" 
           as="image"
         />
+
       </head>
       <body className="min-h-screen w-full overflow-x-hidden">
         <AuthProvider>
