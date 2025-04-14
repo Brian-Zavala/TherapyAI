@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import TherapyButton from "@/components/TherapyButton";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   COUPLE_THERAPY_ASSISTANT_CONFIG, 
   INDIVIDUAL_THERAPY_ASSISTANT_CONFIG, 
@@ -17,6 +18,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [selectedAssistant, setSelectedAssistant] = useState(COUPLE_THERAPY_ASSISTANT_CONFIG);
   // Default to show the selector - user must explicitly choose session type
   const [showTypeSelector, setShowTypeSelector] = useState(true);
+  // Countdown overlay state
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(3);
+  const [showBreathText, setShowBreathText] = useState(false);
   
   // Digital clock state
   const [hours, setHours] = useState<string>('');
@@ -116,6 +121,32 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     
     console.log(`Selected ${type} therapy with assistant:`, assistant.name, 'ID:', assistant.id);
     setSelectedAssistant(assistant);
+    
+    // Start the countdown overlay when a therapist is selected
+    setShowCountdown(true);
+    setCountdownValue(3);
+    
+    // Set up the countdown sequence
+    const countdownTimer = setInterval(() => {
+      setCountdownValue(prev => {
+        if (prev === 1) {
+          clearInterval(countdownTimer);
+          // Show "Breath" text immediately after countdown reaches 1
+          setTimeout(() => {
+            setShowCountdown(false);
+            setShowBreathText(true);
+            
+            // Hide breath text and show the therapy interface after 5 seconds
+            setTimeout(() => {
+              setShowBreathText(false);
+              setShowTypeSelector(false);
+            }, 5000);
+          }, 800); // Slightly shorter delay for smoother transition
+          return 1;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   // These are kept for compatibility with older code
@@ -142,6 +173,54 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Use React.createElement to avoid JSX parsing issues
   return React.createElement(React.Fragment, null, [
+    // Countdown Overlay
+    React.createElement(AnimatePresence, { key: "countdown-overlay-presence" }, 
+      showCountdown && React.createElement(motion.div, {
+        key: "countdown-overlay",
+        className: "fixed inset-0 flex items-center justify-center z-50 bg-black/80",
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.5 }
+      }, [
+        React.createElement(motion.div, {
+          key: "countdown-number",
+          className: "text-white text-9xl font-bold countdown-number",
+          initial: { scale: 0.5, opacity: 0 },
+          animate: { scale: 1, opacity: 1 },
+          exit: { scale: 1.5, opacity: 0 },
+          transition: { duration: 0.5 }
+        }, countdownValue)
+      ])
+    ),
+    
+    // "Breath" Text Overlay
+    React.createElement(AnimatePresence, { key: "breath-text-presence" }, 
+      showBreathText && React.createElement(motion.div, {
+        key: "breath-overlay",
+        className: "fixed inset-0 flex items-center justify-center z-50 bg-black/80",
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.5 }
+      }, [
+        React.createElement(motion.div, {
+          key: "breath-text",
+          className: "text-white text-9xl font-bold breath-text",
+          initial: { opacity: 0 },
+          animate: { 
+            opacity: [0, 1, 1, 1, 0],
+            scale: [0.9, 1, 1.08, 1, 0.9]
+          },
+          transition: { 
+            duration: 5,
+            times: [0, 0.15, 0.5, 0.85, 1],
+            ease: "easeInOut"
+          }
+        }, "Breathe")
+      ])
+    ),
+    
     // Therapy Type Selector Popup
     React.createElement(TherapyTypeSelector, {
       key: "therapy-selector",
