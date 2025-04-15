@@ -438,6 +438,24 @@ body.session-active .hide-during-session {
   perspective: 1000px;
 }
 
+/* Grid stack for image containers */
+.grid-stack {
+  display: grid;
+  place-items: center;
+}
+
+.grid-stack > * {
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+}
+
+.grid-stack > img {
+  aspect-ratio: 16/3;
+  min-height: 30vh;
+  object-fit: cover;
+  z-index: -1;
+}
+
 /* Control scrolling experience */
 @media (prefers-reduced-motion: no-preference) {
   html {

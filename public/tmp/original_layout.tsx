@@ -39,25 +39,29 @@ export default function AuthLayout({
         {/* 1. Background Gradient Layer (Behind everything) */}
         {/* Stays behind image and content */}
         <div
-          className="absolute inset-0 bg-gradient-to-b from-sky-400 via-purple-600 to-indigo-800 -z-10" // Adjusted gradient colors
+          className="absolute inset-0 bg-gradient-to-b from-sky-400/ via-blue-600 to-blue-800 -z-10" // Adjusted gradient colors
           aria-hidden="true"
         >
           {/* You could add an overlay here if needed, e.g. */}
           {/* <div className="absolute inset-0 bg-black/10"></div> */}
         </div>
 
-        {/* Only render the image with clip-path */}
-        <div className="relative w-full h-[30vh] sm:h-[35vh] md:h-[40vh] overflow-hidden z-10">
-          <div
-            className="absolute inset-0"
-            style={{
-              clipPath:
-                "polygon(0% 65% 0% 65%, 18% 78%, 18% 78%, 44% 83%, 44% 83%, 69% 83%, 69% 83%, 93% 78%, 93% 78%, 100% 64%, 100% 64%, 0% 30%, 0% 30%, 100% 32%, 100% 32%, 0% 0%, 0% 0%, 100% 0%, 100% 0%, 51% 0%, 51% 0%)",
-              WebkitClipPath:
-                "polygon(0% 65% 0% 65%, 18% 78%, 18% 78%, 44% 83%, 44% 83%, 69% 83%, 69% 83%, 93% 78%, 93% 78%, 100% 64%, 100% 64%, 0% 30%, 0% 30%, 100% 32%, 100% 32%, 0% 0%, 0% 0%, 100% 0%, 100% 0%, 51% 0%, 51% 0%)",
-              transition: "0.4s cubic-bezier(1, -1, 0, 2)",
-            }}
-          >
+        {/* 2. Upside-down 'U' shape with clip-path */}
+        <div
+          className="relative w-full h-[30vh] sm:h-[35vh] md:h-[40vh] overflow-hidden z-10"
+          style={{
+            backgroundImage: `url('/images/login/yoga.png')`,
+            backgroundSize: "contain",
+            backgroundPosition: "center",
+            clipPath:
+              "polygon(0% 65% 0% 65%, 18% 78%, 18% 78%, 44% 83%, 44% 83%, 69% 83%, 69% 83%, 93% 78%, 93% 78%, 100% 64%, 100% 64%, 0% 30%, 0% 30%, 100% 32%, 100% 32%, 0% 0%, 0% 0%, 100% 0%, 100% 0%, 51% 0%, 51% 0%)",
+            WebkitClipPath:
+              "polygon(0% 65% 0% 65%, 18% 78%, 18% 78%, 44% 83%, 44% 83%, 69% 83%, 69% 83%, 93% 78%, 93% 78%, 100% 64%, 100% 64%, 0% 30%, 0% 30%, 100% 32%, 100% 32%, 0% 0%, 0% 0%, 100% 0%, 100% 0%, 51% 0%, 51% 0%)",
+            transition: "0.4s cubic-bezier(1, -1, 0, 2)",
+          }}
+        >
+          {/* Nested div for fallback and better browser support */}
+          <div className="absolute inset-0">
             <img
               src="/images/login/yoga.png"
               alt="Login background"

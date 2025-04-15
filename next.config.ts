@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   // This top-level option tells Next.js (both Webpack in App Router and Turbopack)
   // which packages should not be bundled within Server Components and should be
   // treated as external dependencies on the server.
-  serverExternalPackages: ['ws', '@deepgram/sdk'],
+  serverExternalPackages: ["ws", "@deepgram/sdk"],
 
   // Configure the Webpack bundler specifically.
   webpack: (config, { isServer, webpack }) => {
@@ -17,16 +17,11 @@ const nextConfig: NextConfig = {
     // or if `serverExternalPackages` doesn't cover all Webpack server use cases).
     // It's generally safe to keep both if you need broad compatibility.
     if (isServer) {
-      config.externals = [...(config.externals || []), 'ws', '@deepgram/sdk'];
+      config.externals = [...(config.externals || []), "ws", "@deepgram/sdk"];
     }
 
     return config;
   },
-
-  // The experimental section is no longer needed for this specific setting.
-  // You can remove it entirely if you aren't using any other experimental features.
-  // experimental: {
-  // }
 };
 
 export default nextConfig;

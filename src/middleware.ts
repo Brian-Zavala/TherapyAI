@@ -37,6 +37,7 @@ export const config = {
     '/',
     '/dashboard/:path*',
     '/auth/:path*',
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Exclude public static assets from middleware
+    '/((?!api|_next/static|_next/image|favicon.ico|images|sounds|fonts|videos).*)',
   ]
 }
