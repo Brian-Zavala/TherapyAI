@@ -475,89 +475,80 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
                 {/* Traditional Therapy Box */}
                 <div className="relative">
-                  <BackgroundGradient
-                    colorScheme="traditional"
-                    containerClassName="w-full"
-                    borderWidth={5}
-                  >
-                    <div className="p-5 sm:p-6 rounded-xl shadow-sm relative bg-gray-100">
-                      {/* Original Heading */}
-                      <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
-                        <span className="bg-black text-white px-3 py-1 rounded-lg">
-                          TRADITIONAL
-                        </span>
-                        <span>Therapy</span>
-                        <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-300 px-2 py-1 rounded-lg">
-                          HIGH COST
-                        </span>
-                      </h4>
-                      {/* Grid for individual traditional costs */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-                        {[
-                          { title: "Solo Session", price: "$100-150" },
-                          { title: "Couples Session", price: "$150-250" },
-                          { title: "Family Session", price: "$175-300" },
-                        ].map((session, index) => {
-                          const pulseControls = [
-                            statsCostsTradPulse1,
-                            statsCostsTradPulse2,
-                            statsCostsTradPulse3,
-                          ][index];
-                          return (
-                            // Item card - simple whileInView enter animation
-                            <motion.div
-                              key={session.title}
-                              ref={pulseControls.ref} // Ref for CONTROLLING the pulse animation inside
-                              initial="hidden"
-                              whileInView="visible"
-                              viewport={{ once: true, amount: 0.5 }} // Animate item once
-                              variants={fadeInUp} // Use standard fade in
-                              transition={{
-                                delay: getOptimizedDelay(index * 0.15),
-                              }} // Apply optimized stagger
-                              className="bg-white p-4 rounded-xl text-center shadow-sm relative overflow-hidden border border-gray-200"
-                            >
-                              {/* Original decorative element */}
-                              <span className="absolute top-0 right-0 bg-gray-200/50 w-12 h-12 rounded-full -mr-6 -mt-6"></span>
-                              {/* Price container */}
-                              <div className="relative inline-block mb-2">
-                                {/* Controlled Red Pulse */}
-                                <motion.span
-                                  className="absolute inset-0 border-2 border-red-300/70 rounded-full" // Added shape
-                                  variants={pulseBorderVariant(index * 0.1)} // Use defined variant + delay
-                                  initial="hidden"
-                                  animate={
-                                    prefersReducedMotion
-                                      ? "hidden"
-                                      : pulseControls.controls
-                                  } // Controlled animation
-                                />
-                                {/* Original price span */}
-                                <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
-                                  {session.price}
-                                </span>
-                              </div>
-                              {/* Original tag */}
-                              <div className="mt-1">
-                                <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
-                                  EXPENSIVE
-                                </span>
-                              </div>
-                              {/* Original title */}
-                              <span className="text-sm text-gray-700 font-medium relative z-10">
-                                {session.title}
+                  <div className="p-5 sm:p-6 rounded-xl shadow-sm relative bg-white/50">
+                    {/* Original Heading */}
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
+                      <span className="bg-black text-white px-3 py-1 rounded-lg">
+                        TRADITIONAL
+                      </span>
+                      <span>Therapy</span>
+                      <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-300 px-2 py-1 rounded-lg">
+                        HIGH COST
+                      </span>
+                    </h4>
+                    {/* Grid for individual traditional costs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                      {[
+                        { title: "Solo Session", price: "$100-150" },
+                        { title: "Couples Session", price: "$150-250" },
+                        { title: "Family Session", price: "$175-300" },
+                      ].map((session, index) => {
+                        const pulseControls = [
+                          statsCostsTradPulse1,
+                          statsCostsTradPulse2,
+                          statsCostsTradPulse3,
+                        ][index];
+                        return (
+                          // Item card - simple whileInView enter animation
+                          <motion.div
+                            key={session.title}
+                            ref={pulseControls.ref} // Ref for CONTROLLING the pulse animation inside
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, amount: 0.5 }} // Animate item once
+                            variants={fadeInUp} // Use standard fade in
+                            transition={{
+                              delay: getOptimizedDelay(index * 0.15),
+                            }} // Apply optimized stagger
+                            className="bg-white p-4 rounded-xl text-center shadow-sm relative overflow-hidden border border-gray-200"
+                          >
+                            {/* Price container */}
+                            <div className="relative inline-block mb-2">
+                              {/* Controlled Red Pulse */}
+                              <motion.span
+                                className="absolute inset-0 border-2 border-red-300/70 rounded-full" // Added shape
+                                variants={pulseBorderVariant(index * 0.1)} // Use defined variant + delay
+                                initial="hidden"
+                                animate={
+                                  prefersReducedMotion
+                                    ? "hidden"
+                                    : pulseControls.controls
+                                } // Controlled animation
+                              />
+                              {/* Original price span */}
+                              <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
+                                {session.price}
                               </span>
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-                      {/* Original footnote */}
-                      <div className="text-sm text-gray-600 text-center italic">
-                        *Average costs per session based on nationwide survey
-                        data
-                      </div>
+                            </div>
+                            {/* Original tag */}
+                            <div className="mt-1">
+                              <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
+                                EXPENSIVE
+                              </span>
+                            </div>
+                            {/* Original title */}
+                            <span className="text-sm text-gray-700 font-medium relative z-10">
+                              {session.title}
+                            </span>
+                          </motion.div>
+                        );
+                      })}
                     </div>
-                  </BackgroundGradient>
+                    {/* Original footnote */}
+                    <div className="text-sm text-gray-600 text-center italic">
+                      *Average costs per session based on nationwide survey data
+                    </div>
+                  </div>
                 </div>
                 {/* AI Powered Box */}
                 {/* Simple whileInView enter animation */}
@@ -572,184 +563,178 @@ export default function Home() {
                   variants={fadeInUp}
                   className="relative"
                 >
-                  <BackgroundGradient
-                    colorScheme="ai"
-                    containerClassName="w-full"
-                    borderWidth={5}
-                  >
-                    <div className="p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100">
-                      {/* Original heading */}
-                      <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
-                        <span className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-1 rounded-lg">
-                          AI-POWERED
-                        </span>
-                        <span>Therapy</span>
-                        <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
-                          <svg
-                            className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /* Original SVG */
-                          >
-                            {" "}
-                            <path /* Original path */ />{" "}
-                          </svg>
-                          AFFORDABLE
-                        </span>
-                      </h4>
-                      {/* Grid for AI costs */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
-                        {/* 30 Min Session Card */}
-                        {/* Simple fade-in for this inner card */}
-                        <motion.div
-                          ref={statsCostsAIPulse1.ref} // Ref for pulse control
-                          className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
-                          initial={{ opacity: 0 }}
-                          whileInView={{ opacity: 1 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: 0.1 }}
+                  <div className="p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden bg-white/50">
+                    {/* Original heading */}
+                    <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
+                      <span className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-1 rounded-lg">
+                        AI-POWERED
+                      </span>
+                      <span>Therapy</span>
+                      <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
+                        <svg
+                          className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /* Original SVG */
                         >
-                          {/* Original card title */}
-                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
-                            30-Minute Session
-                          </div>
-                          {/* Original price section */}
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-green-500 font-bold">
-                              Quick Therapy
-                            </span>
-                            <div className="relative inline-block">
-                              {/* Controlled Green Pulse */}
-                              <motion.span
-                                className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
-                                variants={pulseBorderVariant()} // Use base variant
-                                initial="hidden"
-                                animate={
-                                  prefersReducedMotion
-                                    ? "hidden"
-                                    : statsCostsAIPulse1.controls
-                                }
-                              />
-                              {/* Original price text */}
-                              <span className="text-3xl font-bold text-green-500 relative z-10">
-                                $2.65
-                              </span>
-                            </div>
-                          </div>
-                          {/* Original cost breakdown list */}
-                          <ul className="text-sm text-gray-600 space-y-2">
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Vapi platform: $1.50</span>
-                            </li>
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Claude 3.7 AI: $0.07</span>
-                            </li>
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Voice synthesis: $0.75</span>
-                            </li>
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Transcription: $0.30</span>
-                            </li>
-                          </ul>
-                        </motion.div>
-
-                        {/* 60 Min Session Card */}
-                        {/* Simple fade-in for this inner card */}
-                        <motion.div
-                          ref={statsCostsAIPulse2.ref} // Ref for pulse control
-                          className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
-                          initial={{ opacity: 0 }}
-                          whileInView={{ opacity: 1 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          {/* Original card title */}
-                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
-                            60-Minute Session
-                          </div>
-                          {/* Original price section */}
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-green-500 font-bold">
-                              Full Therapy
-                            </span>
-                            <div className="relative inline-block">
-                              {/* Controlled Green Pulse */}
-                              <motion.span
-                                className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
-                                variants={pulseBorderVariant(0.15)} // Use variant + delay
-                                initial="hidden"
-                                animate={
-                                  prefersReducedMotion
-                                    ? "hidden"
-                                    : statsCostsAIPulse2.controls
-                                }
-                              />
-                              {/* Original price text */}
-                              <span className="text-3xl font-bold text-green-500 relative z-10">
-                                $5.25
-                              </span>
-                            </div>
-                          </div>
-                          {/* Original cost breakdown list */}
-                          <ul className="text-sm text-gray-600 space-y-2">
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Vapi platform: $3.00</span>
-                            </li>
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Claude 3.7 AI: $0.15</span>
-                            </li>
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Voice synthesis: $1.50</span>
-                            </li>
-                            <li className="flex items-start">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                                {" "}
-                                <path d="M5 13l4 4L19 7" />{" "}
-                              </svg>
-                              <span>Transcription: $0.60</span>
-                            </li>
-                          </ul>
-                        </motion.div>
-                      </div>{" "}
-                      {/* End AI costs grid */}
-                      {/* Final savings text */}
-                      {/* Simple whileInView */}
+                          {" "}
+                          <path /* Original path */ />{" "}
+                        </svg>
+                        AFFORDABLE
+                      </span>
+                    </h4>
+                    {/* Grid for AI costs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
+                      {/* 30 Min Session Card */}
+                      {/* Simple fade-in for this inner card */}
                       <motion.div
+                        ref={statsCostsAIPulse1.ref} // Ref for pulse control
+                        className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.6 }} // Original transition
-                        className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base" // Original classes
+                        transition={{ delay: 0.1 }}
                       >
-                        Save up to 97% compared to traditional therapy costs!
+                        {/* Original card title */}
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                          30-Minute Session
+                        </div>
+                        {/* Original price section */}
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-green-500 font-bold">
+                            Quick Therapy
+                          </span>
+                          <div className="relative inline-block">
+                            {/* Controlled Green Pulse */}
+                            <motion.span
+                              className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
+                              variants={pulseBorderVariant()} // Use base variant
+                              initial="hidden"
+                              animate={
+                                prefersReducedMotion
+                                  ? "hidden"
+                                  : statsCostsAIPulse1.controls
+                              }
+                            />
+                            {/* Original price text */}
+                            <span className="text-3xl font-bold text-green-500 relative z-10">
+                              $2.65
+                            </span>
+                          </div>
+                        </div>
+                        {/* Original cost breakdown list */}
+                        <ul className="text-sm text-gray-600 space-y-2">
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Vapi platform: $1.50</span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Claude 3.7 AI: $0.07</span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Voice synthesis: $0.75</span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Transcription: $0.30</span>
+                          </li>
+                        </ul>
                       </motion.div>
-                    </div>
-                  </BackgroundGradient>
+
+                      {/* 60 Min Session Card */}
+                      {/* Simple fade-in for this inner card */}
+                      <motion.div
+                        ref={statsCostsAIPulse2.ref} // Ref for pulse control
+                        className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        {/* Original card title */}
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                          60-Minute Session
+                        </div>
+                        {/* Original price section */}
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-green-500 font-bold">
+                            Full Therapy
+                          </span>
+                          <div className="relative inline-block">
+                            {/* Controlled Green Pulse */}
+                            <motion.span
+                              className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
+                              variants={pulseBorderVariant(0.15)} // Use variant + delay
+                              initial="hidden"
+                              animate={
+                                prefersReducedMotion
+                                  ? "hidden"
+                                  : statsCostsAIPulse2.controls
+                              }
+                            />
+                            {/* Original price text */}
+                            <span className="text-3xl font-bold text-green-500 relative z-10">
+                              $5.25
+                            </span>
+                          </div>
+                        </div>
+                        {/* Original cost breakdown list */}
+                        <ul className="text-sm text-gray-600 space-y-2">
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Vapi platform: $3.00</span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Claude 3.7 AI: $0.15</span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Voice synthesis: $1.50</span>
+                          </li>
+                          <li className="flex items-start">
+                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                              {" "}
+                              <path d="M5 13l4 4L19 7" />{" "}
+                            </svg>
+                            <span>Transcription: $0.60</span>
+                          </li>
+                        </ul>
+                      </motion.div>
+                    </div>{" "}
+                    {/* End AI costs grid */}
+                    {/* Final savings text */}
+                    {/* Simple whileInView */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.6 }} // Original transition
+                      className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base" // Original classes
+                    >
+                      Save up to 97% compared to traditional therapy costs!
+                    </motion.div>
+                  </div>
                 </motion.div>{" "}
                 {/* End AI Powered Box */}
               </div>{" "}
@@ -949,6 +934,8 @@ export default function Home() {
                     ),
                     className: "md:col-span-1 row-span-1 md:row-span-1",
                     thumbnail: "/images/happy-couple.jpg",
+                    size: "large",
+                    title: "Couples Therapy",
                   },
                   {
                     id: 2,
