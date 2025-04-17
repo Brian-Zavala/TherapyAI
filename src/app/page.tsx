@@ -28,6 +28,7 @@ import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
 
 // Background gradient component
 import { BackgroundGradient } from "@/components/ui/background-gradient";
+import { LayoutGrid } from "@/components/ui/layout-grid";
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
@@ -458,13 +459,13 @@ export default function Home() {
               whileInView="visible"
               viewport={{ once: true, amount: getOptimizedThreshold(0.1) }}
               variants={fadeInUp} // Original variant
-              className="bg-white/20 backdrop-blur-2xl p-6 sm:p-8 rounded-3xl border border-white/30 shadow-lg relative overflow-hidden" // Original classes
+              className="bg-white/15 p-6 sm:p-8 rounded-3xl border border-white/5 shadow-lg relative overflow-hidden" // Original classes
             >
               {/* Original content */}
               <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-white">
                 Average Therapy Costs
               </h3>
-              <p className="text-gray-600 mb-6 sm:mb-8 relative z-10">
+              <p className="text-white text-sm sm:text-md md:text:lg mb-6 sm:mb-8 relative z-10">
                 Traditional therapy can be costly and inaccessible for many. We
                 break down these barriers by offering affordable, AI-powered
                 therapy solutions that provide the same quality of care at a
@@ -482,7 +483,7 @@ export default function Home() {
                     <div className="p-5 sm:p-6 rounded-xl shadow-sm relative bg-gray-100">
                       {/* Original Heading */}
                       <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
-                        <span className="bg-gray-700 text-white px-3 py-1 rounded-lg">
+                        <span className="bg-black text-white px-3 py-1 rounded-lg">
                           TRADITIONAL
                         </span>
                         <span>Therapy</span>
@@ -771,7 +772,7 @@ export default function Home() {
                     }
                   : {}
               } // Original hover, check reduced motion
-              className="bg-black/25 backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-200 relative overflow-hidden" // Original classes
+              className="bg-black/25 backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl shadow-xl border border-white/5 relative overflow-hidden" // Original classes
             >
               {/* Video Background */}
               <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-3xl">
@@ -912,55 +913,131 @@ export default function Home() {
             {/* End Mental Health Stats Card */}
           </div>{" "}
           {/* End Main Grid */}
-          {/* Access Gap Box */}
-          {/* Simple whileInView */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: getOptimizedThreshold(0.2) }} // Original threshold logic
-            transition={{ duration: getOptimizedDuration(0.7) }} // Original duration logic
-            variants={fadeInUp} // Use standard variant
-            className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 text-center relative overflow-hidden" // Original classes
-          >
-            {/* Original decorative elements */}
+          {/* 4-Container Layout Grid */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 relative overflow-hidden">
+            {/* Decorative elements */}
             <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-indigo-100/30 to-purple-100/30 rounded-full -ml-32 -mt-32"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-indigo-100/30 to-purple-100/30 rounded-full -mr-32 -mb-32"></div>
 
-            {/* Original heading */}
-            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-5 text-blue-500 relative z-10">
-              Bridging the Access Gap
-            </h3>
-            {/* Original paragraph */}
-            <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 relative z-10">
-              Many people struggle to find suitable therapists due to location,
-              cost, and scheduling constraints. Our AI-powered platform removes
-              these barriers, making quality relationship therapy accessible to
-              anyone with an internet connection, at a fraction of the cost of
-              traditional in-person sessions.
-            </p>
-
-            {/* Original Button */}
-            <motion.div
-              variants={floatingButtonVariants} // Original variants
-              initial="rest"
-              whileHover={prefersReducedMotion ? "rest" : "hover"} // Check reduced motion
-              whileTap={prefersReducedMotion ? "rest" : "tap"} // Check reduced motion
-              className="relative z-10 inline-block" // Original class
+            <motion.h3
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
+              transition={{ duration: getOptimizedDuration(0.7) }}
+              variants={fadeInUp}
+              className="text-xl sm:text-2xl text-center font-semibold mb-8 text-blue-500 relative z-10"
             >
-              <ButtonWithSound
-                as={Link}
-                href="/dashboard/therapy"
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:from-blue-400 hover:to-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-400 relative overflow-hidden" /* Original classes */
+              Discover Our Therapy Options
+            </motion.h3>
+
+            <div className="h-[550px] sm:h-[600px] md:h-[650px] relative z-10">
+              <LayoutGrid
+                cards={[
+                  {
+                    id: 1,
+                    content: (
+                      <div>
+                        <h3 className="text-white font-medium text-xl mb-2">
+                          Couples Therapy
+                        </h3>
+                        <p className="text-white/80 text-sm">
+                          Strengthen your relationship with AI-powered therapy
+                          sessions designed to improve communication and
+                          reignite connection.
+                        </p>
+                      </div>
+                    ),
+                    className: "md:col-span-1 row-span-1 md:row-span-1",
+                    thumbnail: "/images/happy-couple.jpg",
+                  },
+                  {
+                    id: 2,
+                    content: (
+                      <div>
+                        <h3 className="text-white font-medium text-xl mb-2">
+                          Mental Health Challenges
+                        </h3>
+                        <p className="text-white/80 text-sm">
+                          Address anxiety, depression, and stress with
+                          personalized therapy approaches that promote emotional
+                          well-being.
+                        </p>
+                      </div>
+                    ),
+                    className:
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2",
+                    thumbnail: "/videos/depressed.mp4",
+                  },
+                  {
+                    id: 3,
+                    content: (
+                      <div>
+                        <h3 className="text-white font-medium text-xl mb-2">
+                          Family Therapy
+                        </h3>
+                        <p className="text-white/80 text-sm">
+                          Heal family dynamics and build stronger connections
+                          with specialized therapeutic approaches for entire
+                          family systems.
+                        </p>
+                      </div>
+                    ),
+                    className:
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-1",
+                    thumbnail: "/images/happy-couple.jpg",
+                  },
+                  {
+                    id: 4,
+                    content: (
+                      <div>
+                        <h3 className="text-white font-medium text-xl mb-2">
+                          Relationship Wellness
+                        </h3>
+                        <p className="text-white/80 text-sm">
+                          Enhance your mental wellbeing and develop effective
+                          coping strategies with our comprehensive support
+                          system.
+                        </p>
+                      </div>
+                    ),
+                    className:
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2",
+                    thumbnail: "/videos/mentalHealth.mp4",
+                  },
+                ]}
+              />
+            </div>
+
+            {/* Button */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
+              transition={{ duration: getOptimizedDuration(0.7), delay: 0.3 }}
+              variants={fadeInUp}
+              className="text-center mt-6 relative z-10"
+            >
+              <motion.div
+                variants={floatingButtonVariants}
+                initial="rest"
+                whileHover={prefersReducedMotion ? "rest" : "hover"}
+                whileTap={prefersReducedMotion ? "rest" : "tap"}
+                className="inline-block"
               >
-                <span className="relative z-10">
-                  Experience Affordable Therapy
-                </span>
-                {/* Original overlay spans */}
-                <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
-                <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
-              </ButtonWithSound>
+                <ButtonWithSound
+                  as={Link}
+                  href="/dashboard/therapy"
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:from-blue-400 hover:to-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
+                >
+                  <span className="relative z-10">
+                    Experience Affordable Therapy
+                  </span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
+                  <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+                </ButtonWithSound>
+              </motion.div>
             </motion.div>
-          </motion.div>{" "}
+          </div>{" "}
           {/* End Access Gap Box */}
         </div>{" "}
         {/* End Max Width Container */}
