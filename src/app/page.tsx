@@ -434,7 +434,7 @@ export default function Home() {
               }
             >
               {/* Original text content */}
-              <span className="relative z-10 text-transparent bg-clip-text bg-stone-50 py-1 overflow-visible">
+              <span className="relative z-10 text-transparent bg-clip-text bg-stone-50 py-1 text-sm sm:text-lg md:text-2xl overflow-visible">
                 Making Therapy{" "}
                 <span className="underline decoration-green-500 decoration-4 underline-offset-4">
                   <TypewriterText
@@ -461,7 +461,7 @@ export default function Home() {
               className="bg-white/20 backdrop-blur-2xl p-6 sm:p-8 rounded-3xl border border-white/30 shadow-lg relative overflow-hidden" // Original classes
             >
               {/* Original content */}
-              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-blue-500">
+              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-white">
                 Average Therapy Costs
               </h3>
               <p className="text-gray-600 mb-6 sm:mb-8 relative z-10">
