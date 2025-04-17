@@ -4,7 +4,7 @@ const config = {
   theme: {
     extend: {
       screens: {
-        'xs': '480px',
+        xs: "480px",
       },
       keyframes: {
         "gradient-xy": {
@@ -23,15 +23,35 @@ const config = {
             transform: "translateY(-20px)",
           },
         },
+        typing: {
+          "0%": {
+            width: "0%",
+          },
+          "100%": {
+            width: "100%"
+          }
+        },
+        blink: {
+          "0%": {
+            borderColor: "rgb(34, 197, 94)"
+          },
+          "50%": {
+            borderColor: "transparent"
+          },
+          "100%": {
+            borderColor: "rgb(34, 197, 94)"
+          }
+        }
       },
       animation: {
         "gradient-xy": "gradient-xy 15s ease infinite",
         "float-slow": "float 8s ease-in-out infinite",
         "float-medium": "float 6s ease-in-out infinite",
+        "typing": "typing 3s steps(12) infinite alternate, blink .7s infinite"
       },
     },
   },
-  plugins: [require('tailwindcss-motion')],
+  plugins: [],
 };
 
 export default config;

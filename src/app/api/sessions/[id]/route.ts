@@ -98,7 +98,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // params is not a Promise in Next.js route handlers, so we access it directly
   const sessionId = params.id
   
   console.log('Processing update for session ID:', sessionId)

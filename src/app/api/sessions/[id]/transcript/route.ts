@@ -16,10 +16,7 @@ export async function POST(
   }
   
   try {
-    // In Next.js App Router, params is now a plain object, not a promise
-    // But let's handle both cases to be safe
-    const sessionId = typeof params.id === 'string' ? params.id : 
-                     (params.id instanceof Promise ? await params.id : null)
+    const sessionId = params.id
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
@@ -184,10 +181,7 @@ export async function GET(
   }
   
   try {
-    // In Next.js App Router, params is now a plain object, not a promise
-    // But let's handle both cases to be safe
-    const sessionId = typeof params.id === 'string' ? params.id : 
-                     (params.id instanceof Promise ? await params.id : null)
+    const sessionId = params.id
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
@@ -730,10 +724,7 @@ export async function DELETE(
   }
   
   try {
-    // In Next.js App Router, params is now a plain object, not a promise
-    // But let's handle both cases to be safe
-    const sessionId = typeof params.id === 'string' ? params.id : 
-                     (params.id instanceof Promise ? await params.id : null)
+    const sessionId = params.id
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })

@@ -1,1262 +1,1224 @@
 "use client";
 
+// React and Next.js imports
 import Link from "next/link";
 import Image from "next/image";
+import { useRef, useState, useEffect, Suspense } from "react";
+
+// Framer Motion imports
 import {
   motion,
   useScroll,
   useTransform,
-  useMotionValueEvent,
+  // useMotionValueEvent, // Removing as it wasn't used in the final logic
   useAnimation,
   useInView,
   useReducedMotion,
 } from "framer-motion";
+
+// Custom components
+import TypewriterText from "@/components/TypewriterText";
+
+// Your custom component imports
 import ButtonWithSound from "@/components/ButtonWithSound";
 import SpiralTextAnimation from "@/components/SpiralTextAnimation";
 import ScrollDownArrow from "@/components/ScrollDownArrow";
-import { useRef, useState, useEffect } from "react";
+import Hero3DBackground from "@/components/Hero3DBackground";
+import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
 
-// Media query helper
+// Background gradient component
+import { BackgroundGradient } from "@/components/ui/background-gradient";
+
+// Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
 
-// Custom smooth scroll function
-const smoothScroll = (target: HTMLElement, duration = 1000) => {
-  const targetPosition = target.getBoundingClientRect().top + window.scrollY;
-  const startPosition = window.scrollY;
-  const distance = targetPosition - startPosition;
-  let startTime: number | null = null;
+// --- Optimization: Removed custom smoothScroll function ---
+// Relies on CSS `scroll-behavior: smooth;` for anchor links now.
+// Button clicks will use element.scrollIntoView().
 
-  const animation = (currentTime: number) => {
-    if (startTime === null) startTime = currentTime;
-    const timeElapsed = currentTime - startTime;
-    const progress = Math.min(timeElapsed / duration, 1);
-
-    // Easing function - easeInOutCubic
-    const ease = (t: number) =>
-      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-    window.scrollTo(0, startPosition + distance * ease(progress));
-
-    if (timeElapsed < duration) {
-      requestAnimationFrame(animation);
-    }
-  };
-
-  requestAnimationFrame(animation);
-};
-
-// Animation variants
+// --- Standard Animation Variants ---
+// (Copied directly from your original code)
 const fadeInUp = {
   hidden: { opacity: 0, y: 15 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
+// Stagger container - kept definition if needed elsewhere, but applied directly below
 const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.1, // Default stagger, can be overridden
     },
   },
 };
 
-export default function Home() {
-  // Hook to detect reduced motion preference
-  const prefersReducedMotion = useReducedMotion();
-
-  // Detect if screen is narrow (likely mobile)
-  const [isMobileView, setIsMobileView] = useState(false);
+// --- Reusable Hook for Viewport-Controlled Animation ---
+// Encapsulates the useInView + useAnimation pattern
+function useViewportAnimation(
+  options: { once?: boolean; threshold?: number } = {
+    once: false,
+    threshold: 0.2,
+  }
+) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, {
+    once: options.once,
+    amount: options.threshold ?? 0.2,
+  });
+  const controls = useAnimation();
+  const didAnimate = useRef(false);
 
   useEffect(() => {
-    // Check if window is available (client-side)
+    if (isInView) {
+      if (!options.once || !didAnimate.current) {
+        controls.start("visible");
+        if (options.once) didAnimate.current = true;
+      }
+    } else if (!options.once) {
+      controls.start("hidden");
+    }
+  }, [isInView, controls, options.once]);
+
+  return { ref, controls, isInView };
+}
+
+// --- Main Component ---
+export default function Home() {
+  // --- Basic State and Hooks ---
+  const prefersReducedMotion = useReducedMotion();
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Effect for mobile view detection (copied from original)
+  useEffect(() => {
     if (typeof window !== "undefined") {
-      // Initial check
-      setIsMobileView(window.innerWidth < MOBILE_BREAKPOINT);
-
-      // Update on resize
-      const handleResize = () => {
+      const checkMobile = () =>
         setIsMobileView(window.innerWidth < MOBILE_BREAKPOINT);
-      };
-
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
+      checkMobile();
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
     }
   }, []);
 
-  // Optimize animations for mobile
-  const getOptimizedDuration = (defaultDuration: number) => {
+  // --- Optimization Getters ---
+  // (Copied from original, checks for reduced motion)
+  const getOptimizedDuration = (defaultDuration: number): number => {
     if (prefersReducedMotion) return 0;
-    if (isMobileView) return defaultDuration * 0.5; // Much faster animations on mobile
     return defaultDuration;
   };
-
-  // Optimize threshold for mobile
-  const getOptimizedThreshold = (defaultThreshold: number) => {
-    if (isMobileView) return 0.05; // Fixed low threshold for mobile makes animations trigger very early
+  const getOptimizedThreshold = (defaultThreshold: number): number => {
+    if (isMobileView) return 0.1; // Adjusted threshold slightly
     return defaultThreshold;
   };
-
-  // Optimize animation delays for mobile
-  const getOptimizedDelay = (defaultDelay: number) => {
+  const getOptimizedDelay = (defaultDelay: number): number => {
     if (prefersReducedMotion) return 0;
-    if (isMobileView) return defaultDelay * 0.3; // Almost no delay on mobile
+    if (isMobileView) return defaultDelay * 0.5; // Less aggressive mobile reduction
     return defaultDelay;
   };
 
-  // Refs
-  const heroRef = useRef(null);
-  const featuresRef = useRef(null);
-  const statsRef = useRef(null);
-  const testimonialsRef = useRef(null);
-  const plansRef = useRef(null);
-  const statsControls = useAnimation();
+  // --- Refs for Sections and Key Elements ---
+  // (Copied from original, added videoRef and ctaRef)
+  const heroRef = useRef<HTMLElement>(null); // Specify element type
+  const featuresRef = useRef<HTMLElement>(null);
+  const statsRef = useRef<HTMLElement>(null);
+  const testimonialsRef = useRef<HTMLElement>(null);
+  const plansRef = useRef<HTMLElement>(null);
+  const ctaRef = useRef<HTMLElement>(null); // Added ref for CTA section
+  const videoRef = useRef<HTMLVideoElement>(null); // Specific ref for video element
 
-  // InView hooks for scroll animations - with optimized thresholds for mobile
-  const isStatsInView = useInView(statsRef, {
-    once: false,
-    amount: getOptimizedThreshold(0.3),
-  });
-  const isTestimonialsInView = useInView(testimonialsRef, {
-    once: false,
-    amount: getOptimizedThreshold(0.3),
-  });
-  const isPlansInView = useInView(plansRef, {
-    once: false,
-    amount: getOptimizedThreshold(0.3),
-  });
-
-  // Standard scroll tracking
+  // --- Scroll-Linked Opacity (Copied from original) ---
   const { scrollYProgress } = useScroll();
-
-  // Parallax effect removed
-
-  // Additional scroll-driven animations (hero effects removed)
   const featuresOpacity = useTransform(
     scrollYProgress,
-    [0.2, 0.3, 0.4],
+    [0.15, 0.25, 0.35], // Original trigger points
     [0, 1, 1]
   );
 
-  // Animation trigger based on scroll position with enhanced performance
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    if (latest > (isMobileView ? 0.05 : 0.1)) {
-      statsControls.start("visible");
-    }
-  });
-
-  // Effect to trigger animations based on inView
-  useEffect(() => {
-    if (isStatsInView) {
-      statsControls.start("visible");
-    }
-  }, [isStatsInView, statsControls]);
-
-  // Handle smooth scrolling when clicking on navigation links
-  useEffect(() => {
-    const handleLinkClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest("a");
-
-      if (link && link.hash && link.hash.startsWith("#")) {
-        e.preventDefault();
-        const targetElement = document.querySelector(link.hash);
-
-        if (targetElement) {
-          smoothScroll(targetElement as HTMLElement, 1500);
-        }
-      }
-    };
-
-    // Add event listener
-    document.addEventListener("click", handleLinkClick);
-
-    // Clean up
-    return () => document.removeEventListener("click", handleLinkClick);
-  }, []);
-
-  // Floating animation for button
+  // --- Button Hover/Tap Animation Variants (Copied from original) ---
   const floatingButtonVariants = {
-    hover: { scale: 1.05, boxShadow: "0 10px 25px rgba(124, 58, 237, 0.4)" },
+    hover: { scale: 1.05, boxShadow: "0 10px 25px rgba(96, 165, 250, 0.4)" },
     tap: { scale: 0.98 },
     rest: { scale: 1 },
   };
 
+  // --- Hooks for Viewport-Controlled Animations (Defined Here) ---
+  const isHeroInView = useInView(heroRef, { amount: 0.1 }); // For 3D background prop
+
+  const statsHeadingView = useViewportAnimation({ threshold: 0.5, once: true });
+  const statsCostsTradPulse1 = useViewportAnimation({ threshold: 0.5 });
+  const statsCostsTradPulse2 = useViewportAnimation({ threshold: 0.5 });
+  const statsCostsTradPulse3 = useViewportAnimation({ threshold: 0.5 });
+  const statsCostsAIPulse1 = useViewportAnimation({ threshold: 0.5 });
+  const statsCostsAIPulse2 = useViewportAnimation({ threshold: 0.5 });
+  const statsVideoCardView = useViewportAnimation({ threshold: 0.3 });
+  const statsIconsPulseView = useViewportAnimation({ threshold: 0.2 });
+
+  const testimonialsBgView = useViewportAnimation({ threshold: 0.1 });
+  const plansBeamView = useViewportAnimation({ threshold: 0.1 });
+  const ctaBgView = useViewportAnimation({ threshold: 0.1 });
+
+  // --- Video Play/Pause Logic ---
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      if (statsVideoCardView.isInView && !prefersReducedMotion) {
+        if (videoElement.paused) {
+          videoElement.play().catch(console.error);
+        }
+      } else {
+        if (!videoElement.paused) {
+          videoElement.pause();
+        }
+      }
+    }
+  }, [statsVideoCardView.isInView, prefersReducedMotion]);
+
+  // --- Smooth Scroll Click Handler (Standard API) ---
+  const handleScrollClick = (ref: React.RefObject<HTMLElement>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // --- Define Controlled Animation Variants ---
+  // (Defined before return statement)
+
+  // Base variant for pulsing borders
+  const pulseBorderVariant = (delay = 0) => ({
+    hidden: { scale: 1, opacity: 0, transition: { duration: 0.1 } },
+    visible: {
+      scale: [1, 1.15, 1.3],
+      opacity: [0, 0.7, 0],
+      transition: {
+        duration: 1.5,
+        times: [0, 0.4, 1],
+        repeat: Infinity,
+        repeatDelay: 2,
+        ease: "easeOut",
+        delay:
+          delay + (typeof window !== "undefined" ? Math.random() * 0.3 : 0),
+      },
+    },
+  });
+
+  // Pulsing Icon Rings
+  const pulseIconRingVariant = (delay = 0) => ({
+    hidden: { scale: 1, opacity: 0, transition: { duration: 0.1 } },
+    visible: {
+      scale: [1, 1.2, 1.5, 1.7],
+      opacity: [0, 0.5, 0.3, 0],
+      transition: {
+        duration: 4,
+        times: [0, 0.25, 0.6, 1],
+        repeat: Infinity,
+        ease: "linear",
+        delay: delay,
+      },
+    },
+  });
+
+  // Stats Heading Text Shadow
+  const textShadowVariant = {
+    hidden: {
+      textShadow: "0px 0px 0px rgba(66, 153, 225, 0)",
+      transition: { duration: 0.2 },
+    },
+    visible: {
+      textShadow: [
+        "0px 0px 0px rgba(66, 153, 225, 0)",
+        "0px 0px 10px rgba(66, 153, 225, 0.3)",
+        "0px 0px 0px rgba(66, 153, 225, 0)",
+      ],
+      transition: {
+        duration: 2,
+        repeat: Infinity,
+        repeatType: "mirror" as "mirror",
+      },
+    },
+  };
+
+  // Testimonials Background Cycle
+  const testimonialsBgVariant = {
+    hidden: {
+      background:
+        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
+      transition: { duration: 0.5 },
+    },
+    visible: {
+      background: [
+        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
+        "linear-gradient(to bottom right, rgba(224, 231, 255, 0.95), rgba(221, 214, 254, 0.95))",
+        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
+      ],
+      transition: { duration: 5, repeat: Infinity, repeatType: "mirror" },
+    },
+  };
+
+  // Plans Sliding Beam
+  const plansBeamVariant = {
+    hidden: { opacity: 0, x: "-100%", transition: { duration: 0.3 } },
+    visible: {
+      opacity: 0.7, // Use opacity for fade control
+      x: ["-100%", "200%"], // Sliding animation
+      transition: {
+        opacity: { duration: 1, delay: 0.5 },
+        x: { duration: 5, repeat: Infinity, ease: "linear" },
+      },
+    },
+  };
+
+  // CTA Sliding Overlay
+  const ctaBgVariant = {
+    hidden: { opacity: 0, x: "-100%", transition: { duration: 0.5 } },
+    visible: {
+      opacity: 1, // Fade in control
+      x: ["-100%", "0%"], // Slide in control
+      transition: {
+        opacity: { duration: 1 }, // Fade in duration
+        x: { duration: 8, repeat: Infinity, ease: "linear" }, // Sliding duration/loop
+      },
+    },
+  };
+
+  // --- Component Return Start ---
   return (
-    <div className="flex flex-col items-center w-full overflow-hidden">
-      {/* Cursor glow effect removed for performance */}
-
-      {/* Hero section with static image */}
+    <div className="flex flex-col items-center w-full overflow-x-hidden bg-gradient-to-b from-white via-indigo-50/30 to-purple-50/30">
+      {/* Hero section with 3D Background */}
       <section
-        ref={heroRef}
-        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] shadow-lg shadow-indigo-500/10 rounded-b-[3rem]"
+        ref={heroRef} // Assign ref
+        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-lg shadow-indigo-500/10 rounded-b-[4rem] md:rounded-b-[5rem]" // Original classes
       >
-        {/* Background gradient with enhanced colors */}
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 z-0"></div>
-
-        {/* Static background image without parallax effect */}
+        {/* Background Gradient (Original) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-100 to-white/60 z-0"></div>
+        {/* Background Image (Original) */}
         <div className="absolute inset-0 w-full h-full z-0">
           <Image
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
-            className="object-cover object-center opacity-70 rounded-b-[3rem]"
-            priority
+            className="object-cover object-center opacity-50 mix-blend-luminosity rounded-b-[4rem] md:rounded-b-[5rem]"
+            priority // Keep priority for LCP
             sizes="100vw"
-            quality={100}
+            quality={80} // Original quality
           />
-          {/* Gradient overlay with reduced opacity */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-white/10 to-black-100/40"></div>
+          {/* Gradient overlay (Original) */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-white/10 to-transparent rounded-b-[4rem] md:rounded-b-[5rem]"></div>
         </div>
-
-        {/* Static decorative elements instead of floating particles */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden z-1 opacity-40">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-3 h-3 sm:w-5 sm:h-5 rounded-full bg-indigo-300/30"
-              style={{
-                left: `${Math.floor(Math.random() * 80 + 10)}%`,
-                top: `${Math.floor(Math.random() * 80 + 10)}%`,
-                opacity: 0.2 + Math.random() * 0.3,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Hero content with enhanced animations */}
+        {/* Integrated 3D Background (Original Structure) */}
+        <Suspense fallback={null}>
+          <Hero3DBackground
+            pointColor="#a5b4fc" // Original props
+            pointSize={0.0035} // Original props
+            // Optimization: Pass visibility state
+            isVisible={isHeroInView}
+          />
+        </Suspense>
+        {/* Hero content with enhanced animations (Original Structure) */}
         <motion.div
           className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] justify-center"
+          // Keep original initial animation logic
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.6, 0.05, 0.01, 0.9] }}
+          transition={{ duration: 0.8, ease: [0.6, 0.05, 0.01, 0.9] }} // Use original duration/ease
         >
+          {/* Spiral Text Animation (Original Structure) */}
           <motion.div
             className="w-full mb-8 md:mb-10 px-2 py-1 overflow-visible"
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 0 }} // Keep original animation
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            transition={{ duration: 0.7, delay: 0.2 }} // Keep original transition
           >
             <SpiralTextAnimation className="w-full" />
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-base sm:text-xl text-black max-w-2xl mb-12 md:mb-16 leading-relaxed"
-          >
-            Discover AI-powered therapy that helps you build healthier, more
-            fulfilling relationships with those who matter most.
-          </motion.p>
+          {/* Hero Highlight Demo */}
+          <div className="mb-12 md:mb-16">
+            <HeroHighlightDemo />
+          </div>
 
+          {/* Hero Button Container (Original Structure) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+            initial={{ opacity: 0, scale: 0.9, y: 40 }} // Keep original animation
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{
+              // Keep original transition
               duration: 0.5,
               delay: 0.6,
               type: "spring",
               stiffness: 200,
             }}
-            className="w-full sm:w-auto px-4 sm:px-0"
+            className="w-full sm:w-auto px-4 sm:px-0" // Original classes
           >
+            {/* Button Hover/Tap Wrapper (Original Structure) */}
             <motion.div
-              variants={floatingButtonVariants}
+              variants={floatingButtonVariants} // Keep original variants
               initial="rest"
-              whileHover="hover"
-              whileTap="tap"
+              whileHover={prefersReducedMotion ? "rest" : "hover"} // Use optimized check
+              whileTap={prefersReducedMotion ? "rest" : "tap"} // Use optimized check
             >
+              {/* Button Component (Original Structure) */}
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy"
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 
-                text-white 
-                font-medium 
-                py-3 sm:py-4
-                px-8 sm:px-10
-                rounded-full 
-                text-base sm:text-lg 
-                shadow-lg shadow-blue-500/30
-                transition-all duration-300
-                hover:shadow-lg
-                hover:from-blue-600
-                hover:to-blue-600
-                focus:ring-4 
-                focus:ring-blue-400
-                relative
-                overflow-hidden"
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-lg hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden" // Original classes
               >
                 <span className="relative z-10">
                   Start Your Therapy Session
                 </span>
-                {/* Replace the hover classes with this overlay approach */}
+                {/* Original overlay spans */}
                 <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
-                {/* Adjust the glow to ensure it's properly contained */}
                 <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
               </ButtonWithSound>
             </motion.div>
           </motion.div>
 
-          {/* Improved scroll guide with hover text animation */}
+          {/* Scroll Down Arrow (Original Structure) */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu">
+            {" "}
+            {/* Keep original class if needed */}
             <ScrollDownArrow
-              onClick={() => {
-                if (featuresRef.current) {
-                  smoothScroll(featuresRef.current as HTMLElement, 1500);
-                }
-              }}
+              // Optimization: Use standard smooth scroll handler
+              onClick={() =>
+                handleScrollClick(featuresRef as React.RefObject<HTMLElement>)
+              }
             />
           </div>
-        </motion.div>
-      </section>
-
-      {/* Mental Health & Therapy Costs Section with enhanced visualization */}
+        </motion.div>{" "}
+        {/* End Hero Content */}
+      </section>{" "}
+      {/* End Hero Section */}
+      {/* Mental Health & Therapy Costs Section */}
+      {/* Use simple whileInView for section fade-in */}
       <motion.section
-        ref={statsRef}
-        className="w-full py-20 bg-gradient-to-r from-indigo-50 to-purple-50"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: false, amount: 0.1 }}
-        transition={{ duration: 0.5 }}
+        ref={statsRef} // Assign ref
+        className="w-full py-20 bg-gradient-to-br from-pink-500 via-blue-500 to-pink-500 " // Original classes
+        initial="hidden" // Use variants for section fade-in
+        whileInView="visible"
+        viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Animate once
+        variants={{
+          // Define variants directly
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { duration: getOptimizedDuration(0.5) },
+          },
+        }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 backdrop-blur-md    ">
+          {" "}
+          {/* Original container */}
+          {/* Section Heading with Controlled Text Shadow */}
           <motion.h2
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.8,
-              type: "spring",
-              damping: 15,
+            ref={statsHeadingView.ref} // Ref for viewport control
+            initial="hidden" // Controlled by hook
+            animate={statsHeadingView.controls}
+            variants={{
+              // Variants for the H2 enter animation itself
+              hidden: { opacity: 0, y: 40 },
+              visible: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: 0.8, type: "spring", damping: 15 },
+              }, // Original transition
             }}
-            viewport={{ once: false, margin: "-50px" }}
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16"
+            // Removed viewport prop, handled by hook now
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-16" // Original classes
           >
+            {/* Inner span for text shadow */}
             <motion.span
-              className="relative"
-              whileInView={{
-                textShadow: [
-                  "0px 0px 0px rgba(66, 153, 225, 0)",
-                  "0px 0px 10px rgba(66, 153, 225, 0.3)",
-                  "0px 0px 0px rgba(66, 153, 225, 0)",
-                ],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "reverse",
-              }}
+              className="relative" // Original class
+              variants={textShadowVariant} // Defined variants for shadow
+              initial="hidden" // Start hidden
+              // Animate only if not reduced motion, controlled by the same hook as parent H2
+              animate={
+                prefersReducedMotion ? "hidden" : statsHeadingView.controls
+              }
             >
-              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-blue-600 py-1 overflow-visible">
+              {/* Original text content */}
+              <span className="relative z-10 text-transparent bg-clip-text bg-stone-50 py-1 overflow-visible">
                 Making Therapy{" "}
                 <span className="underline decoration-green-500 decoration-4 underline-offset-4">
-                  Accessible
+                  <TypewriterText
+                    text="Accessible"
+                    isInView={statsHeadingView.isInView}
+                    className="text-stone-50"
+                  />
                 </span>{" "}
                 for Everyone
               </span>
-              <span className="absolute -inset-1 rounded-lg bg-gradient-to-r from-indigo-100 to-purple-100 -z-10 blur-lg opacity-50"></span>
+              {/* Original background blur element */}
+              <span className="absolute -inset-1 rounded-lg bg-black/20 -z-10 blur-lg opacity-10"></span>
             </motion.span>
           </motion.h2>
-
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate={isStatsInView ? "visible" : "hidden"}
-            className="grid lg:grid-cols-2 gap-8 mb-16"
-          >
-            {/* Therapy Costs Card with animated price tags */}
+          {/* Grid Container */}
+          <div className="grid lg:grid-cols-2 gap-8 mb-16">
+            {/* Therapy Costs Card (Left Side) */}
+            {/* Use simple whileInView for card entry */}
             <motion.div
-              variants={fadeInUp}
-              className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 relative overflow-hidden"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: getOptimizedThreshold(0.1) }}
+              variants={fadeInUp} // Original variant
+              className="bg-white/20 backdrop-blur-2xl p-6 sm:p-8 rounded-3xl border border-white/30 shadow-lg relative overflow-hidden" // Original classes
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/50 rounded-full -mr-16 -mt-16"></div>
-
+              {/* Original content */}
               <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-blue-500">
                 Average Therapy Costs
               </h3>
               <p className="text-gray-600 mb-6 sm:mb-8 relative z-10">
-                Traditional therapy can be costly, creating barriers to mental
-                healthcare for many individuals and families.
+                Traditional therapy can be costly and inaccessible for many. We
+                break down these barriers by offering affordable, AI-powered
+                therapy solutions that provide the same quality of care at a
+                fraction of the cost.
               </p>
-
+              {/* Inner grid for cost boxes */}
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
-                <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-5 sm:p-6 rounded-xl shadow-sm border-2 border-gray-300 relative">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
-                    <span className="bg-gray-700 text-white px-3 py-1 rounded-lg">
-                      TRADITIONAL
-                    </span>
-                    <span>Therapy</span>
-                    <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-200 px-2 py-1 rounded-lg">
-                      HIGH COST
-                    </span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-                    {[
-                      { title: "Solo Session", price: "$100-150" },
-                      { title: "Couples Session", price: "$150-250" },
-                      { title: "Family Session", price: "$175-300" },
-                    ].map((session, index) => (
-                      <motion.div
-                        key={session.title}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: index * 0.2 }}
-                        className="bg-white p-4 rounded-xl text-center shadow-sm relative overflow-hidden border border-gray-200"
-                      >
-                        <span className="absolute top-0 right-0 bg-gray-200/50 w-12 h-12 rounded-full -mr-6 -mt-6"></span>
-                        <div className="relative inline-block mb-2">
-                          {/* Red pulsing animation around price */}
-                          <motion.span
-                            className="absolute inset-0 border-2 border-red-300/70"
-                            initial={{ scale: 1, opacity: 0 }}
-                            animate={{
-                              scale: [1, 1.15, 1.3],
-                              opacity: [0, 0.7, 0],
-                            }}
-                            transition={{
-                              duration: isMobileView ? 1 : 1.5,
-                              times: [0, 0.4, 1],
-                              repeat: Infinity,
-                              repeatDelay: isMobileView ? 3 : 2, // Longer delay on mobile saves resources
-                              ease: "easeOut",
-                              delay: isMobileView
-                                ? Math.min(index, 1) * 1.5
-                                : index * 3, // Fewer staggered animations on mobile
-                            }}
-                          />
-                          <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
-                            {session.price}
-                          </span>
-                        </div>
-                        <div className="mt-1">
-                          <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
-                            EXPENSIVE
-                          </span>
-                        </div>
-                        <span className="text-sm text-gray-700 font-medium relative z-10">
-                          {session.title}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div className="text-sm text-gray-600 text-center italic">
-                    *Average costs per session based on nationwide survey data
-                  </div>
-                </div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="bg-gradient-to-r from-indigo-50 to-purple-100 p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden border-2 border-indigo-300"
-                >
-                  <div className="absolute top-0 right-0 rounded-full bg-gradient-to-br from-indigo-200/50 to-purple-300/40 w-32 h-32 -mr-10 -mt-10 blur-md"></div>
-                  <div className="absolute bottom-0 left-0 rounded-full bg-gradient-to-tr from-indigo-200/30 to-purple-200/30 w-32 h-32 -ml-10 -mb-10 blur-md"></div>
-
-                  <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
-                    <span className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-1 rounded-lg">
-                      AI-POWERED
-                    </span>
-                    <span>Therapy</span>
-                    <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      AFFORDABLE
-                    </span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
-                    <motion.div className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative">
-                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
-                        30-Minute Session
-                      </div>
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-green-500 font-bold">
-                          Quick Therapy
-                        </span>
-                        <div className="relative inline-block">
-                          {/* Green pulsing animation around price */}
-                          <motion.span
-                            className="absolute inset-0 border-2 border-green-400/70"
-                            initial={{ scale: 1, opacity: 0 }}
-                            animate={{
-                              scale: [1, 1.15, 1.3],
-                              opacity: [0, 0.7, 0],
-                            }}
-                            transition={{
-                              duration: 1.5,
-                              times: [0, 0.4, 1],
-                              repeat: Infinity,
-                              repeatDelay: 2,
-                              ease: "easeOut",
-                              delay: 0,
-                            }}
-                          ></motion.span>
-                          <span className="text-3xl font-bold text-green-500 relative z-10">
-                            $2.65
-                          </span>
-                        </div>
-                      </div>
-                      <ul className="text-sm text-gray-600 space-y-2">
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Vapi platform: $1.50</span>
-                        </li>
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Claude 3.7 AI: $0.07</span>
-                        </li>
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Voice synthesis: $0.75</span>
-                        </li>
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Transcription: $0.30</span>
-                        </li>
-                      </ul>
-                    </motion.div>
-
-                    <motion.div className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative">
-                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
-                        60-Minute Session
-                      </div>
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-green-500 font-bold">
-                          Full Therapy
-                        </span>
-                        <div className="relative inline-block">
-                          {/* Green pulsing animation around price */}
-                          <motion.span
-                            className="absolute inset-0 border-2 border-green-400/70"
-                            initial={{ scale: 1, opacity: 0 }}
-                            animate={{
-                              scale: [1, 1.15, 1.3],
-                              opacity: [0, 0.7, 0],
-                            }}
-                            transition={{
-                              duration: 1.5,
-                              times: [0, 0.4, 1],
-                              repeat: Infinity,
-                              repeatDelay: 2,
-                              ease: "easeOut",
-                              delay: 1.5,
-                            }}
-                          ></motion.span>
-                          <span className="text-3xl font-bold text-green-500 relative z-10">
-                            $5.25
-                          </span>
-                        </div>
-                      </div>
-                      <ul className="text-sm text-gray-600 space-y-2">
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Vapi platform: $3.00</span>
-                        </li>
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Claude 3.7 AI: $0.15</span>
-                        </li>
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Voice synthesis: $1.50</span>
-                        </li>
-                        <li className="flex items-start">
-                          <svg
-                            className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Transcription: $0.60</span>
-                        </li>
-                      </ul>
-                    </motion.div>
-                  </div>
-
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.6 }}
-                    className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base"
+                {/* Traditional Therapy Box */}
+                <div className="relative">
+                  <BackgroundGradient
+                    colorScheme="traditional"
+                    containerClassName="w-full"
+                    borderWidth={5}
                   >
-                    Save up to 97% compared to traditional therapy costs!
-                  </motion.div>
-                </motion.div>
-              </div>
-            </motion.div>
+                    <div className="p-5 sm:p-6 rounded-xl shadow-sm relative bg-gray-100">
+                      {/* Original Heading */}
+                      <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
+                        <span className="bg-gray-700 text-white px-3 py-1 rounded-lg">
+                          TRADITIONAL
+                        </span>
+                        <span>Therapy</span>
+                        <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-300 px-2 py-1 rounded-lg">
+                          HIGH COST
+                        </span>
+                      </h4>
+                      {/* Grid for individual traditional costs */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                        {[
+                          { title: "Solo Session", price: "$100-150" },
+                          { title: "Couples Session", price: "$150-250" },
+                          { title: "Family Session", price: "$175-300" },
+                        ].map((session, index) => {
+                          const pulseControls = [
+                            statsCostsTradPulse1,
+                            statsCostsTradPulse2,
+                            statsCostsTradPulse3,
+                          ][index];
+                          return (
+                            // Item card - simple whileInView enter animation
+                            <motion.div
+                              key={session.title}
+                              ref={pulseControls.ref} // Ref for CONTROLLING the pulse animation inside
+                              initial="hidden"
+                              whileInView="visible"
+                              viewport={{ once: true, amount: 0.5 }} // Animate item once
+                              variants={fadeInUp} // Use standard fade in
+                              transition={{
+                                delay: getOptimizedDelay(index * 0.15),
+                              }} // Apply optimized stagger
+                              className="bg-white p-4 rounded-xl text-center shadow-sm relative overflow-hidden border border-gray-200"
+                            >
+                              {/* Original decorative element */}
+                              <span className="absolute top-0 right-0 bg-gray-200/50 w-12 h-12 rounded-full -mr-6 -mt-6"></span>
+                              {/* Price container */}
+                              <div className="relative inline-block mb-2">
+                                {/* Controlled Red Pulse */}
+                                <motion.span
+                                  className="absolute inset-0 border-2 border-red-300/70 rounded-full" // Added shape
+                                  variants={pulseBorderVariant(index * 0.1)} // Use defined variant + delay
+                                  initial="hidden"
+                                  animate={
+                                    prefersReducedMotion
+                                      ? "hidden"
+                                      : pulseControls.controls
+                                  } // Controlled animation
+                                />
+                                {/* Original price span */}
+                                <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
+                                  {session.price}
+                                </span>
+                              </div>
+                              {/* Original tag */}
+                              <div className="mt-1">
+                                <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
+                                  EXPENSIVE
+                                </span>
+                              </div>
+                              {/* Original title */}
+                              <span className="text-sm text-gray-700 font-medium relative z-10">
+                                {session.title}
+                              </span>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                      {/* Original footnote */}
+                      <div className="text-sm text-gray-600 text-center italic">
+                        *Average costs per session based on nationwide survey
+                        data
+                      </div>
+                    </div>
+                  </BackgroundGradient>
+                </div>
+                {/* AI Powered Box */}
+                {/* Simple whileInView enter animation */}
+                <motion.div
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.5 }}
+                  transition={{
+                    duration: getOptimizedDuration(0.5),
+                    delay: getOptimizedDelay(0.2),
+                  }} // Original delay relative to card entry
+                  variants={fadeInUp}
+                  className="relative"
+                >
+                  <BackgroundGradient
+                    colorScheme="ai"
+                    containerClassName="w-full"
+                    borderWidth={5}
+                  >
+                    <div className="p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100">
+                      {/* Original heading */}
+                      <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
+                        <span className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-1 rounded-lg">
+                          AI-POWERED
+                        </span>
+                        <span>Therapy</span>
+                        <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
+                          <svg
+                            className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /* Original SVG */
+                          >
+                            {" "}
+                            <path /* Original path */ />{" "}
+                          </svg>
+                          AFFORDABLE
+                        </span>
+                      </h4>
+                      {/* Grid for AI costs */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
+                        {/* 30 Min Session Card */}
+                        {/* Simple fade-in for this inner card */}
+                        <motion.div
+                          ref={statsCostsAIPulse1.ref} // Ref for pulse control
+                          className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
+                          initial={{ opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          {/* Original card title */}
+                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                            30-Minute Session
+                          </div>
+                          {/* Original price section */}
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-green-500 font-bold">
+                              Quick Therapy
+                            </span>
+                            <div className="relative inline-block">
+                              {/* Controlled Green Pulse */}
+                              <motion.span
+                                className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
+                                variants={pulseBorderVariant()} // Use base variant
+                                initial="hidden"
+                                animate={
+                                  prefersReducedMotion
+                                    ? "hidden"
+                                    : statsCostsAIPulse1.controls
+                                }
+                              />
+                              {/* Original price text */}
+                              <span className="text-3xl font-bold text-green-500 relative z-10">
+                                $2.65
+                              </span>
+                            </div>
+                          </div>
+                          {/* Original cost breakdown list */}
+                          <ul className="text-sm text-gray-600 space-y-2">
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Vapi platform: $1.50</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Claude 3.7 AI: $0.07</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Voice synthesis: $0.75</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Transcription: $0.30</span>
+                            </li>
+                          </ul>
+                        </motion.div>
 
-            {/* Mental Health Statistics Card with video background */}
+                        {/* 60 Min Session Card */}
+                        {/* Simple fade-in for this inner card */}
+                        <motion.div
+                          ref={statsCostsAIPulse2.ref} // Ref for pulse control
+                          className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
+                          initial={{ opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          {/* Original card title */}
+                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                            60-Minute Session
+                          </div>
+                          {/* Original price section */}
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-green-500 font-bold">
+                              Full Therapy
+                            </span>
+                            <div className="relative inline-block">
+                              {/* Controlled Green Pulse */}
+                              <motion.span
+                                className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
+                                variants={pulseBorderVariant(0.15)} // Use variant + delay
+                                initial="hidden"
+                                animate={
+                                  prefersReducedMotion
+                                    ? "hidden"
+                                    : statsCostsAIPulse2.controls
+                                }
+                              />
+                              {/* Original price text */}
+                              <span className="text-3xl font-bold text-green-500 relative z-10">
+                                $5.25
+                              </span>
+                            </div>
+                          </div>
+                          {/* Original cost breakdown list */}
+                          <ul className="text-sm text-gray-600 space-y-2">
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Vapi platform: $3.00</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Claude 3.7 AI: $0.15</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Voice synthesis: $1.50</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                                {" "}
+                                <path d="M5 13l4 4L19 7" />{" "}
+                              </svg>
+                              <span>Transcription: $0.60</span>
+                            </li>
+                          </ul>
+                        </motion.div>
+                      </div>{" "}
+                      {/* End AI costs grid */}
+                      {/* Final savings text */}
+                      {/* Simple whileInView */}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.6 }} // Original transition
+                        className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base" // Original classes
+                      >
+                        Save up to 97% compared to traditional therapy costs!
+                      </motion.div>
+                    </div>
+                  </BackgroundGradient>
+                </motion.div>{" "}
+                {/* End AI Powered Box */}
+              </div>{" "}
+              {/* End inner grid for cost boxes */}
+            </motion.div>{" "}
+            {/* End Therapy Costs Card (Left Side) */}
+            {/* Mental Health Statistics Card (Right Side) */}
+            {/* Use simple whileInView for card entry, ref controls video */}
             <motion.div
-              variants={fadeInUp}
-              whileHover={{
-                boxShadow:
-                  "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-              }}
-              className="bg-black/25 backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-200 relative overflow-hidden"
+              ref={statsVideoCardView.ref} // Ref for video control via useEffect
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Original threshold logic
+              variants={fadeInUp} // Original variant
+              whileHover={
+                !prefersReducedMotion
+                  ? {
+                      boxShadow:
+                        "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    }
+                  : {}
+              } // Original hover, check reduced motion
+              className="bg-black/25 backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-200 relative overflow-hidden" // Original classes
             >
-              {/* Rain video background */}
+              {/* Video Background */}
               <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-3xl">
                 <video
-                  autoPlay
+                  ref={videoRef} // Assign ref
+                  // Removed autoPlay - controlled by useEffect
                   loop
                   muted
                   playsInline
-                  className="absolute inset-0 w-full h-full object-cover opacity-80"
+                  className="absolute inset-0 w-full h-full object-cover opacity-80" // Original classes
+                  // poster="/videos/rain-poster.jpg" // Optional: Add poster image
                 >
-                  <source src="/videos/rain-background.mp4" type="video/mp4" />
+                  <source src="/videos/depressed.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
-                {/* Overlay to ensure text readability */}
+                {/* Overlay (Original) */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-indigo-900/30 to-purple-900/30 z-0"></div>
               </div>
-
+              {/* Card Content */}
               <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-white relative z-10">
                 Mental Health Challenges
               </h3>
-              <div className="space-y-5 sm:space-y-6 relative z-10">
+              {/* Container to control all icon pulses */}
+              <div
+                ref={statsIconsPulseView.ref}
+                className="space-y-5 sm:space-y-6 relative z-10"
+              >
                 {[
                   {
                     value: "1/5",
-                    text: "Nearly one in five adults experience mental illness each year in the United States.",
+                    text: "Nearly one in five U.S. adults experiences mental illness each year, with relationship conflicts often being a significant contributing factor.",
                   },
                   {
                     value: "60%",
-                    text: "Approximately 60% of adults with mental illness didn't receive treatment in the past year.",
+                    text: "Approximately 60% of people who could benefit from therapy never receive it due to barriers like cost, stigma, and limited access to providers.",
                   },
                   {
                     value: "42%",
-                    text: "42% of people cite cost as the primary barrier to seeking mental health services.",
+                    text: "42% of people cite cost as the primary barrier to seeking professional mental health support, even when insurance is available.",
                   },
                   {
                     value: "78%",
-                    text: "78% of couples report improved relationship satisfaction after completing therapy.",
+                    text: "78% of couples report improved relationship satisfaction after completing just 5 therapeutic sessions addressing communication patterns.",
                   },
                   {
                     value: "35%",
-                    text: "35% of relationships struggle with communication issues as their primary challenge.",
+                    text: "35% of relationships struggle with communication issues that could be effectively addressed through consistent therapeutic intervention.",
                   },
                   {
                     value: "90%",
-                    text: "Over 90% of therapy clients report feeling heard and understood is essential to progress.",
+                    text: "Over 90% of therapy clients report that having a supportive, judgment-free environment is crucial to their progress and healing.",
                   },
                   {
                     value: "67%",
-                    text: "67% of couples who attend therapy together report increased emotional intimacy within 3 months.",
+                    text: "67% of couples who attend regular therapy sessions report significant improvements in conflict resolution skills within 3 months.",
                   },
                   {
                     value: "53%",
-                    text: "53% of individuals with relationship difficulties also experience symptoms of anxiety or depression.",
+                    text: "53% of individuals with relationship difficulties experience improved mental health when both partners engage in therapy together.",
                   },
                   {
                     value: "84%",
-                    text: "84% of couples using digital therapy tools report better conflict resolution skills.",
+                    text: "84% of couples using digital therapy tools report greater consistency in practicing therapeutic techniques between sessions.",
                   },
                   {
                     value: "71%",
-                    text: "71% of long-term relationships benefit from regular check-ins with a therapist, even without specific issues.",
+                    text: "71% of long-term relationships benefit from periodic therapeutic check-ins, even when not experiencing acute issues.",
                   },
                 ].map((stat, index) => (
+                  // Stat Item - simple whileInView entry
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, x: 30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: index * 0.2 }}
-                    className="flex items-start"
+                    initial="hidden" // Use variants for item entry
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.5 }} // Animate once
+                    variants={fadeInUp} // Use standard variant
+                    transition={{ delay: getOptimizedDelay(index * 0.1) }} // Apply optimized stagger
+                    className="flex items-start" // Original classes
                   >
+                    {/* Icon Container */}
                     <motion.div
-                      whileHover={{
-                        scale: 1.1,
-                        backgroundColor: "rgb(224, 231, 255)",
-                      }}
-                      className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0 shadow-sm relative"
+                      // Keep original hover effect
+                      whileHover={
+                        !prefersReducedMotion
+                          ? {
+                              scale: 1.1,
+                              backgroundColor: "rgb(224, 231, 255)",
+                            }
+                          : {}
+                      }
+                      className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0 shadow-sm relative" // Original classes
                     >
-                      {/* First pulsing ring - continuous without reset */}
+                      {/* Controlled Icon Pulses (using parent ref/controls) */}
+                      <motion.span
+                        className="absolute inset-0 rounded-full border border-indigo-300/30" // Original class
+                        variants={pulseIconRingVariant(0)} // Use defined variant
+                        initial="hidden"
+                        animate={
+                          prefersReducedMotion
+                            ? "hidden"
+                            : statsIconsPulseView.controls
+                        } // Controlled by parent
+                      />
                       <motion.span
                         className="absolute inset-0 rounded-full border border-indigo-300/30"
-                        initial={{ scale: 1, opacity: 0 }}
-                        animate={{
-                          scale: [1, 1.1, 1.25, 1.4, 1.5, 1.6],
-                          opacity: [0, 0.5, 0.4, 0.3, 0.2, 0],
-                        }}
-                        transition={{
-                          duration: 4,
-                          times: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                          repeat: Infinity,
-                          repeatDelay: 0,
-                          ease: "linear",
-                        }}
-                      ></motion.span>
-
-                      {/* Second pulsing ring with offset */}
+                        variants={pulseIconRingVariant(1.33)} // Use defined variant + delay
+                        initial="hidden"
+                        animate={
+                          prefersReducedMotion
+                            ? "hidden"
+                            : statsIconsPulseView.controls
+                        }
+                      />
                       <motion.span
                         className="absolute inset-0 rounded-full border border-indigo-300/30"
-                        initial={{ scale: 1, opacity: 0 }}
-                        animate={{
-                          scale: [1, 1.1, 1.25, 1.4, 1.5, 1.7],
-                          opacity: [0, 0.4, 0.35, 0.25, 0.15, 0],
-                        }}
-                        transition={{
-                          duration: 4,
-                          times: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                          repeat: Infinity,
-                          repeatDelay: 0,
-                          ease: "linear",
-                          delay: 1.33,
-                        }}
-                      ></motion.span>
-
-                      {/* Third pulsing ring with different offset */}
-                      <motion.span
-                        className="absolute inset-0 rounded-full border border-indigo-300/30"
-                        initial={{ scale: 1, opacity: 0 }}
-                        animate={{
-                          scale: [1, 1.1, 1.25, 1.4, 1.6, 1.8],
-                          opacity: [0, 0.3, 0.25, 0.2, 0.1, 0],
-                        }}
-                        transition={{
-                          duration: 4,
-                          times: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                          repeat: Infinity,
-                          repeatDelay: 0,
-                          ease: "linear",
-                          delay: 2.66,
-                        }}
-                      ></motion.span>
-                      <span className="text-blue-500 font-bold text-base sm:text-lg">
+                        variants={pulseIconRingVariant(2.66)} // Use defined variant + delay
+                        initial="hidden"
+                        animate={
+                          prefersReducedMotion
+                            ? "hidden"
+                            : statsIconsPulseView.controls
+                        }
+                      />
+                      {/* Original stat value */}
+                      <span className="relative z-10 text-blue-500 font-bold text-base sm:text-lg">
                         {stat.value}
                       </span>
                     </motion.div>
+                    {/* Original stat text */}
                     <p className="text-sm sm:text-base text-white">
                       {stat.text}
                     </p>
                   </motion.div>
                 ))}
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* Access Gap Box with enhanced graphics */}
+              </div>{" "}
+              {/* End Stats List */}
+            </motion.div>{" "}
+            {/* End Mental Health Stats Card */}
+          </div>{" "}
+          {/* End Main Grid */}
+          {/* Access Gap Box */}
+          {/* Simple whileInView */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-            className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 text-center relative overflow-hidden"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: getOptimizedThreshold(0.2) }} // Original threshold logic
+            transition={{ duration: getOptimizedDuration(0.7) }} // Original duration logic
+            variants={fadeInUp} // Use standard variant
+            className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 text-center relative overflow-hidden" // Original classes
           >
-            {/* Decorative background elements */}
+            {/* Original decorative elements */}
             <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-indigo-100/30 to-purple-100/30 rounded-full -ml-32 -mt-32"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-indigo-100/30 to-purple-100/30 rounded-full -mr-32 -mb-32"></div>
 
+            {/* Original heading */}
             <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-5 text-blue-500 relative z-10">
               Bridging the Access Gap
             </h3>
+            {/* Original paragraph */}
             <p className="text-sm sm:text-base text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 relative z-10">
-              Many people struggle to find suitable therapists due to cost,
-              location, scheduling conflicts, or lengthy waitlists. Our
-              AI-powered therapy platform makes quality mental health support
-              accessible to everyone - anytime, anywhere, at a fraction of the
-              cost.
+              Many people struggle to find suitable therapists due to location,
+              cost, and scheduling constraints. Our AI-powered platform removes
+              these barriers, making quality relationship therapy accessible to
+              anyone with an internet connection, at a fraction of the cost of
+              traditional in-person sessions.
             </p>
 
+            {/* Original Button */}
             <motion.div
-              variants={floatingButtonVariants}
+              variants={floatingButtonVariants} // Original variants
               initial="rest"
-              whileHover="hover"
-              whileTap="tap"
-              className="relative z-10 inline-block"
+              whileHover={prefersReducedMotion ? "rest" : "hover"} // Check reduced motion
+              whileTap={prefersReducedMotion ? "rest" : "tap"} // Check reduced motion
+              className="relative z-10 inline-block" // Original class
             >
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy"
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 
-                text-white 
-                font-medium 
-                py-3 sm:py-4 
-                px-8 sm:px-10 
-                rounded-full 
-                text-base sm:text-lg 
-                shadow-lg shadow-blue-500/30
-                transition-all 
-                duration-300
-                hover:shadow-xl
-                hover:from-blue-400
-                hover:to-blue-500 
-                focus:outline-none 
-                focus:ring-4 
-                focus:ring-blue-400
-                relative
-                overflow-hidden"
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:from-blue-400 hover:to-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-400 relative overflow-hidden" /* Original classes */
               >
                 <span className="relative z-10">
                   Experience Affordable Therapy
                 </span>
+                {/* Original overlay spans */}
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
-                {/* Subtle glow behind button */}
                 <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
               </ButtonWithSound>
             </motion.div>
-          </motion.div>
-        </div>
-      </motion.section>
-
+          </motion.div>{" "}
+          {/* End Access Gap Box */}
+        </div>{" "}
+        {/* End Max Width Container */}
+      </motion.section>{" "}
+      {/* End Stats Section */}
       {/* Features section with creative card animations */}
+      {/* Apply scroll-linked opacity directly */}
       <motion.section
-        ref={featuresRef}
-        className="w-full py-16 sm:py-20 bg-white"
+        ref={featuresRef} // Assign ref
+        className="w-full py-16 sm:py-20 bg-white" // Original classes
+        // Apply opacity driven by useTransform hook
         style={{ opacity: featuresOpacity }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
+        // Removed initial/animate/transition from section as opacity handles visibility
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {" "}
+          {/* Original container */}
+          {/* Section Heading - simple whileInView */}
           <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial="hidden" // Use variants
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.5 }} // Animate once
             transition={{
+              // Original transition
               duration: 0.7,
               type: "spring",
               stiffness: 100,
             }}
-            viewport={{ once: false, amount: 0.5 }}
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600"
+            variants={fadeInUp} // Use standard variant
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600" // Original classes
           >
             How We Support Your Relationship
           </motion.h2>
-
+          {/* Feature Card Grid - Apply stagger directly */}
           <motion.div
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: false, amount: 0.1 }}
-            transition={{
-              duration: getOptimizedDuration(0.4),
-              delay: getOptimizedDelay(0.1),
-            }}
+            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8" // Original classes
+            initial="hidden" // Parent controls children
+            whileInView="visible"
+            viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Trigger earlier for container
+            // Define stagger directly in variants.visible
+            variants={{
+              visible: {
+                transition: { staggerChildren: getOptimizedDelay(0.15) },
+              },
+            }} // Use optimized delay
           >
-            {/* Enhanced feature cards with icon animations */}
+            {/* Map over features (Original data structure) */}
             {[
               {
                 title: "Private Sessions",
                 description:
-                  "Connect with an AI therapist from the comfort of your home, with complete privacy and confidentiality.",
+                  "Connect with an AI therapist in a safe, confidential environment. Our virtual sessions provide the same privacy as traditional therapy, with enhanced security protocols to protect your conversations and personal information.",
                 icon: (
                   <svg
-                    className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-blue-500"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                   </svg>
                 ),
               },
               {
                 title: "24/7 Availability",
                 description:
-                  "Get help whenever you need it - any time, any day. Our AI therapist is always ready to support your relationship.",
+                  "Get help whenever you need it, any day, any time. Relationship issues don't follow a schedule, and neither do we. Start a therapy session at your convenience without waiting for appointments or office hours.",
                 icon: (
                   <svg
-                    className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-blue-500"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
                 ),
               },
               {
                 title: "Proven Techniques",
                 description:
-                  "Our AI is trained in evidence-based therapeutic approaches that help couples build stronger, healthier relationships.",
+                  "Our AI is trained in evidence-based therapeutic approaches including Cognitive Behavioral Therapy, Emotionally Focused Therapy, and Gottman Method principles to help couples build stronger connections and resolve conflicts effectively.",
                 icon: (
                   <svg
-                    className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-blue-500"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
                   </svg>
                 ),
               },
             ].map((feature, index) => (
+              // Feature Card Item
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true, margin: "-50px" }}
-                whileHover={{
-                  boxShadow:
-                    "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                  backgroundColor: "rgb(249, 250, 255)", // Very light indigo
-                }}
-                className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-indigo-100 group"
+                key={index} // Use index as key if titles aren't unique, otherwise feature.title
+                variants={fadeInUp} // Each card uses the variant defined in the parent
+                whileHover={
+                  !prefersReducedMotion
+                    ? {
+                        // Original hover effect, check reduced motion
+                        boxShadow:
+                          "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                        backgroundColor: "rgb(249, 250, 255)",
+                      }
+                    : {}
+                }
+                className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-indigo-100 group" // Original classes
               >
+                {/* Icon Container */}
                 <motion.div
-                  whileHover={{ scale: 1.1, rotate: [0, -10, 10, -5, 0] }}
-                  transition={{ duration: 0.5 }}
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-indigo-200 transition-colors duration-300 shadow-md"
+                  // Original hover animation for icon, check reduced motion
+                  whileHover={
+                    !prefersReducedMotion
+                      ? { scale: 1.1, rotate: [0, -10, 10, -5, 0] }
+                      : {}
+                  }
+                  transition={{ duration: 0.5 }} // Original transition
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-indigo-200 transition-colors duration-300 shadow-md" // Original classes
                 >
                   {feature.icon}
                 </motion.div>
+                {/* Card Title */}
                 <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-blue-700 group-hover:text-indigo-600 transition-colors duration-300">
+                  {" "}
+                  {/* Original classes */}
                   {feature.title}
                 </h3>
+                {/* Card Description */}
                 <p className="text-sm sm:text-base text-gray-600">
+                  {" "}
+                  {/* Original classes */}
                   {feature.description}
                 </p>
               </motion.div>
             ))}
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* Testimonials Section with Animation */}
+          </motion.div>{" "}
+          {/* End Feature Card Grid */}
+        </div>{" "}
+        {/* End Max Width Container */}
+      </motion.section>{" "}
+      {/* End Features Section */}
+      {/* Subscription Plans Section */}
+      {/* Simple whileInView fade-in for section */}
       <motion.section
-        ref={testimonialsRef}
-        className="w-full py-16 sm:py-20 bg-gradient-to-br from-indigo-50 to-purple-50"
-        initial={{ opacity: 0 }}
-        whileInView={{
-          opacity: 1,
-          background: [
-            "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
-            "linear-gradient(to bottom right, rgba(224, 231, 255, 0.95), rgba(221, 214, 254, 0.95))",
-            "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
-          ],
-        }}
-        transition={{
-          opacity: { duration: getOptimizedDuration(0.5) },
-          background: {
-            duration: isMobileView ? 7 : 5, // Slower background cycling on mobile to save resources
-            repeat: Infinity,
-            repeatType: "reverse",
+        ref={plansRef} // Assign ref
+        className="w-full py-16 sm:py-20 bg-white relative overflow-hidden" // Original classes + relative/overflow for beam
+        initial="hidden" // Use variants
+        whileInView="visible"
+        viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Animate once
+        variants={{
+          // Define variants directly
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { duration: getOptimizedDuration(0.5) },
           },
         }}
-        viewport={{ once: false, amount: 0.1 }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.7,
-              type: "spring",
-              stiffness: 50,
-            }}
-            viewport={{ once: false }}
-            className="text-center mb-12 sm:mb-16"
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600 mb-4">
-              What Our Clients Say
-            </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto text-base sm:text-lg">
-              Here are some success stories from couples who have transformed
-              their relationships using our AI therapy platform.
-            </p>
-          </motion.div>
-
-          {/* Testimonial Carousel */}
-          <div className="relative">
-            {/* Testimonial Cards */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "John & Sarah",
-                  location: "New York, NY",
-                  testimonial:
-                    "We were struggling with communication issues for years. After just a few sessions with the AI therapist, we've learned techniques that have completely changed how we talk to each other.",
-                  rating: 5,
-                },
-                {
-                  name: "Michael & David",
-                  location: "San Francisco, CA",
-                  testimonial:
-                    "The privacy aspect was important for us. Being able to work through our issues without judgment and in our own home made all the difference. Highly recommend!",
-                  rating: 5,
-                },
-                {
-                  name: "Rebecca & Ava",
-                  location: "Chicago, IL",
-                  testimonial:
-                    "As a busy couple with opposite schedules, finding time for therapy seemed impossible. The 24/7 availability meant we could connect when it worked for us. Game-changer!",
-                  rating: 4,
-                },
-              ].map((testimonial, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={{
-                    boxShadow:
-                      "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                  }}
-                  className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-indigo-100 relative overflow-hidden"
-                >
-                  {/* Decorative elements */}
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-full -mr-12 -mt-12"></div>
-                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-purple-50/50 rounded-full -ml-8 -mb-8"></div>
-
-                  <div className="mb-4 relative z-10">
-                    {/* Star rating */}
-                    <div className="flex mb-3">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          className={`w-5 h-5 ${i < testimonial.rating ? "text-yellow-400" : "text-gray-300"} mr-1`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-
-                    {/* Quote icon */}
-                    <svg
-                      className="w-10 h-10 text-indigo-100 absolute top-0 right-0"
-                      fill="currentColor"
-                      viewBox="0 0 32 32"
-                    >
-                      <path d="M10,8H6a2,2,0,0,0-2,2v4a2,2,0,0,0,2,2h4v6H6a6,6,0,0,1-6-6V10A6,6,0,0,1,6,4h4Zm16,0H22a2,2,0,0,0-2,2v4a2,2,0,0,0,2,2h4v6H22a6,6,0,0,1-6-6V10A6,6,0,0,1,22,4h4Z" />
-                    </svg>
-                  </div>
-
-                  <p className="text-gray-600 mb-6 relative z-10">
-                    &ldquo;{testimonial.testimonial}&rdquo;
-                  </p>
-
-                  <div className="flex items-center">
-                    {/* Avatar placeholder */}
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-green-500 flex items-center justify-center text-white font-bold text-sm mr-3">
-                      {testimonial.name.split(" ")[0][0]}
-                      {testimonial.name.split(" ")[2]
-                        ? testimonial.name.split(" ")[2][0]
-                        : ""}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800">
-                        {testimonial.name}
-                      </h4>
-                      <p className="text-sm text-gray-500">
-                        {testimonial.location}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Subscription Plans Section */}
-      <motion.section
-        ref={plansRef}
-        className="w-full py-16 sm:py-20 bg-white"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: false, amount: 0.1 }}
-        transition={{ duration: 0.5 }}
-      >
+        {/* Controlled Sliding Beam Container */}
         <motion.div
-          className="absolute left-0 w-full h-32 overflow-hidden -top-16 opacity-50"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 0.7 }}
-          viewport={{ once: false }}
-          transition={{ duration: 1, delay: 0.5 }}
+          ref={plansBeamView.ref} // Ref for viewport control
+          className="absolute left-0 w-full h-32 -top-16 opacity-70 pointer-events-none z-0" // Original classes + z-0
+          initial="hidden" // Start hidden
+          animate={prefersReducedMotion ? "hidden" : plansBeamView.controls} // Controlled animation
+          variants={plansBeamVariant} // Use defined variant
+          // Removed original whileInView/transition from this wrapper
         >
-          <motion.div
-            className="absolute h-[50px] w-[1000px] opacity-30"
+          {/* The actual beam element (no animation props needed here) */}
+          <div
+            className="absolute h-[50px] w-[1000px] opacity-30" // Original classes
             style={{
+              // Original styles
               background:
                 "linear-gradient(90deg, rgba(79, 70, 229, 0) 0%, rgba(79, 70, 229, 0.3) 50%, rgba(79, 70, 229, 0) 100%)",
-              rotate: -30,
+              rotate: "-30deg",
             }}
-            animate={{
-              x: ["-100%", "200%"],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          ></motion.div>
-        </motion.div>
-
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          />
+        </motion.div>{" "}
+        {/* End Beam Container */}
+        {/* Section Content */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {" "}
+          {/* Add relative z-10 */}
+          {/* Section Heading - simple whileInView */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.5 }} // Animate once
             transition={{
+              // Original transition
               duration: 0.7,
               type: "spring",
               stiffness: 50,
             }}
-            viewport={{ once: false }}
-            className="text-center mb-12 sm:mb-16"
+            variants={fadeInUp} // Use standard variant
+            className="text-center mb-12 sm:mb-16" // Original classes
           >
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text py-1 overflow-visible bg-gradient-to-r from-blue-500 to-blue-600 mb-4">
+              {" "}
+              {/* Original classes */}
               Affordable Subscription Plans
             </h2>
             <p className="text-gray-600 max-w-3xl mx-auto text-base sm:text-lg">
-              Choose the plan that fits your needs and budget. All plans include
-              unlimited access to our AI therapist.
+              {" "}
+              {/* Original classes */}
+              Choose the plan that fits your needs and relationship goals. All
+              our plans offer access to our AI therapy platform with different
+              session limits and features to accommodate various budgets and
+              requirements.
             </p>
           </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Basic Plan */}
+          {/* Plan Cards Grid - Apply stagger */}
+          <motion.div
+            className="grid md:grid-cols-3 gap-8" // Original classes
+            initial="hidden" // Parent controls children
+            whileInView="visible"
+            viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Trigger earlier
+            variants={{
+              visible: {
+                transition: { staggerChildren: getOptimizedDelay(0.15) },
+              },
+            }} // Apply optimized stagger
+          >
+            {/* Basic Plan Card */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              whileHover={{
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)",
-              }}
-              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500"
+              variants={fadeInUp} // Use variant from parent
+              whileHover={
+                !prefersReducedMotion
+                  ? { boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)" }
+                  : {}
+              } // Original hover, check reduced motion
+              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500" // Original classes
             >
               <div className="p-6 sm:p-8">
+                {" "}
+                {/* Original content structure */}
                 <h3 className="text-xl font-bold text-blue-600 mb-2">
                   Basic Plan
                 </h3>
@@ -1264,15 +1226,14 @@ export default function Home() {
                   <span className="text-3xl font-bold text-blue-600">$19</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1281,17 +1242,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      5 therapy sessions/month
-                    </span>
+                    <span>Unlimited therapy sessions</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1300,17 +1259,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      30 minutes per session
-                    </span>
+                    <span>60 minutes per session</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1319,17 +1276,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Basic relationship assessment
-                    </span>
+                    <span>Comprehensive relationship assessment</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1338,27 +1293,26 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">Session transcripts</span>
+                    <span>Session transcripts & detailed insights</span>
                   </li>
-                  <li className="flex items-start text-gray-400">
+                  <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-gray-300 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
+                        d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span>Advanced relationship insights</span>
+                    <span>Priority support & customized therapy options</span>
                   </li>
                 </ul>
-
                 <motion.div
                   variants={floatingButtonVariants}
                   initial="rest"
@@ -1368,31 +1322,31 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy"
-                    className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-xl shadow-md 
-                    hover:bg-blue-700 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:bg-blue-700 transition duration-300 flex items-center justify-center"
                   >
                     Get Started
                   </ButtonWithSound>
                 </motion.div>
               </div>
-            </motion.div>
-
-            {/* Standard Plan (Highlighted) */}
+            </motion.div>{" "}
+            {/* End Basic Plan */}
+            {/* Standard Plan Card (Highlighted) */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-              whileHover={{
-                boxShadow: "0 25px 50px -12px rgba(124, 58, 237, 0.25)",
-              }}
-              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden border-1 border-green-500 md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500"
+              variants={fadeInUp} // Use variant from parent
+              whileHover={
+                !prefersReducedMotion
+                  ? { boxShadow: "0 25px 50px -12px rgba(124, 58, 237, 0.25)" }
+                  : {}
+              } // Original hover, check reduced motion
+              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden border border-green-500 md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500" // Original classes (Tailwind v3 border-1 is just border)
             >
               <div className="bg-blue-500 text-white text-center text-sm font-semibold py-1">
                 MOST POPULAR
-              </div>
-
+              </div>{" "}
+              {/* Original banner */}
               <div className="p-6 sm:p-8">
+                {" "}
+                {/* Original content structure */}
                 <h3 className="text-xl font-bold text-blue-600 mb-2">
                   Standard Plan
                 </h3>
@@ -1400,15 +1354,14 @@ export default function Home() {
                   <span className="text-3xl font-bold text-blue-600">$39</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1417,17 +1370,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      10 therapy sessions/month
-                    </span>
+                    <span>10 therapy sessions/month</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1436,17 +1387,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      60 minutes per session
-                    </span>
+                    <span>60 minutes per session</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1455,17 +1404,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Comprehensive relationship assessment
-                    </span>
+                    <span>Comprehensive relationship assessment</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1474,17 +1421,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Session transcripts & summaries
-                    </span>
+                    <span>Session transcripts & summaries</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1493,12 +1438,9 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Advanced relationship insights
-                    </span>
+                    <span>Advanced relationship insights</span>
                   </li>
                 </ul>
-
                 <motion.div
                   variants={floatingButtonVariants}
                   initial="rest"
@@ -1508,27 +1450,29 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy"
-                    className="w-full bg-gradient-to-r from-green-400 to-green-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:overflow-hidden
-                    hover:ring-1 hover:ring-bg-blue-700 hover:from-green-500 hover:to-green-600 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-gradient-to-r from-green-400 to-green-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:overflow-hidden hover:ring-1 hover:ring-blue-700 hover:from-green-500 hover:to-green-600 transition duration-300 flex items-center justify-center"
                   >
+                    {" "}
+                    {/* ring-bg-blue-700 likely needs adjustment -> ring-blue-700 */}
                     Select Plan
                   </ButtonWithSound>
                 </motion.div>
               </div>
-            </motion.div>
-
-            {/* Premium Plan */}
+            </motion.div>{" "}
+            {/* End Standard Plan */}
+            {/* Premium Plan Card */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              whileHover={{
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)",
-              }}
-              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500"
+              variants={fadeInUp} // Use variant from parent
+              whileHover={
+                !prefersReducedMotion
+                  ? { boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)" }
+                  : {}
+              } // Original hover, check reduced motion
+              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-lg overflow-hidden border border-indigo-100 transition-all duration-500" // Original classes
             >
               <div className="p-6 sm:p-8">
+                {" "}
+                {/* Original content structure */}
                 <h3 className="text-xl font-bold text-blue-600 mb-2">
                   Premium Plan
                 </h3>
@@ -1536,15 +1480,14 @@ export default function Home() {
                   <span className="text-3xl font-bold text-blue-600">$69</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1553,17 +1496,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Unlimited therapy sessions
-                    </span>
+                    <span>Unlimited therapy sessions</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1572,17 +1513,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      60 minutes per session
-                    </span>
+                    <span>60 minutes per session</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1591,17 +1530,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Comprehensive relationship assessment
-                    </span>
+                    <span>Comprehensive relationship assessment</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1610,17 +1547,15 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Session transcripts & detailed insights
-                    </span>
+                    <span>Session transcripts & detailed insights</span>
                   </li>
                   <li className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-green-500 mr-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
                       <path
                         strokeLinecap="round"
@@ -1629,12 +1564,9 @@ export default function Home() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-gray-600">
-                      Priority support & customized therapy options
-                    </span>
+                    <span>Priority support & customized therapy options</span>
                   </li>
                 </ul>
-
                 <motion.div
                   variants={floatingButtonVariants}
                   initial="rest"
@@ -1644,129 +1576,145 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy"
-                    className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-xl shadow-md 
-                    hover:bg-blue-700 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:bg-blue-700 transition duration-300 flex items-center justify-center"
                   >
                     Get Premium
                   </ButtonWithSound>
                 </motion.div>
               </div>
-            </motion.div>
-          </div>
-
+            </motion.div>{" "}
+            {/* End Premium Plan */}
+          </motion.div>{" "}
+          {/* End Plan Cards Grid */}
+          {/* Free Trial Text - simple whileInView */}
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="text-center mt-10 text-gray-500 text-sm"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }} // Animate once
+            transition={{
+              duration: getOptimizedDuration(0.5),
+              delay: getOptimizedDelay(0.6),
+            }} // Original transition
+            variants={fadeInUp} // Use standard variant
+            className="text-center mt-10 text-gray-500 text-sm" // Original classes
           >
             All plans include a 7-day free trial. Cancel anytime. No credit card
             required to start.
           </motion.div>
-        </div>
-      </motion.section>
-
-      {/* Call to action section - decorative elements removed */}
+        </div>{" "}
+        {/* End Max Width Container */}
+      </motion.section>{" "}
+      {/* End Plans Section */}
+      {/* Call to action section */}
+      {/* Simple fade-in for section container */}
       <motion.section
-        className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: false, amount: isMobileView ? 0.05 : 0.2 }}
-        transition={{ duration: getOptimizedDuration(0.8) }}
+        ref={ctaRef} // Assign ref
+        className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative" // Original classes + relative/overflow
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: getOptimizedThreshold(0.2) }} // Animate once, use optimized threshold
+        variants={{
+          // Define variants directly
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { duration: getOptimizedDuration(0.8) },
+          }, // Use optimized duration
+        }}
       >
-        {/* Animated gradient slide */}
+        {/* Controlled Animated Background Overlay */}
         <motion.div
-          className="absolute top-0 left-0 w-full h-full overflow-hidden"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: false }}
-          transition={{ duration: 1 }}
+          ref={ctaBgView.ref} // Ref for viewport control
+          className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0" // Original classes + ensure behind content
+          initial="hidden" // Start hidden
+          animate={prefersReducedMotion ? "hidden" : ctaBgView.controls} // Controlled animation
+          variants={ctaBgVariant} // Use defined variant
+          // Removed original whileInView/transition from this wrapper
         >
-          <motion.div
-            className="absolute top-0 left-0 h-full w-[200%]"
+          {/* The actual sliding element (no animation props needed here) */}
+          <div
+            className="absolute top-0 left-0 h-full w-[200%]" // Original classes
             style={{
+              // Original style
               background:
                 "linear-gradient(90deg, rgba(30, 58, 138, 0) 0%, rgba(30, 58, 138, 0.3) 15%, rgba(30, 58, 138, 0) 30%)",
             }}
-            animate={{
-              x: ["-100%", "0%"],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          ></motion.div>
-        </motion.div>
-
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          />
+        </motion.div>{" "}
+        {/* End Overlay Container */}
+        {/* CTA Content */}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {" "}
+          {/* Original container + z-10 */}
           <div className="text-center relative z-10 mb-6">
+            {" "}
+            {/* Original wrapper + z-10 */}
+            {/* CTA Heading - simple whileInView */}
             <motion.h2
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.5 }} // Animate once
               transition={{
+                // Original transition
                 duration: 0.7,
                 type: "spring",
                 stiffness: 50,
               }}
-              viewport={{ once: false }}
-              className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8"
+              variants={fadeInUp} // Use standard variant
+              className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8" // Original classes
             >
               Ready to Transform Your Relationship?
             </motion.h2>
-
+            {/* CTA Paragraph - simple whileInView */}
             <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="text-indigo-100 text-base sm:text-lg max-w-3xl mx-auto mb-8 sm:mb-10"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.5 }} // Animate once
+              transition={{
+                duration: getOptimizedDuration(0.7),
+                delay: getOptimizedDelay(0.2),
+              }} // Original transition + optimized helpers
+              variants={fadeInUp} // Use standard variant
+              className="text-indigo-100 text-base sm:text-lg max-w-3xl mx-auto mb-8 sm:mb-10" // Original classes
             >
               Start your journey to a healthier relationship today with our
               AI-powered therapy platform.
             </motion.p>
-
+            {/* CTA Button */}
             <motion.div
-              variants={floatingButtonVariants}
+              variants={floatingButtonVariants} // Original variants
               initial="rest"
-              whileHover="hover"
-              whileTap="tap"
-              className="inline-block mb-8"
+              whileHover={prefersReducedMotion ? "rest" : "hover"} // Check reduced motion
+              whileTap={prefersReducedMotion ? "rest" : "tap"} // Check reduced motion
+              className="inline-block mb-8" // Original class
             >
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy"
-                className="bg-white text-blue-500 
-                font-medium 
-                py-3 sm:py-4 
-                px-8 sm:px-12 
-                rounded-full 
-                text-base sm:text-lg 
-                shadow-lg shadow-indigo-900/30
-                hover:shadow-xl
-                transition-all 
-                duration-300
-                focus:outline-none 
-                focus:ring-4 
-                focus:ring-indigo-300
-                relative
-                overflow-hidden"
+                className="bg-white text-blue-500 font-medium py-3 sm:py-4 px-8 sm:px-12 rounded-full text-base sm:text-lg shadow-lg shadow-indigo-900/30 hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-indigo-300 relative overflow-hidden" // Original classes
               >
                 <span className="relative z-10">
                   Begin Your Therapy Journey
                 </span>
+                {/* Original overlay span */}
                 <span className="absolute inset-0 bg-indigo-100 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
               </ButtonWithSound>
             </motion.div>
           </div>
-        </div>
-      </motion.section>
-
-      {/* Footer section for better page balance */}
-      <section className="w-full py-10 bg-green-500/50 text-white">
+        </div>{" "}
+        {/* End Max Width Container */}
+      </motion.section>{" "}
+      {/* End CTA Section */}
+      {/* Footer section (Using <footer> tag for semantics) */}
+      <footer className="w-full py-10 bg-green-500/50 text-white">
+        {" "}
+        {/* Original classes */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {" "}
+          {/* Original container */}
           <div className="text-center">
+            {" "}
+            {/* Original wrapper */}
             <p className="text-sm text-white mb-4">
               © {new Date().getFullYear()} TherapyAI. All rights reserved.
             </p>
@@ -1776,7 +1724,8 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </section>
-    </div>
-  );
-}
+      </footer>{" "}
+      {/* End Footer Section */}
+    </div> // End Page Container
+  ); // End Component Return
+} // End Component Definition

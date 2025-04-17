@@ -1,5 +1,5 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap");
 
 /* * Import Tailwind CSS. 
  * Tailwind's base styles (Preflight) will be applied first. 
@@ -17,15 +17,16 @@
   --color-accent-radial-bg: rgba(218, 218, 218, 0.1);
   --color-session-glow: rgba(99, 102, 241, 0.1); /* Initial body background */
 
-  --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: 'Fraunces', serif;
+  --font-body: "Work Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: "Fraunces", serif;
 }
 
 /* --- Base HTML & Body Styles --- */
-html, body {
+html,
+body {
   font-family: var(--font-body);
   background-color: var(--color-session-glow); /* Default background */
-  color: var(--color-text-dark);             /* Default text color */
+  color: var(--color-text-dark); /* Default text color */
   margin: 0;
   padding: 0;
   width: 100%;
@@ -38,22 +39,27 @@ html, body {
 }
 
 /* --- Typography --- */
-h1, h2, h3, h4, h5, h6 {
-   font-family: var(--font-heading);
-   /* Note: Tailwind's Preflight likely resets heading margins/sizes */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  /* Note: Tailwind's Preflight likely resets heading margins/sizes */
 }
 
 /* --- Custom Fonts --- */
 @font-face {
-  font-family: 'Digital';
-  src: url(/fonts/DS-DIGI.TTF) format('truetype');
+  font-family: "Digital";
+  src: url(/fonts/DS-DIGI.TTF) format("truetype");
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'DigitalBold';
-  src: url(/fonts/DS-DIGIB.TTF) format('truetype');
+  font-family: "DigitalBold";
+  src: url(/fonts/DS-DIGIB.TTF) format("truetype");
   font-weight: bold;
   font-style: normal;
 }
@@ -65,7 +71,9 @@ body.session-active {
   /* Override default background for the starry night effect */
   background-color: transparent !important; /* !important likely needed to override inline styles or highly specific selectors */
   color: var(--color-text-light); /* Change text color for dark background */
-  transition: background 0.3s ease-in-out, color 0.3s ease-in-out; /* Smooth transition */
+  transition:
+    background 0.3s ease-in-out,
+    color 0.3s ease-in-out; /* Smooth transition */
   /* Ensure body can grow if content exceeds viewport height during session */
   height: auto !important; /* !important ensures override if height was previously constrained */
   min-height: 100vh; /* Reaffirm min-height */
@@ -84,7 +92,9 @@ body.session-active main {
 
 /* Hide specific elements during active sessions */
 .hide-during-session {
-  transition: opacity 0.1s, visibility 0.1s;
+  transition:
+    opacity 0.1s,
+    visibility 0.1s;
 }
 body.session-active .hide-during-session {
   display: none !important; /* Use !important cautiously, ensure it's necessary */
@@ -92,111 +102,199 @@ body.session-active .hide-during-session {
   visibility: hidden;
 }
 
-
 /* --- Animations --- */
 
 /* Keyframes */
 @keyframes pulse-glow {
-  0%, 100% { 
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7),
-                 0 0 20px rgba(255, 255, 255, 0.4);
+  0%,
+  100% {
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.7),
+      0 0 20px rgba(255, 255, 255, 0.4);
     transform: scale(1);
   }
-  50% { 
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.9),
-                 0 0 30px rgba(255, 255, 255, 0.6);
+  50% {
+    text-shadow:
+      0 0 15px rgba(255, 255, 255, 0.9),
+      0 0 30px rgba(255, 255, 255, 0.6);
     transform: scale(1.05);
   }
 }
 
 @keyframes begin-pulse {
-  0% { 
-    opacity: 0; 
-    transform: scale(0.92);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4),
-                 0 0 20px rgba(255, 255, 255, 0.2);
-  }
-  15% { 
-    opacity: 1; 
-    transform: scale(0.98);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.6),
-                 0 0 30px rgba(255, 255, 255, 0.3);
-  }
-  50% { 
-    opacity: 1;
-    transform: scale(1.15);
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
-                 0 0 40px rgba(255, 255, 255, 0.5);
-  }
-  85% { 
-    opacity: 1;
-    transform: scale(0.98);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.6),
-                 0 0 30px rgba(255, 255, 255, 0.3);
-  }
-  100% { 
+  0% {
     opacity: 0;
     transform: scale(0.92);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4),
-                 0 0 20px rgba(255, 255, 255, 0.2);
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.4),
+      0 0 20px rgba(255, 255, 255, 0.2);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(0.98);
+    text-shadow:
+      0 0 15px rgba(255, 255, 255, 0.6),
+      0 0 30px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.8),
+      0 0 40px rgba(255, 255, 255, 0.5);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(0.98);
+    text-shadow:
+      0 0 15px rgba(255, 255, 255, 0.6),
+      0 0 30px rgba(255, 255, 255, 0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.4),
+      0 0 20px rgba(255, 255, 255, 0.2);
   }
 }
 
 @keyframes breath-pulse {
   /* First breath cycle */
-  0%   { opacity: 0; transform: scale(0.92); text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
-  5%   { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
-  25%  { opacity: 1; transform: scale(1.2);  text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4); }
-  45%  { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+  5% {
+    opacity: 1;
+    transform: scale(0.95);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.2);
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.8),
+      0 0 40px rgba(255, 255, 255, 0.4);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(0.95);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  }
   /* Second breath cycle */
-  50%  { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); } /* Hold briefly */
-  75%  { opacity: 1; transform: scale(1.2);  text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4); }
-  95%  { opacity: 1; transform: scale(0.95); text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
-  100% { opacity: 0; transform: scale(0.92); text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+  50% {
+    opacity: 1;
+    transform: scale(0.95);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  } /* Hold briefly */
+  75% {
+    opacity: 1;
+    transform: scale(1.2);
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.8),
+      0 0 40px rgba(255, 255, 255, 0.4);
+  }
+  95% {
+    opacity: 1;
+    transform: scale(0.95);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.9; }
-  50%      { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes shoot {
-  0%   { transform: translateX(0) translateY(0) rotate(25deg); opacity: 1; }
-  100% { transform: translateX(120vw) translateY(50vh) rotate(25deg); opacity: 0; }
+  0% {
+    transform: translateX(0) translateY(0) rotate(25deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120vw) translateY(50vh) rotate(25deg);
+    opacity: 0;
+  }
 }
 
 @keyframes circle-small-scale {
-  0%   { transform: translate(-50%, -50%) scale(1.0); }
-  100% { transform: translate(-50%, -50%) scale(1.1); }
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
 }
 
 @keyframes fadeIn {
-  0% { opacity: 0; transform: translateY(5px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
-  0% { height: 0; opacity: 0; }
-  100% { height: auto; opacity: 1; } /* Use auto height */
+  0% {
+    height: 0;
+    opacity: 0;
+  }
+  100% {
+    height: auto;
+    opacity: 1;
+  } /* Use auto height */
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes blink {
-  50% { opacity: 0.5; }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes neon {
@@ -241,16 +339,15 @@ body.session-active .hide-during-session {
   animation: begin-pulse 5s ease-in-out;
 }
 
-
 /* --- Background Effects (Stars & Gradient Circles) --- */
 
 /* Gradient Circles Background (appears behind stars when session is not active) */
 .gradient-bg {
-  background: linear-gradient(135deg, #00adef 0%,#0076e5 100%);
+  background: linear-gradient(135deg, #00adef 0%, #0076e5 100%);
   position: fixed;
   inset: 0;
   height: 100vh; /* Use vh for full viewport height */
-  width: 100vw;  /* Use vw for full viewport width */
+  width: 100vw; /* Use vw for full viewport width */
   z-index: -2; /* Ensure it's behind everything, including default body background */
   overflow: hidden;
 }
@@ -263,49 +360,108 @@ body.session-active .hide-during-session {
 }
 
 /* Base styles for circles */
-.circle-small, .circle-medium, .circle-large, .circle-xlarge, .circle-xxlarge {
+.circle-small,
+.circle-medium,
+.circle-large,
+.circle-xlarge,
+.circle-xxlarge {
   position: absolute;
   top: 50%;
   left: 50%;
   background: #fff;
   border-radius: 50%;
   animation: circle-small-scale 3s ease-in-out infinite alternate;
-  animation-timing-function: cubic-bezier(.6, 0, .4, 1);
+  animation-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
   transform: translate(-50%, -50%); /* Initial centering */
 }
 
 /* Individual circle styles */
-.circle-small  { width: 300px;  height: 300px;  opacity: 0.4; animation-delay: 0s;    }
-.circle-medium { width: 600px;  height: 600px;  opacity: 0.3; animation-delay: 0.3s;  }
-.circle-large  { width: 900px;  height: 900px;  opacity: 0.2; animation-delay: 0.6s;  }
-.circle-xlarge { width: 1200px; height: 1200px; opacity: 0.1; animation-delay: 0.9s;  }
-.circle-xxlarge{ width: 1500px; height: 1500px; opacity: 0.05; animation-delay: 1.2s; }
-
+.circle-small {
+  width: 300px;
+  height: 300px;
+  opacity: 0.4;
+  animation-delay: 0s;
+}
+.circle-medium {
+  width: 600px;
+  height: 600px;
+  opacity: 0.3;
+  animation-delay: 0.3s;
+}
+.circle-large {
+  width: 900px;
+  height: 900px;
+  opacity: 0.2;
+  animation-delay: 0.6s;
+}
+.circle-xlarge {
+  width: 1200px;
+  height: 1200px;
+  opacity: 0.1;
+  animation-delay: 0.9s;
+}
+.circle-xxlarge {
+  width: 1500px;
+  height: 1500px;
+  opacity: 0.05;
+  animation-delay: 1.2s;
+}
 
 /* Starry Night Background (visible during active session) */
 /* Base star layer */
 .stars {
   /* These dimensions are tiny, the box-shadow creates the stars */
-  width: 3px; 
+  width: 3px;
   height: 3px;
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0; /* Cover viewport */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0; /* Cover viewport */
   background: transparent; /* Container is invisible */
   box-shadow: /* Star definitions... */
-    2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white,
-    22vw 22vh 1px white, 28vw 12vh 2px white, 32vw 32vh 1px white,
-    38vw 18vh 2px white, 42vw 35vh 1px white, 48vw 25vh 2px white,
-    53vw 42vh 1px white, 58vw 15vh 2px white, 63vw 38vh 1px white,
-    68vw 28vh 2px white, 73vw 45vh 1px white, 78vw 32vh 2px white,
-    83vw 48vh 1px white, 88vw 20vh 2px white, 93vw 52vh 1px white,
-    98vw 35vh 2px white, 5vw 60vh 1px white, 12vw 65vh 2px white,
-    18vw 72vh 1px white, 25vw 78vh 2px white, 30vw 85vh 1px white,
-    35vw 68vh 2px white, 40vw 82vh 1px white, 45vw 92vh 2px white,
-    50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white,
-    65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white,
-    80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white,
-    95vw 75vh 2px white, 50vw 98vh 2px white, 60vw 99vh 2px white,
-    75vw 100vh 2px white, 90vw 99vh 2px white, 30vw 100vh 1px white;
+    2vw 5vh 2px white,
+    10vw 8vh 2px white,
+    15vw 15vh 1px white,
+    22vw 22vh 1px white,
+    28vw 12vh 2px white,
+    32vw 32vh 1px white,
+    38vw 18vh 2px white,
+    42vw 35vh 1px white,
+    48vw 25vh 2px white,
+    53vw 42vh 1px white,
+    58vw 15vh 2px white,
+    63vw 38vh 1px white,
+    68vw 28vh 2px white,
+    73vw 45vh 1px white,
+    78vw 32vh 2px white,
+    83vw 48vh 1px white,
+    88vw 20vh 2px white,
+    93vw 52vh 1px white,
+    98vw 35vh 2px white,
+    5vw 60vh 1px white,
+    12vw 65vh 2px white,
+    18vw 72vh 1px white,
+    25vw 78vh 2px white,
+    30vw 85vh 1px white,
+    35vw 68vh 2px white,
+    40vw 82vh 1px white,
+    45vw 92vh 2px white,
+    50vw 75vh 1px white,
+    55vw 88vh 2px white,
+    60vw 95vh 1px white,
+    65vw 72vh 2px white,
+    70vw 85vh 1px white,
+    75vw 78vh 2px white,
+    80vw 92vh 1px white,
+    85vw 82vh 2px white,
+    90vw 88vh 1px white,
+    95vw 75vh 2px white,
+    50vw 98vh 2px white,
+    60vw 99vh 2px white,
+    75vw 100vh 2px white,
+    90vw 99vh 2px white,
+    30vw 100vh 1px white;
   pointer-events: none; /* Allow clicks through the star layer */
   animation: twinkle 8s infinite linear;
   z-index: -1; /* Position behind content, but potentially above gradient-bg if it exists */
@@ -315,17 +471,32 @@ body.session-active .hide-during-session {
 .stars::after {
   content: "";
   position: absolute; /* Position relative to .stars */
-  top: 0; left: 0; /* Align with parent */
-  width: 1px; height: 1px; /* Base size for pseudo-element */
+  top: 0;
+  left: 0; /* Align with parent */
+  width: 1px;
+  height: 1px; /* Base size for pseudo-element */
   background: white; /* Needed for box-shadow to render */
   box-shadow: /* More star definitions... */
-    8vw 12vh 2px white, 16vw 18vh 1px white, 24vw 25vh 2px white,
-    33vw 15vh 1px white, 41vw 28vh 2px white, 49vw 35vh 1px white,
-    57vw 22vh 2px white, 65vw 42vh 1px white, 73vw 28vh 2px white,
-    81vw 48vh 1px white, 89vw 32vh 2px white, 97vw 45vh 1px white,
-    3vw 68vh 2px white, 11vw 75vh 1px white, 19vw 82vh 2px white,
-    27vw 88vh 1px white, 35vw 72vh 2px white, 43vw 85vh 1px white,
-    51vw 92vh 2px white, 59vw 78vh 1px white;
+    8vw 12vh 2px white,
+    16vw 18vh 1px white,
+    24vw 25vh 2px white,
+    33vw 15vh 1px white,
+    41vw 28vh 2px white,
+    49vw 35vh 1px white,
+    57vw 22vh 2px white,
+    65vw 42vh 1px white,
+    73vw 28vh 2px white,
+    81vw 48vh 1px white,
+    89vw 32vh 2px white,
+    97vw 45vh 1px white,
+    3vw 68vh 2px white,
+    11vw 75vh 1px white,
+    19vw 82vh 2px white,
+    27vw 88vh 1px white,
+    35vw 72vh 2px white,
+    43vw 85vh 1px white,
+    51vw 92vh 2px white,
+    59vw 78vh 1px white;
   animation: twinkle 6s infinite linear reverse; /* Different timing */
   /* Inherits pointer-events: none from .stars */
 }
@@ -333,7 +504,8 @@ body.session-active .hide-during-session {
 /* Shooting stars */
 .shooting-star {
   position: fixed;
-  width: 100px; height: 2px;
+  width: 100px;
+  height: 2px;
   background: linear-gradient(90deg, white, transparent);
   z-index: 0; /* Above stars background, below most content */
   pointer-events: none;
@@ -341,14 +513,25 @@ body.session-active .hide-during-session {
 }
 
 /* Stagger shooting stars */
-.shooting-star:nth-child(1) { top: 20%; left: -100px; animation-delay: 0s; }
-.shooting-star:nth-child(2) { top: 35%; left: -100px; animation-delay: 1s; }
-.shooting-star:nth-child(3) { top: 50%; left: -100px; animation-delay: 2s; }
-
+.shooting-star:nth-child(1) {
+  top: 20%;
+  left: -100px;
+  animation-delay: 0s;
+}
+.shooting-star:nth-child(2) {
+  top: 35%;
+  left: -100px;
+  animation-delay: 1s;
+}
+.shooting-star:nth-child(3) {
+  top: 50%;
+  left: -100px;
+  animation-delay: 2s;
+}
 
 /* --- Digital Clock Styles --- */
 .digital-clock {
-  font-family: 'Digital', sans-serif; /* Use custom digital font */
+  font-family: "Digital", sans-serif; /* Use custom digital font */
   text-align: center;
 }
 
@@ -371,16 +554,26 @@ body.session-active .hide-during-session {
 }
 
 /* Responsive adjustments for clock */
-@media (min-width: 768px) { /* Medium screens */
+@media (min-width: 768px) {
+  /* Medium screens */
   .digital-clock-container {
     align-items: flex-end; /* Align to right */
   }
-  .digital-time { font-size: 2.5rem; }
-  .digital-date { font-size: 1.2rem; }
+  .digital-time {
+    font-size: 2.5rem;
+  }
+  .digital-date {
+    font-size: 1.2rem;
+  }
 }
-@media (min-width: 1024px) { /* Large screens */
-  .digital-time { font-size: 3rem; }
-  .digital-date { font-size: 1.4rem; }
+@media (min-width: 1024px) {
+  /* Large screens */
+  .digital-time {
+    font-size: 3rem;
+  }
+  .digital-date {
+    font-size: 1.4rem;
+  }
 }
 
 /* Spacing for time digits */
@@ -414,7 +607,6 @@ body.session-active .hide-during-session {
   animation: neon 3s ease-in-out infinite alternate; /* Apply neon animation */
 }
 
-
 /* --- Utilities & Optimizations --- */
 
 /* * Universal Scrollbar Hiding 
@@ -427,8 +619,9 @@ body.session-active .hide-during-session {
   scrollbar-width: none !important; /* Firefox */
   -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
-*::-webkit-scrollbar { /* WebKit */
-  display: none; 
+*::-webkit-scrollbar {
+  /* WebKit */
+  display: none;
 }
 
 /* Optimize browser rendering for animations */
