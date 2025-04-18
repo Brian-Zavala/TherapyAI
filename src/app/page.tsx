@@ -31,6 +31,7 @@ import { BackgroundGradient } from "@/components/ui/background-gradient";
 import { LayoutGrid } from "@/components/ui/layout-grid";
 import { Spotlight } from "@/components/ui/spotlight-new";
 import { TextSpotlight } from "@/components/ui/text-spotlight";
+import { Vortex } from "@/components/ui/vortex";
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
@@ -393,7 +394,7 @@ export default function Home() {
       {/* Use simple whileInView for section fade-in */}
       <motion.section
         ref={statsRef} // Assign ref
-        className="w-full py-20 bg-gradient-to-br from-pink-500 via-blue-500 to-pink-500 " // Original classes
+        className="w-full py-20 bg-gradient-to-br from-pink-800 via-blue-500 to-pink-900 " // Original classes
         initial="hidden" // Use variants for section fade-in
         whileInView="visible"
         viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Animate once
@@ -910,9 +911,20 @@ export default function Home() {
               variants={fadeInUp}
               className="relative z-10 mb-8"
             >
-              <h3 className="text-3xl sm:text-5xl text-center font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 overflow-visible h-36 mt-12">
-                Discover Our Therapy Options
-              </h3>
+              <div className="w-full rounded-xl h-36 mt-12 overflow-hidden">
+                <Vortex
+                  backgroundColor="#16161f"
+                  baseHue={250}
+                  baseRadius={1}
+                  rangeRadius={2.5}
+                  particleCount={500}
+                  className="flex items-center justify-center w-full h-full"
+                >
+                  <h3 className="text-3xl sm:text-5xl text-center font-bold text-white">
+                    Discover Our Therapy Options
+                  </h3>
+                </Vortex>
+              </div>
             </motion.div>
 
             <div className="h-[550px] sm:h-[600px] md:h-[650px] relative z-10">
