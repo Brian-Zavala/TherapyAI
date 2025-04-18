@@ -29,6 +29,8 @@ import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
 // Background gradient component
 import { BackgroundGradient } from "@/components/ui/background-gradient";
 import { LayoutGrid } from "@/components/ui/layout-grid";
+import { Spotlight } from "@/components/ui/spotlight-new";
+import { TextSpotlight } from "@/components/ui/text-spotlight";
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
@@ -735,7 +737,7 @@ export default function Home() {
                       Save up to 97% compared to traditional therapy costs!
                     </motion.div>
                   </div>
-                </motion.div>{" "}
+                </motion.div>
                 {/* End AI Powered Box */}
               </div>{" "}
               {/* End inner grid for cost boxes */}
@@ -899,23 +901,27 @@ export default function Home() {
           </div>{" "}
           {/* End Main Grid */}
           {/* 4-Container Layout Grid */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-100 relative overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-indigo-100/30 to-purple-100/30 rounded-full -ml-32 -mt-32"></div>
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-indigo-100/30 to-purple-100/30 rounded-full -mr-32 -mb-32"></div>
-
-            <motion.h3
+          <div className="bg-transparent p-6 sm:p-8 rounded-3xl relative overflow-hidden antialiased">
+            <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
               transition={{ duration: getOptimizedDuration(0.7) }}
               variants={fadeInUp}
-              className="text-xl sm:text-2xl text-center font-semibold mb-8 text-blue-500 relative z-10"
+              className="relative z-10 mb-8"
             >
-              Discover Our Therapy Options
-            </motion.h3>
+              <h3 className="text-3xl sm:text-5xl text-center font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 overflow-visible h-36 mt-12">
+                Discover Our Therapy Options
+              </h3>
+            </motion.div>
 
             <div className="h-[550px] sm:h-[600px] md:h-[650px] relative z-10">
+              <TextSpotlight className="absolute inset-0 z-0">
+                <Spotlight
+                  className="-top-40 left-0 md:left-60 md:-top-20"
+                  fill="white"
+                />
+              </TextSpotlight>
               <LayoutGrid
                 cards={[
                   {
@@ -926,15 +932,13 @@ export default function Home() {
                           Couples Therapy
                         </h3>
                         <p className="text-white/80 text-sm">
-                          Strengthen your relationship with AI-powered therapy
-                          sessions designed to improve communication and
-                          reignite connection.
+                          Here to heal couples.
                         </p>
                       </div>
                     ),
                     className: "md:col-span-1 row-span-1 md:row-span-1",
-                    thumbnail: "/images/happy-couple.jpg",
-                    size: "large",
+                    thumbnail: "/images/therapyType/couple.jpg",
+                    size: "medium",
                     title: "Couples Therapy",
                   },
                   {
@@ -953,7 +957,9 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2",
-                    thumbnail: "/videos/depressed.mp4",
+                    thumbnail: "/images/therapyType/mental_health.svg",
+                    size: "large",
+                    title: "Mental Health Challenges",
                   },
                   {
                     id: 3,
@@ -971,14 +977,16 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-1",
-                    thumbnail: "/images/happy-couple.jpg",
+                    thumbnail: "/images/therapyType/family.jpg",
+                    size: "large",
+                    title: "Family Therapy",
                   },
                   {
                     id: 4,
                     content: (
                       <div>
                         <h3 className="text-white font-medium text-xl mb-2">
-                          Relationship Wellness
+                          Solo Therapy
                         </h3>
                         <p className="text-white/80 text-sm">
                           Enhance your mental wellbeing and develop effective
@@ -989,7 +997,9 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2",
-                    thumbnail: "/videos/mentalHealth.mp4",
+                    thumbnail: "/images/therapyType/solo.jpg",
+                    size: "medium",
+                    title: "Solo Therapy",
                   },
                 ]}
               />
@@ -1002,7 +1012,7 @@ export default function Home() {
               viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
               transition={{ duration: getOptimizedDuration(0.7), delay: 0.3 }}
               variants={fadeInUp}
-              className="text-center mt-6 relative z-10"
+              className="text-center mt-32 relative z-10"
             >
               <motion.div
                 variants={floatingButtonVariants}
