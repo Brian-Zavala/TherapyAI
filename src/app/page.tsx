@@ -916,12 +916,6 @@ export default function Home() {
             </motion.div>
 
             <div className="h-[550px] sm:h-[600px] md:h-[650px] relative z-10">
-              <TextSpotlight className="absolute inset-0 z-0">
-                <Spotlight
-                  className="-top-40 left-0 md:left-60 md:-top-20"
-                  fill="white"
-                />
-              </TextSpotlight>
               <LayoutGrid
                 cards={[
                   {
@@ -1012,7 +1006,7 @@ export default function Home() {
               viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
               transition={{ duration: getOptimizedDuration(0.7), delay: 0.3 }}
               variants={fadeInUp}
-              className="text-center mt-32 relative z-10"
+              className="text-center mt-36 relative z-10"
             >
               <motion.div
                 variants={floatingButtonVariants}
