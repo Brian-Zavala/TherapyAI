@@ -31,7 +31,6 @@ import { BackgroundGradient } from "@/components/ui/background-gradient";
 import { LayoutGrid } from "@/components/ui/layout-grid";
 import { Spotlight } from "@/components/ui/spotlight-new";
 import { TextSpotlight } from "@/components/ui/text-spotlight";
-import { Vortex } from "@/components/ui/vortex";
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
@@ -911,20 +910,9 @@ export default function Home() {
               variants={fadeInUp}
               className="relative z-10 mb-8"
             >
-              <div className="w-full rounded-xl h-36 mt-12 overflow-hidden">
-                <Vortex
-                  backgroundColor="#16161f"
-                  baseHue={250}
-                  baseRadius={1}
-                  rangeRadius={2.5}
-                  particleCount={500}
-                  className="flex items-center justify-center w-full h-full"
-                >
-                  <h3 className="text-3xl sm:text-5xl text-center font-bold text-white">
-                    Discover Our Therapy Options
-                  </h3>
-                </Vortex>
-              </div>
+              <h3 className="text-3xl sm:text-5xl text-center font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 overflow-visible h-36 mt-12">
+                Discover Our Therapy Options
+              </h3>
             </motion.div>
 
             <div className="h-[550px] sm:h-[600px] md:h-[650px] relative z-10">
