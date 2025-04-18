@@ -8,6 +8,22 @@
  */
 @import "tailwindcss";
 
+@theme inline {
+  --animate-aurora: aurora 120s linear infinite;
+  @keyframes aurora {
+    from {
+      background-position:
+        50% 50%,
+        50% 50%;
+    }
+    to {
+      background-position:
+        250% 50%,
+        250% 50%;
+    }
+  }
+}
+
 /* --- CSS Variables --- */
 :root {
   --color-bg-light: #e5e5f7;
@@ -629,6 +645,19 @@ body.session-active .hide-during-session {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
+}
+
+/* 3D flip card styles */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
 }
 
 /* Grid stack for image containers */
