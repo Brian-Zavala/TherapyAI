@@ -285,27 +285,27 @@ export default function Home() {
 
   // --- Component Return Start ---
   return (
-    <div className="flex flex-col items-center w-full overflow-x-hidden bg-gradient-to-b from-white via-indigo-50/30 to-purple-50/30">
+    <div className="flex flex-col items-center w-full overflow-x-hidden bg-gradient-to-br from-pink-700 via-blue-500 to-pink-700">
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref
-        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-lg shadow-indigo-500/10 rounded-b-[4rem] md:rounded-b-[5rem]" // Original classes
+        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-lg shadow-indigo-500/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
       >
         {/* Background Gradient (Original) */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-100 to-white/60 z-0"></div>
+        {/* Removed gradient overlay that was covering hero image */}
         {/* Background Image (Original) */}
         <div className="absolute inset-0 w-full h-full z-0">
           <Image
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
-            className="object-cover object-center opacity-50 mix-blend-luminosity rounded-b-[4rem] md:rounded-b-[5rem]"
+            className="object-cover object-center opacity-100 rounded-b-[4rem] md:rounded-b-[5rem]"
             priority // Keep priority for LCP
             sizes="100vw"
             quality={80} // Original quality
           />
           {/* Gradient overlay (Original) */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-white/10 to-transparent rounded-b-[4rem] md:rounded-b-[5rem]"></div>
+          {/* No gradient overlay on hero image */}
         </div>
         {/* Integrated 3D Background (Original Structure) */}
         <Suspense fallback={null}>
@@ -388,13 +388,13 @@ export default function Home() {
           </div>
         </motion.div>{" "}
         {/* End Hero Content */}
-      </section>{" "}
-      {/* End Hero Section */}
+      </section>
+      
       {/* Mental Health & Therapy Costs Section */}
       {/* Use simple whileInView for section fade-in */}
       <motion.section
         ref={statsRef} // Assign ref
-        className="w-full py-20 bg-gradient-to-br from-pink-700 via-blue-500 to-pink-700 " // Original classes
+        className="w-full py-20"
         initial="hidden" // Use variants for section fade-in
         whileInView="visible"
         viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Animate once
@@ -407,7 +407,7 @@ export default function Home() {
           },
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 backdrop-blur-md    ">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {" "}
           {/* Original container */}
           {/* Section Heading with Controlled Text Shadow */}
@@ -777,7 +777,7 @@ export default function Home() {
                   Your browser does not support the video tag.
                 </video>
                 {/* Overlay (Original) */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-indigo-900/30 to-purple-900/30 z-0"></div>
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-indigo-900/50 to-purple-900/50 z-0"></div>
               </div>
               {/* Card Content */}
               <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-white relative z-10">
@@ -902,33 +902,33 @@ export default function Home() {
           </div>{" "}
           {/* End Main Grid */}
           {/* 4-Container Layout Grid */}
-          <div className="bg-transparent p-6 sm:p-8 rounded-3xl relative overflow-hidden antialiased">
+          <div className="bg-transparent p-2 sm:p-6 md:p-8 rounded-3xl relative overflow-hidden antialiased">
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
               transition={{ duration: getOptimizedDuration(0.7) }}
               variants={fadeInUp}
-              className="relative z-10 mb-8"
+              className="relative z-10 mb-4 sm:mb-8"
             >
-              <div className="w-full rounded-xl h-36 mt-12 overflow-hidden">
-                <h3 className="text-3xl sm:text-5xl text-center font-bold text-white">
+              <div className="w-full rounded-xl h-24 sm:h-36 mt-8 sm:mt-12 overflow-hidden">
+                <h3 className="text-xl sm:text-3xl md:text-5xl text-center font-bold text-white">
                   Discover Our Therapy Options
                 </h3>
               </div>
             </motion.div>
 
-            <div className="h-[550px] sm:h-[600px] md:h-[650px] relative z-10">
+            <div className="h-auto min-h-[800px] sm:min-h-[700px] md:min-h-[650px] relative z-10">
               <LayoutGrid
                 cards={[
                   {
                     id: 1,
                     content: (
                       <div>
-                        <h3 className="text-white font-medium text-xl mb-2">
+                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
                           Couples Therapy
                         </h3>
-                        <p className="text-white/80 text-sm">
+                        <p className="text-white/80 text-xs sm:text-sm">
                           Here to heal couples.
                         </p>
                       </div>
@@ -942,10 +942,10 @@ export default function Home() {
                     id: 2,
                     content: (
                       <div>
-                        <h3 className="text-white font-medium text-xl mb-2">
+                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
                           Mental Health Challenges
                         </h3>
-                        <p className="text-white/80 text-sm">
+                        <p className="text-white/80 text-xs sm:text-sm">
                           Address anxiety, depression, and stress with
                           personalized therapy approaches that promote emotional
                           well-being.
@@ -962,10 +962,10 @@ export default function Home() {
                     id: 3,
                     content: (
                       <div>
-                        <h3 className="text-white font-medium text-xl mb-2">
+                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
                           Family Therapy
                         </h3>
-                        <p className="text-white/80 text-sm">
+                        <p className="text-white/80 text-xs sm:text-sm">
                           Heal family dynamics and build stronger connections
                           with specialized therapeutic approaches for entire
                           family systems.
@@ -982,10 +982,10 @@ export default function Home() {
                     id: 4,
                     content: (
                       <div>
-                        <h3 className="text-white font-medium text-xl mb-2">
+                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
                           Solo Therapy
                         </h3>
-                        <p className="text-white/80 text-sm">
+                        <p className="text-white/80 text-xs sm:text-sm">
                           Enhance your mental wellbeing and develop effective
                           coping strategies with our comprehensive support
                           system.
@@ -1009,7 +1009,7 @@ export default function Home() {
               viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
               transition={{ duration: getOptimizedDuration(0.7), delay: 0.3 }}
               variants={fadeInUp}
-              className="text-center mt-36 relative z-10"
+              className="text-center mt-4 sm:mt-10 md:mt-24 lg:mt-36 relative z-10"
             >
               <motion.div
                 variants={floatingButtonVariants}
@@ -1035,13 +1035,13 @@ export default function Home() {
           {/* End Access Gap Box */}
         </div>{" "}
         {/* End Max Width Container */}
-      </motion.section>{" "}
-      {/* End Stats Section */}
+      </motion.section>
+      
       {/* Features section with creative card animations */}
       {/* Apply scroll-linked opacity directly */}
       <motion.section
         ref={featuresRef} // Assign ref
-        className="w-full py-16 sm:py-20 bg-white" // Original classes
+        className="w-full py-16 sm:py-20"
         // Apply opacity driven by useTransform hook
         style={{ opacity: featuresOpacity }}
         // Removed initial/animate/transition from section as opacity handles visibility
@@ -1061,7 +1061,7 @@ export default function Home() {
               stiffness: 100,
             }}
             variants={fadeInUp} // Use standard variant
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-transparent bg-clip-text bg-gradient-to-r py-1 overflow-visible from-blue-500 to-blue-600" // Original classes
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-white py-1 overflow-visible" // Simplified to white text
           >
             How We Support Your Relationship
           </motion.h2>
@@ -1095,7 +1095,7 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-blue-500"
+                    className="text-white"
                   >
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                   </svg>
@@ -1116,7 +1116,7 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-blue-500"
+                    className="text-white"
                   >
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
@@ -1138,7 +1138,7 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-blue-500"
+                    className="text-white"
                   >
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -1155,12 +1155,12 @@ export default function Home() {
                     ? {
                         // Original hover effect, check reduced motion
                         boxShadow:
-                          "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                        backgroundColor: "rgb(249, 250, 255)",
+                          "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)",
+                        backgroundColor: "rgba(255, 255, 255, 0.15)",
                       }
                     : {}
                 }
-                className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-indigo-100 group" // Original classes
+                className="bg-white/10 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-white/20 group" // Semi-transparent with backdrop blur
               >
                 {/* Icon Container */}
                 <motion.div
@@ -1171,20 +1171,16 @@ export default function Home() {
                       : {}
                   }
                   transition={{ duration: 0.5 }} // Original transition
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-indigo-200 transition-colors duration-300 shadow-md" // Original classes
+                  className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-white/30 transition-colors duration-300 shadow-md" // Keep translucent background
                 >
                   {feature.icon}
                 </motion.div>
                 {/* Card Title */}
-                <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-blue-700 group-hover:text-indigo-600 transition-colors duration-300">
-                  {" "}
-                  {/* Original classes */}
+                <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-white group-hover:text-white/90 transition-colors duration-300">
                   {feature.title}
                 </h3>
                 {/* Card Description */}
-                <p className="text-sm sm:text-base text-gray-600">
-                  {" "}
-                  {/* Original classes */}
+                <p className="text-sm sm:text-base text-white/80">
                   {feature.description}
                 </p>
               </motion.div>
@@ -1193,13 +1189,13 @@ export default function Home() {
           {/* End Feature Card Grid */}
         </div>{" "}
         {/* End Max Width Container */}
-      </motion.section>{" "}
-      {/* End Features Section */}
+      </motion.section>
+      
       {/* Subscription Plans Section */}
       {/* Simple whileInView fade-in for section */}
       <motion.section
         ref={plansRef} // Assign ref
-        className="w-full py-16 sm:py-20 bg-white relative overflow-hidden" // Original classes + relative/overflow for beam
+        className="w-full py-16 sm:py-20 relative overflow-hidden"
         initial="hidden" // Use variants
         whileInView="visible"
         viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Animate once
@@ -1251,14 +1247,10 @@ export default function Home() {
             variants={fadeInUp} // Use standard variant
             className="text-center mb-12 sm:mb-16" // Original classes
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text py-1 overflow-visible bg-gradient-to-r from-blue-500 to-blue-600 mb-4">
-              {" "}
-              {/* Original classes */}
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white py-1 overflow-visible mb-4">
               Affordable Subscription Plans
             </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto text-base sm:text-lg">
-              {" "}
-              {/* Original classes */}
+            <p className="text-white/80 max-w-3xl mx-auto text-base sm:text-lg">
               Choose the plan that fits your needs and relationship goals. All
               our plans offer access to our AI therapy platform with different
               session limits and features to accommodate various budgets and
@@ -1674,13 +1666,13 @@ export default function Home() {
           </motion.div>
         </div>{" "}
         {/* End Max Width Container */}
-      </motion.section>{" "}
-      {/* End Plans Section */}
+      </motion.section>
+      
       {/* Call to action section */}
       {/* Simple fade-in for section container */}
       <motion.section
         ref={ctaRef} // Assign ref
-        className="w-full py-20 sm:py-24 pb-32 bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative" // Original classes + relative/overflow
+        className="w-full py-20 sm:py-24 pb-32 text-white overflow-hidden relative"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: getOptimizedThreshold(0.2) }} // Animate once, use optimized threshold
@@ -1774,10 +1766,10 @@ export default function Home() {
           </div>
         </div>{" "}
         {/* End Max Width Container */}
-      </motion.section>{" "}
-      {/* End CTA Section */}
+      </motion.section>
+      
       {/* Footer section (Using <footer> tag for semantics) */}
-      <footer className="w-full py-10 bg-green-500/50 text-white">
+      <footer className="w-full py-10 text-white">
         {" "}
         {/* Original classes */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

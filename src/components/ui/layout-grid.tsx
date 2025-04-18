@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
  
@@ -15,6 +15,23 @@ type Card = {
 export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
   const [flippedId, setFlippedId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check if we're on mobile when the component mounts
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleFlip = (cardId: number) => {
     setFlippedId(flippedId === cardId ? null : cardId);
@@ -27,18 +44,18 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
     
     switch (size) {
       case "small":
-        return "col-span-1 row-span-1 h-48 md:h-64";
+        return "col-span-1 row-span-1 h-40 sm:h-48 md:h-64";
       case "medium":
-        return "col-span-1 row-span-1 h-52 md:h-72";
+        return "col-span-1 row-span-1 h-44 sm:h-52 md:h-72";
       case "large":
-        return "col-span-1 row-span-1 h-64 md:h-80";
+        return "col-span-1 row-span-1 h-48 sm:h-64 md:h-80";
       default:
-        return "col-span-1 row-span-1 h-48 md:h-64";
+        return "col-span-1 row-span-1 h-40 sm:h-48 md:h-64";
     }
   };
 
   return (
-    <div className="w-full h-full px-4 py-8 md:p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 max-w-7xl mx-auto gap-6 relative">
+    <div className="w-full h-full px-2 sm:px-4 py-2 sm:py-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 max-w-7xl mx-auto gap-3 sm:gap-4 md:gap-6 relative">
       {cards.map((card, i) => {
         const sizeClasses = getSizeClasses(card, i);
         const isFlipped = flippedId === card.id;
@@ -78,15 +95,15 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
                       </div>
                     )}
                     
-                    {/* Hover overlay */}
-                    {hoveredId === card.id && (
+                    {/* Hover/Touch indicator overlay - visible on mobile without hover */}
+                    {(hoveredId === card.id || isMobile) && (
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="absolute inset-0 bg-black/30 flex items-center justify-center"
+                        className="absolute inset-0 bg-black/20 flex items-start justify-end"
                       >
-                        <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/40">
-                          <span className="text-white font-medium">Click to flip</span>
+                        <div className="bg-white/20 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-white/40 m-2 sm:m-3">
+                          <span className="text-white text-xs sm:text-sm font-medium">Tap to view</span>
                         </div>
                       </motion.div>
                     )}
@@ -102,17 +119,17 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
                     exit={{ rotateY: -180, opacity: 0 }}
                     transition={{ duration: 0.5 }}
                     onClick={() => handleFlip(card.id)}
-                    className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl overflow-hidden cursor-pointer shadow-xl flex items-center justify-center"
+                    className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl overflow-hidden cursor-pointer shadow-xl flex items-start justify-center pt-6 sm:pt-8 md:pt-10"
                     style={{ backfaceVisibility: "hidden" }}
                   >
-                    <div className="p-6 text-white">
-                      {card.content}
-                      
-                      <div className="mt-4 text-center">
-                        <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/40 inline-block">
-                          <span className="text-white text-sm font-medium">Click to flip back</span>
+                    <div className="p-3 sm:p-6 text-white relative">
+                      <div className="absolute top-0 right-0 mr-1 mt-1 sm:mr-2 sm:mt-1">
+                        <div className="bg-white/20 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-white/40 inline-block">
+                          <span className="text-white text-xs sm:text-sm font-medium">Tap to flip</span>
                         </div>
                       </div>
+                      
+                      {card.content}
                     </div>
                   </motion.div>
                 )}
