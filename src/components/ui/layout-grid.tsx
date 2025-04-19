@@ -107,19 +107,22 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
                       </div>
                     )}
 
-                    {/* Hover/Touch indicator overlay - visible on mobile without hover */}
+                    {/* Always visible "Tap to view" at top right */}
+                    <div className="absolute top-0 right-0 mr-2 mt-2 sm:mr-3 sm:mt-3 z-10">
+                      <div className="bg-white/20 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-white/40">
+                        <span className="text-white text-xs sm:text-sm font-medium">
+                          Tap to view
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Hover/Touch indicator overlay for darkening effect */}
                     {(hoveredId === card.id || isMobile) && (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="absolute inset-0 bg-black/20 flex items-start justify-end"
-                      >
-                        <div className="bg-white/20 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-white/40 m-2 sm:m-3">
-                          <span className="text-white text-xs sm:text-sm font-medium">
-                            Tap to view
-                          </span>
-                        </div>
-                      </motion.div>
+                        className="absolute inset-0 bg-black/20"
+                      />
                     )}
                   </motion.div>
                 )}

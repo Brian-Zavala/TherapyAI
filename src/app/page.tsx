@@ -4,6 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRef, useState, useEffect, Suspense } from "react";
+import dynamic from "next/dynamic";
 
 // Framer Motion imports
 import {
@@ -18,8 +19,6 @@ import {
 
 // Custom components
 import TypewriterText from "@/components/TypewriterText";
-
-// Your custom component imports
 import ButtonWithSound from "@/components/ButtonWithSound";
 import SpiralTextAnimation from "@/components/SpiralTextAnimation";
 import ScrollDownArrow from "@/components/ScrollDownArrow";
@@ -552,6 +551,7 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+
                 {/* AI Powered Box */}
                 {/* Simple whileInView enter animation */}
                 <motion.div
@@ -565,20 +565,14 @@ export default function Home() {
                   variants={fadeInUp}
                   className="relative"
                 >
-                  <div className="p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden bg-white/50">
+                  <div className=" p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden bg-white/50">
                     {/* Original heading */}
                     <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
-                      <span className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-1 rounded-lg">
+                      <span className="bg-gradient-to-br from-blue-500 to-blue-500/90 text-white px-3 py-1 rounded-lg">
                         AI-POWERED
                       </span>
                       <span>Therapy</span>
-                      <span className="sm:ml-auto text-xs sm:text-sm bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center">
-                        <svg
-                          className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /* Original SVG */
-                        >
-                          {" "}
-                          <path /* Original path */ />{" "}
-                        </svg>
+                      <span className="sm:ml-auto text-xs sm:text-sm bg-green-100/90 text-green-700 font-bold p-1 px-2 rounded-lg text-center">
                         AFFORDABLE
                       </span>
                     </h4>
@@ -595,7 +589,7 @@ export default function Home() {
                         transition={{ delay: 0.1 }}
                       >
                         {/* Original card title */}
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-500/90 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
                           30-Minute Session
                         </div>
                         {/* Original price section */}
@@ -625,29 +619,25 @@ export default function Home() {
                         <ul className="text-sm text-gray-600 space-y-2">
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
-                              <path d="M5 13l4 4L19 7" />{" "}
+                              <path d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Vapi platform: $1.50</span>
                           </li>
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
-                              <path d="M5 13l4 4L19 7" />{" "}
+                              <path d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Claude 3.7 AI: $0.07</span>
                           </li>
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
-                              <path d="M5 13l4 4L19 7" />{" "}
+                              <path d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Voice synthesis: $0.75</span>
                           </li>
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
-                              <path d="M5 13l4 4L19 7" />{" "}
+                              <path d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Transcription: $0.30</span>
                           </li>
@@ -665,7 +655,7 @@ export default function Home() {
                         transition={{ delay: 0.2 }}
                       >
                         {/* Original card title */}
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-500/90 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
                           60-Minute Session
                         </div>
                         {/* Original price section */}
@@ -695,35 +685,31 @@ export default function Home() {
                         <ul className="text-sm text-gray-600 space-y-2">
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
                               <path d="M5 13l4 4L19 7" />{" "}
                             </svg>
                             <span>Vapi platform: $3.00</span>
                           </li>
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
                               <path d="M5 13l4 4L19 7" />{" "}
                             </svg>
                             <span>Claude 3.7 AI: $0.15</span>
                           </li>
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
                               <path d="M5 13l4 4L19 7" />{" "}
                             </svg>
                             <span>Voice synthesis: $1.50</span>
                           </li>
                           <li className="flex items-start">
                             <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              {" "}
                               <path d="M5 13l4 4L19 7" />{" "}
                             </svg>
                             <span>Transcription: $0.60</span>
                           </li>
                         </ul>
                       </motion.div>
-                    </div>{" "}
+                    </div>
                     {/* End AI costs grid */}
                     {/* Final savings text */}
                     {/* Simple whileInView */}
@@ -731,17 +717,30 @@ export default function Home() {
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: 0.6 }} // Original transition
-                      className="text-center text-white font-bold p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl relative z-10 shadow-lg text-sm sm:text-base" // Original classes
+                      transition={{ duration: 0.5, delay: 0.6 }}
+                      className="text-center my-4 relative"
                     >
-                      Save up to 97% compared to traditional therapy costs!
+                      <div className="text-white font-bold text-lg sm:text-xl relative inline-block">
+                        Save up to <span className="text-green-400 relative inline-block" style={{ textShadow: "-0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000, 0.5px 0.5px 0 #000" }}>97%</span>{" "}
+                        compared to traditional therapy costs!
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: [0.4, 0.7, 0.4] }}
+                          transition={{
+                            duration: 2.5,
+                            repeat: Infinity,
+                            repeatType: "mirror",
+                          }}
+                          className="absolute inset-0 blur-md bg-white/10 -z-10"
+                        />
+                      </div>
                     </motion.div>
                   </div>
                 </motion.div>
                 {/* End AI Powered Box */}
-              </div>{" "}
+              </div>
               {/* End inner grid for cost boxes */}
-            </motion.div>{" "}
+            </motion.div>
             {/* End Therapy Costs Card (Left Side) */}
             {/* Mental Health Statistics Card (Right Side) */}
             {/* Use simple whileInView for card entry, ref controls video */}
