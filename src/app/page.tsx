@@ -389,7 +389,6 @@ export default function Home() {
         </motion.div>{" "}
         {/* End Hero Content */}
       </section>
-      
       {/* Mental Health & Therapy Costs Section */}
       {/* Use simple whileInView for section fade-in */}
       <motion.section
@@ -924,13 +923,44 @@ export default function Home() {
                   {
                     id: 1,
                     content: (
-                      <div>
-                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
-                          Couples Therapy
-                        </h3>
-                        <p className="text-white/80 text-xs sm:text-sm">
-                          Here to heal couples.
-                        </p>
+                      <div className="relative w-full h-screen overflow-hidden">
+                        {/* Adjust height as needed (e.g., h-[500px]) */}
+                        <video
+                          className="absolute w-full h-[200px] lg:h-[290px] object-cover z-0"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                        >
+                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
+                          <source
+                            src="/videos/couple.mp4"
+                            type="video/mp4"
+                          />{" "}
+                          {/* Replace with your .mp4 path */}
+                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          Your browser does not support the video tag.
+                        </video>
+                        {/* Optional: Semi-transparent Overlay for better text readability */}
+                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
+                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
+                        {/* Text Content Container */}
+                        <div className="absolute inset-0 z-20 p-5">
+                          {/* Add positioning/centering classes here if needed */}
+
+                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                            Rebuild trust, improve communication, and rediscover
+                            intimacy with our specialized couples therapy. Our
+                            AI therapist uses evidence-based techniques from
+                            Gottman Method and Emotionally Focused Therapy to
+                            help you navigate conflicts and strengthen your
+                            bond.
+                          </p>
+                        </div>
                       </div>
                     ),
                     className: "md:col-span-1 row-span-1 md:row-span-1",
@@ -941,35 +971,93 @@ export default function Home() {
                   {
                     id: 2,
                     content: (
-                      <div>
-                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
-                          Mental Health Challenges
-                        </h3>
-                        <p className="text-white/80 text-xs sm:text-sm">
-                          Address anxiety, depression, and stress with
-                          personalized therapy approaches that promote emotional
-                          well-being.
-                        </p>
+                      <div className="relative w-full h-screen overflow-hidden">
+                        {/* Adjust height as needed (e.g., h-[500px]) */}
+                        <video
+                          className="absolute w-full lg:h-[350px] object-cover z-0"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                        >
+                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
+                          <source
+                            src="/videos/mental_health.mp4"
+                            type="video/mp4"
+                          />{" "}
+                          {/* Replace with your .mp4 path */}
+                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          Your browser does not support the video tag.
+                        </video>
+                        {/* Optional: Semi-transparent Overlay for better text readability */}
+                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
+                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
+                        {/* Text Content Container */}
+                        <div className="absolute inset-0 z-20 p-5">
+                          {/* Add positioning/centering classes here if needed */}
+
+                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                            Address anxiety, depression, and stress with
+                            personalized therapy approaches that promote
+                            emotional well-being. Our AI therapist employs
+                            Cognitive Behavioral Therapy (CBT), mindfulness
+                            practices, and solution-focused techniques to help
+                            you overcome obstacles.
+                          </p>
+                        </div>
                       </div>
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2",
-                    thumbnail: "/images/therapyType/mental_health.svg",
+                    thumbnail: "/images/therapyType/mental_health.jpg",
                     size: "large",
                     title: "Mental Health Challenges",
                   },
                   {
                     id: 3,
                     content: (
-                      <div>
-                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
-                          Family Therapy
-                        </h3>
-                        <p className="text-white/80 text-xs sm:text-sm">
-                          Heal family dynamics and build stronger connections
-                          with specialized therapeutic approaches for entire
-                          family systems.
-                        </p>
+                      <div className="relative w-full h-screen overflow-hidden">
+                        {/* Adjust height as needed (e.g., h-[500px]) */}
+                        <video
+                          className="absolute w-full lg:h-[350px] object-cover z-0"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                        >
+                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
+                          <source
+                            src="/videos/family.mp4"
+                            type="video/mp4"
+                          />{" "}
+                          {/* Replace with your .mp4 path */}
+                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          Your browser does not support the video tag.
+                        </video>
+                        {/* Optional: Semi-transparent Overlay for better text readability */}
+                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
+                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
+                        {/* Text Content Container */}
+                        <div className="absolute inset-0 z-20 p-5">
+                          {/* Add positioning/centering classes here if needed */}
+
+                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                            Heal family dynamics and build stronger connections
+                            through our systemic family therapy approach.
+                            Address intergenerational patterns, resolve
+                            conflicts, and improve communication between all
+                            family members in a collaborative, supportive
+                            environment.
+                          </p>
+                        </div>
                       </div>
                     ),
                     className:
@@ -981,15 +1069,44 @@ export default function Home() {
                   {
                     id: 4,
                     content: (
-                      <div>
-                        <h3 className="text-white font-medium text-base sm:text-xl mb-1 sm:mb-2">
-                          Solo Therapy
-                        </h3>
-                        <p className="text-white/80 text-xs sm:text-sm">
-                          Enhance your mental wellbeing and develop effective
-                          coping strategies with our comprehensive support
-                          system.
-                        </p>
+                      <div className="relative w-full h-screen overflow-hidden">
+                        {/* Adjust height as needed (e.g., h-[500px]) */}
+                        <video
+                          className="absolute w-full lg:h-[300px] object-cover z-0"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                        >
+                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
+                          <source
+                            src="/videos/solo.mp4"
+                            type="video/mp4"
+                          />{" "}
+                          {/* Replace with your .mp4 path */}
+                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
+                          {/* Optional: Add other formats */}
+                          Your browser does not support the video tag.
+                        </video>
+                        {/* Optional: Semi-transparent Overlay for better text readability */}
+                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
+                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
+                        {/* Text Content Container */}
+                        <div className="absolute inset-0 z-20 p-5">
+                          {/* Add positioning/centering classes here if needed */}
+
+                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                            Embark on a personal growth journey with our
+                            individualized solo therapy. Enhance your mental
+                            wellbeing, develop effective coping strategies, and
+                            gain profound self-awareness through personalized
+                            therapeutic approaches tailored to your unique
+                            needs.
+                          </p>
+                        </div>
                       </div>
                     ),
                     className:
@@ -1021,7 +1138,7 @@ export default function Home() {
                 <ButtonWithSound
                   as={Link}
                   href="/dashboard/therapy"
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:from-blue-400 hover:to-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
+                  className="w-full sm:w-auto bg-white/20 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:from-blue-400 hover:to-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
                 >
                   <span className="relative z-10">
                     Experience Affordable Therapy
@@ -1036,7 +1153,6 @@ export default function Home() {
         </div>{" "}
         {/* End Max Width Container */}
       </motion.section>
-      
       {/* Features section with creative card animations */}
       {/* Apply scroll-linked opacity directly */}
       <motion.section
@@ -1190,7 +1306,6 @@ export default function Home() {
         </div>{" "}
         {/* End Max Width Container */}
       </motion.section>
-      
       {/* Subscription Plans Section */}
       {/* Simple whileInView fade-in for section */}
       <motion.section
@@ -1667,7 +1782,6 @@ export default function Home() {
         </div>{" "}
         {/* End Max Width Container */}
       </motion.section>
-      
       {/* Call to action section */}
       {/* Simple fade-in for section container */}
       <motion.section
@@ -1767,7 +1881,6 @@ export default function Home() {
         </div>{" "}
         {/* End Max Width Container */}
       </motion.section>
-      
       {/* Footer section (Using <footer> tag for semantics) */}
       <footer className="w-full py-10 text-white">
         {" "}
