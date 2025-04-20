@@ -291,14 +291,13 @@ export default function Home() {
         className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-lg shadow-indigo-500/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
       >
         {/* Background Gradient (Original) */}
-        {/* Removed gradient overlay that was covering hero image */}
         {/* Background Image (Original) */}
-        <div className="absolute inset-0 w-full h-full z-0">
+        <div className="absolute inset-0 h-full z-0">
           <Image
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
-            className="object-cover object-center opacity-100 rounded-b-[4rem] md:rounded-b-[5rem]"
+            className="object-cover object-center  opacity-100 rounded-b-[4rem] md:rounded-b-[5rem]"
             priority // Keep priority for LCP
             sizes="100vw"
             quality={80} // Original quality
@@ -721,7 +720,16 @@ export default function Home() {
                       className="text-center my-4 relative"
                     >
                       <div className="text-white font-bold text-lg sm:text-xl relative inline-block">
-                        Save up to <span className="text-green-400 relative inline-block" style={{ textShadow: "-0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000, 0.5px 0.5px 0 #000" }}>97%</span>{" "}
+                        Save up to{" "}
+                        <span
+                          className="text-green-400 relative inline-block"
+                          style={{
+                            textShadow:
+                              "-0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000, 0.5px 0.5px 0 #000",
+                          }}
+                        >
+                          97%
+                        </span>{" "}
                         compared to traditional therapy costs!
                         <motion.div
                           initial={{ opacity: 0 }}
@@ -1773,7 +1781,7 @@ export default function Home() {
               delay: getOptimizedDelay(0.6),
             }} // Original transition
             variants={fadeInUp} // Use standard variant
-            className="text-center mt-10 text-gray-500 text-sm" // Original classes
+            className="text-center mt-10 text-white text-sm" // Original classes
           >
             All plans include a 7-day free trial. Cancel anytime. No credit card
             required to start.
