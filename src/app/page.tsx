@@ -219,22 +219,16 @@ export default function Home() {
     },
   });
 
-  // Stats Heading Text Shadow
+  // Stats Heading Text Shadow - static version (no animation)
   const textShadowVariant = {
     hidden: {
       textShadow: "0px 0px 0px rgba(66, 153, 225, 0)",
       transition: { duration: 0.2 },
     },
     visible: {
-      textShadow: [
-        "0px 0px 0px rgba(66, 153, 225, 0)",
-        "0px 0px 10px rgba(66, 153, 225, 0.3)",
-        "0px 0px 0px rgba(66, 153, 225, 0)",
-      ],
+      textShadow: "0px 0px 4px rgba(66, 153, 225, 0.2)",
       transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "mirror" as "mirror",
+        duration: 0.5,
       },
     },
   };
@@ -284,7 +278,7 @@ export default function Home() {
 
   // --- Component Return Start ---
   return (
-    <div className="flex flex-col items-center w-full overflow-x-hidden bg-gradient-to-br from-pink-700 via-blue-500 to-pink-700">
+    <div className="flex flex-col items-center w-full overflow-x-hidden">
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref
@@ -332,7 +326,7 @@ export default function Home() {
             <SpiralTextAnimation className="w-full" />
           </motion.div>
 
-          {/* Hero Highlight Demo */}
+          {/* Hero Highlight */}
           <div className="mb-12 md:mb-16">
             <HeroHighlightDemo />
           </div>
@@ -435,13 +429,13 @@ export default function Home() {
               }
             >
               {/* Original text content */}
-              <span className="relative z-10 text-transparent bg-clip-text bg-stone-50 py-1 text-sm sm:text-lg md:text-2xl overflow-visible">
+              <span className="relative z-10 text-white py-1 text-sm sm:text-lg md:text-2xl overflow-visible">
                 Making Therapy{" "}
                 <span className="underline decoration-green-500 decoration-4 underline-offset-4">
                   <TypewriterText
                     text="Accessible"
                     isInView={statsHeadingView.isInView}
-                    className="text-stone-50"
+                    className="text-white"
                   />
                 </span>{" "}
                 for Everyone

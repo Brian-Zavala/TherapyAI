@@ -1,36 +1,36 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface ScrollDownArrowProps {
-  onClick?: () => void
+  onClick?: () => void;
 }
 
 export default function ScrollDownArrow({ onClick }: ScrollDownArrowProps) {
-  const [isHovered, setIsHovered] = useState(false)
-  
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <motion.div 
+    <motion.div
       className="cursor-pointer"
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       onClick={onClick}
-      animate={{ 
+      animate={{
         y: [0, 10, 0],
-        opacity: [0.7, 1, 0.7]
+        opacity: [0.7, 1, 0.7],
       }}
-      transition={{ 
-        y: { 
-          duration: 2.5, 
-          repeat: Infinity, 
-          ease: "easeInOut"
+      transition={{
+        y: {
+          duration: 2.5,
+          repeat: Infinity,
+          ease: "easeInOut",
         },
         opacity: {
           duration: 2.5,
           repeat: Infinity,
-          ease: "easeInOut"
-        }
+          ease: "easeInOut",
+        },
       }}
       whileHover={{ scale: 1.2 }}
       whileTap={{ scale: 0.9 }}
@@ -43,7 +43,7 @@ export default function ScrollDownArrow({ onClick }: ScrollDownArrowProps) {
             animate={{ opacity: 1, y: 8 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.3 }}
-            className="text-blue-500 font-medium text-3xl"
+            className="text-stone-50 font-medium text-3xl"
           >
             Scroll Down
           </motion.div>
@@ -55,12 +55,23 @@ export default function ScrollDownArrow({ onClick }: ScrollDownArrowProps) {
             exit={{ opacity: 0, y: 5 }}
             transition={{ duration: 0.3 }}
           >
-            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            <svg
+              className="w-8 h-8 text-stone-50"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 14l-7 7m0 0l-7-7m7 7V3"
+              />
             </svg>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
-  )
+  );
 }

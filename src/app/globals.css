@@ -41,7 +41,6 @@
 html,
 body {
   font-family: var(--font-body);
-  background-color: var(--color-session-glow); /* Default background */
   color: var(--color-text-dark); /* Default text color */
   margin: 0;
   padding: 0;

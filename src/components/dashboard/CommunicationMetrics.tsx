@@ -8,20 +8,33 @@ import { useRouter } from "next/navigation"
 import { useButtonSound } from "@/hooks/useButtonSound" 
 import RelationshipAssessment from "@/components/RelationshipAssessment"
 
+// Define types for the metrics data
+interface MetricDataItem {
+  name: string;
+  shortName: string;
+  value: number;
+  fullMark: number;
+  fill: string;
+  month?: string;
+  monthFormatted?: string;
+  growth?: number;
+  avgSessionLength?: number;
+}
+
 export default function CommunicationMetrics() {
   // Track when component has mounted to prevent client/server mismatches with animations
   const [isMounted, setIsMounted] = useState(false);
   
   const router = useRouter()
-  const [metricsData, setMetricsData] = useState([])
+  const [metricsData, setMetricsData] = useState<MetricDataItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [chartType, setChartType] = useState('radar') // 'radar', 'pie', or 'radial'
   const [activeIndex, setActiveIndex] = useState(0)
-  const [activePieSection, setActivePieSection] = useState(null) // Track active pie section for hover effect
+  const [activePieSection, setActivePieSection] = useState<number | null>(null) // Track active pie section for hover effect
   const [therapyType, setTherapyType] = useState('couple') // 'couple', 'solo', or 'family'
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false) // State for assessment modal
-  const [focusedMetric, setFocusedMetric] = useState(null) // Track which metric is currently focused
+  const [focusedMetric, setFocusedMetric] = useState<string | null>(null) // Track which metric is currently focused
   const [isExpanded, setIsExpanded] = useState(false) // For expanding/collapsing the card
   const expandedRef = useRef(false) // Use ref to track expansion state for scroll timing
   const [userInteracted, setUserInteracted] = useState(false) // Track if user has interacted with chart types
@@ -84,7 +97,7 @@ export default function CommunicationMetrics() {
   };
   
   // Handle metric focus
-  const handleMetricFocus = (metricName) => {
+  const handleMetricFocus = (metricName: string) => {
     setFocusedMetric(focusedMetric === metricName ? null : metricName);
     playSound();
     // Mark as interacted
@@ -96,8 +109,8 @@ export default function CommunicationMetrics() {
 
   // Create a reusable component for the therapy type selector with enhanced styling
   const TherapyTypeSelector = () => (
-    <div className="flex justify-center mb-2 sm:mb-4">
-      <div className="inline-flex p-1 bg-gradient-to-r from-purple-100 to-teal-100 rounded-lg w-full max-w-[250px] overflow-x-auto shadow-sm">
+    <div className="flex justify-center mb-3 sm:mb-4 mt-4 relative z-30">
+      <div className="inline-flex p-1.5 bg-white rounded-lg w-full max-w-[300px] overflow-x-auto shadow-md border border-blue-100">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -109,10 +122,10 @@ export default function CommunicationMetrics() {
             }
             playSound();
           }}
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-all flex-1 min-w-[60px] ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all flex-1 min-w-[75px] ${
             therapyType === 'couple' 
-              ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md' 
-              : 'text-indigo-800 hover:bg-purple-100'
+              ? 'bg-blue-600 text-white shadow-md' 
+              : 'text-blue-800 hover:bg-blue-100'
           }`}
         >
           Couple
@@ -128,10 +141,10 @@ export default function CommunicationMetrics() {
             }
             playSound();
           }}
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-all flex-1 min-w-[60px] ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all flex-1 min-w-[75px] ${
             therapyType === 'solo' 
-              ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md' 
-              : 'text-teal-800 hover:bg-teal-100'
+              ? 'bg-blue-600 text-white shadow-md' 
+              : 'text-blue-800 hover:bg-blue-100'
           }`}
         >
           Individual
@@ -147,10 +160,10 @@ export default function CommunicationMetrics() {
             }
             playSound();
           }}
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-all flex-1 min-w-[60px] ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all flex-1 min-w-[75px] ${
             therapyType === 'family' 
-              ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md' 
-              : 'text-rose-800 hover:bg-rose-100'
+              ? 'bg-blue-600 text-white shadow-md' 
+              : 'text-blue-800 hover:bg-blue-100'
           }`}
         >
           Family
@@ -196,7 +209,7 @@ export default function CommunicationMetrics() {
       }
       
       // Create shorter names for very small screens (like mobile)
-      const getShortenedName = (name) => {
+      const getShortenedName = (name: string): string => {
         name = name.replace('Score', ''); // First remove 'Score' suffix
         
         // For mobile displays, create even shorter versions
@@ -210,7 +223,7 @@ export default function CommunicationMetrics() {
       };
       
       // Transform data for different chart types
-      const transformed = data.map((item) => ({
+      const transformed = data.map((item: any) => ({
         ...item,
         name: item.name.replace('Score', ''), // Standard shortened name
         shortName: getShortenedName(item.name), // Ultra-short name for small screens
@@ -221,9 +234,9 @@ export default function CommunicationMetrics() {
       console.log(`Transformed metrics data for ${type}:`, transformed);
       setMetricsData(transformed)
       setError(null); // Clear any previous error
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(`Error fetching ${type} communication metrics:`, err)
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'Unknown error occurred')
     } finally {
       setLoading(false)
     }
@@ -259,7 +272,7 @@ export default function CommunicationMetrics() {
   useEffect(() => {
     if (userInteracted || !isMounted) return; // Don't rotate if user has interacted or component is not mounted yet
     
-    let interval;
+    let interval: NodeJS.Timeout | undefined;
     
     // Add a short delay before starting rotation to ensure everything is loaded
     const startupDelay = setTimeout(() => {
@@ -286,25 +299,25 @@ export default function CommunicationMetrics() {
   }, [therapyType]);
   
   // Colors for different metrics - using therapy-themed colors
-  const getColorForMetric = (name) => {
-    const colors = {
-      activeListeningScore: "#7E57C2", // Soft purple - representing mindfulness
-      expressingNeedsScore: "#26A69A", // Teal - representing growth
-      conflictResolutionScore: "#5C6BC0", // Indigo blue - representing harmony
-      emotionalSupportScore: "#EF5350", // Soft red - representing empathy
+  const getColorForMetric = (name: string): string => {
+    const colors: Record<string, string> = {
+      activeListeningScore: "#4F46E5", // Indigo-600 - Deep Mindfulness
+      expressingNeedsScore: "#0EA5E9", // Sky-500 - Growth & Communication
+      conflictResolutionScore: "#8B5CF6", // Violet-500 - Harmony & Balance
+      emotionalSupportScore: "#EC4899", // Pink-500 - Empathy & Compassion
     }
     
-    return colors[name] || "#7E57C2"
+    return colors[name] || "#4F46E5"
   }
   
   // Helper function to calculate the path for a pie slice
-  const getPieSlicePath = (index, data, innerRadius, outerRadius) => {
+  const getPieSlicePath = (index: number | null, data: MetricDataItem[], innerRadius: number, outerRadius: number): string => {
     if (!data || data.length === 0 || index === null || index >= data.length) {
       return '';
     }
     
     // Calculate angles based on data values - use clockwise angles from 12 o'clock position
-    const total = data.reduce((sum, entry) => sum + entry.value, 0);
+    const total = data.reduce((sum: number, entry: MetricDataItem) => sum + entry.value, 0);
     let startAngle = 0;
     
     // Calculate the start angle for the specific slice
@@ -341,9 +354,9 @@ export default function CommunicationMetrics() {
     return `M${innerStartX},${innerStartY} L${outerStartX},${outerStartY} A${outerRadius},${outerRadius} 0 ${largeArcFlag} 1 ${outerEndX},${outerEndY} L${innerEndX},${innerEndY} A${innerRadius},${innerRadius} 0 ${largeArcFlag} 0 ${innerStartX},${innerStartY} Z`;
   }
   
-  const COLORS = ["#7E57C2", "#26A69A", "#5C6BC0", "#EF5350"]
+  const COLORS = ["#4F46E5", "#0EA5E9", "#8B5CF6", "#EC4899"]
   
-  const onPieEnter = useCallback((_, index) => {
+  const onPieEnter = useCallback((_: any, index: number) => {
     // Set active indices for pie section highlighting
     setActiveIndex(index);
     setActivePieSection(index);
@@ -434,30 +447,73 @@ export default function CommunicationMetrics() {
     playSound();
   }, [playSound, userInteracted, COLORS])
   
-  // Custom radial label
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value }) => {
-    const RADIAN = Math.PI / 180
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-    const x = cx + radius * Math.cos(-midAngle * RADIAN)
-    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+  // Add a function to handle mouse leave for pie sections
+  const onPieLeave = useCallback(() => {
+    // We're not clearing the active section on leave
+    // to allow the tooltip to remain visible
+    // setActivePieSection(null);
+  }, [])
+  
+  // Custom label for pie chart slices
+  interface CustomLabelProps {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+    index: number;
+    name: string;
+    value: number;
+  }
+  
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value }: CustomLabelProps) => {
+    const RADIAN = Math.PI / 180;
+    // Calculate radius based on the chart dimensions
+    const radius = outerRadius * 1.1;  // Fixed radius
     
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    // Only render the label for non-tiny slices to avoid overlapping
+    if (percent < 0.05) return null;
+
     return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="#4B5563" 
-        textAnchor={x > cx ? 'start' : 'end'} 
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {`${name}: ${value}%`}
-      </text>
-    )
+      <g>
+        {/* Background for better readability */}
+        <text
+          x={x}
+          y={y}
+          fill="white"
+          textAnchor={x > cx ? 'start' : 'end'}
+          dominantBaseline="central"
+          className="recharts-pie-label-text bg"
+          style={{ 
+            stroke: 'white', 
+            strokeWidth: 4,
+            paintOrder: 'stroke'
+          }}
+        >
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+        {/* Actual text */}
+        <text
+          x={x}
+          y={y}
+          fill={COLORS[index % COLORS.length]}
+          textAnchor={x > cx ? 'start' : 'end'}
+          dominantBaseline="central"
+          className="recharts-pie-label-text"
+        >
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      </g>
+    );
   }
   
   // Descriptions for each metric
-  const getDescriptionForMetric = (name) => {
-    const descriptions = {
+  const getDescriptionForMetric = (name: string): string => {
+    const descriptions: Record<string, string> = {
       // Couple therapy metrics
       'Active Listening': 'Your ability to fully concentrate, understand, respond, and remember what your partner is saying without interrupting or preparing rebuttals',
       'Expressing Needs': 'How effectively you communicate your own desires, boundaries, and requirements in a clear, direct, and non-accusatory manner',
@@ -481,11 +537,11 @@ export default function CommunicationMetrics() {
   }
   
   // Provide skill-building tips based on metric scores
-  const getSkillBuildingTips = (name, score) => {
+  const getSkillBuildingTips = (name: string, score: number): string[] | null => {
     // Only show tips for scores under 70
     if (score >= 70) return null;
     
-    const tips = {
+    const tips: Record<string, string[]> = {
       'Active Listening': [
         'Practice reflecting back what your partner says before responding',
         'Maintain eye contact and put away distractions when talking',
@@ -539,150 +595,105 @@ export default function CommunicationMetrics() {
     }
   }, [userInteracted]);
   
-  // Enhanced custom tooltip for all chart types with styled components and animations
-  const CustomTooltip = useCallback(({ active, payload }) => {
-    // Mark that tooltip was interacted with through ref instead of setState during render
-    if (active && payload?.length && !userInteracted) {
-      // Use ref to defer state update
-      setTimeout(() => {
-        tooltipInteractionRef.current = true;
-      }, 0);
+  // Custom tooltip implementation with manual show/hide logic
+  interface TooltipProps {
+    active?: boolean;
+    payload?: Array<any>;
+  }
+  
+  const CustomTooltip = useCallback(({ active, payload }: TooltipProps) => {
+    // Force hide tooltip when not active
+    if (!active || !payload || payload.length === 0) {
+      return null;
     }
     
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      const tips = getSkillBuildingTips(data.name, data.value);
-      
-      // Determine color based on metric type
-      const metricIndex = COLORS.indexOf(getColorForMetric(data.name)) !== -1 
-        ? COLORS.indexOf(getColorForMetric(data.name))
-        : 0;
-      const metricColor = COLORS[metricIndex % COLORS.length];
-      
-      // Score rating text based on value
-      let scoreRating = '';
-      let scoreColor = '';
-      if (data.value >= 80) {
-        scoreRating = 'Excellent';
-        scoreColor = 'text-green-600';
-      } else if (data.value >= 60) {
-        scoreRating = 'Good';
-        scoreColor = 'text-teal-600';
-      } else if (data.value >= 40) {
-        scoreRating = 'Average';
-        scoreColor = 'text-amber-600';
-      } else {
-        scoreRating = 'Needs Focus';
-        scoreColor = 'text-rose-600';
-      }
-      
-      return (
-        <motion.div 
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className="bg-white p-4 shadow-lg rounded-lg border border-purple-200 min-w-[250px] max-w-xs z-50"
-          style={{
-            background: `linear-gradient(to bottom right, white, ${metricColor}10)`,
-            boxShadow: `0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px ${metricColor}30`
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <p className="font-medium text-gray-800 flex items-center">
-              <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: metricColor }}></span>
-              {data.name}
-            </p>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${scoreColor} bg-gray-100`}>
-              {scoreRating}
-            </span>
-          </div>
-          
-          <div className="mt-2 bg-white bg-opacity-60 rounded-lg p-2 border border-purple-100">
-            <div className="relative pt-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold inline-block text-purple-800">
-                    Score
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold inline-block" style={{ color: metricColor }}>
-                    {data.value}/100
-                  </span>
-                </div>
-              </div>
-              <div className="overflow-hidden h-2 mt-1 text-xs flex rounded-full bg-gray-200">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${data.value}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center rounded-full"
-                  style={{ backgroundColor: metricColor }}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-2 text-xs text-gray-600 leading-relaxed bg-white bg-opacity-60 p-2 rounded-lg border border-purple-100">
-            {getDescriptionForMetric(data.name)}
-          </div>
-          
-          {tips && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="mt-3 pt-3 border-t border-purple-100"
-            >
-              <p className="text-xs font-medium text-amber-700 mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                </svg>
-                Improvement Tips:
-              </p>
-              <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-4">
-                {tips.slice(0, 2).map((tip, index) => (
-                  <motion.li 
-                    key={index} 
-                    initial={{ opacity: 0, x: -5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + (index * 0.1) }}
-                    className="leading-tight"
-                  >
-                    {tip}
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
-          )}
-          
-          {data.value >= 70 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-3 pt-3 border-t border-green-100"
-            >
-              <p className="text-xs font-medium text-green-700 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Great work! Your progress in this area is strong. Keep practicing these skills.
-              </p>
-            </motion.div>
-          )}
-        </motion.div>
-      )
+    // Get the metric data
+    const data = payload[0];
+    if (!data || !data.name) {
+      return null;
     }
-    return null
-  }, [userInteracted, tooltipInteractionRef, COLORS, getColorForMetric, getSkillBuildingTips, getDescriptionForMetric])
+    
+    // Get improvement tips if available
+    const tips = getSkillBuildingTips(data.name, data.value);
+    
+    // Determine the metric color
+    const metricIndex = COLORS.indexOf(getColorForMetric(data.name)) !== -1 
+      ? COLORS.indexOf(getColorForMetric(data.name))
+      : 0;
+    const metricColor = COLORS[metricIndex % COLORS.length];
+    
+    // Determine score rating
+    let scoreRating = '';
+    let scoreColor = '';
+    if (data.value >= 80) {
+      scoreRating = 'Excellent';
+      scoreColor = 'text-green-600';
+    } else if (data.value >= 60) {
+      scoreRating = 'Good';
+      scoreColor = 'text-teal-600';
+    } else if (data.value >= 40) {
+      scoreRating = 'Average';
+      scoreColor = 'text-amber-600';
+    } else {
+      scoreRating = 'Needs Focus';
+      scoreColor = 'text-rose-600';
+    }
+    
+    // Create and return tooltip content with colored border
+    return (
+      <div className="bg-white p-4 rounded-lg shadow-lg border-2 min-w-[200px] max-w-[300px] z-[9999]"
+        style={{ 
+          borderColor: metricColor,
+          pointerEvents: 'none', // Prevent tooltip from capturing mouse events
+          overflow: 'visible',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+        }}
+      >
+        <div className="flex justify-between items-center mb-2">
+          <span className="font-bold text-sm" style={{ color: metricColor }}>{data.name}</span>
+          <span className={`${scoreColor} text-xs px-2 py-0.5 rounded-full bg-gray-100`}>{scoreRating}</span>
+        </div>
+        
+        <div className="bg-gray-100 p-2 rounded-lg mb-2">
+          <div className="flex justify-between mb-1">
+            <span className="text-xs">Score:</span>
+            <span className="text-xs font-bold">{data.value}/100</span>
+          </div>
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full" 
+              style={{
+                width: `${data.value}%`,
+                backgroundColor: metricColor
+              }}
+            ></div>
+          </div>
+        </div>
+        
+        <div className="text-xs text-gray-600 mb-2">
+          {getDescriptionForMetric(data.name)}
+        </div>
+        
+        {tips && tips.length > 0 && (
+          <div className="text-xs mt-2 pt-2 border-t border-gray-200">
+            <div className="font-semibold mb-1" style={{ color: metricColor }}>Improvement Tips:</div>
+            <ul className="list-disc pl-4">
+              {tips.slice(0, 1).map((tip, i) => (
+                <li key={i} className="text-gray-600">{tip}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }, [COLORS, getColorForMetric, getDescriptionForMetric, getSkillBuildingTips])
   
   // Find the highest and lowest scoring metrics
   const highestMetric = metricsData.length > 0 ? [...metricsData].sort((a, b) => b.value - a.value)[0] : null
   const lowestMetric = metricsData.length > 0 ? [...metricsData].sort((a, b) => a.value - b.value)[0] : null
   
   // Function to safely format the lowest metric name for display in the recommendation
-  const getFormattedLowestMetricName = () => {
+  const getFormattedLowestMetricName = (): string => {
     if (!lowestMetric?.name) return 'communication skills';
     return lowestMetric.name.toLowerCase();
   }
@@ -716,9 +727,13 @@ export default function CommunicationMetrics() {
             <p className="text-sm mt-3 text-gray-600 max-w-sm mx-auto">
               Complete a {therapyType} assessment or therapy session to see detailed analytics and personalized insights about your communication patterns.
             </p>
+            
+            {/* Therapy Type Selector when no data is available */}
+            <TherapyTypeSelector />
+            
             <div className="flex flex-col sm:flex-row sm:space-x-4 justify-center mt-6 gap-3">
               <button 
-                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-medium shadow-md hover:opacity-90 active:opacity-100 transition-opacity"
+                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-sm font-medium shadow-md hover:opacity-90 active:opacity-100 transition-opacity"
                 onClick={() => {
                   toggleAssessment();
                   playSound();
@@ -727,7 +742,7 @@ export default function CommunicationMetrics() {
                 Take Assessment
               </button>
               <button 
-                className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg text-sm font-medium shadow-md hover:opacity-90 active:opacity-100 transition-opacity"
+                className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-medium shadow-md hover:opacity-90 active:opacity-100 transition-opacity"
                 onClick={() => {
                   router.push('/schedule');
                   playSound();
@@ -795,18 +810,18 @@ export default function CommunicationMetrics() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleExpanded}
-              className="text-xs flex items-center text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded-md shadow-sm transition-all duration-200"
+              className="text-sm flex items-center text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-md shadow-sm transition-all duration-200"
             >
               {isExpanded ? (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
                   </svg>
                   Collapse
                 </>
               ) : (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                   Expand
@@ -816,8 +831,8 @@ export default function CommunicationMetrics() {
           </div>
         
           {/* Metrics summary and chart types */}
-          <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 mb-4">
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 mb-4 relative z-20">
+            <div className="flex flex-wrap gap-3">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -826,14 +841,14 @@ export default function CommunicationMetrics() {
                   setUserInteracted(true);
                   playSound();
                 }}
-                className={`px-2 py-1 text-xs rounded-md transition-all ${
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
                   chartType === 'radar' 
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
                     : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
                 }`}
               >
                 <span className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                   </svg>
@@ -848,14 +863,14 @@ export default function CommunicationMetrics() {
                   setUserInteracted(true);
                   playSound();
                 }}
-                className={`px-2 py-1 text-xs rounded-md transition-all ${
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
                   chartType === 'pie' 
                     ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md' 
                     : 'bg-teal-100 text-teal-800 hover:bg-teal-200'
                 }`}
               >
                 <span className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
                     <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
                   </svg>
@@ -870,14 +885,14 @@ export default function CommunicationMetrics() {
                   setUserInteracted(true);
                   playSound();
                 }}
-                className={`px-2 py-1 text-xs rounded-md transition-all ${
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
                   chartType === 'radial' 
                     ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-md' 
                     : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
                 }`}
               >
                 <span className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
                   </svg>
                   Bars
@@ -885,7 +900,7 @@ export default function CommunicationMetrics() {
               </motion.button>
             </div>
             
-            <div className="flex flex-wrap gap-2 xs:gap-3 sm:gap-4 justify-start xs:justify-end w-full xs:w-auto">
+            <div className="flex flex-wrap gap-3 xs:gap-4 sm:gap-5 justify-start xs:justify-end w-full xs:w-auto">
               <motion.div 
                 whileHover={{ y: -2, scale: 1.03 }}
                 onClick={() => {
@@ -897,10 +912,10 @@ export default function CommunicationMetrics() {
                     }
                   }
                 }}
-                className={`px-3 py-2 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg shadow-sm border border-green-100 ${highestMetric ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                className={`px-4 py-3 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg shadow-md border border-green-100 ${highestMetric ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
               >
-                <p className="text-xs text-green-600 font-medium flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <p className="text-sm text-green-600 font-medium flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   Strongest
@@ -918,10 +933,10 @@ export default function CommunicationMetrics() {
                     }
                   }
                 }}
-                className={`px-3 py-2 bg-gradient-to-br from-amber-50 to-orange-100 rounded-lg shadow-sm border border-amber-100 ${lowestMetric ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                className={`px-4 py-3 bg-gradient-to-br from-amber-50 to-orange-100 rounded-lg shadow-md border border-amber-100 ${lowestMetric ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
               >
-                <p className="text-xs text-amber-600 font-medium flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <p className="text-sm text-amber-600 font-medium flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                   </svg>
@@ -951,10 +966,288 @@ export default function CommunicationMetrics() {
               .recharts-wrapper {
                 overflow: visible !important;
               }
+              
+              /* Pie chart active section animation */
+              @keyframes pulsePie {
+                0% { 
+                  transform: scale(1);
+                  opacity: 1;
+                }
+                50% { 
+                  transform: scale(1.1);
+                  opacity: 0.9;
+                }
+                100% { 
+                  transform: scale(1);
+                  opacity: 1;
+                }
+              }
+              
+              /* Add the animation to pie segments */
+              .active-pie-segment {
+                animation: pulsePie 1.5s ease-in-out infinite;
+                transform-origin: center;
+                transform-box: fill-box;
+                filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+              }
+              
+              /* Border glow animation for labels */
+              @keyframes borderGlow {
+                0% {
+                  filter: drop-shadow(0 0 2px currentColor);
+                  stroke-width: 1.2px;
+                }
+                100% {
+                  filter: drop-shadow(0 0 6px currentColor);
+                  stroke-width: 2px;
+                }
+              }
+              
+              /* Border pulse animation for tooltips */
+              @keyframes borderPulse {
+                0% {
+                  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2), 0 0 0 2px currentColor;
+                  border-color: currentColor;
+                }
+                100% {
+                  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3), 0 0 0 3px currentColor;
+                  border-color: currentColor;
+                }
+              }
+              
+              /* Ensure tooltips display properly */
+              .recharts-tooltip-wrapper {
+                pointer-events: none !important;
+                z-index: 1000 !important;
+                overflow: visible !important;
+                position: fixed !important;
+              }
+              
+              /* Make sure chart container allows overflow */
+              .recharts-wrapper {
+                overflow: visible !important;
+                position: static !important;
+              }
+              
+              /* Ensure responsive containers allow overflow */
+              .recharts-responsive-container {
+                overflow: visible !important;
+                position: static !important;
+                min-height: 330px !important;
+              }
+              
+              @media (min-width: 481px) {
+                .recharts-responsive-container {
+                  min-height: 370px !important;
+                }
+              }
+              
+              @media (min-width: 768px) {
+                .recharts-responsive-container {
+                  min-height: 400px !important;
+                }
+              }
+              
+              /* Ensure legends stay within container bounds */
+              .recharts-legend-wrapper {
+                width: 100% !important;
+                left: 0 !important;
+                right: 0 !important;
+              }
+              
+              /* Force legend items to stay within container */
+              .recharts-default-legend {
+                width: 100% !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                box-sizing: border-box !important;
+              }
+              
+              /* Specifically target the legend container */
+              .recharts-legend-wrapper ul.recharts-default-legend {
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 4px !important;
+              }
+              
+              /* Make charts responsive to screen size */
+              @media (max-width: 480px) {
+                .recharts-legend-wrapper {
+                  font-size: 10px !important;
+                  bottom: 0 !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                  margin: 0 auto !important;
+                }
+                .recharts-default-legend {
+                  width: 100% !important;
+                  text-align: center !important;
+                  justify-content: center !important;
+                }
+                .recharts-legend-item {
+                  margin-right: 4px !important;
+                  margin-left: 4px !important;
+                }
+                .recharts-pie {
+                  transform: scale(0.85);
+                  transform-origin: center center;
+                }
+                .recharts-radial-bar-background-sector,
+                .recharts-radial-bar-sector {
+                  transform: scale(0.9);
+                  transform-origin: center center;
+                }
+                .recharts-radar {
+                  transform: scale(0.9);
+                  transform-origin: center center;
+                }
+                .recharts-polar-angle-axis-tick-value {
+                  font-size: 9px !important;
+                }
+                .recharts-legend-item {
+                  display: inline-block !important;
+                  width: auto !important;
+                  margin: 0 4px !important;
+                  padding: 2px 4px !important;
+                  text-align: center !important;
+                }
+                
+                .recharts-legend-item-text {
+                  display: inline-block;
+                  width: auto !important;
+                  max-width: 80px;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
+                  vertical-align: middle;
+                  font-size: 10px !important;
+                }
+                
+                /* Fix centering issues on small screens */
+                .recharts-wrapper, .recharts-surface {
+                  display: flex !important;
+                  justify-content: center !important;
+                  width: 100% !important;
+                }
+                
+                .recharts-wrapper svg {
+                  display: block !important;
+                  margin: 0 auto !important;
+                }
+              }
+              
+              /* Small mobile screens - 430px and below */
+              @media (max-width: 430px) {
+                .recharts-pie {
+                  transform: scale(0.75);
+                }
+                .recharts-radial-bar-background-sector,
+                .recharts-radial-bar-sector {
+                  transform: scale(0.8);
+                }
+                .recharts-radar {
+                  transform: scale(0.8);
+                }
+                .recharts-legend-item-text {
+                  max-width: 60px;
+                  font-size: 10px !important;
+                }
+                .recharts-default-legend {
+                  padding: 0 !important;
+                  width: 100% !important;
+                  display: flex !important;
+                  flex-wrap: wrap !important;
+                  justify-content: center !important;
+                  margin: 0 auto !important;
+                  box-sizing: border-box !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                }
+                /* Shorten text display for all legend items */
+                .recharts-legend-item-text {
+                  display: inline-block;
+                  max-width: 55px;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
+                }
+                
+                /* Better positioning for legends on very small screens */
+                .recharts-legend-wrapper {
+                  position: absolute !important;
+                  bottom: 5px !important;
+                  width: 100% !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                  margin: 0 auto !important;
+                  text-align: center !important;
+                }
+                
+                /* Container centering fixes */
+                .recharts-responsive-container {
+                  display: flex !important;
+                  justify-content: center !important;
+                  align-items: center !important;
+                  text-align: center !important;
+                }
+                
+                .recharts-wrapper {
+                  margin: 0 auto !important;
+                  display: inline-block !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                }
+                
+                /* Fix all SVG elements positioning */
+                .recharts-surface {
+                  margin: 0 auto !important;
+                  display: inline-block !important;
+                  left: 50% !important;
+                  transform: translateX(-50%) !important;
+                }
+              }
+              
+              /* Fix positioning of all chart containers */
+              .recharts-surface, .recharts-layer {
+                overflow: visible !important;
+              }
+              
+              /* Center all SVG elements by default */
+              .recharts-wrapper {
+                margin: 0 auto !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+              }
+              
+              /* Fix pie chart labels */
+              .recharts-pie-label-text {
+                font-weight: bold;
+                font-size: 12px;
+              }
+              
+              /* Adjust label size for small screens */
+              @media (max-width: 480px) {
+                .recharts-pie-label-text {
+                  font-size: 9px !important;
+                }
+                .recharts-pie-label-text.bg {
+                  stroke-width: 3px !important;
+                }
+              }
+              
+              /* Tablet adjustments */
+              @media (min-width: 481px) and (max-width: 768px) {
+                .recharts-pie-label-text {
+                  font-size: 11px !important;
+                }
+              }
             `}
           </style>
           
-          <div className="relative h-[300px] xs:h-[320px] sm:h-[350px] md:h-[400px] lg:h-[450px] w-full overflow-visible"
+          <div className="relative h-[350px] xs:h-[380px] sm:h-[400px] md:h-[450px] lg:h-[500px] w-full overflow-visible bg-white/90 rounded-lg shadow-md border border-blue-100 p-2 sm:p-4" style={{ position: 'relative' }}
             onClick={() => {
               if (!userInteracted) {
                 setUserInteracted(true);
@@ -968,85 +1261,98 @@ export default function CommunicationMetrics() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="h-full w-full"
+                className="h-full w-full overflow-visible"
               >
-                {metricsData && metricsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+              {metricsData && metricsData.length > 0 ? (
+                  <div className="w-full h-full overflow-visible">
                     {chartType === 'radar' ? (
-                      <RadarChart 
-                        outerRadius="70%" 
-                        data={metricsData}
-                        margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
-                      >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart 
+                          outerRadius="60%" 
+                          data={metricsData}
+                          margin={{ top: 50, right: 40, bottom: 30, left: 40 }}
+                          className="overflow-visible"
+                        >
                         <defs>
                           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                             <feGaussianBlur stdDeviation="3" result="blur" />
                             <feComposite in="SourceGraphic" in2="blur" operator="over" />
                           </filter>
                           <linearGradient id="radarFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#7E57C2" stopOpacity="0.9"/>
-                            <stop offset="100%" stopColor="#7E57C2" stopOpacity="0.2"/>
+                            <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.9"/>
+                            <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.7"/>
                           </linearGradient>
                         </defs>
-                        <PolarGrid stroke="#E5E7EB" />
+                        <PolarGrid stroke="#555555" strokeWidth={1.5} />
                         <PolarAngleAxis 
                           dataKey={isSmallScreen ? "shortName" : "name"}
                           tick={{ 
-                            fill: '#4B5563', 
-                            fontSize: isSmallScreen ? 10 : 11,
-                            dy: 3, // Move labels slightly outward
-                            className: 'radar-axis-label' // For custom styling
+                            fill: '#000000', 
+                            fontSize: isSmallScreen ? 11 : 12,
+                            fontWeight: 500,
+                            dy: 3, 
+                            className: 'radar-axis-label'
                           }}
                           tickSize={4}
-                          cx="50%" 
-                          cy="50%"
                         />
                         <PolarRadiusAxis 
                           angle={30} 
                           domain={[0, 100]} 
-                          tick={{ fill: '#4B5563' }}
+                          tick={{ fill: '#000000', fontWeight: 500 }}
                           tickCount={5}
+                          stroke="#555555"
+                          strokeWidth={1.5}
                         />
                         <Radar
                           name=""
                           dataKey="value"
-                          stroke="#7E57C2"
+                          stroke="#4F46E5"
+                          strokeWidth={3}
                           fill="url(#radarFill)"
-                          fillOpacity={0.8}
+                          fillOpacity={1}
                           animationDuration={1500}
                           animationEasing="ease-out"
                           isAnimationActive={true}
                           style={{ filter: "url(#glow)" }}
-                          dot={{ stroke: "#7E57C2", strokeWidth: 2, fill: "white", r: 3 }}
+                          dot={{ stroke: "#4F46E5", strokeWidth: 2.5, fill: "white", r: 5 }}
                           activeDot={{ 
-                            stroke: "#7E57C2", 
-                            strokeWidth: 3, 
+                            stroke: "#8B5CF6", 
+                            strokeWidth: 4, 
                             fill: "white", 
-                            r: 6,
+                            r: 8,
                             className: "animate-pulse"
                           }}
                         />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip 
+                          content={<CustomTooltip active={false} payload={[]} />}
+                          animationDuration={0}
+                          isAnimationActive={false}
+                          cursor={false}
+                          wrapperStyle={{ pointerEvents: 'none' }}
+                          allowEscapeViewBox={{ x: true, y: true }}
+                        />
                         {/* We're skipping the Legend component for the radar chart since 
                            it already has axis labels and doesn't need a separate legend */}
                       </RadarChart>
+                      </ResponsiveContainer>
                     ) : chartType === 'pie' ? (
-                      <PieChart>
+                      <ResponsiveContainer width="100%" height="100%">
+  <PieChart className="overflow-visible" style={{ margin: '0 auto' }}>
                         <defs>
                           {/* Regular gradients for inactive slices */}
                           {COLORS.map((color, index) => (
                             <linearGradient key={`gradient-${index}`} id={`colorGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={color} stopOpacity={0.9} />
-                              <stop offset="100%" stopColor={color} stopOpacity={0.6} />
+                              <stop offset="0%" stopColor={color} stopOpacity={1} />
+                              <stop offset="100%" stopColor={color} stopOpacity={0.8} />
                             </linearGradient>
                           ))}
                           
                           {/* Enhanced gradients for active slices */}
                           {COLORS.map((color, index) => (
-                            <linearGradient key={`active-gradient-${index}`} id={`activeGradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient key={`active-gradient-${index}`} id={`activeGradient-${index}`} x1="0" y1="0" x2="1" y2="1">
                               <stop offset="0%" stopColor={color} stopOpacity={1} />
-                              <stop offset="50%" stopColor={color} stopOpacity={0.85} />
-                              <stop offset="100%" stopColor={color} stopOpacity={0.7} />
+                              <stop offset="50%" stopColor={`${color}dd`} stopOpacity={0.95} />
+                              <stop offset="100%" stopColor={color} stopOpacity={0.9} />
                               <animate attributeName="x1" values="0;0.1;0" dur="2s" repeatCount="indefinite" />
                               <animate attributeName="y1" values="0;0.1;0" dur="2s" repeatCount="indefinite" />
                             </linearGradient>
@@ -1063,16 +1369,17 @@ export default function CommunicationMetrics() {
                         </defs>
                         <Pie
                           activeIndex={activeIndex}
-                          activeShape={renderCustomizedLabel}
+                          label={renderCustomizedLabel}
                           data={metricsData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={40}
-                          outerRadius={70}
-                          paddingAngle={5}
+                          innerRadius="35%"
+                          outerRadius="65%"
+                          paddingAngle={6}
                           fill="#8884d8"
                           dataKey="value"
                           onMouseEnter={onPieEnter}
+                          onMouseLeave={onPieLeave}
                           animationDuration={1500}
                           animationEasing="ease-out"
                           isAnimationActive={true}
@@ -1086,26 +1393,23 @@ export default function CommunicationMetrics() {
                               <Cell 
                                 key={`cell-${index}`}
                                 id={`pie-cell-${index}`}
-                                fill={isActive ? "white" : `url(#colorGradient-${index})`} 
-                                stroke={isActive ? "#FFFFFF" : currentColor}
-                                strokeWidth={isActive ? 6 : 1}
+                                className={isActive ? 'active-pie-segment' : ''}
+                                fill={isActive ? `url(#activeGradient-${index})` : `url(#colorGradient-${index})`} 
+                                stroke={isActive ? currentColor : currentColor}
+                                strokeWidth={isActive ? 4 : 1}
                                 style={{
-                                  filter: isActive ? `drop-shadow(0 0 20px ${currentColor}) brightness(1.5)` : 'none',
-                                  transition: 'none', // Remove transition to make changes immediate
-                                  transformOrigin: 'center center',
-                                  position: 'relative',
+                                  filter: isActive ? `drop-shadow(0 0 8px ${currentColor})` : 'none',
                                   cursor: 'pointer',
-                                  outline: isActive ? `3px solid ${currentColor}` : 'none',
-                                  outlineOffset: '2px'
+                                  zIndex: isActive ? 10 : 1
                                 }}
                               />
                             );
                           })}
                           
-                          {/* Simple, high-contrast highlight for active pie section */}
+                          {/* Clear and visible highlight for active pie section */}
                           {activePieSection !== null && (
                             <g className="pie-active-section">
-                              {/* Multiple animated rings for extreme visibility */}
+                              {/* Create a more visible highlight effect */}
                               <circle
                                 cx="50%"
                                 cy="50%"
@@ -1114,89 +1418,75 @@ export default function CommunicationMetrics() {
                                 stroke={COLORS[activePieSection % COLORS.length]}
                                 strokeWidth={5}
                                 style={{
-                                  animation: 'simplePulse 0.6s ease-in-out infinite alternate',
+                                  animation: 'simplePulse 1.2s ease-in-out infinite alternate',
                                   filter: `drop-shadow(0 0 8px ${COLORS[activePieSection % COLORS.length]})`,
                                 }}
                               />
                               
-                              {/* Second pulse ring with offset timing */}
-                              <circle
-                                cx="50%"
-                                cy="50%"
-                                r={98}
-                                fill="none"
-                                stroke="white"
-                                strokeWidth={3}
-                                strokeDasharray="10 5"
-                                style={{
-                                  animation: 'simplePulse 0.8s ease-in-out infinite alternate-reverse',
-                                  opacity: 0.8,
-                                }}
-                              />
-                              
-                              {/* Third outer blast ring */}
-                              <circle
-                                cx="50%"
-                                cy="50%"
-                                r={110}
-                                fill="none"
+                              {/* Add visible overlay on the active section */}
+                              <path
+                                d={getPieSlicePath(
+                                  activePieSection, 
+                                  metricsData, 
+                                  40, // inner radius
+                                  70  // outer radius
+                                )}
+                                fill={`${COLORS[activePieSection % COLORS.length]}20`}
                                 stroke={COLORS[activePieSection % COLORS.length]}
-                                strokeWidth={2}
-                                strokeDasharray="3 6"
+                                strokeWidth={2.5}
                                 style={{
-                                  animation: 'spin 5s linear infinite',
-                                  opacity: 0.5,
+                                  animation: 'flashEffect 2s ease-in-out infinite',
+                                  filter: `drop-shadow(0 0 5px ${COLORS[activePieSection % COLORS.length]})`,
                                 }}
                               />
                               
-                              {/* Multiple large white selector arrows for extreme visibility */}
+                              {/* Bold, clear arrow pointing to the active section */}
                               <g>
-                                {/* Primary arrow - thick white with color shadow */}
+                                {/* Clear directional arrow */}
                                 <path
-                                  d={`M50,50 L${50 + 120 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
+                                  d={`M50,50 L${50 + 118 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
                                     (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)},
-                                    ${50 + 120 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
-                                    (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}`}
-                                  stroke="white"
-                                  strokeWidth={7}
-                                  fill="none"
-                                  strokeLinecap="round"
-                                  style={{
-                                    animation: 'arrowMove 0.5s ease-in-out infinite alternate',
-                                    filter: `drop-shadow(0 0 10px ${COLORS[activePieSection % COLORS.length]})`,
-                                  }}
-                                />
-                                
-                                {/* Secondary colored arrow - follows primary */}
-                                <path
-                                  d={`M50,50 L${50 + 115 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
-                                    (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)},
-                                    ${50 + 115 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
+                                    ${50 + 118 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
                                     (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}`}
                                   stroke={COLORS[activePieSection % COLORS.length]}
                                   strokeWidth={3}
                                   fill="none"
                                   strokeLinecap="round"
                                   style={{
-                                    animation: 'arrowMove 0.5s ease-in-out infinite alternate-reverse',
-                                    filter: 'brightness(1.5)',
+                                    animation: 'arrowPulse 1.5s ease-in-out infinite',
+                                    filter: `drop-shadow(0 0 3px ${COLORS[activePieSection % COLORS.length]})`,
                                   }}
                                 />
                               </g>
                               
-                              {/* Add a big pulsing dot at the end of the path */}
+                              {/* Dynamic marker instead of static label */}
                               <circle
-                                cx={50 + 120 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
-                                  (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}
-                                cy={50 + 120 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
-                                  (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180) * Math.PI / 180)}
-                                r={8}
-                                fill="white"
+                                cx={50}
+                                cy={50}
+                                r={30}
+                                fill="none"
                                 stroke={COLORS[activePieSection % COLORS.length]}
                                 strokeWidth={2}
+                                strokeDasharray="4 2"
                                 style={{
-                                  animation: 'dotPulse 0.7s ease-in-out infinite alternate',
-                                  filter: `drop-shadow(0 0 8px ${COLORS[activePieSection % COLORS.length]})`,
+                                  opacity: 0.7,
+                                  animation: 'spin 15s linear infinite',
+                                }}
+                              />
+                              
+                              {/* Pulse effect on the active section */}
+                              <circle
+                                cx={50 + 93 * Math.cos(((activePieSection / metricsData.length) * 360 - 90 + 
+                                  (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180 / 2) * Math.PI / 180)}
+                                cy={50 + 93 * Math.sin(((activePieSection / metricsData.length) * 360 - 90 + 
+                                  (metricsData[activePieSection].value / metricsData.reduce((sum, entry) => sum + entry.value, 0)) * 180 / 2) * Math.PI / 180)}
+                                r={6}
+                                fill={COLORS[activePieSection % COLORS.length]}
+                                stroke="white"
+                                strokeWidth={2}
+                                style={{
+                                  animation: 'dotPulse 1s ease-in-out infinite',
+                                  filter: `drop-shadow(0 0 5px ${COLORS[activePieSection % COLORS.length]})`,
                                 }}
                               />
 
@@ -1260,17 +1550,79 @@ export default function CommunicationMetrics() {
                                     50% { filter: brightness(2) saturate(2) drop-shadow(0 0 15px white); }
                                     100% { filter: brightness(1.5) saturate(1.5); }
                                   }
+                                  
+                                  @keyframes pulseSection {
+                                    0% { 
+                                      transform: scale(1.06);
+                                      filter: drop-shadow(0 0 5px currentColor);
+                                    }
+                                    50% { 
+                                      transform: scale(1.09);
+                                      filter: drop-shadow(0 0 15px currentColor) brightness(1.2);
+                                    }
+                                    100% { 
+                                      transform: scale(1.06);
+                                      filter: drop-shadow(0 0 5px currentColor);
+                                    }
+                                  }
+                                  
+                                  @keyframes flashEffect {
+                                    0% { opacity: 0.2; }
+                                    50% { opacity: 0.6; }
+                                    100% { opacity: 0.2; }
+                                  }
+                                  
+                                  @keyframes arrowPulse {
+                                    0% { 
+                                      opacity: 0.7;
+                                      stroke-width: 2;
+                                      transform: scale(0.95);
+                                    }
+                                    50% { 
+                                      opacity: 1;
+                                      stroke-width: 3.5;
+                                      transform: scale(1.05);
+                                    }
+                                    100% { 
+                                      opacity: 0.7;
+                                      stroke-width: 2;
+                                      transform: scale(0.95);
+                                    }
+                                  }
+                                  
+                                  @keyframes dotPulse {
+                                    0% { 
+                                      r: 4;
+                                      opacity: 0.7;
+                                    }
+                                    50% { 
+                                      r: 8;
+                                      opacity: 1;
+                                    }
+                                    100% { 
+                                      r: 4;
+                                      opacity: 0.7;
+                                    }
+                                  }
                                 `}
                               </style>
                             </g>
                           )}
                         </Pie>
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip 
+                          content={<CustomTooltip active={false} payload={[]} />}
+                          animationDuration={0}
+                          animationEasing="linear"
+                          wrapperStyle={{ pointerEvents: 'none' }}
+                          allowEscapeViewBox={{ x: true, y: true }}
+                        />
                         <Legend 
                           layout="horizontal" 
-                          verticalAlign="bottom" 
+                          verticalAlign="top" 
                           align="center"
                           iconType="circle"
+                          iconSize={12}
+                          height={30}
                           onClick={(data) => {
                             // Allow clicking on legend items to focus on that section
                             const index = metricsData.findIndex(item => item.name === data.value);
@@ -1285,38 +1637,58 @@ export default function CommunicationMetrics() {
                             }
                           }}
                           wrapperStyle={{ 
-                            paddingTop: '10px',
-                            fontSize: '13px',
-                            fontWeight: 500,
+                            paddingTop: '0',
+                            paddingBottom: '5px',
+                            fontSize: '14px',
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            marginBottom: '15px'
+                            marginBottom: '0',
+                            position: 'absolute',
+                            top: '5px',
+                            zIndex: 25,
+                            width: '100% !important',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            left: '0 !important',
+                            right: '0 !important'
                           }}
-                          formatter={(value, entry, index) => (
-                            <div className="flex flex-col items-center px-2 py-1 mx-1 rounded-md hover:bg-gray-100" style={{
-                              borderBottom: activeIndex === index ? `2px solid ${COLORS[index % COLORS.length]}` : 'none',
-                              background: activeIndex === index ? `${COLORS[index % COLORS.length]}10` : 'transparent'
-                            }}>
-                              <span style={{ 
-                                color: activeIndex === index ? COLORS[index % COLORS.length] : '#666',
-                                fontWeight: activeIndex === index ? 600 : 500,
-                                fontSize: '13px'
+                          formatter={(value, entry, index) => {
+                            return (
+                              <div className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md hover:bg-gray-100" style={{
+                                borderBottom: activeIndex === index ? `2px solid ${COLORS[index % COLORS.length]}` : 'none',
+                                background: activeIndex === index ? `${COLORS[index % COLORS.length]}10` : 'transparent',
+                                maxWidth: '100%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
                               }}>
-                                {value}
-                              </span>
-                            </div>
-                          )}
+                                <span style={{ 
+                                  color: activeIndex === index ? COLORS[index % COLORS.length] : '#666',
+                                  fontWeight: activeIndex === index ? 700 : 600,
+                                  fontSize: '12px',
+                                  textAlign: 'center',
+                                  whiteSpace: 'nowrap',
+                                  padding: '0 4px'
+                                }}>
+                                  {value}
+                                </span>
+                              </div>
+                            );
+                          }}
                         />
                       </PieChart>
+                      </ResponsiveContainer>
                     ) : (
-                      <RadialBarChart 
-                        innerRadius="20%" 
-                        outerRadius="80%" 
-                        data={metricsData} 
-                        startAngle={180} 
-                        endAngle={0}
-                        cx="50%"
-                        cy="70%"
-                        barSize={14}
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadialBarChart 
+                          innerRadius="15%" 
+                          outerRadius="75%" 
+                          data={metricsData} 
+                          startAngle={180} 
+                          endAngle={0}
+                          barSize={14}
+                          className="overflow-visible"
+                          style={{ margin: '0 auto' }}
                       >
                         <defs>
                           {COLORS.map((color, index) => (
@@ -1328,8 +1700,8 @@ export default function CommunicationMetrics() {
                               x2="0" 
                               y2="1"
                             >
-                              <stop offset="0%" stopColor={color} stopOpacity={0.9} />
-                              <stop offset="95%" stopColor={color} stopOpacity={0.6} />
+                              <stop offset="0%" stopColor={color} stopOpacity={1} />
+                              <stop offset="95%" stopColor={color} stopOpacity={0.8} />
                             </linearGradient>
                           ))}
                         </defs>
@@ -1337,10 +1709,10 @@ export default function CommunicationMetrics() {
                           label={{
                             fill: '#666',
                             position: 'insideStart',
-                            fontSize: 12,
-                            fontWeight: 500
+                            fontSize: 14,
+                            fontWeight: 600
                           }}
-                          background={{ fill: '#f3f4f6' }}
+                          background={{ fill: '#E1E9F8' }}
                           dataKey="value"
                           cornerRadius={12}
                           animationDuration={1500}
@@ -1359,12 +1731,19 @@ export default function CommunicationMetrics() {
                             />
                           ))}
                         </RadialBar>
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip 
+                          content={<CustomTooltip active={false} payload={[]} />}
+                          animationDuration={0}
+                          animationEasing="linear"
+                          wrapperStyle={{ pointerEvents: 'none' }}
+                          allowEscapeViewBox={{ x: true, y: true }}
+                        />
                         <Legend 
-                          iconSize={10} 
+                          iconSize={12} 
                           layout="horizontal" 
                           verticalAlign="top" 
                           align="center"
+                          height={30}
                           onClick={() => {
                             if (!userInteracted) {
                               setUserInteracted(true);
@@ -1372,39 +1751,57 @@ export default function CommunicationMetrics() {
                             }
                           }}
                           wrapperStyle={{ 
-                            paddingBottom: '15px',
-                            paddingTop: '10px',
-                            fontSize: '13px',
-                            fontWeight: 500
+                            paddingTop: '0',
+                            paddingBottom: '0',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            position: 'absolute',
+                            top: '5px',
+                            zIndex: 25,
+                            width: '100% !important',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            left: '0 !important',
+                            right: '0 !important'
                           }}
-                          formatter={(value, entry, index) => (
-                            <div className="flex flex-col items-center px-2 py-1 mx-1 rounded-md hover:bg-gray-100" style={{
-                              borderBottom: focusedMetric === value ? `2px solid ${COLORS[index % COLORS.length]}` : 'none',
-                              background: focusedMetric === value ? `${COLORS[index % COLORS.length]}10` : 'transparent'
-                            }}
-                            onClick={() => {
-                              handleMetricFocus(value);
-                              if (!userInteracted) {
-                                setUserInteracted(true);
-                                localStorage.setItem('chartUserInteracted', 'true');
-                              }
-                            }}
-                            >
-                              <span style={{ 
-                                color: focusedMetric === value ? COLORS[index % COLORS.length] : '#666',
-                                fontWeight: focusedMetric === value ? 600 : 500,
-                                fontSize: '13px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}>
-                                {value}
-                              </span>
-                            </div>
-                          )}
+                          formatter={(value, entry, index) => {
+                            return (
+                              <div className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md hover:bg-gray-100" style={{
+                                borderBottom: focusedMetric === value ? `2px solid ${COLORS[index % COLORS.length]}` : 'none',
+                                background: focusedMetric === value ? `${COLORS[index % COLORS.length]}10` : 'transparent',
+                                maxWidth: '100%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                              onClick={() => {
+                                handleMetricFocus(value);
+                                if (!userInteracted) {
+                                  setUserInteracted(true);
+                                  localStorage.setItem('chartUserInteracted', 'true');
+                                }
+                              }}
+                              >
+                                <span style={{ 
+                                  color: focusedMetric === value ? COLORS[index % COLORS.length] : '#666',
+                                  fontWeight: focusedMetric === value ? 700 : 600,
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  textAlign: 'center',
+                                  whiteSpace: 'nowrap',
+                                  padding: '0 4px'
+                                }}>
+                                  {value}
+                                </span>
+                              </div>
+                            );
+                          }}
                         />
                       </RadialBarChart>
+                      </ResponsiveContainer>
                     )}
-                  </ResponsiveContainer>
+                  </div>
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">
                     <div className="text-center">
@@ -1420,16 +1817,16 @@ export default function CommunicationMetrics() {
           </div>
           
           {/* Chart type and focus indicator - NOW WITH LABELS */}
-          <div className="flex justify-center mt-4">
-            <div className="flex space-x-6 items-center bg-white px-4 py-2 rounded-lg shadow-sm">
+          <div className="flex justify-center mt-4 relative z-40 mb-4">
+            <div className="flex space-x-6 items-center bg-white px-4 py-2 rounded-lg shadow-md">
               {[
                 { type: 'radar', label: 'Radar' },
                 { type: 'pie', label: 'Pie' },
                 { type: 'radial', label: 'Bars' }
               ].map(({ type, label }) => (
-                <div 
+                <button
                   key={type}
-                  className="flex flex-col items-center gap-1 cursor-pointer"
+                  className="flex flex-col items-center gap-1 cursor-pointer focus:outline-none"
                   onClick={() => {
                     setChartType(type);
                     setUserInteracted(true);
@@ -1454,7 +1851,7 @@ export default function CommunicationMetrics() {
                         : 'bg-gray-300'
                     }`}
                   />
-                  <span className={`text-xs font-medium ${
+                  <span className={`text-sm font-medium ${
                     chartType === type 
                       ? type === 'radar' 
                         ? 'text-purple-600' 
@@ -1465,7 +1862,7 @@ export default function CommunicationMetrics() {
                   }`}>
                     {label}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -1481,24 +1878,24 @@ export default function CommunicationMetrics() {
                 transition={{ duration: 0.4 }}
                 className="mt-6 mb-4 p-4 bg-white rounded-lg shadow-sm border border-purple-100 overflow-visible"
               >
-              <h3 className="text-sm font-medium text-purple-800 mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
+              <h3 className="text-base font-medium text-purple-800 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 Communication Insights & Recommendations
               </h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-100 h-full">
-                  <p className="font-medium text-purple-800 mb-1">What the metrics mean:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm sm:text-base">
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 h-full shadow-sm">
+                  <p className="font-medium text-purple-800 mb-2">What the metrics mean:</p>
                   <p className="text-gray-600 leading-relaxed">
                     These metrics reflect key aspects of effective communication in your relationship. 
                     Improvements across all areas indicate growing emotional intelligence and connection.
                   </p>
                 </div>
                 
-                <div className="p-3 bg-teal-50 rounded-lg border border-teal-100 h-full">
-                  <p className="font-medium text-teal-800 mb-1">How to improve your focus area:</p>
+                <div className="p-4 bg-teal-50 rounded-lg border border-teal-100 h-full shadow-sm">
+                  <p className="font-medium text-teal-800 mb-2">How to improve your focus area:</p>
                   <p className="text-gray-600 leading-relaxed">
                     Practice {getFormattedLowestMetricName()} regularly by setting aside dedicated time 
                     for communication exercises. Small, consistent efforts yield significant improvements.
@@ -1506,12 +1903,12 @@ export default function CommunicationMetrics() {
                 </div>
                 
                 {focusedMetric && (
-                  <div className="p-3 bg-rose-50 rounded-lg border border-rose-100 sm:col-span-2">
-                    <p className="font-medium text-rose-800 mb-1">About {focusedMetric}:</p>
+                  <div className="p-4 bg-rose-50 rounded-lg border border-rose-100 sm:col-span-2 shadow-sm">
+                    <p className="font-medium text-rose-800 mb-2">About {focusedMetric}:</p>
                     <p className="text-gray-600 leading-relaxed">
                       {getDescriptionForMetric(focusedMetric)}
                     </p>
-                    <div className="mt-2 pt-2 border-t border-rose-200 flex items-center">
+                    <div className="mt-3 pt-3 border-t border-rose-200 flex items-center">
                       <span className="text-rose-700 font-medium mr-2">Try this:</span>
                       <span className="text-gray-600">
                         {getSkillBuildingTips(focusedMetric, 60)?.[0] || 

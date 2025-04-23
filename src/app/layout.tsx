@@ -3,6 +3,7 @@ import AuthProvider from '@/components/AuthProvider'
 import Navigation from '@/components/Navigation'
 import { SoundProvider } from '@/components/SoundProvider'
 import MusicPlayer from '@/components/MusicPlayer'
+import { RadialGradientBackground } from '@/components/ui/radial-gradient-background'
 import './globals.css'
 
 export const metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
 
       </head>
       <body className="min-h-screen w-full overflow-x-hidden">
+        <RadialGradientBackground />
         <AuthProvider>
           <SoundProvider>
             <Navigation />

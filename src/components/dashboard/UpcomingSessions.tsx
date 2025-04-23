@@ -117,7 +117,7 @@ export default function UpcomingSessions() {
 
   if (loading) {
     return (
-      <div className="h-80 flex items-center justify-center">
+      <div className="h-80 flex items-center justify-center bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg">
         <motion.div 
           animate={{ 
             scale: [1, 1.1, 1],
@@ -129,8 +129,8 @@ export default function UpcomingSessions() {
           }}
           className="flex flex-col items-center"
         >
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-indigo-600 font-medium">Finding your next sessions...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-white font-medium">Finding your next sessions...</p>
         </motion.div>
       </div>
     );
@@ -138,18 +138,18 @@ export default function UpcomingSessions() {
 
   if (error) {
     return (
-      <div className="h-80 flex items-center justify-center text-indigo-600">
-        <div className="text-center p-6 bg-indigo-50 rounded-lg max-w-sm">
-          <svg className="w-12 h-12 mx-auto text-indigo-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="h-80 flex items-center justify-center bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg">
+        <div className="text-center p-6 bg-white/90 rounded-lg max-w-sm shadow-md">
+          <svg className="w-12 h-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-lg font-medium">Couldn't load your sessions</p>
-          <p className="text-sm mt-2 text-indigo-500">{error}</p>
+          <p className="text-lg font-medium text-gray-800">Couldn't load your sessions</p>
+          <p className="text-sm mt-2 text-red-600">{error}</p>
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={fetchSessions}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium"
+            className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-lg"
           >
             Try Again
           </motion.button>
@@ -163,22 +163,26 @@ export default function UpcomingSessions() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-80 overflow-y-auto bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+      className="h-80 overflow-y-auto bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg"
     >
-      <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pt-1 pb-3 z-10">
-        <h2 className="text-xl font-semibold text-indigo-800">Upcoming Sessions</h2>
+      <div className="flex justify-between items-center mb-4 sticky top-0 bg-blue-700/70 backdrop-blur-md pt-3 pb-3 px-4 z-10 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-white">Upcoming Sessions</h2>
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.98 }}
         >
           <Link 
             href="/schedule" 
-            className="flex items-center bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-lg hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
           >
-            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Schedule New
+            <span className="relative z-10 flex items-center">
+              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Schedule New
+            </span>
+            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+            <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
           </Link>
         </motion.div>
       </div>
@@ -189,12 +193,12 @@ export default function UpcomingSessions() {
           animate={{ opacity: 1 }}
           className="h-64 flex items-center justify-center"
         >
-          <div className="text-center p-6 bg-indigo-50 rounded-lg max-w-sm">
-            <svg className="w-12 h-12 mx-auto text-indigo-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="text-center p-6 bg-white/90 rounded-lg max-w-sm shadow-lg">
+            <svg className="w-12 h-12 mx-auto text-blue-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-lg font-medium text-indigo-800">No upcoming sessions</p>
-            <p className="text-sm mt-2 text-indigo-600">
+            <p className="text-lg font-medium text-blue-800">No upcoming sessions</p>
+            <p className="text-sm mt-2 text-gray-700">
               Schedule your first therapy session to start your journey together!
             </p>
             <motion.div
@@ -204,7 +208,7 @@ export default function UpcomingSessions() {
             >
               <Link 
                 href="/schedule" 
-                className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium"
+                className="inline-block px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-300"
               >
                 Schedule Your First Session
               </Link>
@@ -239,24 +243,28 @@ export default function UpcomingSessions() {
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0 }
                 }}
-                className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-all ${isExpanded ? 'border-indigo-300' : 'border-gray-200'}`}
+                className={`bg-white/80 border rounded-lg p-4 shadow-md hover:shadow-lg transition-all ${isExpanded ? 'border-blue-400' : 'border-blue-200'}`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center">
-                      <h3 className="font-medium text-indigo-800">{session.theme}</h3>
-                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${badgeStyles.bg} ${badgeStyles.text}`}>
+                      <h3 className="font-medium text-blue-800">{session.theme}</h3>
+                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full 
+                        ${badgeStyles.label === 'Happening soon' ? 'bg-red-500 text-white' : 
+                        badgeStyles.label === 'Today' ? 'bg-amber-500 text-white' : 
+                        badgeStyles.label === 'Tomorrow' ? 'bg-blue-500 text-white' : 
+                        'bg-green-500 text-white'} shadow-sm`}>
                         {badgeStyles.label}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <p className="text-sm text-gray-700 flex items-center">
+                      <svg className="w-4 h-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       {format(sessionDate, 'EEEE, MMMM d, yyyy')}
                     </p>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <p className="text-sm text-gray-700 flex items-center">
+                      <svg className="w-4 h-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       {format(sessionDate, 'h:mm a')} ({session.duration} minutes)
@@ -266,9 +274,9 @@ export default function UpcomingSessions() {
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <button
                         onClick={() => setExpandedSession(isExpanded ? null : session.id)}
-                        className="p-1 rounded-full hover:bg-indigo-100 transition-colors"
+                        className="p-1 rounded-full hover:bg-blue-100 transition-colors"
                       >
-                        <svg className={`w-5 h-5 text-indigo-600 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`w-5 h-5 text-blue-600 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isExpanded ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
                         </svg>
                       </button>
@@ -283,12 +291,12 @@ export default function UpcomingSessions() {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="mt-4 pt-4 border-t border-gray-100"
+                      className="mt-4 pt-4 border-t border-gray-200"
                     >
                       {session.notes && (
                         <div className="mb-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-1">Session Notes:</h4>
-                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{session.notes}</p>
+                          <h4 className="text-sm font-semibold text-blue-700 mb-1">Session Notes:</h4>
+                          <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md shadow-sm">{session.notes}</p>
                         </div>
                       )}
                       
@@ -296,19 +304,23 @@ export default function UpcomingSessions() {
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Link
                             href={`/dashboard/therapy?sessionId=${session.id}`}
-                            className="flex items-center bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium shadow-sm"
+                            className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-2 rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 relative overflow-hidden"
                           >
-                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            Start Session
+                            <span className="relative z-10 flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                              Start Session
+                            </span>
+                            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                            <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
                           </Link>
                         </motion.div>
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <button
                             onClick={() => handleCancelSession(session.id)}
                             disabled={isCancelling}
-                            className="flex items-center bg-white border border-red-300 text-red-600 hover:bg-red-50 px-3 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                            className="flex items-center bg-white border border-red-400 text-red-600 hover:bg-red-50 px-3 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
                           >
                             {isCancelling ? (
                               <>
