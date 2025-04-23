@@ -207,12 +207,13 @@ export default function RootLayout({
 
           #welcomeMessage figcaption h1 b a:hover {
             color: rgba(59, 130, 246, 1); /* Blue-500 color */
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.7);
             transition: all 200ms ease-in-out;
           }
 
           #welcomeMessage figcaption h1 b a:focus {
             color: rgba(59, 130, 246, 1); /* Blue-500 color */
-            transform: scale(0.9);
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.9);
             transition: all 70ms linear;
           }
 
@@ -329,7 +330,24 @@ export default function RootLayout({
             font-size: 1em;
             font-weight: normal;
             color: white;
-            text-shadow: 0 0 5px rgba(0, 255, 195, 0.5);
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.7);
+            position: relative;
+          }
+          
+          /* Add subtle animation for menu items */
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 b a::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.7), transparent);
+            transition: width 0.3s ease;
+          }
+          
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 b a:hover::after {
+            width: 100%;
           }
 
           @keyframes welcome {
