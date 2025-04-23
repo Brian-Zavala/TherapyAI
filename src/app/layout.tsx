@@ -1,34 +1,639 @@
 // src/app/layout.tsx
-import AuthProvider from '@/components/AuthProvider'
-import Navigation from '@/components/Navigation'
-import { SoundProvider } from '@/components/SoundProvider'
-import MusicPlayer from '@/components/MusicPlayer'
-import { RadialGradientBackground } from '@/components/ui/radial-gradient-background'
-import './globals.css'
+import AuthProvider from "@/components/AuthProvider";
+import Navigation from "@/components/Navigation";
+import { SoundProvider } from "@/components/SoundProvider";
+import MusicPlayer from "@/components/MusicPlayer";
+import { RadialGradientBackground } from "@/components/ui/radial-gradient-background";
+import "./globals.css";
 
 export const metadata = {
-  title: 'AI Couple Therapy',
-  description: 'AI-powered therapy to help couples build stronger, healthier relationships',
-}
+  title: "AI Couple Therapy",
+  description:
+    "AI-powered therapy to help couples build stronger, healthier relationships",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" className="scroll-smooth">
       <head>
         {/* Viewport meta tag for responsive design */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-        
-        {/* Preload critical assets */}
-        <link 
-          rel="preload" 
-          href="/images/happy-couple.jpg" 
-          as="image"
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
         />
 
+        {/* Preload critical assets */}
+        <link rel="preload" href="/images/happy-couple.jpg" as="image" />
+
+        {/* Fancy Menu CSS */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+          /* Fancy Menu CSS */
+          :root {
+            --gradient: #3b82f6; /* Solid blue-500 color */
+          }
+
+          #welcomeMessage {
+            font-size: 130%;
+          }
+
+          #welcomeMessage,
+          #welcomeMessage figcaption,
+          #welcomeMessage figcaption h1,
+          #welcomeMessage figcaption h1 b {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin: 0;
+          }
+
+          #welcomeMessage figcaption {
+            width: auto;
+            z-index: 1;
+          }
+
+          #welcomeMessage figcaption::before,
+          #welcomeMessage figcaption::after {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85); /* Black container background */
+            width: 0%;
+            height: 0%;
+            content: "";
+            z-index: -1;
+            backdrop-filter: blur(3px);
+          }
+
+          #welcomeMessage figcaption::after {
+            background: rgba(59, 130, 246, 0.3); /* Blue-500 outer glow */
+            width: 0;
+            height: 0%;
+            z-index: -2;
+          }
+
+          #welcomeMessage figcaption h1 {
+            text-transform: lowercase;
+            background: transparent; /* No background behind text */
+            transition: all 0.1s ease-in-out;
+          }
+
+          #welcomeMessage figcaption h1:active {
+            transform: scale(0.93);
+            transition: all 0.05s ease-in-out;
+          }
+
+          #welcomeMessage figcaption h1::before,
+          #welcomeMessage figcaption h1::after {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 0.7em;
+            font-weight: 200;
+            transition: all 0.7s ease-in-out;
+          }
+
+          #welcomeMessage figcaption h1::before {
+            top: -4.3em;
+            right: 2em;
+            content: "Click to close";
+            font-weight: 400;
+            color: #666;
+            opacity: 0;
+          }
+
+          #welcomeMessage figcaption h1::after {
+            bottom: -3em;
+            content: "Click to continue";
+            transition: all 0.3s ease-in-out;
+          }
+
+          #welcomeMessage figcaption h1 label {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+          }
+
+          #welcomeMessage figcaption h1 label:nth-child(2) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1em;
+            height: 1em;
+            right: 0;
+            top: -3em;
+            background: transparent;
+            color: #666;
+            padding: 5px;
+            opacity: 0;
+            z-index: 998;
+          }
+
+          #welcomeMessage figcaption h1 label:hover {
+            cursor: pointer;
+          }
+
+          #welcomeMessage figcaption h1 b {
+            width: 2em;
+            height: 2em;
+            background: transparent; /* No background for buttons */
+            user-select: none;
+            transition: all 0.2s ease;
+          }
+          
+          /* Add subtle hover effect to menu buttons */
+          #welcomeMessage figcaption h1 b:hover {
+            color: rgba(59, 130, 246, 1); /* Blue-500 text on hover */
+          }
+
+          #welcomeMessage figcaption h1 b a {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            z-index: 1;
+            transition: all 0.35s ease-in-out;
+          }
+
+          #welcomeMessage figcaption h1 b a:focus {
+            color: rgba(59, 130, 246, 1); /* Blue-500 on focus */
+          }
+
+          #welcomeMessage figcaption h1 b a:active::after {
+            filter: blur(5px);
+          }
+
+          @keyframes spinny {
+            0% {
+              transform: rotateZ(0deg);
+              border-radius: 0.3em;
+            }
+            50% {
+              border-radius: 1em;
+            }
+            100% {
+              transform: rotateZ(360deg);
+              border-radius: 0.3em;
+            }
+          }
+
+          #welcomeMessage figcaption h1 b a {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            z-index: 1;
+            transition: all 0.35s ease-in-out;
+            color: white;
+            font-size: 0.8em;
+            text-decoration: none;
+            text-transform: capitalize;
+          }
+
+          #welcomeMessage figcaption h1 b a:hover {
+            color: rgba(59, 130, 246, 1); /* Blue-500 color */
+            transition: all 200ms ease-in-out;
+          }
+
+          #welcomeMessage figcaption h1 b a:focus {
+            color: rgba(59, 130, 246, 1); /* Blue-500 color */
+            transform: scale(0.9);
+            transition: all 70ms linear;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage {
+            font-size: 100%;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption::before {
+            width: calc(100% + 3em);
+            height: calc(100% + 3em);
+            border-radius: 0.7em;
+            transition: all 0.7s ease-in-out;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption::after {
+            width: calc(100% + 6em);
+            height: calc(100% + 6em);
+            border-radius: 1em;
+            transition: all 0.7s ease-in-out;
+          }
+
+          #toggleClose:checked ~ #welcomeMessage figcaption::before,
+          #toggleClose:checked ~ #welcomeMessage figcaption::after {
+            transition: all 0.7s ease-in-out;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 {
+            background: transparent; /* No background */
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1:active {
+            transform: none;
+          }
+
+          #toggleClose:checked ~ #welcomeMessage figcaption h1 {
+            background: transparent;
+            transition: all 0.05s ease-in-out;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1::before {
+            opacity: 1;
+            transition: all 0.7s ease-in-out;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1::after {
+            opacity: 0;
+            transition: all 0.7s ease-in-out;
+          }
+
+          #toggleOpen:checked
+            ~ #welcomeMessage
+            figcaption
+            h1
+            label:first-of-type {
+            display: none;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 label:last-of-type {
+            z-index: 999;
+            opacity: 1;
+            transition: all 0.7s ease-in-out;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 b {
+            color: white;
+            transition: all 0.35s ease-in-out;
+          }
+
+          #toggleClose:checked ~ #welcomeMessage figcaption h1 b {
+            transition: all 0.35s ease-in-out;
+            transition-delay: 0.35s;
+            animation: welcomeClose 0.7s ease-in-out 1;
+            animation-fill-mode: forwards;
+          }
+
+          #toggleOpen:checked
+            ~ #welcomeMessage
+            figcaption
+            h1
+            b:not(:first-of-type, :last-of-type) {
+            animation: welcome 0.7s ease-in-out 1;
+            animation-fill-mode: forwards;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 b:first-of-type {
+            animation: welcomeFirst 0.7s ease-in-out 1;
+            animation-fill-mode: forwards;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 b:last-of-type {
+            animation: welcomeLast 0.7s ease-in-out 1;
+            animation-fill-mode: forwards;
+          }
+
+          #toggleClose:checked ~ #welcomeMessage figcaption h1 b:first-of-type {
+            animation: welcomeCloseFirst 0.7s ease-in-out 1;
+            animation-fill-mode: forwards;
+          }
+
+          #toggleClose:checked ~ #welcomeMessage figcaption h1 b:last-of-type {
+            animation: welcomeCloseLast 0.7s ease-in-out 1;
+            animation-fill-mode: forwards;
+          }
+
+          #toggleClose:checked ~ #welcomeMessage figcaption h1 b::after {
+            opacity: 0;
+            transition: all 0.35s ease-in-out;
+          }
+
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 b a {
+            opacity: 1;
+            transition: all 0.35s ease-in-out;
+            transition-delay: 0.35s;
+            font-size: 1em;
+            font-weight: normal;
+            color: white;
+            text-shadow: 0 0 5px rgba(0, 255, 195, 0.5);
+          }
+
+          @keyframes welcome {
+            0% {
+              margin: 0 0;
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            20% {
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            80% {
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            100% {
+              margin: 0 1.5em;
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+          }
+
+          @keyframes welcomeFirst {
+            0% {
+              margin: 0 0;
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            20% {
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            80% {
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            100% {
+              margin: 0 1.5em 0 0;
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+          }
+
+          @keyframes welcomeLast {
+            0% {
+              margin: 0 0;
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            20% {
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            80% {
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            100% {
+              margin: 0 0 0 1.5em;
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+          }
+
+          @keyframes welcomeClose {
+            0% {
+              margin: 0 1.5em;
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            20% {
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            80% {
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            100% {
+              margin: 0 0;
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+          }
+
+          @keyframes welcomeCloseFirst {
+            0% {
+              margin: 0 1.5em 0 0;
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            20% {
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            80% {
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            100% {
+              margin: 0 0;
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+          }
+
+          @keyframes welcomeCloseLast {
+            0% {
+              margin: 0 0 0 1.5em;
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            20% {
+              transform: rotateY(0deg);
+              width: 3em;
+              height: 3em;
+            }
+            80% {
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+            100% {
+              margin: 0 0;
+              transform: rotateY(0deg);
+              width: 2em;
+              height: 2em;
+            }
+          }
+
+          @media (max-width: 1270px) {
+            #toggleOpen:checked ~ #welcomeMessage {
+              font-size: 80%;
+            }
+          }
+
+          @media (max-width: 1000px) {
+            #toggleOpen:checked ~ #welcomeMessage {
+              font-size: 60%;
+            }
+          }
+
+          /* Menu is initially hidden by default */
+          #welcomeMessage {
+            transform: translateY(-150%);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.7s ease-in-out;
+          }
+          
+          /* When open button is clicked (#toggleOpen is checked), show the menu */
+          #toggleOpen:checked ~ #welcomeMessage {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+            transition: all 0.7s ease-in-out;
+          }
+          
+          /* When close button is clicked, hide the menu */
+          #toggleClose:checked ~ #welcomeMessage {
+            transform: translateY(-150%);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.7s ease-in-out;
+          }
+          
+          /* Menu tab shown at top - more visible by default */
+          #menu-tab {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 25px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 0 0 15px 15px;
+            cursor: pointer;
+            z-index: 999;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid #3b82f6; /* Blue-500 */
+          }
+          
+          /* Menu tab animation on hover */
+          #menu-tab:hover {
+            height: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 2px solid #3b82f6; /* Blue-500 */
+          }
+          
+          /* Show MENU text always visible */
+          #menu-tab::after {
+            content: "MENU ▼";
+            position: absolute;
+            top: 5px;
+            left: 0;
+            width: 100%;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+          }
+          
+          /* Pulse animation to draw attention */
+          @keyframes pulse-border {
+            0% { border-color: #3b82f6; } /* Blue-500 */
+            50% { border-color: #60a5fa; } /* Blue-400 */
+            100% { border-color: #3b82f6; } /* Blue-500 */
+          }
+          
+          #menu-tab {
+            animation: pulse-border 3s infinite;
+          }
+          
+          /* MENU button - shown at top of page when menu is hidden */
+          #welcomeMessage figcaption h1 label:first-of-type {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 30px;
+            background: #555;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          }
+          
+          /* MENU button text */
+          #welcomeMessage figcaption h1 label:first-of-type::after {
+            content: "MENU ▼";
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+          }
+          
+          /* Hide menu button when menu is open */
+          #toggleOpen:checked ~ #welcomeMessage figcaption h1 label:first-of-type {
+            display: none;
+          }
+          
+          /* Hide thin menu tab when menu is open */
+          #toggleOpen:checked ~ #menu-tab {
+            display: none;
+          }
+          
+          /* Close button (✖) styling with better visibility and positioning */
+          #welcomeMessage figcaption h1 label:nth-child(2) {
+            position: absolute;
+            right: -44px;
+            top: -8px;
+            width: 16px;
+            height: 16px;
+            
+            color: black;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10000;
+            font-size: 16px;
+            pointer-events: auto !important;
+            transition: all 0.2s ease;
+          }
+          
+          /* Enhanced hover effect for close button */
+          #welcomeMessage figcaption h1 label:nth-child(2):hover {
+            transform: scale(1.1);
+          }
+          
+          @media (max-width: 768px) {
+            #welcomeMessage {
+              display: none;
+            }
+          }
+        `,
+          }}
+        />
       </head>
       <body className="min-h-screen w-full overflow-x-hidden">
         <RadialGradientBackground />
@@ -43,5 +648,5 @@ export default function RootLayout({
         </AuthProvider>
       </body>
     </html>
-  )
+  );
 }

@@ -282,7 +282,7 @@ export default function Home() {
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref
-        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-lg shadow-indigo-500/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
+        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
       >
         {/* Background Gradient (Original) */}
         {/* Background Image (Original) */}
