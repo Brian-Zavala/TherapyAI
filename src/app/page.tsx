@@ -899,7 +899,7 @@ export default function Home() {
               {/* End Stats List */}
             </motion.div>{" "}
             {/* End Mental Health Stats Card */}
-          </div>{" "}
+          </div>
           {/* End Main Grid */}
           {/* 4-Container Layout Grid */}
           <div className="bg-transparent p-2 sm:p-6 md:p-8 rounded-3xl relative overflow-hidden antialiased">
@@ -924,10 +924,10 @@ export default function Home() {
                   {
                     id: 1,
                     content: (
-                      <div className="relative w-full h-screen overflow-hidden">
+                      <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full h-[200px] lg:h-[290px] object-cover z-0"
+                          className="absolute w-full h-[220px] lg:h-[320px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -964,15 +964,16 @@ export default function Home() {
                         </div>
                       </div>
                     ),
-                    className: "md:col-span-1 row-span-1 md:row-span-1",
+                    className:
+                      "md:col-span-2 row-span-1 md:row-span-1 md:col-start-1 md:row-start-1", // Position in first row, first column for md+
                     thumbnail: "/images/therapyType/couple.jpg",
-                    size: "medium",
+                    size: "large",
                     title: "Couples Therapy",
                   },
                   {
                     id: 2,
                     content: (
-                      <div className="relative w-full h-screen overflow-hidden">
+                      <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
                           className="absolute w-full lg:h-[350px] object-cover z-0"
@@ -1013,18 +1014,18 @@ export default function Home() {
                       </div>
                     ),
                     className:
-                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2",
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2", // Position in second row, first column for md+
                     thumbnail: "/images/therapyType/mental_health.jpg",
-                    size: "large",
+                    size: "medium",
                     title: "Mental Health Challenges",
                   },
                   {
                     id: 3,
                     content: (
-                      <div className="relative w-full h-screen overflow-hidden">
+                      <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full lg:h-[350px] object-cover z-0"
+                          className="absolute w-full lg:h-[380px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1062,18 +1063,18 @@ export default function Home() {
                       </div>
                     ),
                     className:
-                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-1",
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2", // Position in second row, second column for md+
                     thumbnail: "/images/therapyType/family.jpg",
-                    size: "large",
+                    size: "medium",
                     title: "Family Therapy",
                   },
                   {
                     id: 4,
                     content: (
-                      <div className="relative w-full h-screen overflow-hidden">
+                      <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full lg:h-[300px] object-cover z-0"
+                          className="absolute w-full lg:h-[320px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1111,9 +1112,9 @@ export default function Home() {
                       </div>
                     ),
                     className:
-                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2",
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-1", // Position in first row, second column for md+
                     thumbnail: "/images/therapyType/solo.jpg",
-                    size: "medium",
+                    size: "large",
                     title: "Solo Therapy",
                   },
                 ]}
@@ -1139,19 +1140,20 @@ export default function Home() {
                 <ButtonWithSound
                   as={Link}
                   href="/dashboard/therapy"
-                  className="w-full sm:w-auto bg-white/20 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:from-blue-400 hover:to-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-gray-500/20 transition-all duration-300 hover:shadow-sm hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden" // Original classes
                 >
                   <span className="relative z-10">
-                    Experience Affordable Therapy
+                    Start Your Therapy Session
                   </span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
-                  <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+                  {/* Original overlay spans */}
+                  <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-sm"></span>
                 </ButtonWithSound>
               </motion.div>
             </motion.div>
           </div>{" "}
           {/* End Access Gap Box */}
-        </div>{" "}
+        </div>
         {/* End Max Width Container */}
       </motion.section>
       {/* Features section with creative card animations */}
@@ -1178,7 +1180,7 @@ export default function Home() {
               stiffness: 100,
             }}
             variants={fadeInUp} // Use standard variant
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14 sm:mb-20 text-white py-1 overflow-visible" // Simplified to white text
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-14  sm:mb-20 text-white overflow-visible" // Simplified to white text
           >
             How We Support Your Relationship
           </motion.h2>
@@ -1517,7 +1519,7 @@ export default function Home() {
                   ? { boxShadow: "0 25px 50px -12px rgba(124, 58, 237, 0.25)" }
                   : {}
               } // Original hover, check reduced motion
-              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden border border-green-500 md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500" // Original classes (Tailwind v3 border-1 is just border)
+              className="bg-gradient-to-b from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden md:-mt-4 md:-mb-4 relative z-10 transition-all duration-500" // Original classes (Tailwind v3 border-1 is just border)
             >
               <div className="bg-blue-500 text-white text-center text-sm font-semibold py-1">
                 MOST POPULAR
@@ -1629,10 +1631,8 @@ export default function Home() {
                   <ButtonWithSound
                     as={Link}
                     href="/dashboard/therapy"
-                    className="w-full bg-gradient-to-r from-green-400 to-green-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:overflow-hidden hover:ring-1 hover:ring-blue-700 hover:from-green-500 hover:to-green-600 transition duration-300 flex items-center justify-center"
+                    className="w-full bg-green-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:green-500 transition duration-300 flex items-center justify-center"
                   >
-                    {" "}
-                    {/* ring-bg-blue-700 likely needs adjustment -> ring-blue-700 */}
                     Select Plan
                   </ButtonWithSound>
                 </motion.div>
@@ -1777,7 +1777,7 @@ export default function Home() {
             variants={fadeInUp} // Use standard variant
             className="text-center mt-10 text-white text-sm" // Original classes
           >
-            All plans include a 7-day free trial. Cancel anytime. No credit card
+            All members get free session. Cancel anytime. No credit card
             required to start.
           </motion.div>
         </div>{" "}

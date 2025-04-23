@@ -68,7 +68,8 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
             className={cn(
               sizeClasses,
               "transform transition-all duration-300",
-              card.id === 4 ? "self-start" : ""
+              card.id === 4 ? "self-start" : "",
+              card.id === 2 ? "self-end" : ""
             )}
           >
             <div className="relative w-full h-full preserve-3d perspective-1000">
@@ -95,7 +96,13 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
                     <img
                       src={card.thumbnail}
                       alt={card.title || "Card image"}
-                      className="object-cover object-center absolute inset-0 h-full w-full"
+                      className={`object-cover absolute inset-0 h-full w-full ${
+                        card.id === 1
+                          ? "object-top"
+                          : card.id === 4
+                            ? "object-bottom"
+                            : "object-center"
+                      }`}
                     />
 
                     {/* Title for the card */}
@@ -115,7 +122,7 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Hover/Touch indicator overlay for darkening effect */}
                     {(hoveredId === card.id || isMobile) && (
                       <motion.div
