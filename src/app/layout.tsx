@@ -62,7 +62,7 @@ export default function RootLayout({
           #welcomeMessage figcaption::before,
           #welcomeMessage figcaption::after {
             position: absolute;
-            background: rgba(0, 0, 0, 0.85); /* Black container background */
+            background: rgba(0, 0, 0, 1); /* Black container background */
             width: 0%;
             height: 0%;
             content: "";
@@ -223,14 +223,14 @@ export default function RootLayout({
           #toggleOpen:checked ~ #welcomeMessage figcaption::before {
             width: calc(100% + 3em);
             height: calc(100% + 3em);
-            border-radius: 0.7em;
+            border-radius: 0 0 0.7em 0.7em;
             transition: all 0.7s ease-in-out;
           }
 
           #toggleOpen:checked ~ #welcomeMessage figcaption::after {
             width: calc(100% + 6em);
             height: calc(100% + 6em);
-            border-radius: 1em;
+            border-radius: 0 0 1em 1em;
             transition: all 0.7s ease-in-out;
           }
 
@@ -524,8 +524,8 @@ export default function RootLayout({
             top: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 80px;
-            height: 25px;
+            width: 200px;
+            height: 16px;
             background: rgba(0, 0, 0, 0.7);
             border-radius: 0 0 15px 15px;
             cursor: pointer;
@@ -536,19 +536,22 @@ export default function RootLayout({
           
           /* Menu tab animation on hover */
           #menu-tab:hover {
-            height: 30px;
+            height: 18px;
             background: rgba(0, 0, 0, 0.8);
             border-bottom: 2px solid #3b82f6; /* Blue-500 */
+            animation: pulse-border 1s infinite;
+
           }
           
           /* Show MENU text always visible */
           #menu-tab::after {
             content: "MENU ▼";
             position: absolute;
-            top: 5px;
+            top: 0;
             left: 0;
             width: 100%;
-            font-size: 12px;
+            font-size: 10px;
+            letter-spacing: 1px;
             color: white;
             font-weight: bold;
             text-align: center;
@@ -562,34 +565,11 @@ export default function RootLayout({
           }
           
           #menu-tab {
-            animation: pulse-border 3s infinite;
+            animation: pulse-border 4s infinite;
           }
+         
           
-          /* MENU button - shown at top of page when menu is hidden */
-          #welcomeMessage figcaption h1 label:first-of-type {
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 30px;
-            background: #555;
-            border-radius: 0 0 15px 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 999;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          }
-          
-          /* MENU button text */
-          #welcomeMessage figcaption h1 label:first-of-type::after {
-            content: "MENU ▼";
-            font-size: 12px;
-            color: white;
-            font-weight: bold;
-          }
+        
           
           /* Hide menu button when menu is open */
           #toggleOpen:checked ~ #welcomeMessage figcaption h1 label:first-of-type {
@@ -605,7 +585,7 @@ export default function RootLayout({
           #welcomeMessage figcaption h1 label:nth-child(2) {
             position: absolute;
             right: -44px;
-            top: -8px;
+            top: -16px;
             width: 16px;
             height: 16px;
             
