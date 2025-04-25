@@ -437,7 +437,7 @@ export default function Home() {
                     isInView={statsHeadingView.isInView}
                     className="text-white"
                   />
-                </span>{" "}
+                </span>
                 for Everyone
               </span>
               {/* Original background blur element */}
@@ -1839,25 +1839,10 @@ export default function Home() {
                 stiffness: 50,
               }}
               variants={fadeInUp} // Use standard variant
-              className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8" // Original classes
+              className="text-2xl sm:text-3xl md:text-4xl font-bold pb-8 mb-6 sm:mb-8" // Original classes
             >
               Ready to Transform Your Relationship?
             </motion.h2>
-            {/* CTA Paragraph - simple whileInView */}
-            <motion.p
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.5 }} // Animate once
-              transition={{
-                duration: getOptimizedDuration(0.7),
-                delay: getOptimizedDelay(0.2),
-              }} // Original transition + optimized helpers
-              variants={fadeInUp} // Use standard variant
-              className="text-indigo-100 text-base sm:text-lg max-w-3xl mx-auto mb-8 sm:mb-10" // Original classes
-            >
-              Start your journey to a healthier relationship today with our
-              AI-powered therapy platform.
-            </motion.p>
             {/* CTA Button */}
             <motion.div
               variants={floatingButtonVariants} // Original variants
@@ -1869,13 +1854,14 @@ export default function Home() {
               <ButtonWithSound
                 as={Link}
                 href="/dashboard/therapy"
-                className="bg-white text-blue-500 font-medium py-3 sm:py-4 px-8 sm:px-12 rounded-full text-base sm:text-lg shadow-lg shadow-indigo-900/30 hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-indigo-300 relative overflow-hidden" // Original classes
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-gray-500/20 transition-all duration-300 hover:shadow-sm hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden" // Original classes
               >
                 <span className="relative z-10">
                   Begin Your Therapy Journey
                 </span>
-                {/* Original overlay span */}
-                <span className="absolute inset-0 bg-indigo-100 opacity-0 hover:opacity-30 transition-opacity duration-300"></span>
+                {/* Original overlay spans */}
+                <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-sm"></span>
               </ButtonWithSound>
             </motion.div>
           </div>

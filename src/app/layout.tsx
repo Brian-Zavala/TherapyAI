@@ -229,8 +229,9 @@ export default function RootLayout({
           }
 
           #toggleOpen:checked ~ #welcomeMessage figcaption::after {
-            width: calc(100% + 6em);
-            height: calc(100% + 6em);
+            width: calc(100% + 3.6em);
+            height: calc(100% + 3.6em);
+
             border-radius: 0 0 1em 1em;
             transition: all 0.7s ease-in-out;
           }
@@ -338,10 +339,10 @@ export default function RootLayout({
           #toggleOpen:checked ~ #welcomeMessage figcaption h1 b a::after {
             content: '';
             position: absolute;
-            bottom: -1px;
+            bottom: 6px;
             left: 0;
             width: 0;
-            height: 2px;
+            height: 1px;
             background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.7), transparent);
             transition: width 0.3s ease;
           }
@@ -542,7 +543,7 @@ export default function RootLayout({
             top: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 200px;
+            width: 216px;
             height: 16px;
             background: rgba(0, 0, 0, 0.7);
             border-radius: 0 0 15px 15px;
@@ -602,19 +603,19 @@ export default function RootLayout({
           /* Close button (✖) styling with better visibility and positioning */
           #welcomeMessage figcaption h1 label:nth-child(2) {
             position: absolute;
-            right: -44px;
+            right: -18px;
             top: -16px;
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
             
-            color: black;
+            color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 10000;
-            font-size: 16px;
+            font-size: 14px;
             pointer-events: auto !important;
             transition: all 0.2s ease;
           }

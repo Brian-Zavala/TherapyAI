@@ -94,7 +94,7 @@ export default function Navigation() {
         <div
           id="menu-tab"
           className="hidden md:block"
-          onClick={() => {
+          onMouseOver={() => {
             setIsMenuOpen(true);
             playSound();
           }}
