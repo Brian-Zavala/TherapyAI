@@ -521,7 +521,11 @@ body.session-active .hide-during-session {
   position: fixed;
   width: 100px;
   height: 2px;
-  background: linear-gradient(-90deg, transparent, white); /* Reversed gradient direction from (90deg, white, transparent) */
+  background: linear-gradient(
+    -90deg,
+    transparent,
+    white
+  ); /* Reversed gradient direction from (90deg, white, transparent) */
   z-index: 0; /* Above stars background, below most content */
   pointer-events: none;
   animation: shoot 12s infinite ease-in; /* Slowed down from 6s to 12s (another 50% slower) */

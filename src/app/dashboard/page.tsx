@@ -691,117 +691,125 @@ export default function Dashboard() {
           {/* Session Time Visualization */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-6 pb-8 sm:pb-6 hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-indigo-500/30 flex items-center justify-center text-white mr-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-500/30 flex items-center justify-center text-white mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white">
+                  Session Time Overview
+                </h2>
               </div>
-              <h2 className="text-xl font-semibold text-white">
-                Session Time Overview
-              </h2>
+              <SessionTimeChart />
             </div>
-            <SessionTimeChart />
           </motion.div>
 
           {/* Relationship Progress Card */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                  />
-                </svg>
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white">
+                  Relationship Progress
+                </h2>
               </div>
-              <h2 className="text-xl font-semibold text-white">
-                Relationship Progress
-              </h2>
+              <RelationshipProgressCard />
             </div>
-            <RelationshipProgressCard />
           </motion.div>
 
           {/* Communication Metrics */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white">
+                  Communication Quality
+                </h2>
               </div>
-              <h2 className="text-xl font-semibold text-white">
-                Communication Quality
-              </h2>
+              <CommunicationMetrics />
             </div>
-            <CommunicationMetrics />
           </motion.div>
 
           {/* Upcoming Sessions */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white">
+                  Upcoming Sessions
+                </h2>
               </div>
-              <h2 className="text-xl font-semibold text-white">
-                Upcoming Sessions
-              </h2>
+              <UpcomingSessions />
             </div>
-            <UpcomingSessions />
           </motion.div>
         </motion.div>
 
@@ -813,7 +821,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-hidden"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center text-white mr-2">
@@ -845,7 +853,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-hidden"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-2">
@@ -877,7 +885,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-hidden"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-2">
@@ -909,7 +917,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-hidden"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-2">

@@ -463,25 +463,40 @@ export default function RelationshipProgressCard() {
   const renderChart = useMemo(() => {
     const commonProps = {
       data: data,
-      margin: { top: 20, right: 20, left: 10, bottom: 10 },
+      margin: { top: 10, right: 20, left: 10, bottom: 20 },
+      className: "mx-auto",
     };
     const xAxis = (
       <XAxis
         dataKey="name"
-        tick={{ fontSize: 11 }}
+        tick={{ fontSize: 11, fill: "#9CA3AF" }}
         tickMargin={10}
         height={40}
         interval="preserveStartEnd"
+        stroke="#9CA3AF"
       />
-    ); // Adjust interval maybe
-    const yAxis = (
-      <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} width={35} />
     );
-    const grid = <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />;
+    const yAxis = (
+      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#9CA3AF" }} width={40} stroke="#9CA3AF" tickMargin={10} />
+    );
+    const grid = <CartesianGrid strokeDasharray="3 3" stroke="#374151" />;
     const tooltip = (
-      <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 100 }} />
+      <Tooltip 
+        content={<CustomTooltip />} 
+        contentStyle={{
+          backgroundColor: "rgba(31, 41, 55, 0.8)",
+          borderColor: "#4B5563"
+        }}
+        itemStyle={{ color: "#E5E7EB" }} 
+        allowEscapeViewBox={{ x: true, y: true }}
+      />
     ); // Ensure tooltip is above other elements
-    const legend = <Legend verticalAlign="top" height={40} iconSize={10} />;
+    const legend = <Legend 
+      verticalAlign="bottom" 
+      height={40} 
+      iconSize={10} 
+      align="center"
+    />;
     const refLine = (
       <ReferenceLine
         y={50}
@@ -740,13 +755,20 @@ export default function RelationshipProgressCard() {
         </div>
       )}
 
-      {/* Chart container with responsive height */}
+      {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
-        <div className="w-full h-[250px] sm:h-[300px] md:h-[340px] bg-white/90 p-4 rounded-lg shadow-md">
-          <ResponsiveContainer width="100%" height="100%">
-            {renderChart}
-          </ResponsiveContainer>
-        </div>
+        <motion.div 
+          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6 overflow-visible"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer>
+              {renderChart}
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
       ) : (
         // Display message when no data is available (after loading finishes)
         !loading && (

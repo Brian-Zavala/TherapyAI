@@ -71,29 +71,35 @@ export default function SessionTimeChart() {
       );
 
       // Enhance data for charting and tooltips
-      const enhancedData = data.map((item: { sessionTime: number; sessionCount: number; month: string }, index: number, arr: { sessionTime: number }[]) => {
-        const prevValue = index > 0 ? arr[index - 1].sessionTime : 0;
-        const growthRate =
-          prevValue === 0 && item.sessionTime > 0
-            ? 100 // If first month has data, show 100% growth from 0
-            : prevValue === 0 && item.sessionTime === 0
-              ? 0 // If both are zero, growth is 0
-              : prevValue === 0
-                ? 0 // Should not happen if prevValue is 0 and item.sessionTime > 0, handled above
-                : Math.round((item.sessionTime / prevValue) * 100 - 100);
+      const enhancedData = data.map(
+        (
+          item: { sessionTime: number; sessionCount: number; month: string },
+          index: number,
+          arr: { sessionTime: number }[]
+        ) => {
+          const prevValue = index > 0 ? arr[index - 1].sessionTime : 0;
+          const growthRate =
+            prevValue === 0 && item.sessionTime > 0
+              ? 100 // If first month has data, show 100% growth from 0
+              : prevValue === 0 && item.sessionTime === 0
+                ? 0 // If both are zero, growth is 0
+                : prevValue === 0
+                  ? 0 // Should not happen if prevValue is 0 and item.sessionTime > 0, handled above
+                  : Math.round((item.sessionTime / prevValue) * 100 - 100);
 
-        const avgSessionLen =
-          item.sessionCount > 0
-            ? Math.round(item.sessionTime / item.sessionCount)
-            : 0;
+          const avgSessionLen =
+            item.sessionCount > 0
+              ? Math.round(item.sessionTime / item.sessionCount)
+              : 0;
 
-        return {
-          ...item,
-          monthFormatted: item.month.substring(0, 3), // First 3 letters of month
-          growth: growthRate, // Indicates % change from previous month's total time
-          avgSessionLength: avgSessionLen, // Average length of each session this month
-        };
-      });
+          return {
+            ...item,
+            monthFormatted: item.month.substring(0, 3), // First 3 letters of month
+            growth: growthRate, // Indicates % change from previous month's total time
+            avgSessionLength: avgSessionLen, // Average length of each session this month
+          };
+        }
+      );
 
       setSessionData(enhancedData);
     } catch (err) {
@@ -241,7 +247,7 @@ export default function SessionTimeChart() {
     payload?: Array<any>;
     label?: string;
   }
-  
+
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       // Find the full data point for extra info like growth, avgSessionLength etc.
@@ -330,7 +336,7 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg"
+      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6"
     >
       <TherapyTypeSelector />
 
@@ -378,213 +384,215 @@ export default function SessionTimeChart() {
         </motion.div>
       </div>
 
-      {/* Chart Area */}
-      {/* Fixed chart container without scrolling */}
-      <div className="min-h-[250px] w-full flex justify-center">
-        <div className="h-[250px] max-w-[800px] w-full bg-white/90 rounded-lg shadow-md p-2">
-          <ResponsiveContainer width="100%" height="100%">
+      {/* Simple Chart Container - Single-level wrapper */}
+      <div className="w-full bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-4 sm:p-6 mb-6">
+        {/* Just a single height container with no margins or padding inside */}
+        <div className="h-[350px] w-full">
+          <ResponsiveContainer>
             <ComposedChart
               data={sessionData}
               margin={{
                 top: 5,
                 right: 30,
                 left: 10,
-                bottom: 5,
-              }} /* Balanced margins */
-              barGap={4} // Original gap between bars
-            >
-              <defs>
-                <linearGradient
-                  id="sessionTimeGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />{" "}
-                  {/* Blue-500 */}
-                  <stop
-                    offset="95%"
-                    stopColor="#60A5FA"
-                    stopOpacity={0.5}
-                  />{" "}
-                  {/* Blue-400 */}
-                </linearGradient>
-                <linearGradient
-                  id="sessionCountGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#0284C7" stopOpacity={0.8} />{" "}
-                  {/* Sky-700 */}
-                  <stop
-                    offset="95%"
-                    stopColor="#38BDF8"
-                    stopOpacity={0.4}
-                  />{" "}
-                  {/* Sky-400 */}
-                </linearGradient>
-                {/* New Gradient for Avg Session Length */}
-                <linearGradient
-                  id="avgLengthGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#2563EB" stopOpacity={0.5} />{" "}
-                  {/* Blue-600 */}
-                  <stop
-                    offset="95%"
-                    stopColor="#93C5FD"
-                    stopOpacity={0.2}
-                  />{" "}
-                  {/* Blue-300 */}
-                </linearGradient>
-              </defs>
+                bottom: 5
+              }}
+              barGap={4}
+              >
+                <defs>
+                  <linearGradient
+                    id="sessionTimeGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />{" "}
+                    {/* Blue-500 */}
+                    <stop
+                      offset="95%"
+                      stopColor="#60A5FA"
+                      stopOpacity={0.5}
+                    />{" "}
+                    {/* Blue-400 */}
+                  </linearGradient>
+                  <linearGradient
+                    id="sessionCountGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#0284C7" stopOpacity={0.8} />{" "}
+                    {/* Sky-700 */}
+                    <stop
+                      offset="95%"
+                      stopColor="#38BDF8"
+                      stopOpacity={0.4}
+                    />{" "}
+                    {/* Sky-400 */}
+                  </linearGradient>
+                  {/* New Gradient for Avg Session Length */}
+                  <linearGradient
+                    id="avgLengthGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.5} />{" "}
+                    {/* Blue-600 */}
+                    <stop
+                      offset="95%"
+                      stopColor="#93C5FD"
+                      stopOpacity={0.2}
+                    />{" "}
+                    {/* Blue-300 */}
+                  </linearGradient>
+                </defs>
 
-              <XAxis
-                dataKey="monthFormatted"
-                tick={{
-                  fill: "#1D4ED8",
-                  fontSize: 10,
-                  fontWeight: 500,
-                }} /* Blue-700 */
-                axisLine={{ stroke: "#DBEAFE", strokeWidth: 1 }} /* Blue-100 */
-                tickLine={false}
-                padding={{ left: 10, right: 10 }}
-                interval="preserveStartEnd"
-                height={30}
-              />
-
-              <YAxis
-                yAxisId="left"
-                orientation="left"
-                tick={{ fill: "#1D4ED8", fontSize: 10 }} /* Blue-700 */
-                axisLine={false}
-                tickLine={false}
-                domain={[0, "dataMax + 50"]}
-                width={35}
-                label={{
-                  value: "Minutes",
-                  angle: -90,
-                  position: "insideLeft",
-                  style: {
-                    fill: "#3B82F6",
-                    fontSize: 11,
+                <XAxis
+                  dataKey="monthFormatted"
+                  tick={{
+                    fill: "#9CA3AF",
+                    fontSize: 10,
                     fontWeight: 500,
-                    textAnchor: "middle",
-                  } /* Blue-500 */,
-                  offset: 8,
-                }}
-                tickFormatter={(value) => formatNumber(value)} // Format Y-axis numbers
-                tickCount={5} // Original tick count
-              />
+                  }}
+                  axisLine={{ stroke: "#374151", strokeWidth: 1 }}
+                  tickLine={false}
+                  padding={{ left: 10, right: 10 }}
+                  interval="preserveStartEnd"
+                  height={30}
+                />
 
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                tick={{ fill: "#0369A1", fontSize: 10 }} /* Sky-700 */
-                axisLine={false}
-                tickLine={false}
-                domain={[0, "dataMax + 5"]}
-                width={35}
-                label={{
-                  value: "Sessions",
-                  angle: 90,
-                  position: "insideRight",
-                  style: {
-                    fill: "#0284C7",
-                    fontSize: 11,
-                    fontWeight: 500,
-                    textAnchor: "middle",
-                  },
-                  offset: 8 /* Sky-600 */,
-                }}
-                tickFormatter={(value) => formatNumber(value)}
-                tickCount={4}
-              />
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={false}
+                  domain={[0, "dataMax + 50"]}
+                  width={40}
+                  label={{
+                    value: "Minutes",
+                    angle: -90,
+                    position: "insideLeft",
+                    style: {
+                      fill: "#9CA3AF",
+                      fontSize: 11,
+                      fontWeight: 500,
+                      textAnchor: "middle",
+                    },
+                    offset: 5,
+                  }}
+                  tickFormatter={(value) => formatNumber(value)}
+                  tickCount={5}
+                />
 
-              <Tooltip
-                content={<CustomTooltip active={false} payload={[]} label="" />}
-                cursor={{
-                  fill: "rgba(219, 234, 254, 0.5)",
-                }} /* Blue-100 with opacity */
-                animationDuration={200}
-                animationEasing="ease-out"
-              />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={false}
+                  domain={[0, "dataMax + 5"]}
+                  width={40}
+                  label={{
+                    value: "Sessions",
+                    angle: 90,
+                    position: "insideRight",
+                    style: {
+                      fill: "#9CA3AF",
+                      fontSize: 11,
+                      fontWeight: 500,
+                      textAnchor: "middle",
+                    },
+                    offset: 5,
+                  }}
+                  tickFormatter={(value) => formatNumber(value)}
+                  tickCount={4}
+                />
 
-              <Legend
-                verticalAlign="top"
-                align="center"
-                height={25}
-                wrapperStyle={{
-                  paddingBottom: "5px",
-                  fontSize: "10px",
-                  fontWeight: 500,
-                  color: "#1E40AF" /* Blue-800 */,
-                }}
-                iconSize={8}
-                margin={{ top: 0, bottom: 0 }}
-              />
+                <Tooltip
+                  content={
+                    <CustomTooltip active={false} payload={[]} label="" />
+                  }
+                  cursor={{
+                    fill: "rgba(219, 234, 254, 0.5)",
+                  }} /* Blue-100 with opacity */
+                  animationDuration={200}
+                  animationEasing="ease-out"
+                  contentStyle={{
+                    backgroundColor: "rgba(31, 41, 55, 0.8)",
+                    borderColor: "#4B5563",
+                  }}
+                  itemStyle={{ color: "#E5E7EB" }}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                />
 
-              {/* Session Time Bar */}
-              <Bar
-                yAxisId="left"
-                dataKey="sessionTime"
-                name="Total Time (mins)"
-                fill="url(#sessionTimeGradient)"
-                radius={[4, 4, 0, 0]}
-                animationDuration={1000}
-                animationEasing="ease-out"
-                isAnimationActive={true}
-                minPointSize={2}
-                activeBar={
-                  <Rectangle fill="#2563EB" opacity={0.9} />
-                } /* Blue-600 */
-              />
+                <Legend
+                  verticalAlign="bottom"
+                  align="center"
+                  height={30}
+                  iconSize={8}
+                  margin={{ top: 0, bottom: 0 }}
+                />
 
-              {/* Session Count Bar */}
-              <Bar
-                yAxisId="right"
-                dataKey="sessionCount"
-                name="Sessions"
-                fill="url(#sessionCountGradient)"
-                radius={[4, 4, 0, 0]}
-                opacity={0.9}
-                animationDuration={1000}
-                animationEasing="ease-out"
-                animationBegin={200}
-                isAnimationActive={true}
-                minPointSize={2}
-                activeBar={
-                  <Rectangle fill="#0284C7" opacity={0.9} />
-                } /* Sky-600 */
-              />
+                {/* Session Time Bar */}
+                <Bar
+                  yAxisId="left"
+                  dataKey="sessionTime"
+                  name="Total Time (mins)"
+                  fill="url(#sessionTimeGradient)"
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={1000}
+                  animationEasing="ease-out"
+                  isAnimationActive={true}
+                  minPointSize={2}
+                  activeBar={
+                    <Rectangle fill="#2563EB" opacity={0.9} />
+                  } /* Blue-600 */
+                />
 
-              {/* Average Session Length Line/Area */}
-              <Area
-                yAxisId="left"
-                type="monotone"
-                dataKey="avgSessionLength"
-                name="Avg. Length (mins)"
-                stroke="#1D4ED8" /* Blue-700 */
-                strokeWidth={2.5}
-                fillOpacity={0.3}
-                fill="url(#avgLengthGradient)"
-                activeDot={{
-                  r: 6,
-                  stroke: "#2563EB",
-                  strokeWidth: 2,
-                  fill: "#DBEAFE",
-                }} /* Blue-600, Blue-100 */
-                animationDuration={1200} // Longer duration for area
-                animationBegin={400} // Stagger start further
-                isAnimationActive={true}
-                connectNulls={true} // Connect line over months with no data
-              />
+                {/* Session Count Bar */}
+                <Bar
+                  yAxisId="right"
+                  dataKey="sessionCount"
+                  name="Sessions"
+                  fill="url(#sessionCountGradient)"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.9}
+                  animationDuration={1000}
+                  animationEasing="ease-out"
+                  animationBegin={200}
+                  isAnimationActive={true}
+                  minPointSize={2}
+                  activeBar={
+                    <Rectangle fill="#0284C7" opacity={0.9} />
+                  } /* Sky-600 */
+                />
+
+                {/* Average Session Length Line/Area */}
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="avgSessionLength"
+                  name="Avg. Length (mins)"
+                  stroke="#1D4ED8" /* Blue-700 */
+                  strokeWidth={2.5}
+                  fillOpacity={0.3}
+                  fill="url(#avgLengthGradient)"
+                  activeDot={{
+                    r: 6,
+                    stroke: "#2563EB",
+                    strokeWidth: 2,
+                    fill: "#DBEAFE",
+                  }} /* Blue-600, Blue-100 */
+                  animationDuration={1200} // Longer duration for area
+                  animationBegin={400} // Stagger start further
+                  isAnimationActive={true}
+                  connectNulls={true} // Connect line over months with no data
+                />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
