@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSoundContext } from './SoundProvider'
 import { 
   Music, 
   Shuffle, 
@@ -153,6 +154,9 @@ export default function MusicPlayer() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const shouldPlayRef = useRef(false)
   
+  // Get the sound context to register this music player
+  const { registerMusicPlayer, isSessionActive } = useSoundContext()
+  
   // Check for mobile screen size
   useEffect(() => {
     const checkMobile = () => {
@@ -170,6 +174,26 @@ export default function MusicPlayer() {
     }
   }, [])
 
+  // Register the audio player with the SoundProvider
+  useEffect(() => {
+    if (audioRef.current) {
+      registerMusicPlayer(audioRef)
+      console.log('Registered music player with SoundProvider')
+    }
+  }, [registerMusicPlayer])
+  
+  // Watch for session activity changes
+  useEffect(() => {
+    if (isSessionActive && isPlaying) {
+      // If a session starts and music is playing, pause it
+      console.log('Session started, pausing music playback')
+      setIsPlaying(false)
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+    }
+  }, [isSessionActive, isPlaying])
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Save current playing state
@@ -186,12 +210,15 @@ export default function MusicPlayer() {
       // Create new audio for current track
       audioRef.current = new Audio(tracks[currentTrack].src)
       
+      // Re-register the audio player whenever it changes
+      registerMusicPlayer(audioRef)
+      
       audioRef.current.addEventListener('loadedmetadata', () => {
         if (audioRef.current && isFinite(audioRef.current.duration)) {
           setDuration(audioRef.current.duration)
           
-          // Auto-play if needed
-          if (shouldPlayRef.current || isPlaying) {
+          // Auto-play if needed, but only if no therapy session is active
+          if ((shouldPlayRef.current || isPlaying) && !isSessionActive) {
             audioRef.current.play().catch(err => {
               console.debug('Music playback error:', err)
               setIsPlaying(false)
@@ -201,6 +228,10 @@ export default function MusicPlayer() {
             
             // Setup progress interval immediately for the new track
             setupProgressInterval()
+          } else if (isSessionActive) {
+            // If a session is active, don't auto-play
+            setIsPlaying(false)
+            shouldPlayRef.current = false
           }
         }
       })
@@ -216,7 +247,7 @@ export default function MusicPlayer() {
         clearInterval(progressIntervalRef.current)
       }
     }
-  }, [currentTrack, isPlaying])
+  }, [currentTrack, isPlaying, isSessionActive, registerMusicPlayer])
 
   // Setup or update the progress interval
   const setupProgressInterval = () => {

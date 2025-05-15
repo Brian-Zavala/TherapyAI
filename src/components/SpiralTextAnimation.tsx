@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
-import React from "react";
+import React, { memo } from "react";
 
 interface Props {
   className?: string;
 }
 
-const SpiralTextAnimation: React.FC<Props> = ({ className = "" }) => {
+const SpiralTextAnimation: React.FC<Props> = memo(({ className = "" }) => {
   // Animation settings for revealing each letter
   const letterVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -50,6 +50,6 @@ const SpiralTextAnimation: React.FC<Props> = ({ className = "" }) => {
       </div>
     </div>
   );
-};
+});
 
 export default SpiralTextAnimation;

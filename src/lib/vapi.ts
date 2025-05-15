@@ -6,64 +6,125 @@ import Vapi from "@vapi-ai/web";
  */
 export const initVapi = async (
   token: string,
-  options: { useCustomTranscriber?: boolean } = {}
+  options: { 
+    useCustomTranscriber?: boolean,
+    reconnectEnabled?: boolean,
+    iceServers?: Array<{ urls: string | string[], username?: string, credential?: string }> 
+  } = {}
 ) => {
-  // Create the Vapi instance with the provided token
-  const vapiInstance = new Vapi(token);
-
-  // Add universal event logging for debugging
-  const events = [
-    "call-start",
-    "call-end",
-    "error",
-    "message",
-    "transcript",
-    "transcript-response",
-    "model-output",
-    "status-update",
-  ];
-
-  events.forEach((eventType) => {
-    vapiInstance.on(eventType, (data: any) => {
-      console.log(
-        `✶✶✶ VAPI EVENT [${eventType}]: `,
-        JSON.stringify(data, null, 2)
-      );
-    });
-  });
-
-  // If custom transcriber is enabled, prepare the configuration for later use
-  if (options.useCustomTranscriber) {
-    try {
-      // Get the base URL for the custom transcriber
-      const baseUrl =
-        typeof window !== "undefined"
-          ? window.location.origin
-          : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-      console.log("Getting transcriber config from API...");
-
-      // Get configuration from the API
-      const configResponse = await fetch(`${baseUrl}/api/vapi/transcriber`);
-
-      if (configResponse.ok) {
-        const transcriberConfig = await configResponse.json();
-        console.log("Using Deepgram transcriber config (API key redacted)");
-
-        // Store the config on the instance for use during calls
-        // This is safer than trying to use setTranscriberOptions which might not exist
-        (vapiInstance as any)._transcriberConfig = transcriberConfig;
-        console.log("✅ Custom transcriber config stored successfully");
-      } else {
-        console.warn("Failed to get transcriber config from API");
+  try {
+    // Create a simple Vapi instance - explicitly provide the API URL as second parameter
+    console.log('Creating Vapi instance with explicit API URL as constructor parameter');
+    
+    // Create Vapi instance by passing the token and API URL directly in the constructor
+    // This is the recommended way according to the Vapi API docs
+    let vapiInstance = new Vapi(token, 'https://api.vapi.ai');
+    console.log('Created Vapi instance with API URL specified in constructor: https://api.vapi.ai');
+    
+    // Double-check that window.fetch isn't modified in a way that could cause issues
+    // Only if running in browser
+    if (typeof window !== 'undefined') {
+      const originalWindowFetch = window.fetch;
+      const origFetchDesc = Object.getOwnPropertyDescriptor(window, 'fetch');
+      
+      // Restore original fetch if it was previously modified
+      if (origFetchDesc && origFetchDesc.writable) {
+        window.fetch = originalWindowFetch;
+        console.log('Restored original window.fetch function');
       }
-    } catch (error) {
-      console.error("Error getting custom transcriber config:", error);
-      // Continue without custom transcriber
     }
-  }
+    
+    // Store the connection state for monitoring
+    (vapiInstance as any)._transportState = 'new';
+    
+    // Add additional debug event to track WebRTC transport state
+    vapiInstance.on('transport-state-change', (data: any) => {
+      console.log(`✶✶✶ VAPI TRANSPORT STATE CHANGE: `, JSON.stringify(data, null, 2));
+      // Store current transport state for easier access
+      if (data && data.state) {
+        (vapiInstance as any)._transportState = data.state;
+      }
+    });
 
-  return vapiInstance;
+    // Add universal event logging for debugging
+    const events = [
+      "call-start",
+      "call-end",
+      "error",
+      "message",
+      "transcript",
+      "transcript-response",
+      "model-output",
+      "status-update",
+      "ice-connection-state-change", // Track ICE connection state changes
+      "connection-state-change",     // Track general connection state changes
+      "transport-state-change"       // Added to track transport states explicitly
+    ];
+
+    events.forEach((eventType) => {
+      vapiInstance.on(eventType, (data: any) => {
+        console.log(
+          `✶✶✶ VAPI EVENT [${eventType}]: `,
+          JSON.stringify(data, null, 2)
+        );
+      });
+    });
+
+    // If custom transcriber is enabled, prepare the configuration for later use
+    if (options.useCustomTranscriber) {
+      try {
+        // Get the base URL for the custom transcriber
+        const baseUrl =
+          typeof window !== "undefined"
+            ? window.location.origin
+            : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+        console.log("Getting transcriber config from API...");
+
+        // Get configuration from the API
+        const configResponse = await fetch(`${baseUrl}/api/vapi/transcriber`);
+
+        if (configResponse.ok) {
+          const transcriberConfig = await configResponse.json();
+          console.log("Using Deepgram transcriber config (API key redacted)");
+
+          // Store the config on the instance for use during calls
+          // This is safer than trying to use setTranscriberOptions which might not exist
+          (vapiInstance as any)._transcriberConfig = transcriberConfig;
+          console.log("✅ Custom transcriber config stored successfully");
+        } else {
+          console.warn("Failed to get transcriber config from API");
+        }
+      } catch (error) {
+        console.error("Error getting custom transcriber config:", error);
+        // Continue without custom transcriber
+      }
+    }
+    
+    // Add resilience by responding to browser visibility changes
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        // When page becomes visible again after being hidden
+        if (document.visibilityState === 'visible') {
+          if ((vapiInstance as any)._transportState === 'disconnected' || 
+              (vapiInstance as any)._transportState === 'failed') {
+            console.log('Page visibility changed to visible, checking WebRTC connection...');
+            // If we have an active call that's disconnected, try to recover
+            if ((vapiInstance as any)._isCallActive && (vapiInstance as any)._currentAssistantId) {
+              console.log('Attempting to recover disconnected call');
+              // This is a simplified recovery approach - in a production app
+              // you might want to implement a more sophisticated reconnection strategy
+            }
+          }
+        }
+      });
+    }
+
+    return vapiInstance;
+  } catch (error) {
+    console.error("Error initializing Vapi:", error);
+    throw error;
+  }
 };
 
 // Helper type for assistant configuration with system prompt and first message

@@ -1482,11 +1482,13 @@ export default function CommunicationMetrics() {
                 {metricsData && metricsData.length > 0 ? (
                   <div className="w-full h-full overflow-visible">
                     {chartType === "radar" ? (
-                      <div style={{ width: "100%", height: 300 }} className="flex items-center justify-center">
+                      <div style={{ width: "100%", height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadarChart
                             cx="50%"
                             cy="50%"
+                            width={500}
+                            height={300}
                           outerRadius="60%"
                           data={metricsData}
                           margin={{ top: 50, right: 50, bottom: 50, left: 50 }}
@@ -1589,9 +1591,12 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : chartType === "pie" ? (
-                      <div style={{ width: "100%", height: 300 }} className="flex items-center justify-center">
+                      <div style={{ width: "100%", height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
-                          <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                          <PieChart 
+                            width={500}
+                            height={300}
+                            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                           <defs>
                             {/* Regular gradients for inactive slices */}
                             {COLORS.map((color, index) => (
@@ -2112,9 +2117,11 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div style={{ width: "100%", height: 300 }} className="flex items-center justify-center">
+                      <div style={{ width: "100%", height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadialBarChart
+                            width={500}
+                            height={300}
                             cx="50%"
                             cy="50%"
                           innerRadius="15%"

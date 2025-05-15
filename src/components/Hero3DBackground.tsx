@@ -1,5 +1,5 @@
 // src/components/Hero3DBackground.tsx
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, memo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 import * as random from "maath/random/dist/maath-random.esm";
@@ -12,7 +12,7 @@ interface Hero3DBackgroundProps {
   isVisible?: boolean; // Add visibility prop
 }
 
-function Stars(props: Hero3DBackgroundProps) {
+const Stars = memo(function Stars(props: Hero3DBackgroundProps) {
   const ref = useRef<THREE.Points>(null!);
   
   // Generate spherical points - moved to useMemo to avoid recreating on each render
@@ -56,9 +56,9 @@ function Stars(props: Hero3DBackgroundProps) {
       </Points>
     </group>
   );
-}
+});
 
-export default function Hero3DBackground(props: Hero3DBackgroundProps) {
+const Hero3DBackground = memo(function Hero3DBackground(props: Hero3DBackgroundProps) {
   // If not visible, don't render the canvas at all
   if (props.isVisible === false) {
     return null;
@@ -73,4 +73,6 @@ export default function Hero3DBackground(props: Hero3DBackgroundProps) {
       </Canvas>
     </div>
   );
-}
+});
+
+export default Hero3DBackground;

@@ -39,20 +39,83 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   // Show a placeholder entry immediately while loading for better UI experience
   const [showingPlaceholder, setShowingPlaceholder] = useState(true)
 
-  // Load session data and transcript entries
+  // Real-time tracking of session duration
+  const [sessionDuration, setSessionDuration] = useState<number>(initialSession?.duration || 0)
+  const [transcriptPollingInterval, setTranscriptPollingInterval] = useState<NodeJS.Timeout | null>(null)
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
+  
+  // Function to calculate elapsed time for active sessions
   useEffect(() => {
-    async function loadTranscript() {
+    // Only for active sessions
+    if (session?.status === 'active') {
+      // Try to get the exact session start time
+      const fetchSessionStartTime = async () => {
+        try {
+          const response = await fetch(`/api/sessions/${sessionId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.startTime) {
+              setSessionStartTime(new Date(data.startTime));
+            } else {
+              // Fall back to session date if no explicit start time
+              setSessionStartTime(new Date(data.date));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching session start time:', error);
+        }
+      };
+      
+      fetchSessionStartTime();
+      
+      // Set up timer to calculate elapsed time
+      const durationTimer = setInterval(() => {
+        if (sessionStartTime) {
+          const now = new Date();
+          const elapsedMinutes = Math.ceil((now.getTime() - sessionStartTime.getTime()) / (1000 * 60));
+          // Update the duration
+          setSessionDuration(Math.max(1, elapsedMinutes));
+        }
+      }, 10000); // Update every 10 seconds
+      
+      return () => clearInterval(durationTimer);
+    } else {
+      // For completed sessions, just use the stored duration
+      setSessionDuration(session?.duration || 0);
+    }
+  }, [session?.status, sessionId, sessionStartTime]);
+  
+  // Load session data and transcript entries with real-time updates
+  useEffect(() => {
+    // Enhanced transcript loading with improved error handling and polling
+    async function loadTranscript(force: boolean = false) {
       try {
-        console.log(`Loading transcript entries for session ${sessionId}`)
-        const response = await fetch(`/api/sessions/${sessionId}/transcript`)
-        
-        if (!response.ok) {
-          console.error(`Error fetching transcript: ${response.status}`)
-          return
+        // Throttle fetch rate to avoid excessive requests
+        const now = Date.now();
+        if (!force && now - lastFetchTime < 2000) {
+          console.log('Throttling transcript fetch - too soon since last fetch');
+          return;
         }
         
-        const entries = await response.json()
-        console.log(`Fetched ${entries?.length || 0} transcript entries`)
+        setLastFetchTime(now);
+        console.log(`Loading transcript entries for session ${sessionId}`);
+        
+        // Use no-cache to ensure we get fresh results
+        const response = await fetch(`/api/sessions/${sessionId}/transcript`, {
+          cache: 'no-cache',
+          headers: {
+            'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
+          }
+        });
+        
+        if (!response.ok) {
+          console.error(`Error fetching transcript: ${response.status}`);
+          return;
+        }
+        
+        const entries = await response.json();
+        console.log(`Fetched ${entries?.length || 0} transcript entries`);
         
         if (entries && Array.isArray(entries) && entries.length > 0) {
           // Sort entries by timestamp to ensure correct ordering
@@ -60,106 +123,186 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
           
-          // Set entries from API
-          setTranscriptEntries(sortedEntries)
-          setShowingPlaceholder(false)
-          console.log(`Set ${sortedEntries.length} sorted transcript entries from API`);
-        } else if (session?.transcript) {
+          // Compare with existing entries to avoid unnecessary re-renders
+          const existingIds = new Set(transcriptEntries.map(e => e.id));
+          const hasNewEntries = sortedEntries.some(e => !existingIds.has(e.id)) || 
+                               sortedEntries.length !== transcriptEntries.length;
+          
+          if (hasNewEntries) {
+            console.log(`Setting ${sortedEntries.length} sorted transcript entries from API (${sortedEntries.length - transcriptEntries.length} new)`);
+            // Set entries from API
+            setTranscriptEntries(sortedEntries);
+            setShowingPlaceholder(false);
+          } else {
+            console.log('No new transcript entries found');
+          }
+        } else if (session?.transcript && transcriptEntries.length === 0) {
           // If no entries but we have a legacy transcript, parse it
           const parsedEntries = formatLegacyTranscript(session.transcript);
-          setTranscriptEntries(parsedEntries)
-          setShowingPlaceholder(false)
+          setTranscriptEntries(parsedEntries);
+          setShowingPlaceholder(false);
           console.log(`Set ${parsedEntries.length} parsed transcript entries from legacy transcript`);
         } else {
-          // Check session storage as last resort
-          try {
-            const storageKey = `transcript-${sessionId}`;
-            const stored = sessionStorage.getItem(storageKey);
-            if (stored) {
-              const storedEntries = JSON.parse(stored);
-              if (Array.isArray(storedEntries) && storedEntries.length > 0) {
-                // Convert to transcript entry format
-                const formattedEntries = storedEntries.map((entry, index) => ({
-                  id: `storage-${index}`,
-                  sessionId: sessionId,
-                  speaker: entry.speaker || 'unknown',
-                  text: entry.text || '',
-                  timestamp: entry.timestamp || new Date().toISOString(),
-                  isFinal: true
-                }));
-                
-                setTranscriptEntries(formattedEntries);
-                setShowingPlaceholder(false)
-                console.log(`Set ${formattedEntries.length} transcript entries from session storage`);
-                
-                // Also migrate these entries to the database for future retrieval
-                try {
-                  formattedEntries.forEach(async (entry) => {
-                    await fetch(`/api/sessions/${sessionId}/transcript`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        speaker: entry.speaker,
-                        text: entry.text,
-                        timestamp: entry.timestamp,
-                        isFinal: true
-                      })
+          // Check session storage as last resort, but only if we have no entries yet
+          if (transcriptEntries.length === 0) {
+            try {
+              const storageKey = `transcript-${sessionId}`;
+              const stored = sessionStorage.getItem(storageKey);
+              if (stored) {
+                const storedEntries = JSON.parse(stored);
+                if (Array.isArray(storedEntries) && storedEntries.length > 0) {
+                  // Convert to transcript entry format
+                  const formattedEntries = storedEntries.map((entry, index) => ({
+                    id: `storage-${index}`,
+                    sessionId: sessionId,
+                    speaker: entry.speaker || 'unknown',
+                    text: entry.text || '',
+                    timestamp: entry.timestamp || new Date().toISOString(),
+                    isFinal: true
+                  }));
+                  
+                  setTranscriptEntries(formattedEntries);
+                  setShowingPlaceholder(false);
+                  console.log(`Set ${formattedEntries.length} transcript entries from session storage`);
+                  
+                  // Also migrate these entries to the database for future retrieval
+                  try {
+                    formattedEntries.forEach(async (entry) => {
+                      await fetch(`/api/sessions/${sessionId}/transcript`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          speaker: entry.speaker,
+                          text: entry.text,
+                          timestamp: entry.timestamp,
+                          isFinal: true
+                        })
+                      });
                     });
-                  });
-                  console.log('Migrated session storage entries to database');
-                } catch (migrationError) {
-                  console.error('Failed to migrate entries to database:', migrationError);
+                    console.log('Migrated session storage entries to database');
+                  } catch (migrationError) {
+                    console.error('Failed to migrate entries to database:', migrationError);
+                  }
                 }
               }
+            } catch (storageError) {
+              console.error('Error checking session storage:', storageError);
             }
-          } catch (storageError) {
-            console.error('Error checking session storage:', storageError);
           }
         }
       } catch (error) {
-        console.error('Error fetching transcript entries:', error)
+        console.error('Error fetching transcript entries:', error);
       }
     }
     
-    async function loadSessionData() {
+    async function loadSessionData(force: boolean = false) {
       try {
-        setLoading(true)
-        
-        const response = await fetch(`/api/sessions/${sessionId}`)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch session')
+        if (!force) {
+          setLoading(true);
         }
         
-        const sessionData = await response.json()
-        setSession(sessionData)
+        const response = await fetch(`/api/sessions/${sessionId}`, { 
+          cache: 'no-cache',
+          headers: {
+            'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch session');
+        }
+        
+        const sessionData = await response.json();
+        
+        // Update session data
+        setSession(sessionData);
+        
+        // Update duration if this is a completed session
+        if (sessionData.status !== 'active') {
+          setSessionDuration(sessionData.duration || 0);
+        }
         
         // If session has transcript entries directly, use them
         if (sessionData.transcriptEntries?.length > 0) {
-          setTranscriptEntries(sessionData.transcriptEntries)
-          setShowingPlaceholder(false)
+          setTranscriptEntries(sessionData.transcriptEntries);
+          setShowingPlaceholder(false);
         } else {
           // Otherwise, load transcript entries separately
-          await loadTranscript()
+          await loadTranscript(force);
         }
       } catch (err) {
-        console.error('Error fetching session data:', err)
-        setError('Could not load session details')
+        console.error('Error fetching session data:', err);
+        setError('Could not load session details');
       } finally {
-        setLoading(false)
-        // If we still have no entries by now, don't show a placeholder anymore
-        setTimeout(() => {
-          setShowingPlaceholder(false)
-        }, 300)
+        if (!force) {
+          setLoading(false);
+          // If we still have no entries by now, don't show a placeholder anymore
+          setTimeout(() => {
+            setShowingPlaceholder(false);
+          }, 300);
+        }
       }
     }
     
+    // Initial data loading
     if (initialSession) {
       // If we have initial session data, just load transcript
-      loadTranscript()
+      loadTranscript(true);
     } else if (sessionId) {
       // Otherwise load everything
-      loadSessionData()
+      loadSessionData(true);
+    }
+    
+    // Set up polling for real-time updates if this is an active session
+    if (sessionId) {
+      // Check if session is active before setting up polling
+      const checkSessionStatus = async () => {
+        try {
+          const response = await fetch(`/api/sessions/${sessionId}`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // For active sessions, set up polling
+            if (data.status === 'active') {
+              console.log('Setting up real-time polling for active session');
+              
+              // Clear any existing interval
+              if (transcriptPollingInterval) {
+                clearInterval(transcriptPollingInterval);
+              }
+              
+              // Set up new polling interval - every 5 seconds
+              const interval = setInterval(() => {
+                console.log('Polling for transcript updates');
+                loadTranscript(false);
+                
+                // Also refresh session data occasionally to check duration/status
+                loadSessionData(true);
+              }, 5000);
+              
+              setTranscriptPollingInterval(interval);
+            } else if (transcriptPollingInterval) {
+              // For non-active sessions, clear any existing polling
+              console.log('Clearing polling for non-active session');
+              clearInterval(transcriptPollingInterval);
+              setTranscriptPollingInterval(null);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking session status:', error);
+        }
+      };
+      
+      // Initial check
+      checkSessionStatus();
+      
+      // Clean up polling on unmount
+      return () => {
+        if (transcriptPollingInterval) {
+          console.log('Cleaning up transcript polling interval');
+          clearInterval(transcriptPollingInterval);
+        }
+      };
     }
   }, [sessionId, initialSession])
 
@@ -568,7 +711,14 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {session.duration} minutes
+            {session.status === 'active' ? (
+              <span className="flex items-center">
+                {sessionDuration} minutes
+                <span className="ml-1 h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              </span>
+            ) : (
+              `${session.duration} minutes`
+            )}
           </span>
           
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white">

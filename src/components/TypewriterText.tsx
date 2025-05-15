@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, memo } from "react";
 
 type TypewriterTextProps = {
   text: string;
@@ -9,7 +9,7 @@ type TypewriterTextProps = {
   className?: string;
 };
 
-export default function TypewriterText({
+function TypewriterText({
   text,
   isInView,
   className = "",
@@ -123,3 +123,5 @@ export default function TypewriterText({
     </span>
   );
 }
+
+export default memo(TypewriterText);

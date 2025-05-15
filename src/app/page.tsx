@@ -3,7 +3,7 @@
 // React and Next.js imports
 import Link from "next/link";
 import Image from "next/image";
-import { useRef, useState, useEffect, Suspense } from "react";
+import { useRef, useState, useEffect, Suspense, useMemo } from "react";
 import dynamic from "next/dynamic";
 
 // Framer Motion imports
@@ -24,6 +24,7 @@ import SpiralTextAnimation from "@/components/SpiralTextAnimation";
 import ScrollDownArrow from "@/components/ScrollDownArrow";
 import Hero3DBackground from "@/components/Hero3DBackground";
 import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
+import { ImagesSlider } from "@/components/ui/images-slider";
 
 // Background gradient component
 import { BackgroundGradient } from "@/components/ui/background-gradient";
@@ -105,15 +106,17 @@ export default function Home() {
   }, []);
 
   // --- Optimization Getters ---
-  // (Copied from original, checks for reduced motion)
+  // Simple optimization functions
   const getOptimizedDuration = (defaultDuration: number): number => {
     if (prefersReducedMotion) return 0;
     return defaultDuration;
   };
+  
   const getOptimizedThreshold = (defaultThreshold: number): number => {
     if (isMobileView) return 0.1; // Adjusted threshold slightly
     return defaultThreshold;
   };
+  
   const getOptimizedDelay = (defaultDelay: number): number => {
     if (prefersReducedMotion) return 0;
     if (isMobileView) return defaultDelay * 0.5; // Less aggressive mobile reduction
@@ -130,7 +133,7 @@ export default function Home() {
   const ctaRef = useRef<HTMLElement>(null); // Added ref for CTA section
   const videoRef = useRef<HTMLVideoElement>(null); // Specific ref for video element
 
-  // --- Scroll-Linked Opacity (Copied from original) ---
+  // --- Scroll-Linked Opacity ---
   const { scrollYProgress } = useScroll();
   const featuresOpacity = useTransform(
     scrollYProgress,
@@ -164,15 +167,17 @@ export default function Home() {
   // --- Video Play/Pause Logic ---
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (videoElement) {
-      if (statsVideoCardView.isInView && !prefersReducedMotion) {
-        if (videoElement.paused) {
-          videoElement.play().catch(console.error);
-        }
-      } else {
-        if (!videoElement.paused) {
-          videoElement.pause();
-        }
+    if (!videoElement) return;
+    
+    if (statsVideoCardView.isInView && !prefersReducedMotion) {
+      if (videoElement.paused) {
+        // Only attempt to play if paused
+        videoElement.play().catch(console.error);
+      }
+    } else {
+      if (!videoElement.paused) {
+        // Only pause if playing
+        videoElement.pause();
       }
     }
   }, [statsVideoCardView.isInView, prefersReducedMotion]);
@@ -291,10 +296,12 @@ export default function Home() {
             src="/images/happy-couple.jpg"
             alt="Happy couple laughing together"
             fill
-            className="object-cover object-center  opacity-100 rounded-b-[4rem] md:rounded-b-[5rem]"
+            className="object-cover object-center opacity-100 rounded-b-[4rem] md:rounded-b-[5rem]"
             priority // Keep priority for LCP
-            sizes="100vw"
-            quality={80} // Original quality
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 60vw"
+            quality={75}
+            loading="eager"
+            fetchPriority="high"
           />
           {/* Gradient overlay (Original) */}
           {/* No gradient overlay on hero image */}

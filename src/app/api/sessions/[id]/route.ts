@@ -16,7 +16,7 @@ export async function GET(
   }
   
   try {
-    const sessionId = params.id
+    const { id: sessionId } = await params
     
     console.log('Fetching session ID:', sessionId)
     
@@ -98,7 +98,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const sessionId = params.id
+  const { id: sessionId } = await params
   
   console.log('Processing update for session ID:', sessionId)
 

@@ -154,6 +154,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     console.log(`Selected ${type} therapy with assistant:`, assistant.name, 'ID:', assistant.id);
     setSelectedAssistant(assistant);
     
+    // Hide the type selector modal immediately to start meditation
+    setShowTypeSelector(false);
+    
     // Start the meditation sequence
     setMeditationStep('countdown');
     setCountdownValue(3);
@@ -299,11 +302,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       ])
     ),
     
-    // Therapy Type Selector Popup
+    // Therapy Type Selector Popup - removed onClose functionality
     React.createElement(TherapyTypeSelector, {
       key: "therapy-selector",
       isOpen: showTypeSelector,
-      onClose: () => setShowTypeSelector(false),
+      onClose: () => {/* No-op: User must select a therapist */}, 
       onSelect: handleSelectTherapyType
     }),
     
@@ -663,15 +666,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     ])
                   )
                 ]),
-                // Switch therapist button - positioned separately on the right with animations
-                React.createElement(motion.button, {
+                // Switch therapist button - only visible when session is not active
+                !isSessionActive && React.createElement(motion.button, {
                   key: "switch-therapist",
                   onClick: openTherapistSelector,
-                  className: `flex items-center rounded-lg px-3 py-2 text-xs font-medium ${
-                    isSessionActive 
-                      ? 'bg-rose-600/50 text-white hover:bg-rose-600/60' 
-                      : 'bg-rose-500/70 text-white hover:bg-rose-500/80'
-                  } cursor-pointer`,
+                  className: `flex items-center rounded-lg px-3 py-2 text-xs font-medium 
+                    bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
                   whileHover: { scale: 1.05 },
                   whileTap: { scale: 0.95 },
                   initial: { opacity: 0, y: 20 },

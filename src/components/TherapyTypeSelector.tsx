@@ -54,23 +54,13 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-100">
       <div 
         className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-indigo-100"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 sm:p-8">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-center items-center mb-8">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent">Choose Your Therapist</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent text-center">Choose Your Therapist</h2>
               <div className="h-1 bg-gradient-to-r from-blue-500/10 via-blue-300/80 to-transparent rounded-full mt-2 motion-preset-pulse-sm "></div>
             </div>
-            <button 
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 focus:outline-none transition-all duration-200 hover:scale-110"
-              aria-label="Close"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
           </div>
           <div>
           <div className="bg-gradient-to-r from-gray-600 to-gray-600 bg-clip-text text-transparent font-bold mb-8 max-w-2xl">
@@ -87,7 +77,6 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                 className="bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.03] hover:border-indigo-200 cursor-pointer overflow-hidden flex flex-col"
                 onClick={() => {
                   onSelect(option.type);
-                  onClose();
                 }}
               >
                 <div className="w-full h-36 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">

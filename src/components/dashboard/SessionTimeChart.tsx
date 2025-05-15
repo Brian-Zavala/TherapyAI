@@ -336,7 +336,7 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6"
+      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6 w-full max-w-full"
     >
       <TherapyTypeSelector />
 
@@ -386,9 +386,9 @@ export default function SessionTimeChart() {
 
       {/* Simple Chart Container - Single-level wrapper */}
       <div className="w-full bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-4 sm:p-6 mb-6">
-        {/* Just a single height container with no margins or padding inside */}
+        {/* Just a single height container with proper centering */}
         <div className="h-[350px] w-full">
-          <ResponsiveContainer>
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={sessionData}
               margin={{
@@ -398,6 +398,8 @@ export default function SessionTimeChart() {
                 bottom: 5
               }}
               barGap={4}
+              width={500}
+              height={300}
               >
                 <defs>
                   <linearGradient

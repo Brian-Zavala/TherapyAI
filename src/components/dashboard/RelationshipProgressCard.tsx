@@ -465,6 +465,8 @@ export default function RelationshipProgressCard() {
       data: data,
       margin: { top: 10, right: 20, left: 10, bottom: 20 },
       className: "mx-auto",
+      width: 500,
+      height: 300,
     };
     const xAxis = (
       <XAxis
@@ -684,7 +686,7 @@ export default function RelationshipProgressCard() {
 
   // --- Final Render ---
   return (
-    <div className="">
+    <div className="w-full">
       <div className="flex flex-col sm:flex-row justify-center sm:justify-end sm:items-center mb- rounded-lg p-3">
         <div className="flex space-x-2 mb-2 sm:mb-0 items-center">
           {" "}
@@ -764,7 +766,7 @@ export default function RelationshipProgressCard() {
           transition={{ duration: 0.5 }}
         >
           <div className="h-[300px] w-full">
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               {renderChart}
             </ResponsiveContainer>
           </div>

@@ -85,9 +85,9 @@ export default function Navigation() {
   return (
     <div className="fixed top-2 w-full flex justify-between items-center z-40 px-4 py-4 nav-container">
       {/* Logo/Site Title - left aligned */}
-      <Link href="/" className="absolute text-white text-lg font-semibold">
+      <div className="absolute text-white text-lg font-semibold cursor-default">
         TherapyAI&#8482;
-      </Link>
+      </div>
 
       {/* Thin menu tab that expands on hover - hidden when menu is open */}
       {!isMenuOpen && (

@@ -163,7 +163,7 @@ export default function UpcomingSessions() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-80 overflow-y-auto bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg"
+      className="h-80 overflow-y-auto bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg w-full"
     >
       <div className="flex justify-between items-center mb-4 sticky top-0 bg-blue-700/70 backdrop-blur-md pt-3 pb-3 px-4 z-10 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold text-white">Upcoming Sessions</h2>

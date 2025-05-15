@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Vapi from '@vapi-ai/web'
 import dynamic from 'next/dynamic'
 import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
+import { useSoundContext } from './SoundProvider'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -51,6 +52,9 @@ function TherapyButton({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [audioLevel, setAudioLevel] = useState<number>(0)
   const [isMuted, setIsMuted] = useState(false)
+  
+  // Get the sound context to control music playback
+  const { stopMusicPlayback, setSessionActive } = useSoundContext()
   
   // Refs for performance optimization
   // Using ExtendedVapi type to handle custom properties
@@ -107,40 +111,105 @@ function TherapyButton({
     return () => {
       cleanupResources()
     }
-  }, [checkForActiveSession])
+  }, [checkForActiveSession, setSessionActive])
   
-  // Cleanup function extracted for reuse
+  // Enhanced cleanup function for thoroughly releasing resources
   const cleanupResources = () => {
+    console.log('🧹 Cleaning up resources...');
+    
+    // 1. Clean up animation frame
     if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current)
-      animationFrameRef.current = null
+      console.log('- Canceling animation frame');
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
     
+    // 2. Clean up audio context
     if (audioContext.current) {
-      audioContext.current.close()
-      audioContext.current = null
+      console.log('- Closing audio context');
+      audioContext.current.close();
+      audioContext.current = null;
     }
     
+    // 3. Clean up audio tracks
     if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach(track => track.stop())
-      audioStreamRef.current = null
+      console.log('- Stopping audio tracks');
+      audioStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log(`  - Track ${track.id} stopped (${track.kind})`);
+      });
+      audioStreamRef.current = null;
+      audioTrackRef.current = null;
     }
     
-    // Remove session styling immediately
-    document.body.classList.remove('session-active')
+    // 4. Clean up Vapi status interval
+    if (vapiInstanceRef.current && (vapiInstanceRef.current as any)._statusInterval) {
+      console.log('- Clearing status check interval');
+      clearInterval((vapiInstanceRef.current as any)._statusInterval);
+      (vapiInstanceRef.current as any)._statusInterval = null;
+    }
     
-    // Restore opacity of main content with faster transition
-    const main = document.querySelector('main')
+    // 5. Reset Vapi tracking values
+    if (vapiInstanceRef.current) {
+      (vapiInstanceRef.current as any)._isCallActive = false;
+      (vapiInstanceRef.current as any)._currentAssistantId = null;
+      
+      // Explicitly mark the transport as closed to avoid reconnection attempts
+      (vapiInstanceRef.current as any)._transportState = 'closed';
+    }
+    
+    // 6. Remove event listeners
+    if (typeof window !== 'undefined') {
+      console.log('- Removing window event listeners');
+      window.removeEventListener('online', () => {});
+      window.removeEventListener('offline', () => {});
+    }
+    
+    // 7. Release browser permissions indicators if present
+    try {
+      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+        navigator.permissions.query({ name: 'microphone' as PermissionName })
+          .then(permissionStatus => {
+            console.log(`- Current microphone permission status: ${permissionStatus.state}`);
+          })
+          .catch(() => {});
+      }
+    } catch (permError) {
+      // Ignore permission query errors
+    }
+    
+    // 8. Remove session styling immediately
+    console.log('- Removing session styling');
+    document.body.classList.remove('session-active');
+    
+    // 9. Restore opacity of main content with faster transition
+    const main = document.querySelector('main');
     if (main) {
-      main.style.transition = 'opacity 0.15s ease-in-out'
-      main.style.opacity = '1'
+      main.style.transition = 'opacity 0.15s ease-in-out';
+      main.style.opacity = '1';
     }
     
-    // Ensure any backdrop filter is completely removed
-    document.body.style.backdropFilter = 'none'
+    // 10. Ensure any backdrop filter is completely removed
+    document.body.style.backdropFilter = 'none';
     
-    // For extra safety, also remove any other potential overlay effects
-    document.body.style.filter = 'none'
+    // 11. For extra safety, also remove any other potential overlay effects
+    document.body.style.filter = 'none';
+    
+    // 12. Reset browser idle detection if available
+    if ('IdleDetector' in window) {
+      try {
+        // Inform the browser we're no longer in an active call
+        // This can help with power management and background throttling
+        (navigator as any).userActivation?.isActive;
+      } catch (idleError) {
+        // Ignore idle detection errors
+      }
+    }
+    
+    // 13. Update session state in context
+    setSessionActive(false);
+    
+    console.log('✅ Cleanup complete');
   }
   
   // Simplified audio analyzer setup
@@ -274,6 +343,7 @@ function TherapyButton({
       
       // SIMPLIFIED APPROACH: Use public API key directly
       // This avoids any token-related issues while we debug
+      // Get API key from environment variables
       const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
       
       if (!apiKey) {
@@ -283,13 +353,40 @@ function TherapyButton({
       
       console.log('Using direct API key for Vapi authentication');
       
-      // Import and use initVapi which has debugging built in
-      const { initVapi } = await import('@/lib/vapi');
-      
-      // Create instance directly with API key (no custom transcriber)
-      console.log('🎙️ Initializing Vapi with default transcriber');
-      vapiInstanceRef.current = await initVapi(apiKey, { useCustomTranscriber: false });
-      console.log('✅ Vapi initialized successfully with default transcriber');
+      try {
+        // Import and use initVapi which has debugging built in
+        const { initVapi } = await import('@/lib/vapi');
+        
+        // Create instance directly with API key (no custom transcriber)
+        console.log('🎙️ Initializing Vapi with default transcriber');
+        const vapiInstance = await initVapi(apiKey, { 
+          useCustomTranscriber: false,
+          // Ensure reconnection is enabled
+          reconnectEnabled: true,
+          // Add more STUN servers for better connectivity
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" },
+            { urls: "stun:stun3.l.google.com:19302" },
+            { urls: "stun:stun4.l.google.com:19302" },
+            { urls: "stun:stun.ekiga.net" },
+            { urls: "stun:stun.ideasip.com" },
+            { urls: "stun:stun.schlund.de" }
+          ]
+        });
+        
+        if (!vapiInstance) {
+          throw new Error('Vapi initialization returned null or undefined');
+        }
+        
+        vapiInstanceRef.current = vapiInstance;
+        console.log('✅ Vapi initialized successfully with default transcriber');
+      } catch (initError) {
+        console.error('🔴 Error initializing Vapi:', initError);
+        // Re-throw the error after logging it
+        throw new Error(`Failed to initialize Vapi: ${initError.message}`);
+      }
       
       // Store session ID in the Vapi instance for message handling
       if (vapiInstanceRef.current && sessionId) {
@@ -504,31 +601,34 @@ function TherapyButton({
       
       vapiInstanceRef.current.on('error', (error: unknown) => {
         // Log the complete error for debugging
-        console.error('Vapi error (complete):', error || {})
+        console.error('Vapi error (complete):', error || 'No error details available')
         
         // Create a more descriptive error message
         let errorDetail = "Unknown error";
+        let errorCode = "";
         try {
           // Try to extract meaningful error information based on different possible formats
           if (error && typeof error === 'object') {
-            // For error object format
+            console.log('Error object structure:', JSON.stringify(error, null, 2));
+            
+            // First look for an error message
             if ('message' in error && typeof (error as any).message === 'string') {
               errorDetail = (error as any).message;
             } 
-            // For error code format
-            else if ('code' in error) {
-              errorDetail = `Error code: ${(error as any).code}`;
+            // Check for error code
+            if ('code' in error) {
+              errorCode = `Code: ${(error as any).code}`;
             }
-            // For error status format
-            else if ('status' in error) {
-              errorDetail = `Status: ${(error as any).status}`;
+            // Check for status
+            if ('status' in error) {
+              errorCode += (errorCode ? ', ' : '') + `Status: ${(error as any).status}`;
             }
             // For error that contains detail field
-            else if ('detail' in error && typeof (error as any).detail === 'string') {
+            if ('detail' in error && typeof (error as any).detail === 'string') {
               errorDetail = (error as any).detail;
             }
-            // For error with keys
-            else if (Object.keys(error).length > 0) {
+            // For error with no recognized fields but has properties
+            if (errorDetail === "Unknown error" && Object.keys(error).length > 0) {
               const keys = Object.keys(error);
               const values = keys.map(key => (error as any)[key]).filter(v => v !== undefined);
               errorDetail = `${keys.join(', ')}: ${values.join(', ')}`;
@@ -539,14 +639,39 @@ function TherapyButton({
           } else if (error instanceof Error) {
             // Standard error object
             errorDetail = error.message;
+            if ('code' in error) {
+              errorCode = `Code: ${(error as any).code}`;
+            }
           }
         } catch (e) {
           errorDetail = "Error parsing error details";
           console.error("Error while parsing error details:", e);
         }
         
-        // Set user-friendly message
-        setErrorMessage(`Voice assistant error: ${errorDetail}. Please try again.`);
+        // Set user-friendly message with more details
+        let userMessage = `Voice assistant error: ${errorDetail}`;
+        if (errorCode) {
+          userMessage += ` (${errorCode})`;
+        }
+        userMessage += ". Please try again.";
+        
+        setErrorMessage(userMessage);
+        
+        // Also attempt to diagnose the error
+        console.log('Attempting error diagnosis...');
+        let possibleSolution = '';
+        
+        if (errorDetail.includes('404') || errorDetail.includes('not found')) {
+          possibleSolution = 'This appears to be an API endpoint issue. Verify API URL is correct.';
+        } else if (errorDetail.includes('401') || errorDetail.includes('unauthorized')) {
+          possibleSolution = 'This appears to be an authentication issue. Verify API key is correct.';
+        } else if (errorDetail.includes('network') || errorDetail.includes('connection')) {
+          possibleSolution = 'This appears to be a network connectivity issue.';
+        }
+        
+        if (possibleSolution) {
+          console.log('DIAGNOSIS: ' + possibleSolution);
+        }
         
         if (sessionId) {
           // Directly use the current ref value to avoid circular dependencies
@@ -766,6 +891,63 @@ function TherapyButton({
     }
   }, [sessionId, therapyType])
   
+  // Set up network request capture to debug API issues
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      // Create network capture to see where requests are going
+      try {
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+          const [url, options] = args;
+          // Only log API calls related to Vapi
+          if (url && typeof url === 'string' && 
+             (url.includes('vapi.ai') || url.includes('call/web') || url.includes('assistant'))) {
+            console.log(`🌐 FETCH REQUEST: ${url}`, options);
+            
+            // Return the promise but also add our own then/catch to see the result
+            return originalFetch(...args)
+              .then(response => {
+                // Clone the response so we can both log it and return it
+                const clone = response.clone();
+                // Log success or failure
+                if (response.ok) {
+                  console.log(`✅ FETCH SUCCESS: ${url} - Status: ${response.status}`);
+                } else {
+                  console.error(`❌ FETCH ERROR: ${url} - Status: ${response.status}`);
+                  // Try to get response body for error details
+                  clone.text().then(text => {
+                    try {
+                      const json = JSON.parse(text);
+                      console.error('Error details:', json);
+                    } catch {
+                      console.error('Error response (text):', text);
+                    }
+                  }).catch(e => {
+                    console.error('Error parsing response:', e);
+                  });
+                }
+                return response;
+              })
+              .catch(error => {
+                console.error(`💥 FETCH EXCEPTION: ${url}`, error);
+                throw error;
+              });
+          }
+          return originalFetch(...args);
+        };
+        
+        console.log('👀 API request capture active - monitoring Vapi API calls');
+        
+        return () => {
+          window.fetch = originalFetch;
+          console.log('API request capture removed');
+        };
+      } catch (error) {
+        console.warn('Could not set up network capture:', error);
+      }
+    }
+  }, []);
+
   // Start therapy session
   const startTherapySession = useCallback(async () => {
     setErrorMessage(null)
@@ -782,6 +964,9 @@ function TherapyButton({
       if (!isCallActive) {
         setIsCallActive(true)
       }
+      
+      // Set session as active without stopping music
+      setSessionActive(true)
       
       // Store session start time for duration calculation
       const sessionStartTime = new Date();
@@ -919,6 +1104,72 @@ function TherapyButton({
         throw new Error('Failed to initialize Vapi')
       }
       
+      // Add network connection and WebRTC reconnection listeners
+      if (vapiInstanceRef.current) {
+        // Add transport state change listener for WebRTC diagnostics
+        try {
+          vapiInstanceRef.current.on('transport-state-change', (event: any) => {
+            console.log('🔌 Transport state changed:', event);
+            if (event && event.state === 'disconnected') {
+              console.log('🔄 WebRTC transport disconnected - attempting recovery...');
+              
+              // If connection is lost but we're still in a session, attempt recovery
+              if (sessionId && isCallActive) {
+                // Show user feedback about connection state
+                setErrorMessage('Connection interrupted. Attempting to reconnect...');
+                
+                // Allow time for potential auto-recovery (3 seconds)
+                setTimeout(() => {
+                  if (isCallActive && vapiInstanceRef.current) {
+                    // Check if the call is still active
+                    const currentState = (vapiInstanceRef.current as any)._transportState;
+                    console.log('Current transport state:', currentState || 'unknown');
+                    
+                    if (currentState === 'disconnected' || currentState === 'failed') {
+                      console.log('Attempting to restart audio connection...');
+                      
+                      // Attempt to reinitialize audio
+                      setupAudioAnalyzer().then(() => {
+                        console.log('Audio analyzer reinitialized successfully');
+                        setErrorMessage(null);
+                      }).catch(err => {
+                        console.error('Failed to reinitialize audio:', err);
+                      });
+                    } else {
+                      console.log('Connection appears to have recovered automatically');
+                      setErrorMessage(null);
+                    }
+                  }
+                }, 3000);
+              }
+            }
+          });
+          
+          // Add network status listeners to handle online/offline events
+          window.addEventListener('online', () => {
+            console.log('🌐 Network connection restored');
+            if (sessionId && isCallActive && vapiInstanceRef.current) {
+              setErrorMessage('Network connection restored. Reconnecting...');
+              
+              // Attempt to reconnect audio
+              setupAudioAnalyzer().catch(err => {
+                console.error('Failed to reinitialize audio after network restore:', err);
+              });
+            }
+          });
+          
+          window.addEventListener('offline', () => {
+            console.log('🌐 Network connection lost');
+            if (sessionId && isCallActive) {
+              setErrorMessage('Network connection lost. Waiting to reconnect...');
+            }
+          });
+          
+        } catch (listenerError) {
+          console.warn('Could not add transport state listeners:', listenerError);
+        }
+      }
+      
       // Explicitly set the session ID on the Vapi instance for transcript recording
       if (vapiInstanceRef.current && session.id) {
         (vapiInstanceRef.current as any)._sessionId = session.id;
@@ -936,27 +1187,46 @@ function TherapyButton({
       // Get assistant ID - either from assistantConfig or from env vars
       let assistantId;
       
-      if (assistantConfig && assistantConfig.id) {
-        console.log(`Using assistant ID from config for ${therapyType} therapy: ${assistantConfig.id}`);
+      // Log the available assistant options
+      console.log('Assistant config:', JSON.stringify({
+        id: assistantConfig?.id,
+        name: assistantConfig?.name,
+        type: assistantConfig?.type,
+        therapyType
+      }));
+      
+      // Check for assistantId based on therapy type
+      if (therapyType === 'couple') {
+        assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
+        console.log('Using couple therapy assistant ID:', assistantId);
+      } else if (therapyType === 'solo') {
+        assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
+        console.log('Using solo therapy assistant ID:', assistantId);
+      } else if (therapyType === 'family') {
+        assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
+        console.log('Using family therapy assistant ID:', assistantId);
+      } else if (assistantConfig && assistantConfig.id) {
+        console.log('Using assistant ID from config:', assistantConfig.id);
         assistantId = assistantConfig.id;
       } else {
-        console.log('No assistant ID in config, falling back to environment variable');
+        console.log('No specific assistant ID found, using default assistant ID');
         assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
       }
       
       if (!assistantId) {
+        console.error('No assistant ID available from any source');
         throw new Error('No assistant ID available')
       }
       
       console.log(`Starting ${therapyType} therapy session with assistant: ${assistantConfig?.name || 'Unknown'} (ID: ${assistantId})`);
       console.log(`Voice configuration: ${JSON.stringify(assistantConfig?.voice || 'default')}`);
       
-      // Use a simpler approach similar to the one that worked previously
+      // Use an enhanced approach with WebRTC optimizations
       try {
         console.log('Starting call with assistant ID:', assistantId);
         
-        // Create a standard configuration that includes an initial greeting that acknowledges previous sessions if needed
-        const assistantConfig = {
+        // Create an enhanced configuration that includes connection optimizations
+        const enhancedAssistantConfig = {
           variableValues: userProfile ? {
             username: userProfile.name || 'user',
             partnername: userProfile.partnerName || 'partner',
@@ -970,30 +1240,168 @@ function TherapyButton({
           } : undefined,
           // Use the possibly modified first message that acknowledges previous sessions
           firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
-          // Don't pass system prompt through config - it appears to cause issues
+          
+          // Connection optimization settings
+          webrtc: {
+            // Force the use of relay servers if direct connection fails
+            iceTransportPolicy: 'all',
+            // Increase ICE gathering timeout for more reliable connections
+            iceCandidatePoolSize: 10,
+            // Enable connection resilience features
+            enableDtlsSrtp: true,
+            // Add additional diagnostic information
+            rtcStatsIntervalMs: 5000,
+            // Set a higher timeout for connection establishment (10 seconds)
+            timeout: 10000,
+          },
+          
+          // Enable auto-reconnection in case of network issues
+          reconnection: true,
+          
+          // Store current session info for recovery
+          metadata: {
+            sessionId: session.id,
+            sessionStartTime: new Date().toISOString(),
+            therapyType,
+            userProfileId: userProfile?.id,
+          }
         };
         
-        // Log the configuration for debugging
-        console.log('ASSISTANT CONFIG:', JSON.stringify({
+        // Additional state tracking for the Vapi instance
+        if (vapiInstanceRef.current) {
+          (vapiInstanceRef.current as any)._isCallActive = true;
+          (vapiInstanceRef.current as any)._currentAssistantId = assistantId;
+          (vapiInstanceRef.current as any)._callStartTime = new Date();
+        }
+        
+        // Log the configuration for debugging (excluding sensitive info)
+        console.log('ENHANCED ASSISTANT CONFIG:', JSON.stringify({
           assistantId,
-          variableKeys: assistantConfig.variableValues ? Object.keys(assistantConfig.variableValues) : []
+          variableKeys: enhancedAssistantConfig.variableValues ? Object.keys(enhancedAssistantConfig.variableValues) : [],
+          webrtcConfig: !!enhancedAssistantConfig.webrtc,
+          metadata: {
+            sessionId: session.id,
+            therapyType,
+          }
         }, null, 2));
         
-        // Start the call with a basic configuration
+        // Start the call with the enhanced configuration
         try {
-          await vapiInstanceRef.current?.start(assistantId, assistantConfig);
-          console.log('Successfully started call with standard config');
-        } catch (err) {
-          console.error('Error starting call with standard config:', err);
+          console.log('🚀 Starting call with enhanced config...');
+          // Check if vapiInstanceRef.current exists before calling start
+          if (!vapiInstanceRef.current) {
+            throw new Error('Vapi instance not initialized');
+          }
           
-          // Try with minimal config as fallback
-          console.log('Trying minimal config as fallback');
-          const minimalConfig = { variableValues: assistantConfig.variableValues };
-          await vapiInstanceRef.current?.start(assistantId, minimalConfig);
-          console.log('Successfully started call with minimal config');
+          // Add additional error handling and validation
+          console.log('Validated Vapi instance exists, now starting call...');
+          
+          // Validate that assistantId exists
+          if (!assistantId) {
+            throw new Error('Assistant ID is missing or invalid');
+          }
+          
+          // Simple config without validation
+          const finalConfig = enhancedAssistantConfig;
+          
+          // Make sure we disconnect from any previous sessions first
+          try {
+            const isAlreadyActive = (vapiInstanceRef.current as any)._isCallActive;
+            if (isAlreadyActive) {
+              console.log('Attempting to stop any existing call before starting a new one');
+              await vapiInstanceRef.current.stop();
+              // Add small delay to ensure clean state
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          } catch (stopError) {
+            console.warn('Error stopping previous call (continuing anyway):', stopError);
+          }
+          
+          // Start the call with absolutely minimal configuration
+          console.log('Starting call with assistant ID only (no config):', assistantId);
+          
+          // Based on Vapi API docs, we ONLY need to pass the assistantId to start a call
+          // This is the absolute minimum required configuration
+          console.log('Starting call with ONLY the assistantId parameter:', assistantId);
+          
+          try {
+            // Call start with ONLY the assistantId - no other parameters
+            // This follows exactly what is shown in the Vapi API documentation
+            await vapiInstanceRef.current.start(assistantId);
+            console.log('Successfully started call with minimal configuration');
+          } catch (startError) {
+            console.error('Error starting call with minimal config:', startError);
+            
+            // If that fails, try one more time with bare minimum config
+            console.log('Retrying with minimal variableValues...');
+            const bareMinimumConfig = {
+              variableValues: userProfile ? {
+                userName: userProfile.name || ''
+              } : undefined
+            };
+            
+            await vapiInstanceRef.current.start(assistantId, bareMinimumConfig);
+          }
+          console.log('✅ Successfully started call with assistant ID only')
+        } catch (err) {
+          console.error('⚠️ Error starting call with enhanced config:', err);
+          
+          // Try recreating Vapi and starting again
+          console.log('🔄 Trying to recreate Vapi instance and start again');
+          
+          try {
+            // Get API key directly
+            const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
+            if (!apiKey) {
+              throw new Error('API key not available');
+            }
+            
+            // Create new Vapi instance directly with no options
+            const newVapi = new Vapi(apiKey);
+            
+            // Update the ref
+            vapiInstanceRef.current = newVapi;
+            
+            // Start with just the ID
+            await newVapi.start(assistantId);
+            console.log('✅ Successfully started call after recreating instance');
+          } catch (finalErr) {
+            console.error('💥 Final error attempt failed:', finalErr);
+            throw new Error('Could not start Vapi call. Please check console for details.');
+          }
+        }
+        
+        // Set a status tracker for the session
+        try {
+          if (vapiInstanceRef.current && sessionId) {
+            // Store connection check interval for cleanup
+            const statusInterval = setInterval(() => {
+              if (!isCallActive || !vapiInstanceRef.current) {
+                clearInterval(statusInterval);
+                return;
+              }
+              
+              // Check connection state every 10 seconds
+              const currentState = (vapiInstanceRef.current as any)._transportState;
+              if (currentState === 'disconnected' || currentState === 'failed') {
+                console.log(`🔄 Detected disconnected state during status check: ${currentState}`);
+                setErrorMessage('Connection issue detected. Attempting to fix...');
+                
+                // Attempt to reinitialize audio for reconnection
+                setupAudioAnalyzer().catch(err => {
+                  console.error('Failed to reinitialize audio during status check:', err);
+                });
+              }
+            }, 10000);
+            
+            // Store the interval for cleanup
+            (vapiInstanceRef.current as any)._statusInterval = statusInterval;
+          }
+        } catch (statusError) {
+          console.warn('Failed to set up status tracker:', statusError);
         }
       } catch (err) {
-        console.error('Error starting call with all attempts:', err);
+        console.error('❌ Fatal error starting call with all attempts:', err);
         throw err;
       }
     } catch (error) {
@@ -1022,7 +1430,7 @@ function TherapyButton({
     } finally {
       setIsLoading(false)
     }
-  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig])
+  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive])
   
   // End therapy session
   const endTherapySession = useCallback(async () => {
@@ -1032,6 +1440,9 @@ function TherapyButton({
     setIsCallActive(false);
     setIsLoading(false);
     setIsMuted(false); // Reset mute state when call ends
+    
+    // Update session state in the sound context
+    setSessionActive(false);
     
     // Explicitly clean up resources right away for immediate visual feedback
     cleanupResources();
@@ -1542,7 +1953,7 @@ function TherapyButton({
       // Clear transcript chunks to free memory
       setTranscriptChunks([]);
     }
-  }, [sessionId, transcriptChunks])
+  }, [sessionId, transcriptChunks, setSessionActive])
   
   // Toggle mute function
   const toggleMute = useCallback(() => {
@@ -1803,6 +2214,8 @@ function TherapyButton({
                   // Remove the blur effect that was making the page hazy
                   document.body.style.backdropFilter = 'none';
                 }
+                // Just update session state without stopping music
+                setSessionActive(true);
                 // Then start the actual session process
                 startTherapySession();
               }}

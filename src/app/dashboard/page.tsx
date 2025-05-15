@@ -715,7 +715,9 @@ export default function Dashboard() {
                   Session Time Overview
                 </h2>
               </div>
-              <SessionTimeChart />
+              <div className="w-full">
+                <SessionTimeChart />
+              </div>
             </div>
           </motion.div>
 
@@ -746,7 +748,9 @@ export default function Dashboard() {
                   Relationship Progress
                 </h2>
               </div>
-              <RelationshipProgressCard />
+              <div className="w-full">
+                <RelationshipProgressCard />
+              </div>
             </div>
           </motion.div>
 
@@ -777,7 +781,9 @@ export default function Dashboard() {
                   Communication Quality
                 </h2>
               </div>
-              <CommunicationMetrics />
+              <div className="w-full">
+                <CommunicationMetrics />
+              </div>
             </div>
           </motion.div>
 
@@ -844,7 +850,9 @@ export default function Dashboard() {
                   Session Time Overview
                 </h2>
               </div>
-              <SessionTimeChart />
+              <div className="w-full">
+                <SessionTimeChart />
+              </div>
             </motion.div>
           )}
 
@@ -876,7 +884,9 @@ export default function Dashboard() {
                   Relationship Progress
                 </h2>
               </div>
-              <RelationshipProgressCard />
+              <div className="w-full">
+                <RelationshipProgressCard />
+              </div>
             </motion.div>
           )}
 
@@ -908,7 +918,9 @@ export default function Dashboard() {
                   Communication Quality
                 </h2>
               </div>
-              <CommunicationMetrics />
+              <div className="w-full">
+                <CommunicationMetrics />
+              </div>
             </motion.div>
           )}
 
@@ -940,7 +952,9 @@ export default function Dashboard() {
                   Upcoming Sessions
                 </h2>
               </div>
-              <UpcomingSessions />
+              <div className="w-full">
+                <UpcomingSessions />
+              </div>
             </motion.div>
           )}
 

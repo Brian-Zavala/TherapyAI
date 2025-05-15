@@ -15,7 +15,7 @@ export async function POST(
   }
   
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await params;
     
     const therapySession = await prisma.therapySession.findUnique({
       where: { id: sessionId },
