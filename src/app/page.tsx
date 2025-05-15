@@ -2,9 +2,7 @@
 
 // React and Next.js imports
 import Link from "next/link";
-import Image from "next/image";
-import { useRef, useState, useEffect, Suspense, useMemo } from "react";
-import dynamic from "next/dynamic";
+import { useRef, useState, useEffect, Suspense } from "react";
 
 // Framer Motion imports
 import {
@@ -26,12 +24,8 @@ import Hero3DBackground from "@/components/Hero3DBackground";
 import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
 import { ImagesSlider } from "@/components/ui/images-slider";
 
-// Background gradient component
-import { BackgroundGradient } from "@/components/ui/background-gradient";
+// Layout grid for therapy options
 import { LayoutGrid } from "@/components/ui/layout-grid";
-import { Spotlight } from "@/components/ui/spotlight-new";
-import { TextSpotlight } from "@/components/ui/text-spotlight";
-import { Vortex } from "@/components/ui/vortex";
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
@@ -47,16 +41,6 @@ const fadeInUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-// Stagger container - kept definition if needed elsewhere, but applied directly below
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1, // Default stagger, can be overridden
-    },
-  },
-};
 
 // --- Reusable Hook for Viewport-Controlled Animation ---
 // Encapsulates the useInView + useAnimation pattern
@@ -128,7 +112,6 @@ export default function Home() {
   const heroRef = useRef<HTMLElement>(null); // Specify element type
   const featuresRef = useRef<HTMLElement>(null);
   const statsRef = useRef<HTMLElement>(null);
-  const testimonialsRef = useRef<HTMLElement>(null);
   const plansRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLElement>(null); // Added ref for CTA section
   const videoRef = useRef<HTMLVideoElement>(null); // Specific ref for video element
@@ -160,7 +143,6 @@ export default function Home() {
   const statsVideoCardView = useViewportAnimation({ threshold: 0.3 });
   const statsIconsPulseView = useViewportAnimation({ threshold: 0.2 });
 
-  const testimonialsBgView = useViewportAnimation({ threshold: 0.1 });
   const plansBeamView = useViewportAnimation({ threshold: 0.1 });
   const ctaBgView = useViewportAnimation({ threshold: 0.1 });
 
@@ -238,22 +220,6 @@ export default function Home() {
     },
   };
 
-  // Testimonials Background Cycle
-  const testimonialsBgVariant = {
-    hidden: {
-      background:
-        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
-      transition: { duration: 0.5 },
-    },
-    visible: {
-      background: [
-        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
-        "linear-gradient(to bottom right, rgba(224, 231, 255, 0.95), rgba(221, 214, 254, 0.95))",
-        "linear-gradient(to bottom right, rgba(238, 242, 255, 0.9), rgba(237, 233, 254, 0.9))",
-      ],
-      transition: { duration: 5, repeat: Infinity, repeatType: "mirror" },
-    },
-  };
 
   // Plans Sliding Beam
   const plansBeamVariant = {
@@ -289,22 +255,22 @@ export default function Home() {
         ref={heroRef} // Assign ref
         className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
       >
-        {/* Background Gradient (Original) */}
-        {/* Background Image (Original) */}
+        {/* Background Images Slider */}
         <div className="absolute inset-0 h-full z-0">
-          <Image
-            src="/images/happy-couple.jpg"
-            alt="Happy couple laughing together"
-            fill
-            className="object-cover object-center opacity-100 rounded-b-[4rem] md:rounded-b-[5rem]"
-            priority // Keep priority for LCP
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 60vw"
-            quality={75}
-            loading="eager"
-            fetchPriority="high"
-          />
-          {/* Gradient overlay (Original) */}
-          {/* No gradient overlay on hero image */}
+          <ImagesSlider
+            images={[
+              "/images/home/happy-couple.jpg",
+              "/images/home/happy_family.jpg",
+              "/images/home/happy-group.jpg",
+              "/images/home/happy-person.jpg"
+            ]}
+            className="h-full rounded-b-[4rem] md:rounded-b-[5rem]"
+            overlayClassName="bg-black/40 rounded-b-[4rem] md:rounded-b-[5rem]"
+            autoplay={true}
+            direction="up"
+          >
+            <></>
+          </ImagesSlider>
         </div>
         {/* Integrated 3D Background (Original Structure) */}
         <Suspense fallback={null}>

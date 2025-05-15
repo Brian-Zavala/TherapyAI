@@ -827,7 +827,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center text-white mr-2">
@@ -861,7 +861,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-2">
@@ -895,7 +895,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-2">
@@ -929,7 +929,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6 overflow-visible"
+              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
             >
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-2">

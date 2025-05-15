@@ -463,10 +463,8 @@ export default function RelationshipProgressCard() {
   const renderChart = useMemo(() => {
     const commonProps = {
       data: data,
-      margin: { top: 10, right: 20, left: 10, bottom: 20 },
-      className: "mx-auto",
-      width: 500,
-      height: 300,
+      margin: { top: 15, right: 40, left: 40, bottom: 30 },
+      className: "mx-auto"
     };
     const xAxis = (
       <XAxis
@@ -760,12 +758,12 @@ export default function RelationshipProgressCard() {
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6 overflow-visible"
+          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] w-full overflow-visible relative">
             <ResponsiveContainer width="100%" height="100%">
               {renderChart}
             </ResponsiveContainer>

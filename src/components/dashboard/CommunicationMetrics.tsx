@@ -1417,20 +1417,31 @@ export default function CommunicationMetrics() {
               /* Center all SVG elements by default */
               .recharts-wrapper {
                 margin: 0 auto !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
+                display: block !important;
+                position: relative !important;
               }
               
               /* Ensure charts are centered */
-              .recharts-wrapper, .recharts-surface {
+              .recharts-responsive-container {
+                margin: 0 auto !important;
                 display: flex !important;
-                justify-content: center !important;
                 align-items: center !important;
+                justify-content: center !important;
               }
               
               /* Center pie chart elements */
               .recharts-pie {
                 transform-origin: center center !important;
+              }
+              
+              /* Fix radial bar chart positioning */
+              .recharts-radial-bar-chart {
+                margin: 0 auto !important;
+              }
+              
+              /* Fix radar chart positioning */
+              .recharts-radar {
+                margin: 0 auto !important;
               }
               
               /* Fix pie chart labels */
@@ -1459,7 +1470,7 @@ export default function CommunicationMetrics() {
           </style>
 
           <motion.div
-            className="relative w-full max-w-[900px] mx-auto overflow-visible bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6 overflow-hidden"
+            className="relative w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -1482,18 +1493,16 @@ export default function CommunicationMetrics() {
                 {metricsData && metricsData.length > 0 ? (
                   <div className="w-full h-full overflow-visible">
                     {chartType === "radar" ? (
-                      <div style={{ width: "100%", height: 300 }}>
+                      <div style={{ width: "100%", height: 400 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadarChart
                             cx="50%"
                             cy="50%"
-                            width={500}
-                            height={300}
-                          outerRadius="60%"
-                          data={metricsData}
-                          margin={{ top: 50, right: 50, bottom: 50, left: 50 }}
-                          className="overflow-visible"
-                        >
+                            outerRadius="65%"
+                            data={metricsData}
+                            margin={{ top: 60, right: 60, bottom: 60, left: 60 }}
+                            className="overflow-visible"
+                          >
                           <defs>
                             <filter
                               id="glow"
@@ -1591,12 +1600,10 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : chartType === "pie" ? (
-                      <div style={{ width: "100%", height: 300 }}>
+                      <div style={{ width: "100%", height: 400 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart 
-                            width={500}
-                            height={300}
-                            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                            margin={{ top: 60, right: 30, bottom: 30, left: 30 }}>
                           <defs>
                             {/* Regular gradients for inactive slices */}
                             {COLORS.map((color, index) => (
@@ -1691,8 +1698,8 @@ export default function CommunicationMetrics() {
                             data={metricsData}
                             cx="50%"
                             cy="50%"
-                            innerRadius="35%"
-                            outerRadius="65%"
+                            innerRadius={60}
+                            outerRadius={100}
                             paddingAngle={6}
                             fill="#8884d8"
                             dataKey="value"
@@ -2117,24 +2124,21 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div style={{ width: "100%", height: 300 }}>
+                      <div style={{ width: "100%", height: 400, display: "flex", justifyContent: "center", alignItems: "center" }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadialBarChart
-                            width={500}
-                            height={300}
                             cx="50%"
                             cy="50%"
-                          innerRadius="15%"
-                          outerRadius="75%"
-                          data={metricsData}
-                          startAngle={180}
-                          endAngle={0}
-                          barSize={14}
-                          margin={{ top: 30, right: 30, bottom: 30, left:
-                          30 }}
-                          className="overflow-visible"
-                          style={{ margin: "0 auto" }}
-                        >
+                            innerRadius="20%"
+                            outerRadius="80%"
+                            data={metricsData}
+                            startAngle={180}
+                            endAngle={0}
+                            barSize={14}
+                            margin={{ top: 80, right: 20, bottom: 60, left: 20 }}
+                            className="overflow-visible"
+                            style={{ margin: "0 auto" }}
+                          >
                           <defs>
                             {COLORS.map((color, index) => (
                               <linearGradient

@@ -387,19 +387,17 @@ export default function SessionTimeChart() {
       {/* Simple Chart Container - Single-level wrapper */}
       <div className="w-full bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-4 sm:p-6 mb-6">
         {/* Just a single height container with proper centering */}
-        <div className="h-[350px] w-full">
+        <div className="h-[350px] w-full overflow-visible">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={sessionData}
               margin={{
-                top: 5,
-                right: 30,
-                left: 10,
-                bottom: 5
+                top: 10,
+                right: 40,
+                left: 40,
+                bottom: 10
               }}
               barGap={4}
-              width={500}
-              height={300}
               >
                 <defs>
                   <linearGradient

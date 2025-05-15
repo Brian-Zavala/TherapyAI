@@ -27,7 +27,7 @@ export default function RootLayout({
         />
 
         {/* Preload critical assets */}
-        <link rel="preload" href="/images/happy-couple.jpg" as="image" />
+        <link rel="preload" href="/images/home/happy-couple.jpg" as="image" />
 
         {/* Fancy Menu CSS */}
         <style
