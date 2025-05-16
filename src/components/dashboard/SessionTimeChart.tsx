@@ -138,12 +138,12 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg" // Added glass styling
+        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center"
       >
         <div className="flex flex-col items-center px-4">
           {/* Enhanced Spinner */}
           <svg
-            className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-blue-600"
+            className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-white/80"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -176,19 +176,19 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg" // Added glass styling to match loading state
+        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center"
       >
-        <div className="text-center p-4 sm:p-6 bg-white/90 border border-red-200 rounded-lg w-full max-w-[90%] sm:max-w-md shadow-md">
-          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-red-500 mb-3" />
-          <p className="text-base sm:text-lg font-semibold text-red-800">
+        <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-md">
+          <ExclamationTriangleIcon className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-white/80 mb-4" />
+          <p className="text-lg sm:text-xl font-semibold text-white mb-2">
             Couldn&apos;t load session data
           </p>
-          <p className="text-xs sm:text-sm mt-2 text-red-600">{error}</p>
+          <p className="text-sm sm:text-base text-white/70 mb-4">{error}</p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => fetchSessionData(therapyType)} // Add a retry button
-            className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+            onClick={() => fetchSessionData(therapyType)}
+            className="px-5 sm:px-6 py-2.5 bg-white/20 text-white rounded-full text-sm sm:text-base font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30"
           >
             Try Again
           </motion.button>
@@ -233,23 +233,39 @@ export default function SessionTimeChart() {
       >
         <TherapyTypeSelector />
         <div className="flex-grow flex items-center justify-center">
-          <div className="text-center p-4 sm:p-6 bg-white/90 border border-blue-100 rounded-lg w-full max-w-[90%] sm:max-w-sm shadow-md">
-            <DocumentChartBarIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-blue-500 mb-3 sm:mb-4" />
-            <p className="text-base sm:text-lg font-medium text-blue-800">
-              No {therapyType} sessions recorded yet
-            </p>
-            <p className="text-xs sm:text-sm mt-2 text-blue-600">
-              Start logging your {therapyType} therapy sessions to visualize
-              your progress and insights over time.
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className="mt-4 sm:mt-5 px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-all duration-150 ease-in-out shadow hover:shadow-md"
-              onClick={() => (window.location.href = "/dashboard/therapy")} // Assuming this is the correct link
+          <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-sm">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              Log First Session
-            </motion.button>
+              <DocumentChartBarIcon className="w-16 h-16 sm:w-20 sm:h-20 mx-auto text-white/80 mb-4 sm:mb-6" />
+            </motion.div>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <h3 className="text-xl sm:text-2xl font-semibold text-white mb-3">
+                Welcome to Your Journey
+              </h3>
+              <p className="text-sm sm:text-base text-white/80 mb-6 leading-relaxed">
+                Begin tracking your {therapyType} therapy sessions to unlock valuable insights about your progress and growth over time.
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 sm:px-8 py-3 bg-white/20 text-white rounded-full text-sm sm:text-base font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30 shadow-lg"
+                onClick={() => (window.location.href = "/dashboard/therapy")}
+              >
+                <span className="flex items-center">
+                  Start Your First Session
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </motion.button>
+            </motion.div>
           </div>
         </div>
       </motion.div>
@@ -272,13 +288,19 @@ export default function SessionTimeChart() {
       if (!monthData) return null; // Should always find one if tooltip is active
 
       return (
-        <div className={`bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? 'min-w-[200px]' : 'min-w-[250px]'}`}>
-          <p className={`font-semibold text-blue-900 ${isSmallScreen ? 'mb-2' : 'mb-3'} border-b pb-2 ${isSmallScreen ? 'text-sm' : ''}`}>
+        <div
+          className={`bg-white ${isSmallScreen ? "p-3" : "p-4"} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? "min-w-[200px]" : "min-w-[250px]"}`}
+        >
+          <p
+            className={`font-semibold text-blue-900 ${isSmallScreen ? "mb-2" : "mb-3"} border-b pb-2 ${isSmallScreen ? "text-sm" : ""}`}
+          >
             {monthData.month}
           </p>
           <div className={isSmallScreen ? "space-y-1.5" : "space-y-2"}>
             {/* Total Time */}
-            <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
+            <div
+              className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+            >
               <div className="flex items-center text-gray-700">
                 <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2 flex-shrink-0"></span>
                 Total Time:
@@ -292,7 +314,9 @@ export default function SessionTimeChart() {
             </div>
 
             {/* Session Count */}
-            <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
+            <div
+              className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+            >
               <div className="flex items-center text-gray-700">
                 <span className="inline-block w-3 h-3 bg-teal-500 rounded-full mr-2 flex-shrink-0"></span>
                 Sessions:
@@ -303,9 +327,11 @@ export default function SessionTimeChart() {
             </div>
 
             {/* Average Session Length */}
-            <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
+            <div
+              className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+            >
               <div className="flex items-center text-gray-700">
-                <span className="inline-block w-3 h-3 bg-violet-500 rounded-full mr-2 flex-shrink-0"></span>
+                <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2 flex-shrink-0"></span>
                 Avg. Length:
               </div>
               <span className="font-medium text-gray-800">
@@ -316,7 +342,9 @@ export default function SessionTimeChart() {
             {/* Growth Indicator */}
             {monthData.growth !== undefined && (
               <div className="mt-3 pt-2 border-t border-gray-100">
-                <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
+                <div
+                  className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+                >
                   <div className="flex items-center text-gray-700">
                     <span className="inline-block w-3 h-3 bg-amber-400 rounded-full mr-2 flex-shrink-0"></span>
                     Monthly Time Growth:
@@ -334,7 +362,9 @@ export default function SessionTimeChart() {
                     {formatNumber(monthData.growth)}%
                   </span>
                 </div>
-                <p className={`${isSmallScreen ? 'text-[10px]' : 'text-xs'} text-gray-500 mt-1 text-right`}>
+                <p
+                  className={`${isSmallScreen ? "text-[10px]" : "text-xs"} text-gray-500 mt-1 text-right`}
+                >
                   vs. previous month
                 </p>
               </div>
@@ -351,7 +381,7 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6 w-full"
+      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6 w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
       style={{
         maxWidth: "100%",
         overflowX: "hidden",
@@ -359,6 +389,27 @@ export default function SessionTimeChart() {
         paddingRight: isSmallScreen ? "12px" : undefined,
       }}
     >
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-white">
+          Session Time Overview
+        </h2>
+      </div>
       <TherapyTypeSelector />
 
       {/* Summary Stats */}
@@ -372,10 +423,10 @@ export default function SessionTimeChart() {
         >
           <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0" />
           <div>
-            <p className="text-[10px] sm:text-xs text-blue-600 font-medium uppercase tracking-wide">
+            <p className="text-[10px] sm:text-xs text-black/90 font-medium uppercase tracking-wide">
               Total Time
             </p>
-            <p className="text-lg sm:text-xl font-bold text-blue-800">
+            <p className="text-lg sm:text-xl font-bold text-black/90">
               {totalHours}
               <span className="text-xs sm:text-sm font-medium text-blue-500 ml-1">
                 hours
@@ -392,12 +443,12 @@ export default function SessionTimeChart() {
         >
           <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0" />
           <div>
-            <p className="text-[10px] sm:text-xs text-blue-600 font-medium uppercase tracking-wide">
+            <p className="text-[10px] sm:text-xs text-black/90 font-medium uppercase tracking-wide">
               Overall Avg. Session
             </p>
-            <p className="text-lg sm:text-xl font-bold text-blue-800">
+            <p className="text-lg sm:text-xl font-bold text-black/90">
               {averageSessionLength}
-              <span className="text-xs sm:text-sm font-medium text-blue-500 ml-1">
+              <span className="text-xs sm:text-sm font-medium text-black/90 ml-1">
                 mins
               </span>
             </p>
@@ -406,15 +457,15 @@ export default function SessionTimeChart() {
       </div>
 
       {/* Simple Chart Container - Single-level wrapper */}
-      <div 
-        className={`w-full bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 ${isSmallScreen ? 'p-2' : 'p-4 sm:p-6'} mb-6`}
+      <div
+        className={`w-full ${isSmallScreen ? "p-2" : "p-4 sm:p-6"} mb-6`}
         style={{
           maxWidth: "100%",
           overflow: "hidden",
         }}
       >
         {/* Just a single height container with proper centering */}
-        <div 
+        <div
           className={isSmallScreen ? "h-[400px] w-full" : "h-[450px] w-full"}
           style={{
             minWidth: 0,
@@ -428,207 +479,216 @@ export default function SessionTimeChart() {
                 top: 10,
                 right: isSmallScreen ? 20 : 40,
                 left: isSmallScreen ? 30 : 40,
-                bottom: 10
+                bottom: 10,
               }}
               barGap={isSmallScreen ? 2 : 4}
-              >
-                <defs>
-                  <linearGradient
-                    id="sessionTimeGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />{" "}
-                    {/* Blue-500 */}
-                    <stop
-                      offset="95%"
-                      stopColor="#60A5FA"
-                      stopOpacity={0.5}
-                    />{" "}
-                    {/* Blue-400 */}
-                  </linearGradient>
-                  <linearGradient
-                    id="sessionCountGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#0284C7" stopOpacity={0.8} />{" "}
-                    {/* Sky-700 */}
-                    <stop
-                      offset="95%"
-                      stopColor="#38BDF8"
-                      stopOpacity={0.4}
-                    />{" "}
-                    {/* Sky-400 */}
-                  </linearGradient>
-                  {/* New Gradient for Avg Session Length */}
-                  <linearGradient
-                    id="avgLengthGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.5} />{" "}
-                    {/* Blue-600 */}
-                    <stop
-                      offset="95%"
-                      stopColor="#93C5FD"
-                      stopOpacity={0.2}
-                    />{" "}
-                    {/* Blue-300 */}
-                  </linearGradient>
-                </defs>
+            >
+              <defs>
+                <linearGradient
+                  id="sessionTimeGradient"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />{" "}
+                  {/* Blue-500 */}
+                  <stop
+                    offset="95%"
+                    stopColor="#60A5FA"
+                    stopOpacity={0.5}
+                  />{" "}
+                  {/* Blue-400 */}
+                </linearGradient>
+                <linearGradient
+                  id="sessionCountGradient"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor="#0284C7" stopOpacity={0.8} />{" "}
+                  {/* Sky-700 */}
+                  <stop
+                    offset="95%"
+                    stopColor="#38BDF8"
+                    stopOpacity={0.4}
+                  />{" "}
+                  {/* Sky-400 */}
+                </linearGradient>
+                {/* New Gradient for Avg Session Length */}
+                <linearGradient
+                  id="avgLengthGradient"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor="#2563EB" stopOpacity={0.5} />{" "}
+                  {/* Blue-600 */}
+                  <stop
+                    offset="95%"
+                    stopColor="#93C5FD"
+                    stopOpacity={0.2}
+                  />{" "}
+                  {/* Blue-300 */}
+                </linearGradient>
+              </defs>
 
-                <XAxis
-                  dataKey="monthFormatted"
-                  tick={{
+              <XAxis
+                dataKey="monthFormatted"
+                tick={{
+                  fill: "#9CA3AF",
+                  fontSize: isSmallScreen ? 8 : 10,
+                  fontWeight: 500,
+                }}
+                axisLine={{ stroke: "#374151", strokeWidth: 1 }}
+                tickLine={false}
+                padding={{
+                  left: isSmallScreen ? 5 : 10,
+                  right: isSmallScreen ? 5 : 10,
+                }}
+                interval={isSmallScreen ? "preserveEnd" : "preserveStartEnd"}
+                height={isSmallScreen ? 25 : 30}
+              />
+
+              <YAxis
+                yAxisId="left"
+                orientation="left"
+                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
+                axisLine={{ stroke: "#374151" }}
+                tickLine={false}
+                domain={[0, "dataMax + 50"]}
+                width={isSmallScreen ? 30 : 40}
+                label={{
+                  value: "Minutes",
+                  angle: -90,
+                  position: "insideLeft",
+                  style: {
                     fill: "#9CA3AF",
-                    fontSize: isSmallScreen ? 8 : 10,
+                    fontSize: isSmallScreen ? 9 : 11,
                     fontWeight: 500,
-                  }}
-                  axisLine={{ stroke: "#374151", strokeWidth: 1 }}
-                  tickLine={false}
-                  padding={{ left: isSmallScreen ? 5 : 10, right: isSmallScreen ? 5 : 10 }}
-                  interval={isSmallScreen ? "preserveEnd" : "preserveStartEnd"}
-                  height={isSmallScreen ? 25 : 30}
-                />
+                    textAnchor: "middle",
+                  },
+                  offset: isSmallScreen ? 3 : 5,
+                }}
+                tickFormatter={(value) =>
+                  isSmallScreen
+                    ? Math.round(value).toString()
+                    : formatNumber(value)
+                }
+                tickCount={isSmallScreen ? 4 : 5}
+              />
 
-                <YAxis
-                  yAxisId="left"
-                  orientation="left"
-                  tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
-                  axisLine={{ stroke: "#374151" }}
-                  tickLine={false}
-                  domain={[0, "dataMax + 50"]}
-                  width={isSmallScreen ? 30 : 40}
-                  label={{
-                    value: "Minutes",
-                    angle: -90,
-                    position: "insideLeft",
-                    style: {
-                      fill: "#9CA3AF",
-                      fontSize: isSmallScreen ? 9 : 11,
-                      fontWeight: 500,
-                      textAnchor: "middle",
-                    },
-                    offset: isSmallScreen ? 3 : 5,
-                  }}
-                  tickFormatter={(value) => isSmallScreen ? Math.round(value).toString() : formatNumber(value)}
-                  tickCount={isSmallScreen ? 4 : 5}
-                />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
+                axisLine={{ stroke: "#374151" }}
+                tickLine={false}
+                domain={[0, "dataMax + 5"]}
+                width={isSmallScreen ? 30 : 40}
+                label={{
+                  value: "Sessions",
+                  angle: 90,
+                  position: "insideRight",
+                  style: {
+                    fill: "#9CA3AF",
+                    fontSize: isSmallScreen ? 9 : 11,
+                    fontWeight: 500,
+                    textAnchor: "middle",
+                  },
+                  offset: isSmallScreen ? 3 : 5,
+                }}
+                tickFormatter={(value) =>
+                  isSmallScreen
+                    ? Math.round(value).toString()
+                    : formatNumber(value)
+                }
+                tickCount={isSmallScreen ? 3 : 4}
+              />
 
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
-                  axisLine={{ stroke: "#374151" }}
-                  tickLine={false}
-                  domain={[0, "dataMax + 5"]}
-                  width={isSmallScreen ? 30 : 40}
-                  label={{
-                    value: "Sessions",
-                    angle: 90,
-                    position: "insideRight",
-                    style: {
-                      fill: "#9CA3AF",
-                      fontSize: isSmallScreen ? 9 : 11,
-                      fontWeight: 500,
-                      textAnchor: "middle",
-                    },
-                    offset: isSmallScreen ? 3 : 5,
-                  }}
-                  tickFormatter={(value) => isSmallScreen ? Math.round(value).toString() : formatNumber(value)}
-                  tickCount={isSmallScreen ? 3 : 4}
-                />
+              <Tooltip
+                content={<CustomTooltip active={false} payload={[]} label="" />}
+                cursor={{
+                  fill: "rgba(219, 234, 254, 0.5)",
+                }} /* Blue-100 with opacity */
+                animationDuration={200}
+                animationEasing="ease-out"
+                contentStyle={{
+                  backgroundColor: "rgba(31, 41, 55, 0.8)",
+                  borderColor: "#4B5563",
+                }}
+                itemStyle={{ color: "#E5E7EB" }}
+                allowEscapeViewBox={{ x: true, y: true }}
+              />
 
-                <Tooltip
-                  content={
-                    <CustomTooltip active={false} payload={[]} label="" />
-                  }
-                  cursor={{
-                    fill: "rgba(219, 234, 254, 0.5)",
-                  }} /* Blue-100 with opacity */
-                  animationDuration={200}
-                  animationEasing="ease-out"
-                  contentStyle={{
-                    backgroundColor: "rgba(31, 41, 55, 0.8)",
-                    borderColor: "#4B5563",
-                  }}
-                  itemStyle={{ color: "#E5E7EB" }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                />
+              <Legend
+                verticalAlign="bottom"
+                align="center"
+                height={isSmallScreen ? 25 : 30}
+                iconSize={isSmallScreen ? 6 : 8}
+                margin={{ top: 0, bottom: 0 }}
+                wrapperStyle={{
+                  fontSize: isSmallScreen ? 8 : 10,
+                }}
+              />
 
-                <Legend
-                  verticalAlign="bottom"
-                  align="center"
-                  height={isSmallScreen ? 25 : 30}
-                  iconSize={isSmallScreen ? 6 : 8}
-                  margin={{ top: 0, bottom: 0 }}
-                  wrapperStyle={{
-                    fontSize: isSmallScreen ? 8 : 10,
-                  }}
-                />
+              {/* Session Time Bar */}
+              <Bar
+                yAxisId="left"
+                dataKey="sessionTime"
+                name="Total Time (mins)"
+                fill="url(#sessionTimeGradient)"
+                radius={[4, 4, 0, 0]}
+                animationDuration={1000}
+                animationEasing="ease-out"
+                isAnimationActive={true}
+                minPointSize={2}
+                activeBar={
+                  <Rectangle fill="#2563EB" opacity={0.9} />
+                } /* Blue-600 */
+              />
 
-                {/* Session Time Bar */}
-                <Bar
-                  yAxisId="left"
-                  dataKey="sessionTime"
-                  name="Total Time (mins)"
-                  fill="url(#sessionTimeGradient)"
-                  radius={[4, 4, 0, 0]}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                  isAnimationActive={true}
-                  minPointSize={2}
-                  activeBar={
-                    <Rectangle fill="#2563EB" opacity={0.9} />
-                  } /* Blue-600 */
-                />
+              {/* Session Count Bar */}
+              <Bar
+                yAxisId="right"
+                dataKey="sessionCount"
+                name="Sessions"
+                fill="url(#sessionCountGradient)"
+                radius={[4, 4, 0, 0]}
+                opacity={0.9}
+                animationDuration={1000}
+                animationEasing="ease-out"
+                animationBegin={200}
+                isAnimationActive={true}
+                minPointSize={2}
+                activeBar={
+                  <Rectangle fill="#0284C7" opacity={0.9} />
+                } /* Sky-600 */
+              />
 
-                {/* Session Count Bar */}
-                <Bar
-                  yAxisId="right"
-                  dataKey="sessionCount"
-                  name="Sessions"
-                  fill="url(#sessionCountGradient)"
-                  radius={[4, 4, 0, 0]}
-                  opacity={0.9}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                  animationBegin={200}
-                  isAnimationActive={true}
-                  minPointSize={2}
-                  activeBar={
-                    <Rectangle fill="#0284C7" opacity={0.9} />
-                  } /* Sky-600 */
-                />
-
-                {/* Average Session Length Line/Area */}
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="avgSessionLength"
-                  name="Avg. Length (mins)"
-                  stroke="#1D4ED8" /* Blue-700 */
-                  strokeWidth={2.5}
-                  fillOpacity={0.3}
-                  fill="url(#avgLengthGradient)"
-                  activeDot={{
-                    r: 6,
-                    stroke: "#2563EB",
-                    strokeWidth: 2,
-                    fill: "#DBEAFE",
-                  }} /* Blue-600, Blue-100 */
-                  animationDuration={1200} // Longer duration for area
-                  animationBegin={400} // Stagger start further
-                  isAnimationActive={true}
-                  connectNulls={true} // Connect line over months with no data
-                />
+              {/* Average Session Length Line/Area */}
+              <Area
+                yAxisId="left"
+                type="monotone"
+                dataKey="avgSessionLength"
+                name="Avg. Length (mins)"
+                stroke="#1D4ED8" /* Blue-700 */
+                strokeWidth={2.5}
+                fillOpacity={0.3}
+                fill="url(#avgLengthGradient)"
+                activeDot={{
+                  r: 6,
+                  stroke: "#2563EB",
+                  strokeWidth: 2,
+                  fill: "#DBEAFE",
+                }} /* Blue-600, Blue-100 */
+                animationDuration={1200} // Longer duration for area
+                animationBegin={400} // Stagger start further
+                isAnimationActive={true}
+                connectNulls={true} // Connect line over months with no data
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

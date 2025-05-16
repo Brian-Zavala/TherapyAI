@@ -60,7 +60,9 @@ export async function GET() {
         communicationStyle: user.communicationStyle || "",
         additionalNotes: user.additionalNotes || "",
         onboardingCompleted: user.onboardingCompleted || false,
-        onboardingData: user.onboardingData || null
+        onboardingData: user.onboardingData || null,
+        phone: user.phone || "",
+        notificationPrefs: user.notificationPrefs || "email"
       }
       
       return NextResponse.json(safeUser)
@@ -131,6 +133,8 @@ export async function PATCH(request: Request) {
           sessionPreference: data.sessionTime || null,
           communicationStyle: data.communicationStyle || null,
           additionalNotes: data.additionalNotes || null,
+          phone: data.phone || null,
+          notificationPrefs: data.notificationPrefs || 'email',
         }
       })
       
@@ -254,7 +258,9 @@ export async function PUT(request: Request) {
           emergencyContact: data.emergencyContact,
           sessionPreference: data.sessionPreference,
           communicationStyle: data.communicationStyle,
-          additionalNotes: data.additionalNotes
+          additionalNotes: data.additionalNotes,
+          phone: data.phone,
+          notificationPrefs: data.notificationPrefs
         }
         
         const updatedUser = await prisma.user.update({
@@ -278,7 +284,9 @@ export async function PUT(request: Request) {
           emergencyContact: updatedUser.emergencyContact || "",
           sessionPreference: updatedUser.sessionPreference || "",
           communicationStyle: updatedUser.communicationStyle || "",
-          additionalNotes: updatedUser.additionalNotes || ""
+          additionalNotes: updatedUser.additionalNotes || "",
+          phone: updatedUser.phone || "",
+          notificationPrefs: updatedUser.notificationPrefs || "email"
         }
         
         return NextResponse.json({ 

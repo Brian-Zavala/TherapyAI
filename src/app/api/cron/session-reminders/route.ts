@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
+import { sendSessionReminder } from '@/lib/sms-service';
 
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -17,11 +18,14 @@ export async function GET(request: Request) {
 
   try {
     // Find sessions happening in next 24 hours without reminders
-    const upcomingSessions = await prisma.therapySession.findMany({
+    const upcomingSessions = await prisma.session.findMany({
       where: {
         status: 'scheduled',
-        reminderSent: false,
-        sessionDate: {
+        OR: [
+          { emailReminderSent: false },
+          { smsReminderSent: false }
+        ],
+        date: {
           gt: new Date(),
           lt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
         },
@@ -31,44 +35,63 @@ export async function GET(request: Request) {
       },
     });
 
-    // Process each session using Resend
+    // Process each session
     const reminderResults = await Promise.allSettled(
       upcomingSessions.map(async (session) => {
-        // Add null check for email
-        if (!session.user.email) {
-          console.log(`Skipping reminder for session ${session.id} - user has no email`);
-          return prisma.therapySession.update({
+        const notificationPrefs = session.notificationPrefs || session.user.notificationPrefs || 'email';
+        const updates: any = {};
+        
+        // Send email reminder if needed
+        if ((notificationPrefs === 'email' || notificationPrefs === 'both') && 
+            !session.emailReminderSent && session.user.email) {
+          try {
+            await resend.emails.send({
+              from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+              to: session.user.email,
+              subject: 'Reminder: Your Upcoming Therapy Session',
+              react: SessionReminderEmail({
+                username: session.user.name || 'Valued Client',
+                sessionDate: session.date,
+                duration: session.duration,
+                notes: session.notes || '',
+              }),
+            });
+            updates.emailReminderSent = true;
+            console.log(`Email reminder sent for session ${session.id}`);
+          } catch (emailError) {
+            console.error(`Failed to send email reminder for session ${session.id}:`, emailError);
+          }
+        }
+        
+        // Send SMS reminder if needed
+        if ((notificationPrefs === 'sms' || notificationPrefs === 'both') && 
+            !session.smsReminderSent && session.user.phone) {
+          try {
+            await sendSessionReminder(session.user.phone, session.date, session.duration);
+            updates.smsReminderSent = true;
+            console.log(`SMS reminder sent for session ${session.id}`);
+          } catch (smsError) {
+            console.error(`Failed to send SMS reminder for session ${session.id}:`, smsError);
+          }
+        }
+        
+        // Update the session with reminder status
+        if (Object.keys(updates).length > 0) {
+          return prisma.session.update({
             where: { id: session.id },
-            data: { reminderSent: true }, // Mark as attempted
+            data: updates,
           });
         }
         
-        // Send the email using Resend
-        await resend.emails.send({
-          from: `Therapy Support <${process.env.EMAIL_FROM}>`,
-          to: session.user.email,
-          subject: 'Reminder: Your Upcoming Therapy Session',
-          react: SessionReminderEmail({
-            username: session.user.name || 'Valued Client',
-            sessionDate: session.sessionDate,
-            duration: session.duration,
-            notes: session.notes || '',
-          }),
-        });
-
-        // Mark reminder as sent in database
-        return prisma.therapySession.update({
-          where: { id: session.id },
-          data: { reminderSent: true },
-        });
+        return null;
       })
     );
 
     // Handle missed sessions (past scheduled time without completion)
-    const missedSessions = await prisma.therapySession.updateMany({
+    const missedSessions = await prisma.session.updateMany({
       where: {
         status: 'scheduled',
-        sessionDate: {
+        date: {
           lt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         },
       },

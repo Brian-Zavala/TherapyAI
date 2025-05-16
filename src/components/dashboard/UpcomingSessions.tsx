@@ -163,10 +163,32 @@ export default function UpcomingSessions() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-80 overflow-y-auto bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg w-full"
+      className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full"
     >
-      <div className="flex justify-between items-center mb-4 sticky top-0 bg-blue-700/70 backdrop-blur-md pt-3 pb-3 px-4 z-10 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-white">Upcoming Sessions</h2>
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-white flex-1">
+          Upcoming Sessions
+        </h2>
+      </div>
+
+      <div className="flex justify-between items-center mb-4">
+        <div></div>
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.98 }}
@@ -187,30 +209,39 @@ export default function UpcomingSessions() {
         </motion.div>
       </div>
 
-      {sessions.length === 0 ? (
+      <div className="h-80 overflow-y-auto">
+        {sessions.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="h-64 flex items-center justify-center"
         >
-          <div className="text-center p-6 bg-white/90 rounded-lg max-w-sm shadow-lg">
-            <svg className="w-12 h-12 mx-auto text-blue-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-lg font-medium text-blue-800">No upcoming sessions</p>
-            <p className="text-sm mt-2 text-gray-700">
-              Schedule your first therapy session to start your journey together!
+          <div className="text-center p-6 max-w-sm">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <svg className="w-16 h-16 mx-auto text-white/80 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </motion.div>
+            <h3 className="text-xl font-semibold text-white mb-2">Your Calendar Awaits</h3>
+            <p className="text-sm text-white/80 mb-6">
+              Schedule your therapy sessions to begin your transformative journey towards stronger relationships.
             </p>
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="mt-4"
             >
               <Link 
                 href="/schedule" 
-                className="inline-block px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-300"
+                className="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-full text-sm font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30"
               >
                 Schedule Your First Session
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
               </Link>
             </motion.div>
           </div>
@@ -349,6 +380,7 @@ export default function UpcomingSessions() {
           })}
         </motion.div>
       )}
+      </div>
     </motion.div>
   );
 }

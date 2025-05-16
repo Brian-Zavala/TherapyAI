@@ -794,27 +794,47 @@ export default function CommunicationMetrics() {
 
   if (loading) {
     content = (
-      <div className="h-[400px] flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin shadow-md"></div>
-          <p className="mt-6 text-purple-700 font-medium text-center">
-            Analyzing your communication patterns...
-            <br />
-            <span className="text-sm text-purple-500">
-              This may take a moment
-            </span>
-          </p>
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+        <div className="flex items-center mb-6">
+          <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-white">
+            Communication Quality
+          </h2>
+        </div>
+        <div className="h-[400px] flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-white/40 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-6 text-white font-medium text-center">
+              Loading your communication insights...
+            </p>
+          </div>
         </div>
       </div>
     );
   } else if (error) {
     content = (
       <>
-        <div className="h-[400px] flex items-center justify-center">
-          <div className="text-center p-8 bg-white rounded-xl shadow-md max-w-md border border-purple-100">
-            <div className="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-4">
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+          <div className="flex items-center mb-6">
+            <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
               <svg
-                className="w-8 h-8 text-purple-600"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -827,21 +847,44 @@ export default function CommunicationMetrics() {
                 />
               </svg>
             </div>
-            <p className="text-xl font-medium text-gray-800">
-              No {therapyType} communication data yet
+            <h2 className="text-xl font-semibold text-white">
+              Communication Quality
+            </h2>
+          </div>
+          
+          <div className="text-center py-20">
+            <div className="w-16 h-16 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-purple-200"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+            <p className="text-xl font-medium text-white">
+              Your Communication Journey Awaits
             </p>
-            <p className="text-sm mt-3 text-gray-600 max-w-sm mx-auto">
+            <p className="text-sm mt-3 text-white/80 max-w-sm mx-auto">
               Complete a {therapyType} assessment or therapy session to see
               detailed analytics and personalized insights about your
               communication patterns.
             </p>
 
             {/* Therapy Type Selector when no data is available */}
-            <TherapyTypeSelector />
+            <div className="my-6">
+              <TherapyTypeSelector />
+            </div>
 
             <div className="flex flex-col sm:flex-row sm:space-x-4 justify-center mt-6 gap-3">
               <button
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-sm font-medium shadow-md hover:opacity-90 active:opacity-100 transition-opacity"
+                className="px-5 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-white/30 active:bg-white/25 transition-colors duration-200 border border-white/30"
                 onClick={() => {
                   toggleAssessment();
                   playSound();
@@ -850,7 +893,7 @@ export default function CommunicationMetrics() {
                 Take Assessment
               </button>
               <button
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-medium shadow-md hover:opacity-90 active:opacity-100 transition-opacity"
+                className="px-5 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-white/30 active:bg-white/25 transition-colors duration-200 border border-white/30"
                 onClick={() => {
                   router.push("/schedule");
                   playSound();
@@ -915,8 +958,31 @@ export default function CommunicationMetrics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full flex flex-col relative"
+          className="w-full flex flex-col relative bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6"
         >
+          {/* Header */}
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-white">
+              Communication Quality
+            </h2>
+          </div>
+
           {/* Use the reusable therapy type selector */}
           <TherapyTypeSelector />
 
@@ -1500,10 +1566,11 @@ export default function CommunicationMetrics() {
           </style>
 
           <motion.div
-            className="relative w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6 overflow-hidden"
+            className="relative w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            style={{ overflow: 'visible' }}
             onClick={() => {
               if (!userInteracted) {
                 setUserInteracted(true);
@@ -1624,11 +1691,18 @@ export default function CommunicationMetrics() {
                             animationDuration={0}
                             isAnimationActive={false}
                             cursor={false}
-                            contentStyle={{
-                              backgroundColor: "rgba(31, 41, 55, 0.8)",
-                              borderColor: "#4B5563"
+                            wrapperStyle={{ 
+                              zIndex: 9999,
+                              position: 'absolute'
                             }}
-                            itemStyle={{ color: "#E5E7EB" }}
+                            contentStyle={{
+                              backgroundColor: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                              padding: 0
+                            }}
+                            itemStyle={{ color: "#374151" }}
                             allowEscapeViewBox={{ x: true, y: true }}
                           />
                           {/* We're skipping the Legend component for the radar chart since 
@@ -2076,8 +2150,21 @@ export default function CommunicationMetrics() {
                           <Tooltip
                             content={CustomTooltip}
                             animationDuration={0}
-                            animationEasing="linear"
-                            wrapperStyle={{ pointerEvents: "none" }}
+                            isAnimationActive={false}
+                            cursor={false}
+                            wrapperStyle={{ 
+                              zIndex: 9999,
+                              position: 'absolute',
+                              pointerEvents: "none"
+                            }}
+                            contentStyle={{
+                              backgroundColor: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                              padding: 0
+                            }}
+                            itemStyle={{ color: "#374151" }}
                             allowEscapeViewBox={{ x: true, y: true }}
                           />
                           <Legend
@@ -2241,8 +2328,21 @@ export default function CommunicationMetrics() {
                           <Tooltip
                             content={CustomTooltip}
                             animationDuration={0}
-                            animationEasing="linear"
-                            wrapperStyle={{ pointerEvents: "none" }}
+                            isAnimationActive={false}
+                            cursor={false}
+                            wrapperStyle={{ 
+                              zIndex: 9999,
+                              position: 'absolute',
+                              pointerEvents: "none"
+                            }}
+                            contentStyle={{
+                              backgroundColor: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                              padding: 0
+                            }}
+                            itemStyle={{ color: "#374151" }}
                             allowEscapeViewBox={{ x: true, y: true }}
                           />
                           <Legend

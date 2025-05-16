@@ -121,8 +121,7 @@ const formSteps: FormStep[] = [
         options: [
           { value: 'individual', label: 'Individual Therapy' },
           { value: 'couples', label: 'Couples Therapy' },
-          { value: 'family', label: 'Family Therapy' },
-          { value: 'group', label: 'Group Therapy' }
+          { value: 'family', label: 'Family Therapy' }
         ],
         required: true
       },
@@ -167,6 +166,24 @@ const formSteps: FormStep[] = [
           { value: 'gentle', label: 'Gentle and supportive' },
           { value: 'balanced', label: 'Balanced approach' }
         ]
+      },
+      {
+        name: 'notificationPrefs',
+        label: 'How would you like to receive session reminders?',
+        type: 'multiselect',
+        options: [
+          { value: 'email', label: 'Email' },
+          { value: 'sms', label: 'Text message (SMS)' },
+          { value: 'both', label: 'Both email and text' }
+        ],
+        required: true
+      },
+      {
+        name: 'phone',
+        label: 'Phone number (for text reminders)',
+        type: 'tel',
+        placeholder: '+1 (555) 000-0000',
+        required: false
       }
     ]
   },
@@ -304,11 +321,11 @@ export default function WelcomePage() {
             </div>
             
             {/* Step indicators */}
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-center mb-4 px-2">
               {formSteps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                   <motion.div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-200 shrink-0 ${
                       index < currentStep
                         ? 'bg-green-500 border-green-400'
                         : index === currentStep
@@ -317,21 +334,21 @@ export default function WelcomePage() {
                     }`}
                     initial={{ scale: 0.8 }}
                     animate={{ scale: index <= currentStep ? 1 : 0.8 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.2, type: "tween" }}
                   >
                     {index < currentStep ? (
-                      <CheckCircleIcon className="w-6 h-6 text-white" />
+                      <CheckCircleIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     ) : (
-                      <span className="text-white font-medium">{index + 1}</span>
+                      <span className="text-white font-medium text-sm sm:text-base">{index + 1}</span>
                     )}
                   </motion.div>
                   {index < formSteps.length - 1 && (
-                    <div className="w-12 h-0.5 bg-white/20 mx-2">
+                    <div className="w-6 sm:w-8 md:w-12 h-0.5 bg-white/20 mx-1 sm:mx-2">
                       <motion.div
                         className="h-full bg-gradient-to-r from-green-500 to-blue-500"
                         initial={{ width: 0 }}
                         animate={{ width: index < currentStep ? '100%' : '0%' }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        transition={{ duration: 0.3, type: "tween" }}
                       />
                     </div>
                   )}
@@ -345,7 +362,7 @@ export default function WelcomePage() {
                 className="h-full bg-gradient-to-r from-blue-500 to-blue-600"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.3, type: "tween" }}
               />
             </div>
           </div>
@@ -353,10 +370,10 @@ export default function WelcomePage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2, type: "tween" }}
             >
               <h1 className="text-3xl font-bold text-white mb-2">
                 {formSteps[currentStep].title}
@@ -375,8 +392,18 @@ export default function WelcomePage() {
                     
                     {field.type === 'text' && (
                       <motion.input
-                        whileFocus={{ scale: 1.02 }}
                         type="text"
+                        name={field.name}
+                        placeholder={field.placeholder}
+                        value={formData[field.name] || ''}
+                        onChange={(e) => handleInputChange(field.name, e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                      />
+                    )}
+                    
+                    {field.type === 'tel' && (
+                      <motion.input
+                        type="tel"
                         name={field.name}
                         placeholder={field.placeholder}
                         value={formData[field.name] || ''}
@@ -387,15 +414,14 @@ export default function WelcomePage() {
                     
                     {field.type === 'select' && (
                       <motion.select
-                        whileFocus={{ scale: 1.02 }}
                         name={field.name}
                         value={formData[field.name] || ''}
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 transition-all appearance-none"
+                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
                       >
-                        <option value="">Select an option</option>
+                        <option value="" className="bg-gray-900 text-gray-400">Select an option</option>
                         {field.options?.map((option) => (
-                          <option key={option.value} value={option.value} className="bg-gray-900">
+                          <option key={option.value} value={option.value} className="bg-gray-900 text-white">
                             {option.label}
                           </option>
                         ))}
@@ -409,8 +435,8 @@ export default function WelcomePage() {
                           return (
                             <motion.button
                               key={option.value}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
                               onClick={() => handleMultiSelectChange(field.name, option.value)}
                               className={`relative px-4 py-2 rounded-xl border transition-all ${
                                 isSelected
@@ -424,6 +450,7 @@ export default function WelcomePage() {
                                   <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
+                                    transition={{ duration: 0.1 }}
                                     className="ml-2"
                                   >
                                     <CheckCircleIcon className="w-5 h-5 text-green-400" />
@@ -438,7 +465,6 @@ export default function WelcomePage() {
                     
                     {field.type === 'textarea' && (
                       <motion.textarea
-                        whileFocus={{ scale: 1.02 }}
                         name={field.name}
                         placeholder={field.placeholder}
                         value={formData[field.name] || ''}

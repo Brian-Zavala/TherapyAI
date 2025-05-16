@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { useRouter } from 'next/navigation';
-import { CalendarIcon, Clock, MessageSquare, Bookmark } from 'lucide-react';
+import { CalendarIcon, Clock, MessageSquare, Bookmark, Mail, Phone } from 'lucide-react';
 
 export default function SchedulePage() {
   const { data: session, status: authStatus } = useSession();
@@ -14,9 +14,26 @@ export default function SchedulePage() {
   const [duration, setDuration] = useState<number>(60);
   const [theme, setTheme] = useState<string>('AI Therapy Session');
   const [notes, setNotes] = useState<string>('');
+  const [notificationPrefs, setNotificationPrefs] = useState<string>('email');
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<boolean>(false);
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          setUserProfile(data);
+          if (data.notificationPrefs) {
+            setNotificationPrefs(data.notificationPrefs);
+          }
+        })
+        .catch(error => console.error('Error fetching profile:', error));
+    }
+  }, [authStatus]);
 
   // Redirect if not authenticated
   if (authStatus === 'unauthenticated') {
@@ -55,7 +72,8 @@ export default function SchedulePage() {
           date: selectedDate.toISOString(),
           duration,
           theme,
-          notes
+          notes,
+          notificationPrefs
         }),
       });
       
@@ -247,6 +265,60 @@ export default function SchedulePage() {
                     rows={4}
                     className="w-full p-3 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reminder Preferences
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="notificationPrefs"
+                        value="email"
+                        checked={notificationPrefs === 'email'}
+                        onChange={(e) => setNotificationPrefs(e.target.value)}
+                        className="mr-2"
+                      />
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email only
+                    </label>
+                    {userProfile?.phone && (
+                      <>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="notificationPrefs"
+                            value="sms"
+                            checked={notificationPrefs === 'sms'}
+                            onChange={(e) => setNotificationPrefs(e.target.value)}
+                            className="mr-2"
+                          />
+                          <Phone className="h-4 w-4 mr-2" />
+                          Text message only
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="notificationPrefs"
+                            value="both"
+                            checked={notificationPrefs === 'both'}
+                            onChange={(e) => setNotificationPrefs(e.target.value)}
+                            className="mr-2"
+                          />
+                          <Mail className="h-4 w-4 mr-2" />
+                          <Phone className="h-4 w-4 mr-2" />
+                          Both email and text
+                        </label>
+                      </>
+                    )}
+                  </div>
+                  {!userProfile?.phone && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      To receive text message reminders, please add your phone number in your profile settings.
+                    </p>
+                  )}
                 </div>
                 
                 <div className="pt-2">

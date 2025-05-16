@@ -213,11 +213,12 @@ export default function RelationshipProgressCard() {
         } else {
           // If API returned invalid/empty data, show empty state
           console.log(
-            "API returned invalid or empty data, showing empty state"
+            "API returned empty data, showing empty state"
           );
           setData([]);
           setDataSource("api");
-          setError("No relationship data found for the selected timeframe.");
+          // Don't set error for empty data, just show the empty state
+          setError(null);
         }
       } catch (error: any) {
         // Catch specific type if possible, otherwise 'any' or 'unknown'
@@ -226,7 +227,12 @@ export default function RelationshipProgressCard() {
         console.log("Error fetching data, showing empty state");
         setData([]);
         setDataSource("api");
-        setError(`Error loading data: ${error.message}`);
+        // Only set error for actual failures, not empty data
+        if (error.message && !error.message.includes("No relationship data")) {
+          setError(`Error loading data: ${error.message}`);
+        } else {
+          setError(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -505,11 +511,21 @@ export default function RelationshipProgressCard() {
     const tooltip = (
       <Tooltip 
         content={CustomTooltip} 
-        contentStyle={{
-          backgroundColor: "rgba(31, 41, 55, 0.8)",
-          borderColor: "#4B5563"
+        animationDuration={0}
+        isAnimationActive={false}
+        cursor={false}
+        wrapperStyle={{ 
+          zIndex: 9999,
+          position: 'absolute'
         }}
-        itemStyle={{ color: "#E5E7EB" }} 
+        contentStyle={{
+          backgroundColor: "white",
+          border: "none",
+          borderRadius: "8px",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+          padding: 0
+        }}
+        itemStyle={{ color: "#374151" }} 
         allowEscapeViewBox={{ x: true, y: true }}
       />
     ); // Ensure tooltip is above other elements
@@ -664,12 +680,54 @@ export default function RelationshipProgressCard() {
   // Now this check happens AFTER all hooks have been called
   if (loading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md h-[500px] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-purple-600">
-            Loading relationship progress data...
-          </p>
+      <div className="w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+        <div className="flex items-center mb-4">
+          <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-white">
+            Relationship Progress
+          </h2>
+        </div>
+        <div className="min-h-[450px] flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <svg
+              className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-white/80"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <p className="mt-4 text-white font-medium text-xs sm:text-sm text-center">
+              Loading your therapy insights...
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -706,8 +764,29 @@ export default function RelationshipProgressCard() {
 
   // --- Final Render ---
   return (
-    <div className="w-full">
-      <div className="flex flex-col sm:flex-row justify-center sm:justify-end sm:items-center mb- rounded-lg p-3">
+    <div className="w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+            />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-white">
+          Relationship Progress
+        </h2>
+      </div>
+      <div className="flex flex-col sm:flex-row justify-center sm:justify-end sm:items-center mb-3 rounded-lg">
         <div className="flex space-x-2 mb-2 sm:mb-0 items-center">
           {" "}
           {/* Added items-center */}
@@ -767,13 +846,13 @@ export default function RelationshipProgressCard() {
         </div>
       </div>
 
-      {/* Error message if present */}
+      {/* Error message for actual errors */}
       {error && (
         <div
           className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-xs mb-3"
           role="alert"
         >
-          <span className="font-medium">Warning:</span> {error}
+          <span className="font-medium">Error:</span> {error}
         </div>
       )}
 
@@ -785,7 +864,7 @@ export default function RelationshipProgressCard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[420px]'} w-full overflow-hidden relative`}>
+          <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[420px]'} w-full relative`} style={{ overflow: 'visible' }}>
             <ResponsiveContainer width="100%" height="100%" debounce={150}>
               {renderChart}
             </ResponsiveContainer>
@@ -794,10 +873,15 @@ export default function RelationshipProgressCard() {
       ) : (
         // Display message when no data is available (after loading finishes)
         !loading && (
-          <div className="w-full h-[250px] sm:h-[300px] md:h-[340px] flex items-center justify-center text-center border border-dashed border-white/50 rounded-md bg-white/60 shadow-md">
-            <div>
+          <div className="w-full h-[250px] sm:h-[300px] md:h-[340px] flex items-center justify-center text-center">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="max-w-md"
+            >
               <svg
-                className="mx-auto h-12 w-12 text-blue-600"
+                className="mx-auto h-16 w-16 text-white/80 mb-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -811,15 +895,28 @@ export default function RelationshipProgressCard() {
                   d="M9 17v-2m3 2v-4m3 4v-6m-1.5-6.354a7.5 7.5 0 11-10.606 0M12 6v1m0 9v1m-4.243-3.757l.707-.707M15.536 8.464l.707.707M6.757 17.243l-.707.707M17.243 6.757l-.707-.707"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-semibold text-blue-800">
-                No Data Available
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Your Progress Awaits
               </h3>
-              <p className="mt-1 text-sm text-blue-600">
+              <p className="text-sm text-white/80 mb-4 px-4">
                 {error
-                  ? "Could not load relationship data."
-                  : "There is no relationship data for the selected timeframe."}
+                  ? "Could not load relationship data at this time."
+                  : "Start your therapy journey to track meaningful progress and insights."}
               </p>
-            </div>
+              {timeframe !== "all" && !error && (
+                <p className="text-xs text-white/60 mb-4">
+                  Try changing the timeframe to "All Time" to see more data.
+                </p>
+              )}
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-2.5 bg-white/20 text-white rounded-full text-sm font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30"
+                onClick={() => (window.location.href = "/dashboard/therapy")}
+              >
+                Begin Session
+              </motion.button>
+            </motion.div>
           </div>
         )
       )}

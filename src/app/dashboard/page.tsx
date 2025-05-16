@@ -52,7 +52,6 @@ export default function Dashboard() {
     }
   }, [status, router, session]);
 
-
   if (status === "loading" || isProfileLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -60,7 +59,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
 
   const container = {
     hidden: { opacity: 0 },
@@ -86,8 +84,8 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg mb-8 p-6 sm:p-10 text-white"
         >
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div>
+          <div className="flex flex-col items-center sm:flex-row sm:justify-between sm:items-center">
+            <div className="text-center sm:text-left">
               <h1 className="text-2xl sm:text-3xl font-bold">
                 Welcome back, {session?.user?.name?.split(" ")[0] || "there"}
               </h1>
@@ -97,7 +95,7 @@ export default function Dashboard() {
             </div>
             <Link
               href="/dashboard/therapy"
-              className="mt-4 sm:mt-0 px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-lg hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
+              className="mt-6 sm:mt-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-lg hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
             >
               Start New Session
               <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
@@ -112,7 +110,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("overview")}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === "overview"
-                ? "bg-indigo-500/50 text-white"
+                ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
@@ -122,7 +120,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("progress")}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === "progress"
-                ? "bg-blue-500/50 text-white"
+                ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
@@ -132,7 +130,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("communication")}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === "communication"
-                ? "bg-indigo-500/50 text-white"
+                ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
@@ -142,7 +140,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("sessions")}
             className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
               activeTab === "sessions"
-                ? "bg-indigo-500/50 text-white"
+                ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
@@ -160,131 +158,33 @@ export default function Dashboard() {
           {/* Session Time Visualization */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+            className="w-full" style={{ minHeight: "500px" }}
           >
-            <div className="p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-500/30 flex items-center justify-center text-white mr-3">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold text-white">
-                  Session Time Overview
-                </h2>
-              </div>
-              <div className="w-full" style={{ minHeight: '500px' }}>
-                <SessionTimeChart />
-              </div>
-            </div>
+            <SessionTimeChart />
           </motion.div>
 
           {/* Relationship Progress Card */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+            className="w-full" style={{ minHeight: "480px" }}
           >
-            <div className="p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold text-white">
-                  Relationship Progress
-                </h2>
-              </div>
-              <div className="w-full" style={{ minHeight: '480px' }}>
-                <RelationshipProgressCard />
-              </div>
-            </div>
+            <RelationshipProgressCard />
           </motion.div>
 
           {/* Communication Metrics */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+            className="w-full" style={{ minHeight: "500px" }}
           >
-            <div className="p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold text-white">
-                  Communication Quality
-                </h2>
-              </div>
-              <div className="w-full" style={{ minHeight: '500px' }}>
-                <CommunicationMetrics />
-              </div>
-            </div>
+            <CommunicationMetrics />
           </motion.div>
 
           {/* Upcoming Sessions */}
           <motion.div
             variants={item}
-            className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+            className="w-full"
           >
-            <div className="p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-3">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold text-white">
-                  Upcoming Sessions
-                </h2>
-              </div>
-              <UpcomingSessions />
-            </div>
+            <UpcomingSessions />
           </motion.div>
         </motion.div>
 
@@ -296,32 +196,9 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
+              className="w-full mb-6" style={{ minHeight: "450px" }}
             >
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center text-white mr-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-white">
-                  Session Time Overview
-                </h2>
-              </div>
-              <div className="w-full" style={{ minHeight: '450px' }}>
-                <SessionTimeChart />
-              </div>
+              <SessionTimeChart />
             </motion.div>
           )}
 
@@ -330,32 +207,9 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
+              className="w-full mb-6" style={{ minHeight: "450px" }}
             >
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-white">
-                  Relationship Progress
-                </h2>
-              </div>
-              <div className="w-full" style={{ minHeight: '450px' }}>
-                <RelationshipProgressCard />
-              </div>
+              <RelationshipProgressCard />
             </motion.div>
           )}
 
@@ -364,32 +218,9 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
+              className="w-full mb-6" style={{ minHeight: "480px" }}
             >
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-white">
-                  Communication Quality
-                </h2>
-              </div>
-              <div className="w-full" style={{ minHeight: '480px' }}>
-                <CommunicationMetrics />
-              </div>
+              <CommunicationMetrics />
             </motion.div>
           )}
 
@@ -398,32 +229,9 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg p-4 pb-12 mb-6"
+              className="w-full mb-6"
             >
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-white">
-                  Upcoming Sessions
-                </h2>
-              </div>
-              <div className="w-full">
-                <UpcomingSessions />
-              </div>
+              <UpcomingSessions />
             </motion.div>
           )}
 
