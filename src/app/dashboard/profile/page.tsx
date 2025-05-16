@@ -16,12 +16,19 @@ export default function ProfileSettings() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    pronouns: "",
     partnerName: "",
     relationshipStatus: "Married",
     familyMember1: "",
     familyMember2: "",
     familyMember3: "",
-    familyMember4: ""
+    familyMember4: "",
+    therapyType: "",
+    currentConcerns: null,
+    emergencyContact: "",
+    sessionPreference: "",
+    communicationStyle: "",
+    additionalNotes: ""
   })
   
   // Debug logging for session and check for new user flag
@@ -64,12 +71,19 @@ export default function ProfileSettings() {
         setFormData({
           name: userData.name || "",
           email: userData.email || "",
+          pronouns: userData.pronouns || "",
           partnerName: userData.partnerName || "",
           relationshipStatus: userData.relationshipStatus || "Married",
           familyMember1: userData.familyMember1 || "",
           familyMember2: userData.familyMember2 || "",
           familyMember3: userData.familyMember3 || "",
-          familyMember4: userData.familyMember4 || ""
+          familyMember4: userData.familyMember4 || "",
+          therapyType: userData.therapyType || "",
+          currentConcerns: userData.currentConcerns || null,
+          emergencyContact: userData.emergencyContact || "",
+          sessionPreference: userData.sessionPreference || "",
+          communicationStyle: userData.communicationStyle || "",
+          additionalNotes: userData.additionalNotes || ""
         })
       } catch (error) {
         console.error("Profile fetch error details:", error)
@@ -200,6 +214,19 @@ export default function ProfileSettings() {
               </div>
               
               <div>
+                <label htmlFor="pronouns" className="block text-sm font-medium text-gray-700 mb-1">Pronouns</label>
+                <input
+                  type="text"
+                  id="pronouns"
+                  name="pronouns"
+                  value={formData.pronouns}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  placeholder="e.g., he/him, she/her, they/them"
+                />
+              </div>
+              
+              <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                 <div className="relative">
                   <input
@@ -230,7 +257,7 @@ export default function ProfileSettings() {
                 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1">Partner's Name</label>
+                    <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1">Partner&apos;s Name</label>
                     <input
                       type="text"
                       id="partnerName"
@@ -327,6 +354,94 @@ export default function ProfileSettings() {
                         placeholder="Name"
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Therapy Preferences Section */}
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-6">
+                <h3 className="text-sm font-medium text-green-800 mb-3 flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  Therapy Preferences
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="therapyType" className="block text-sm font-medium text-gray-700 mb-1">Therapy Type</label>
+                    <select
+                      id="therapyType"
+                      name="therapyType"
+                      value={formData.therapyType}
+                      onChange={handleChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    >
+                      <option value="">Select therapy type</option>
+                      <option value="individual">Individual Therapy</option>
+                      <option value="couples">Couples Therapy</option>
+                      <option value="family">Family Therapy</option>
+                      <option value="group">Group Therapy</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="sessionPreference" className="block text-sm font-medium text-gray-700 mb-1">Session Preference</label>
+                    <select
+                      id="sessionPreference"
+                      name="sessionPreference"
+                      value={formData.sessionPreference}
+                      onChange={handleChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    >
+                      <option value="">Select time preference</option>
+                      <option value="morning">Morning (6 AM - 12 PM)</option>
+                      <option value="afternoon">Afternoon (12 PM - 5 PM)</option>
+                      <option value="evening">Evening (5 PM - 9 PM)</option>
+                      <option value="flexible">Flexible</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="communicationStyle" className="block text-sm font-medium text-gray-700 mb-1">Communication Style</label>
+                    <select
+                      id="communicationStyle"
+                      name="communicationStyle"
+                      value={formData.communicationStyle}
+                      onChange={handleChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    >
+                      <option value="">Select style</option>
+                      <option value="direct">Direct and straightforward</option>
+                      <option value="gentle">Gentle and supportive</option>
+                      <option value="balanced">Balanced approach</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-1">Emergency Contact</label>
+                    <input
+                      type="text"
+                      id="emergencyContact"
+                      name="emergencyContact"
+                      value={formData.emergencyContact}
+                      onChange={handleChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Name and phone number"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="additionalNotes" className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+                    <textarea
+                      id="additionalNotes"
+                      name="additionalNotes"
+                      value={formData.additionalNotes}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Any additional information you'd like us to know..."
+                    />
                   </div>
                 </div>
               </div>

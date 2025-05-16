@@ -22,7 +22,20 @@ export default function ConfettiAnimation({ trigger }: ConfettiAnimationProps) {
 
   useEffect(() => {
     if (trigger) {
-      const colors = ['#3b82f6', '#60a5fa', '#2563eb', '#93c5fd', '#dbeafe']
+      const colors = [
+        '#FF0000', // Red
+        '#FF7F00', // Orange
+        '#FFFF00', // Yellow
+        '#00FF00', // Green
+        '#0000FF', // Blue
+        '#4B0082', // Indigo
+        '#9400D3', // Violet
+        '#FF69B4', // Hot Pink
+        '#FFD700', // Gold
+        '#00FFFF', // Cyan
+        '#FF1493', // Deep Pink
+        '#32CD32', // Lime Green
+      ]
       const newParticles: ConfettiParticle[] = []
       
       for (let i = 0; i < 50; i++) {

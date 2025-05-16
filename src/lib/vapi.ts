@@ -276,6 +276,25 @@ export const getPersonalizedSystemPrompt = (userProfile?: any) => {
   const partnerName = userProfile?.partnerName || "their partner";
   const relationshipStatus =
     userProfile?.relationshipStatus || "In a relationship";
+  const pronouns = userProfile?.pronouns || null;
+  const communicationStyle = userProfile?.communicationStyle || "balanced";
+  const currentConcerns = userProfile?.currentConcerns || [];
+  const additionalNotes = userProfile?.additionalNotes || "";
+  
+  // Build communication style guidance
+  let communicationGuidance = "";
+  if (communicationStyle === "direct") {
+    communicationGuidance = "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic to both partners.";
+  } else if (communicationStyle === "gentle") {
+    communicationGuidance = "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for both partners to express themselves.";
+  } else {
+    communicationGuidance = "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for both partners.";
+  }
+  
+  // Format current concerns
+  const concernsList = Array.isArray(currentConcerns) 
+    ? currentConcerns.join(", ") 
+    : "relationship wellbeing";
 
   // Include session history directly in the prompt (not as a variable)
   // This avoids issues with Vapi variable substitution
@@ -295,8 +314,13 @@ Your therapeutic approach focuses on:
 4. Strengthening attachment bonds and emotional engagement
 5. Facilitating vulnerability and emotional intimacy between partners
   
-IMPORTANT: Your client's name is ${userName} and their partner's name is ${partnerName}. 
+IMPORTANT: Your client's name is ${userName}${pronouns ? ` (${pronouns})` : ""} and their partner's name is ${partnerName}. 
 Their relationship status is: ${relationshipStatus}.
+${currentConcerns.length > 0 ? `They are seeking help with: ${concernsList}.` : ""}
+${additionalNotes ? `Additional context: ${additionalNotes}` : ""}
+
+COMMUNICATION STYLE:
+${communicationGuidance}
 
 PREVIOUS SESSION HISTORY:
 ${sessionHistory}
@@ -482,11 +506,21 @@ export const getPersonalizedSystemPromptForType = (
   type: string = "couple",
   userProfile?: any
 ) => {
-  if (type === "couple") {
+  // Use preferred therapy type if available
+  const preferredType = userProfile?.therapyType || type;
+  
+  // Extract user preferences
+  const pronouns = userProfile?.pronouns || null;
+  const communicationStyle = userProfile?.communicationStyle || "balanced";
+  const currentConcerns = userProfile?.currentConcerns || [];
+  // const sessionPreference = userProfile?.sessionPreference || "flexible";
+  const additionalNotes = userProfile?.additionalNotes || "";
+  
+  if (preferredType === "couple") {
     return getPersonalizedSystemPrompt(userProfile);
   }
 
-  const config = getAssistantConfigByType(type);
+  const config = getAssistantConfigByType(preferredType);
   if (!userProfile || !userProfile.userName) {
     return config.model.messages[0].content;
   }
@@ -495,13 +529,27 @@ export const getPersonalizedSystemPromptForType = (
   const sessionHistory =
     userProfile?.sessionHistory || "No previous sessions found.";
 
-  if (type === "solo") {
+  if (preferredType === "solo" || preferredType === "individual") {
     // Get safe values with defaults
     const userName = userProfile?.userName || "the client";
+    const pronounStr = pronouns ? ` (${pronouns})` : "";
+    
+    // Build communication style guidance
+    let communicationGuidance = "";
+    if (communicationStyle === "direct") {
+      communicationGuidance = "Be direct and straightforward in your communication, getting to the point quickly and offering clear, practical advice.";
+    } else if (communicationStyle === "gentle") {
+      communicationGuidance = "Use gentle, supportive language. Be particularly warm and nurturing, offering validation and encouragement throughout.";
+    } else {
+      communicationGuidance = "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone.";
+    }
+    
+    // Format current concerns
+    const concernsList = Array.isArray(currentConcerns) 
+      ? currentConcerns.join(", ") 
+      : "general wellbeing";
 
-    // Include session history directly in the prompt (not as a variable)
-    const sessionHistory =
-      userProfile?.sessionHistory || "No previous sessions found.";
+    // Use session history from above
 
     return `You are Dr. Elliot Mackaphy, an empathetic individual therapist with 12 years of experience specializing in personal growth, emotional wellbeing, and evidence-based therapeutic approaches.
 
@@ -522,7 +570,12 @@ Your therapeutic approach emphasizes:
 4. Building value-driven goals and meaningful actions
 5. Integrating mindfulness practices into daily life
     
-IMPORTANT: Your client's name is ${userName}.
+IMPORTANT: Your client's name is ${userName}${pronounStr}.
+${currentConcerns.length > 0 ? `They are seeking help with: ${concernsList}.` : ""}
+${additionalNotes ? `Additional context: ${additionalNotes}` : ""}
+
+COMMUNICATION STYLE:
+${communicationGuidance}
 
 PREVIOUS SESSION HISTORY:
 ${sessionHistory}
@@ -553,7 +606,7 @@ CRITICAL INSTRUCTIONS - You MUST do the following:
 Your ultimate goal is to help ${userName} develop greater psychological flexibility, emotional regulation skills, and self-compassion as they navigate their personal challenges and support their emotional wellbeing and growth.`;
   }
 
-  if (type === "family") {
+  if (preferredType === "family") {
     // Safely access family member names, handling undefined/null cases
     const familyMemberNames = [
       userProfile?.familyMember1,
@@ -572,10 +625,18 @@ Your ultimate goal is to help ${userName} develop greater psychological flexibil
       const lastMember = familyMemberNames.pop();
       familyMembersString = `${userProfile?.userName || "the client"}, ${familyMemberNames.join(", ")}, and ${lastMember}`;
     }
+    
+    // Build communication style guidance
+    let communicationGuidance = "";
+    if (communicationStyle === "direct") {
+      communicationGuidance = "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic.";
+    } else if (communicationStyle === "gentle") {
+      communicationGuidance = "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for all family members.";
+    } else {
+      communicationGuidance = "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for all family members.";
+    }
 
-    // Include session history directly in the prompt (not as a variable)
-    const sessionHistory =
-      userProfile?.sessionHistory || "No previous sessions found.";
+    // Use session history from above
 
     return `You are Dr. Jada Pearson, an empathetic family therapist with 18 years of experience specializing in family dynamics, intergenerational relationships, and evidence-based family therapy approaches.
 
@@ -597,6 +658,11 @@ Your therapeutic approach emphasizes:
 5. Strengthening family resilience and cohesion through collaborative efforts
     
 IMPORTANT: You are working with ${familyMembersString}.
+${currentConcerns.length > 0 ? `The family is seeking help with: ${concernsList}.` : ""}
+${additionalNotes ? `Additional context: ${additionalNotes}` : ""}
+
+COMMUNICATION STYLE:
+${communicationGuidance}
 
 PREVIOUS SESSION HISTORY:
 ${sessionHistory}

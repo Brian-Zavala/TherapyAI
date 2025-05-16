@@ -45,6 +45,7 @@ export async function GET() {
         id: user.id,
         name: user.name || "",
         email: user.email,
+        pronouns: user.pronouns || "",
         partnerName: user.partnerName || "",
         relationshipStatus: user.relationshipStatus || "Married",
         // Safely handle potentially missing fields
@@ -52,6 +53,12 @@ export async function GET() {
         familyMember2: user.familyMember2 || "",
         familyMember3: user.familyMember3 || "",
         familyMember4: user.familyMember4 || "",
+        therapyType: user.therapyType || "",
+        currentConcerns: user.currentConcerns || null,
+        emergencyContact: user.emergencyContact || "",
+        sessionPreference: user.sessionPreference || "",
+        communicationStyle: user.communicationStyle || "",
+        additionalNotes: user.additionalNotes || "",
         onboardingCompleted: user.onboardingCompleted || false,
         onboardingData: user.onboardingData || null
       }
@@ -111,12 +118,19 @@ export async function PATCH(request: Request) {
           onboardingCompleted: true,
           // Update any specific fields from onboarding
           name: data.nickname || session.user.name,
+          pronouns: data.pronouns || null,
           relationshipStatus: data.relationshipStatus || 'Married',
           partnerName: data.partnerName || null,
           familyMember1: data.familyMember1 || null,
           familyMember2: data.familyMember2 || null,
           familyMember3: data.familyMember3 || null,
           familyMember4: data.familyMember4 || null,
+          therapyType: data.therapyType || null,
+          currentConcerns: data.goals || null,
+          emergencyContact: data.emergencyContact || null,
+          sessionPreference: data.sessionTime || null,
+          communicationStyle: data.communicationStyle || null,
+          additionalNotes: data.additionalNotes || null,
         }
       })
       
@@ -228,18 +242,19 @@ export async function PUT(request: Request) {
         // Create update data with base fields
         const updateData = {
           name: data.name,
+          pronouns: data.pronouns,
           partnerName: data.partnerName,
-          relationshipStatus: data.relationshipStatus
-        }
-        
-        // Only add family member fields that exist in the database
-        try {
-          if ('familyMember1' in user) updateData['familyMember1'] = data.familyMember1
-          if ('familyMember2' in user) updateData['familyMember2'] = data.familyMember2
-          if ('familyMember3' in user) updateData['familyMember3'] = data.familyMember3
-          if ('familyMember4' in user) updateData['familyMember4'] = data.familyMember4
-        } catch (e) {
-          console.log("Note: Some family member fields might not exist in schema:", e)
+          relationshipStatus: data.relationshipStatus,
+          familyMember1: data.familyMember1,
+          familyMember2: data.familyMember2,
+          familyMember3: data.familyMember3,
+          familyMember4: data.familyMember4,
+          therapyType: data.therapyType,
+          currentConcerns: data.currentConcerns,
+          emergencyContact: data.emergencyContact,
+          sessionPreference: data.sessionPreference,
+          communicationStyle: data.communicationStyle,
+          additionalNotes: data.additionalNotes
         }
         
         const updatedUser = await prisma.user.update({
@@ -251,12 +266,19 @@ export async function PUT(request: Request) {
         const safeUser = {
           name: updatedUser.name || "",
           email: updatedUser.email,
+          pronouns: updatedUser.pronouns || "",
           partnerName: updatedUser.partnerName || "",
           relationshipStatus: updatedUser.relationshipStatus || "Married",
           familyMember1: updatedUser.familyMember1 || "",
           familyMember2: updatedUser.familyMember2 || "",
           familyMember3: updatedUser.familyMember3 || "",
-          familyMember4: updatedUser.familyMember4 || ""
+          familyMember4: updatedUser.familyMember4 || "",
+          therapyType: updatedUser.therapyType || "",
+          currentConcerns: updatedUser.currentConcerns || null,
+          emergencyContact: updatedUser.emergencyContact || "",
+          sessionPreference: updatedUser.sessionPreference || "",
+          communicationStyle: updatedUser.communicationStyle || "",
+          additionalNotes: updatedUser.additionalNotes || ""
         }
         
         return NextResponse.json({ 

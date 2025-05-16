@@ -20,6 +20,13 @@ model User {
   familyMember2        String?
   familyMember3        String?
   familyMember4        String?
+  pronouns             String?
+  therapyType          String?
+  currentConcerns      Json?
+  emergencyContact     String?
+  sessionPreference    String?
+  communicationStyle   String?
+  additionalNotes      String?
   image                String?
   emailVerified        DateTime?
   onboardingCompleted  Boolean                @default(false)
