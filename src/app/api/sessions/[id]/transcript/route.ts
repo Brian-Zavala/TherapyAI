@@ -3,23 +3,24 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import type { Session as NextAuthSession } from 'next-auth'
 
 // POST endpoint to add a new transcript entry to a session
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions) as NextAuthSession | null
   
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 } as { status: number })
   }
   
   try {
     const { id: sessionId } = await params
     
     if (!sessionId) {
-      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
     }
     
     // First, find the user by email
@@ -30,7 +31,7 @@ export async function POST(
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 } as { status: number })
     }
     
     // Verify the session exists and belongs to this user
@@ -41,7 +42,7 @@ export async function POST(
     })
     
     if (!therapySession || therapySession.userId !== user.id) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 } as { status: number })
     }
     
     // Parse the request body
@@ -52,7 +53,7 @@ export async function POST(
       console.error(`VALIDATION ERROR: Missing speaker or text for session ${sessionId}`);
       return NextResponse.json(
         { error: 'Speaker and text are required fields' },
-        { status: 400 }
+        { status: 400 } as { status: number }
       )
     }
     
@@ -81,7 +82,7 @@ export async function POST(
         console.error(`VALIDATION ERROR: Empty text for session ${sessionId}`);
         return NextResponse.json(
           { error: 'Text cannot be empty' },
-          { status: 400 }
+          { status: 400 } as { status: number }
         );
       }
       
@@ -122,8 +123,8 @@ export async function POST(
     } catch (dbError) {
       console.error(`DATABASE ERROR creating transcript entry:`, dbError);
       return NextResponse.json(
-        { error: `Database error: ${dbError.message}` },
-        { status: 500 }
+        { error: `Database error: ${(dbError as Error).message}` },
+        { status: 500 } as { status: number }
       );
     }
     
@@ -164,7 +165,7 @@ export async function POST(
     console.error('Error adding transcript entry:', error)
     return NextResponse.json(
       { error: 'Failed to add transcript entry' },
-      { status: 500 }
+      { status: 500 } as { status: number }
     )
   }
 }
@@ -174,17 +175,17 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions) as NextAuthSession | null
   
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 } as { status: number })
   }
   
   try {
     const { id: sessionId } = await params
     
     if (!sessionId) {
-      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
     }
     
     // First, find the user by email
@@ -195,7 +196,7 @@ export async function GET(
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 } as { status: number })
     }
     
     // Verify the session exists and belongs to this user
@@ -207,13 +208,13 @@ export async function GET(
         // Include transcript entries to check if we need to inject history
         transcriptEntries: {
           take: 10, // Just enough to check the first few entries
-          orderBy: { timestamp: 'asc' }
+          orderBy: { timestamp: 'asc' as const }
         }
       }
-    })
+    } as any)
     
     if (!therapySession || therapySession.userId !== user.id) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 } as { status: number })
     }
     
     console.log(`Looking for transcript entries for session ${sessionId}`);
@@ -238,14 +239,14 @@ export async function GET(
         },
         include: {
           transcriptEntries: {
-            orderBy: { timestamp: 'asc' },
+            orderBy: { timestamp: 'asc' as const },
             // Only include user and assistant entries, not system
-            where: { speaker: { in: ['user', 'assistant'] } }
+            where: { speaker: { in: ['user', 'assistant'] as const } }
           }
         },
-        orderBy: { date: 'desc' },
+        orderBy: { date: 'desc' as const },
         take: 3 // Get most recent 3 sessions
-      });
+      } as any);
       
       if (previousSessions.length > 0) {
         console.log(`Found ${previousSessions.length} previous sessions to include as context`);
@@ -369,9 +370,9 @@ export async function GET(
         // Removed isFinal filter to ensure we get all entries
       },
       orderBy: {
-        timestamp: 'asc'
+        timestamp: 'asc' as const
       }
-    });
+    } as any);
     
     console.log(`Found ${entries.length} transcript entries in database for session ${sessionId}`);
     
@@ -737,17 +738,17 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions) as NextAuthSession | null
   
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 } as { status: number })
   }
   
   try {
     const { id: sessionId } = await params
     
     if (!sessionId) {
-      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
     }
     
     // Get the entry ID to delete from the query parameters
@@ -769,7 +770,7 @@ export async function DELETE(
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 } as { status: number })
     }
     
     // Verify the session exists and belongs to this user
@@ -780,7 +781,7 @@ export async function DELETE(
     })
     
     if (!therapySession || therapySession.userId !== user.id) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 } as { status: number })
     }
     
     // Verify the entry exists and belongs to this session

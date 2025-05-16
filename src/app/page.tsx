@@ -22,7 +22,7 @@ import SpiralTextAnimation from "@/components/SpiralTextAnimation";
 import ScrollDownArrow from "@/components/ScrollDownArrow";
 import Hero3DBackground from "@/components/Hero3DBackground";
 import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
-import { ImagesSlider } from "@/components/ui/images-slider";
+import { ImagesSlider, ImageConfig } from "@/components/ui/images-slider";
 
 // Layout grid for therapy options
 import { LayoutGrid } from "@/components/ui/layout-grid";
@@ -259,11 +259,32 @@ export default function Home() {
         <div className="absolute inset-0 h-full z-0">
           <ImagesSlider
             images={[
+              // First image - default full size behavior
               "/images/home/happy-couple.jpg",
-              "/images/home/happy_family.jpg",
-              "/images/home/happy-group.jpg",
-              "/images/home/happy-person.jpg"
-            ]}
+              
+              // Second image - custom sizing with contain
+              {
+                src: "/images/home/happy-family.jpg",
+
+
+              },
+              
+              // Third image - different aspect ratio
+              {
+                src: "/images/home/happy-group.jpg",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              },
+              
+              // Fourth image - smaller centered image
+              {
+                src: "/images/home/happy-person.jpg",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }
+            ] as (string | ImageConfig)[]}
             className="h-full rounded-b-[4rem] md:rounded-b-[5rem]"
             overlayClassName="bg-black/40 rounded-b-[4rem] md:rounded-b-[5rem]"
             autoplay={true}

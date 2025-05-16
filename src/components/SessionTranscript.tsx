@@ -313,7 +313,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   console.error('Error in polling interval:', pollingError);
                   // Continue with interval despite errors
                 }
-              }, 5000);
+              }, 5000) as unknown as NodeJS.Timeout;
               
               setTranscriptPollingInterval(interval);
             } else if (transcriptPollingInterval) {
@@ -473,7 +473,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                   initial={{ opacity: 0.5, y: 10 }}
                   animate={{ 
-                    opacity: [0.5, 0.8, 0.5], 
+                    opacity: [0.5, 0.8, 0.5] as any, 
                     y: 0 
                   }}
                   transition={{ 
@@ -512,7 +512,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   </div>
                 </motion.div>
               );
-            })}
+            }) as any}
           </motion.div>
         </div>
       </div>
@@ -925,7 +925,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   </div>
                 </motion.div>
               );
-            })}
+            }) as any}
           </motion.div>
         ) : (
           <div className="text-center py-8">

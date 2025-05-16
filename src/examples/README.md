@@ -2,6 +2,61 @@
 
 This directory contains example components that can be used throughout the application.
 
+## ImagesSlider
+
+The `ImagesSlider` component provides a dynamic image slider with customizable sizing for individual images.
+
+### Usage
+
+```tsx
+import { ImagesSlider, ImageConfig } from '@/components/ui/images-slider';
+
+// String format (default behavior)
+const simpleImages = [
+  '/images/1.jpg',
+  '/images/2.jpg',
+];
+
+// Mixed format with custom sizing
+const dynamicImages: (string | ImageConfig)[] = [
+  '/images/1.jpg', // Default full size
+  {
+    src: '/images/2.jpg',
+    width: '400px',
+    height: '300px',
+    objectFit: 'contain',
+  },
+  {
+    src: '/images/3.jpg',
+    width: '80%',
+    height: '60%',
+    objectFit: 'cover',
+    objectPosition: 'top center',
+  },
+];
+
+<ImagesSlider images={dynamicImages} autoplay={true}>
+  <div>Your overlay content</div>
+</ImagesSlider>
+```
+
+### ImageConfig Properties
+
+- `src`: string - The image source URL (required)
+- `width`: string - CSS width value (default: '100%')
+- `height`: string - CSS height value (default: '100%')
+- `objectFit`: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down' (default: 'cover')
+- `objectPosition`: string - CSS object-position value (default: 'center')
+
+### Example Component
+
+```tsx
+import { ImagesSliderExample } from "@/examples/ImagesSliderExample";
+
+// Use it in your component
+<ImagesSliderExample />
+```
+
 ## AuroraBackground
 
 The `AuroraBackground` component provides a beautiful animated gradient background effect.
