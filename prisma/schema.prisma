@@ -22,6 +22,8 @@ model User {
   familyMember4        String?
   image                String?
   emailVerified        DateTime?
+  onboardingCompleted  Boolean                @default(false)
+  onboardingData       Json?
   accounts             Account[]
   authSessions         AuthSession[]
   communicationMetrics CommunicationMetrics[]
@@ -94,12 +96,12 @@ model Account {
 
 model AuthSession {
   id           String   @id @default(cuid())
-  sessionToken String   @unique @map("sessionToken")
-  userId       String   @map("userId")
-  expires      DateTime @map("expires")
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@map("Session")
+  @@map("AuthSession")
 }
 
 model VerificationToken {

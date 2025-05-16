@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function AuthLayout({
   children,
@@ -16,16 +15,16 @@ export default function AuthLayout({
   useEffect(() => {
     // Redirect authenticated users away from auth pages (login/signup)
     if (status === "authenticated") {
-      router.push("/dashboard"); // Or your intended redirect path
+      router.push("/welcome"); // Redirect to welcome/onboarding
     }
   }, [status, router]);
 
   // --- Loading State ---
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         {/* Simple loading spinner */}
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
       </div>
     );
   }
@@ -34,50 +33,8 @@ export default function AuthLayout({
   // Only render the layout if the user is unauthenticated
   if (status === "unauthenticated") {
     return (
-      // Outermost container: Takes at least screen height, positions elements vertically
-      <div className="relative flex flex-col w-full min-h-screen bg-white dark:bg-gray-900">
-        {/* 1. Background Gradient Layer (Behind everything) */}
-        {/* Stays behind image and content */}
-        <div
-          className="absolute inset-0 bg-gradient-to-b from-sky-400 via-purple-600 to-indigo-800 -z-10" // Adjusted gradient colors
-          aria-hidden="true"
-        >
-          {/* You could add an overlay here if needed, e.g. */}
-          {/* <div className="absolute inset-0 bg-black/10"></div> */}
-        </div>
-
-        {/* Only render the image with clip-path */}
-        <div className="relative w-full h-[30vh] sm:h-[35vh] md:h-[40vh] overflow-hidden z-10">
-          <div
-            className="absolute inset-0"
-            style={{
-              clipPath:
-                "polygon(0% 65% 0% 65%, 18% 78%, 18% 78%, 44% 83%, 44% 83%, 69% 83%, 69% 83%, 93% 78%, 93% 78%, 100% 64%, 100% 64%, 0% 30%, 0% 30%, 100% 32%, 100% 32%, 0% 0%, 0% 0%, 100% 0%, 100% 0%, 51% 0%, 51% 0%)",
-              WebkitClipPath:
-                "polygon(0% 65% 0% 65%, 18% 78%, 18% 78%, 44% 83%, 44% 83%, 69% 83%, 69% 83%, 93% 78%, 93% 78%, 100% 64%, 100% 64%, 0% 30%, 0% 30%, 100% 32%, 100% 32%, 0% 0%, 0% 0%, 100% 0%, 100% 0%, 51% 0%, 51% 0%)",
-              transition: "0.4s cubic-bezier(1, -1, 0, 2)",
-            }}
-          >
-            <img
-              src="/images/login/yoga.png"
-              alt="Login background"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Semi-transparent overlay for bottom fade effect */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-indigo-800 to-transparent z-20"></div>
-        </div>
-
-        {/* 3. Content Area (Below the image) */}
-        {/* Centers the children horizontally and provides padding */}
-        <div className="flex justify-center items-start flex-grow w-full px-4 py-8 sm:px-6 lg:px-8">
-          {/* Content Wrapper: Applies max-width, relative positioning, z-index */}
-          {/* Negative margin pulls it slightly over the faded image bottom */}
-          <div className="relative z-10 w-full max-w-md mt-[-8vh] md:mt-[-5vh]">
-            {children}
-          </div>
-        </div>
+      <div className="relative w-full min-h-screen bg-black">
+        {children}
       </div>
     );
   }

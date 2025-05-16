@@ -271,7 +271,7 @@ export default function Home() {
               
               // Third image - different aspect ratio
               {
-                src: "/images/home/happy-group.jpg",
+                src: "/images/home/happy-person.jpg",
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
@@ -279,7 +279,7 @@ export default function Home() {
               
               // Fourth image - smaller centered image
               {
-                src: "/images/home/happy-person.jpg",
+                src: "/images/home/happy-group.jpg",
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",

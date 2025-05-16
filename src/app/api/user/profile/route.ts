@@ -51,7 +51,9 @@ export async function GET() {
         familyMember1: user.familyMember1 || "",
         familyMember2: user.familyMember2 || "",
         familyMember3: user.familyMember3 || "",
-        familyMember4: user.familyMember4 || ""
+        familyMember4: user.familyMember4 || "",
+        onboardingCompleted: user.onboardingCompleted || false,
+        onboardingData: user.onboardingData || null
       }
       
       return NextResponse.json(safeUser)
@@ -87,6 +89,51 @@ export async function GET() {
 }
 
 // PUT handler to update user profile
+// PATCH handler for partial updates (used by onboarding)
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session || !session.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    
+    const data = await request.json()
+    
+    console.log("Updating onboarding data for:", session.user.email, "with data:", data)
+    
+    try {
+      // Update user with onboarding data
+      const updatedUser = await prisma.user.update({
+        where: { email: session.user.email },
+        data: {
+          onboardingData: data,
+          onboardingCompleted: true,
+          // Update any specific fields from onboarding
+          name: data.nickname || session.user.name,
+          relationshipStatus: data.relationshipStatus || 'Married',
+          partnerName: data.partnerName || null,
+          familyMember1: data.familyMember1 || null,
+          familyMember2: data.familyMember2 || null,
+          familyMember3: data.familyMember3 || null,
+          familyMember4: data.familyMember4 || null,
+        }
+      })
+      
+      return NextResponse.json({ 
+        message: "Onboarding completed successfully",
+        user: updatedUser
+      })
+    } catch (dbError) {
+      console.error("Database error during onboarding update:", dbError)
+      return NextResponse.json({ error: "Failed to save onboarding data" }, { status: 500 })
+    }
+  } catch (error) {
+    console.error("Onboarding update error:", error)
+    return NextResponse.json({ error: "Failed to update onboarding" }, { status: 500 })
+  }
+}
+
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions)
