@@ -258,10 +258,10 @@ export async function GET(
           const sessionDate = new Date(prevSession.date).toLocaleDateString();
           historyText += `From our session on ${sessionDate} (${prevSession.theme || 'Therapy Session'}):\n`;
           
-          // Include transcript entries (max 10 per session)
-          const maxEntries = 10;
+          // Include transcript entries
           const entries = prevSession.transcriptEntries || [];
           
+          // First, create a summary section
           // Get separate user and therapist messages
           const userMessages = entries.filter(entry => entry.speaker === 'user')
             .map(entry => entry.text.substring(0, 300));
@@ -297,7 +297,7 @@ export async function GET(
             }
           }
           
-          // Add therapist guidance
+          // Add therapist guidance summary
           if (therapistMessages.length > 0) {
             // Select key therapeutic interventions
             const sample = therapistMessages.length > 2 
@@ -310,6 +310,26 @@ export async function GET(
                 historyText += `- ${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}\n`;
               }
             }
+          }
+          
+          // Now add the full conversation transcript
+          historyText += "\nFull conversation transcript:\n";
+          
+          // Sort entries by timestamp
+          const sortedEntries = [...entries].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          if (sortedEntries.length > 0) {
+            for (const entry of sortedEntries) {
+              const speakerName = entry.speaker === 'user' ? 'Client' : 'Therapist';
+              historyText += `${speakerName}: ${entry.text}\n`;
+            }
+          } else if (prevSession.transcript) {
+            // Fall back to legacy transcript format
+            historyText += prevSession.transcript;
+          } else {
+            historyText += "No detailed transcript available for this session.\n";
           }
           
           historyText += "\n-----\n\n";

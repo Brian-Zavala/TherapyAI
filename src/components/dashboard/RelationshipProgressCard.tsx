@@ -62,6 +62,7 @@ export default function RelationshipProgressCard() {
     "line"
   );
   const [chartMetrics, setChartMetrics] = useState<ChartMetrics>(null); // Moved UP
+  const [isSmallScreen, setIsSmallScreen] = useState(false); // Track small screen size
 
   // --- Helper Functions & Callbacks (Defined using useCallback/useMemo) ---
 
@@ -131,6 +132,22 @@ export default function RelationshipProgressCard() {
   ); // Empty dependency array
 
   // --- Effect Hooks ---
+
+  // Track screen size for responsive design
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 432);
+    };
+
+    // Check initial size
+    checkScreenSize();
+
+    // Add resize listener
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Fetch real data from API, fallback to mock data if needed
   useEffect(() => {
@@ -339,7 +356,7 @@ export default function RelationshipProgressCard() {
   // Enhanced tooltip for the chart - using memo to avoid hooks error
   const CustomTooltip = useMemo(() => {
     // The component returned here is memoized based on dependencies below
-    return ({ active, payload, label }: any) => {
+    return ({ active, payload, label }: any): JSX.Element | null => {
       // Consider adding more specific types for payload
       if (active && payload && payload.length) {
         // Ensure payload[0] and its payload exist before accessing
@@ -422,7 +439,7 @@ export default function RelationshipProgressCard() {
             {/* Link to session transcript if available */}
             {dataPoint.sessionId && (
               <button
-                onClick={() => viewSessionTranscript(dataPoint.sessionId)}
+                onClick={() => dataPoint.sessionId && viewSessionTranscript(dataPoint.sessionId)}
                 className="mt-2 pt-1.5 border-t border-gray-100 w-full text-left text-xs flex items-center text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50"
                 disabled={!dataPoint.sessionId} // Disable if no ID
               >
@@ -463,7 +480,12 @@ export default function RelationshipProgressCard() {
   const renderChart = useMemo(() => {
     const commonProps = {
       data: data,
-      margin: { top: 15, right: 40, left: 40, bottom: 30 },
+      margin: { 
+        top: isSmallScreen ? 10 : 15, 
+        right: isSmallScreen ? 20 : 40, 
+        left: isSmallScreen ? 30 : 40, 
+        bottom: isSmallScreen ? 20 : 30 
+      },
       className: "mx-auto"
     };
     const xAxis = (
@@ -482,7 +504,7 @@ export default function RelationshipProgressCard() {
     const grid = <CartesianGrid strokeDasharray="3 3" stroke="#374151" />;
     const tooltip = (
       <Tooltip 
-        content={<CustomTooltip />} 
+        content={CustomTooltip} 
         contentStyle={{
           backgroundColor: "rgba(31, 41, 55, 0.8)",
           borderColor: "#4B5563"
@@ -636,7 +658,7 @@ export default function RelationshipProgressCard() {
       );
     }
     return null; // Should not happen with current logic, but good practice
-  }, [chartType, data, CustomTooltip]); // Added CustomTooltip as a dependency
+  }, [chartType, data, CustomTooltip, isSmallScreen]); // Added CustomTooltip and isSmallScreen as dependencies
 
   // --- Conditional Rendering (Loading State) ---
   // Now this check happens AFTER all hooks have been called
@@ -758,13 +780,13 @@ export default function RelationshipProgressCard() {
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6"
+          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="h-[300px] w-full overflow-visible relative">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[420px]'} w-full overflow-hidden relative`}>
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
               {renderChart}
             </ResponsiveContainer>
           </div>

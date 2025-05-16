@@ -41,6 +41,7 @@ export default function SessionTimeChart() {
   const [totalHours, setTotalHours] = useState(0);
   const [averageSessionLength, setAverageSessionLength] = useState(0);
   const [therapyType, setTherapyType] = useState("couple"); // 'couple', 'solo', or 'family'
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
 
   const fetchSessionData = async (type = "couple") => {
     try {
@@ -115,6 +116,20 @@ export default function SessionTimeChart() {
   useEffect(() => {
     fetchSessionData(therapyType);
   }, [therapyType]);
+
+  // Track screen size for responsive adjustments
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 432);
+    };
+
+    // Initial check
+    checkScreenSize();
+
+    // Add resize listener
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   // --- Loading State ---
   if (loading)
@@ -257,13 +272,13 @@ export default function SessionTimeChart() {
       if (!monthData) return null; // Should always find one if tooltip is active
 
       return (
-        <div className="bg-white p-4 shadow-xl rounded-lg border border-gray-200 min-w-[250px]">
-          <p className="font-semibold text-blue-900 mb-3 border-b pb-2">
+        <div className={`bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? 'min-w-[200px]' : 'min-w-[250px]'}`}>
+          <p className={`font-semibold text-blue-900 ${isSmallScreen ? 'mb-2' : 'mb-3'} border-b pb-2 ${isSmallScreen ? 'text-sm' : ''}`}>
             {monthData.month}
           </p>
-          <div className="space-y-2">
+          <div className={isSmallScreen ? "space-y-1.5" : "space-y-2"}>
             {/* Total Time */}
-            <div className="flex items-center justify-between text-sm">
+            <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
               <div className="flex items-center text-gray-700">
                 <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2 flex-shrink-0"></span>
                 Total Time:
@@ -277,7 +292,7 @@ export default function SessionTimeChart() {
             </div>
 
             {/* Session Count */}
-            <div className="flex items-center justify-between text-sm">
+            <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
               <div className="flex items-center text-gray-700">
                 <span className="inline-block w-3 h-3 bg-teal-500 rounded-full mr-2 flex-shrink-0"></span>
                 Sessions:
@@ -288,7 +303,7 @@ export default function SessionTimeChart() {
             </div>
 
             {/* Average Session Length */}
-            <div className="flex items-center justify-between text-sm">
+            <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
               <div className="flex items-center text-gray-700">
                 <span className="inline-block w-3 h-3 bg-violet-500 rounded-full mr-2 flex-shrink-0"></span>
                 Avg. Length:
@@ -301,7 +316,7 @@ export default function SessionTimeChart() {
             {/* Growth Indicator */}
             {monthData.growth !== undefined && (
               <div className="mt-3 pt-2 border-t border-gray-100">
-                <div className="flex items-center justify-between text-sm">
+                <div className={`flex items-center justify-between ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
                   <div className="flex items-center text-gray-700">
                     <span className="inline-block w-3 h-3 bg-amber-400 rounded-full mr-2 flex-shrink-0"></span>
                     Monthly Time Growth:
@@ -319,7 +334,7 @@ export default function SessionTimeChart() {
                     {formatNumber(monthData.growth)}%
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 text-right">
+                <p className={`${isSmallScreen ? 'text-[10px]' : 'text-xs'} text-gray-500 mt-1 text-right`}>
                   vs. previous month
                 </p>
               </div>
@@ -336,7 +351,13 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6 w-full max-w-full"
+      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6 w-full"
+      style={{
+        maxWidth: "100%",
+        overflowX: "hidden",
+        paddingLeft: isSmallScreen ? "12px" : undefined,
+        paddingRight: isSmallScreen ? "12px" : undefined,
+      }}
     >
       <TherapyTypeSelector />
 
@@ -385,19 +406,31 @@ export default function SessionTimeChart() {
       </div>
 
       {/* Simple Chart Container - Single-level wrapper */}
-      <div className="w-full bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-4 sm:p-6 mb-6">
+      <div 
+        className={`w-full bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 ${isSmallScreen ? 'p-2' : 'p-4 sm:p-6'} mb-6`}
+        style={{
+          maxWidth: "100%",
+          overflow: "hidden",
+        }}
+      >
         {/* Just a single height container with proper centering */}
-        <div className="h-[350px] w-full overflow-visible">
-          <ResponsiveContainer width="100%" height="100%">
+        <div 
+          className={isSmallScreen ? "h-[400px] w-full" : "h-[450px] w-full"}
+          style={{
+            minWidth: 0,
+            overflow: "visible",
+          }}
+        >
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <ComposedChart
               data={sessionData}
               margin={{
                 top: 10,
-                right: 40,
-                left: 40,
+                right: isSmallScreen ? 20 : 40,
+                left: isSmallScreen ? 30 : 40,
                 bottom: 10
               }}
-              barGap={4}
+              barGap={isSmallScreen ? 2 : 4}
               >
                 <defs>
                   <linearGradient
@@ -455,62 +488,62 @@ export default function SessionTimeChart() {
                   dataKey="monthFormatted"
                   tick={{
                     fill: "#9CA3AF",
-                    fontSize: 10,
+                    fontSize: isSmallScreen ? 8 : 10,
                     fontWeight: 500,
                   }}
                   axisLine={{ stroke: "#374151", strokeWidth: 1 }}
                   tickLine={false}
-                  padding={{ left: 10, right: 10 }}
-                  interval="preserveStartEnd"
-                  height={30}
+                  padding={{ left: isSmallScreen ? 5 : 10, right: isSmallScreen ? 5 : 10 }}
+                  interval={isSmallScreen ? "preserveEnd" : "preserveStartEnd"}
+                  height={isSmallScreen ? 25 : 30}
                 />
 
                 <YAxis
                   yAxisId="left"
                   orientation="left"
-                  tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                  tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
                   axisLine={{ stroke: "#374151" }}
                   tickLine={false}
                   domain={[0, "dataMax + 50"]}
-                  width={40}
+                  width={isSmallScreen ? 30 : 40}
                   label={{
                     value: "Minutes",
                     angle: -90,
                     position: "insideLeft",
                     style: {
                       fill: "#9CA3AF",
-                      fontSize: 11,
+                      fontSize: isSmallScreen ? 9 : 11,
                       fontWeight: 500,
                       textAnchor: "middle",
                     },
-                    offset: 5,
+                    offset: isSmallScreen ? 3 : 5,
                   }}
-                  tickFormatter={(value) => formatNumber(value)}
-                  tickCount={5}
+                  tickFormatter={(value) => isSmallScreen ? Math.round(value).toString() : formatNumber(value)}
+                  tickCount={isSmallScreen ? 4 : 5}
                 />
 
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                  tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
                   axisLine={{ stroke: "#374151" }}
                   tickLine={false}
                   domain={[0, "dataMax + 5"]}
-                  width={40}
+                  width={isSmallScreen ? 30 : 40}
                   label={{
                     value: "Sessions",
                     angle: 90,
                     position: "insideRight",
                     style: {
                       fill: "#9CA3AF",
-                      fontSize: 11,
+                      fontSize: isSmallScreen ? 9 : 11,
                       fontWeight: 500,
                       textAnchor: "middle",
                     },
-                    offset: 5,
+                    offset: isSmallScreen ? 3 : 5,
                   }}
-                  tickFormatter={(value) => formatNumber(value)}
-                  tickCount={4}
+                  tickFormatter={(value) => isSmallScreen ? Math.round(value).toString() : formatNumber(value)}
+                  tickCount={isSmallScreen ? 3 : 4}
                 />
 
                 <Tooltip
@@ -533,9 +566,12 @@ export default function SessionTimeChart() {
                 <Legend
                   verticalAlign="bottom"
                   align="center"
-                  height={30}
-                  iconSize={8}
+                  height={isSmallScreen ? 25 : 30}
+                  iconSize={isSmallScreen ? 6 : 8}
                   margin={{ top: 0, bottom: 0 }}
+                  wrapperStyle={{
+                    fontSize: isSmallScreen ? 8 : 10,
+                  }}
                 />
 
                 {/* Session Time Bar */}

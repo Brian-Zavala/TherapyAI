@@ -715,7 +715,7 @@ export default function Dashboard() {
                   Session Time Overview
                 </h2>
               </div>
-              <div className="w-full">
+              <div className="w-full" style={{ minHeight: '500px' }}>
                 <SessionTimeChart />
               </div>
             </div>
@@ -748,7 +748,7 @@ export default function Dashboard() {
                   Relationship Progress
                 </h2>
               </div>
-              <div className="w-full">
+              <div className="w-full" style={{ minHeight: '480px' }}>
                 <RelationshipProgressCard />
               </div>
             </div>
@@ -781,7 +781,7 @@ export default function Dashboard() {
                   Communication Quality
                 </h2>
               </div>
-              <div className="w-full">
+              <div className="w-full" style={{ minHeight: '500px' }}>
                 <CommunicationMetrics />
               </div>
             </div>
@@ -850,7 +850,7 @@ export default function Dashboard() {
                   Session Time Overview
                 </h2>
               </div>
-              <div className="w-full">
+              <div className="w-full" style={{ minHeight: '450px' }}>
                 <SessionTimeChart />
               </div>
             </motion.div>
@@ -884,7 +884,7 @@ export default function Dashboard() {
                   Relationship Progress
                 </h2>
               </div>
-              <div className="w-full">
+              <div className="w-full" style={{ minHeight: '450px' }}>
                 <RelationshipProgressCard />
               </div>
             </motion.div>
@@ -918,7 +918,7 @@ export default function Dashboard() {
                   Communication Quality
                 </h2>
               </div>
-              <div className="w-full">
+              <div className="w-full" style={{ minHeight: '480px' }}>
                 <CommunicationMetrics />
               </div>
             </motion.div>

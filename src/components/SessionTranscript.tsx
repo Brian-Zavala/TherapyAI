@@ -101,16 +101,23 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
         setLastFetchTime(now);
         console.log(`Loading transcript entries for session ${sessionId}`);
         
-        // Use no-cache to ensure we get fresh results
-        const response = await fetch(`/api/sessions/${sessionId}/transcript`, {
-          cache: 'no-cache',
-          headers: {
-            'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
+        // Improved error handling for fetch
+        let response;
+        try {
+          // Use catch syntax to handle fetch errors properly
+          response = await fetch(`/api/sessions/${sessionId}/transcript`, {
+            cache: 'no-store', // Use no-store instead of no-cache
+            headers: {
+              'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
+            }
+          });
+          
+          if (!response.ok) {
+            console.error(`Error fetching transcript: ${response.status}`);
+            return;
           }
-        });
-        
-        if (!response.ok) {
-          console.error(`Error fetching transcript: ${response.status}`);
+        } catch (fetchError) {
+          console.error(`Network error fetching transcript: ${fetchError.message}`);
           return;
         }
         
@@ -201,15 +208,21 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
           setLoading(true);
         }
         
-        const response = await fetch(`/api/sessions/${sessionId}`, { 
-          cache: 'no-cache',
-          headers: {
-            'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
+        let response;
+        try {
+          response = await fetch(`/api/sessions/${sessionId}`, { 
+            cache: 'no-store', // Use no-store instead of no-cache
+            headers: {
+              'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch session: ${response.status}`);
           }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch session');
+        } catch (fetchError) {
+          console.error(`Network error fetching session: ${fetchError.message}`);
+          throw new Error(`Network error: ${fetchError.message}`);
         }
         
         const sessionData = await response.json();
@@ -258,7 +271,16 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
       // Check if session is active before setting up polling
       const checkSessionStatus = async () => {
         try {
-          const response = await fetch(`/api/sessions/${sessionId}`);
+          let response;
+          try {
+            response = await fetch(`/api/sessions/${sessionId}`, {
+              cache: 'no-store'
+            });
+          } catch (fetchError) {
+            console.error('Network error checking session status:', fetchError);
+            return; // Exit early on network errors
+          }
+          
           if (response.ok) {
             const data = await response.json();
             
@@ -274,10 +296,23 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
               // Set up new polling interval - every 5 seconds
               const interval = setInterval(() => {
                 console.log('Polling for transcript updates');
-                loadTranscript(false);
                 
-                // Also refresh session data occasionally to check duration/status
-                loadSessionData(true);
+                // Use try-catch to prevent interval from being disrupted by errors
+                try {
+                  loadTranscript(false).catch(err => {
+                    console.warn('Error during transcript polling:', err);
+                    // Continue with interval despite errors
+                  });
+                  
+                  // Also refresh session data occasionally to check duration/status
+                  loadSessionData(true).catch(err => {
+                    console.warn('Error during session data polling:', err);
+                    // Continue with interval despite errors
+                  });
+                } catch (pollingError) {
+                  console.error('Error in polling interval:', pollingError);
+                  // Continue with interval despite errors
+                }
               }, 5000);
               
               setTranscriptPollingInterval(interval);
@@ -484,14 +519,109 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
     );
   }
 
-  // Filter entries with basic validation
-  const initialFiltered = transcriptEntries.filter(entry => 
-    entry && entry.text && entry.text.trim() !== '' &&
-    entry.speaker && typeof entry.speaker === 'string' &&
-    !entry.text.includes("This session does not have any") &&
-    !entry.text.includes("Full session transcript:") &&
-    entry.speaker.toLowerCase() !== 'system'
-  )
+  // Process entries - extract all actual conversation parts
+  let initialFiltered = [];
+  
+  console.log(`Processing ${transcriptEntries.length} transcript entries`);
+  
+  // First, check if we have any entries
+  if (transcriptEntries.length === 0) {
+    console.log('No transcript entries found');
+    // Add placeholder to ensure UI shows something
+    initialFiltered.push({
+      id: 'placeholder',
+      sessionId: session.id,
+      speaker: 'system',
+      text: 'No conversation data is available for this session.',
+      timestamp: new Date().toISOString(),
+      isFinal: true
+    });
+  } else {
+    console.log('Found transcript entries, processing...');
+    
+    for (const entry of transcriptEntries) {
+      console.log(`Processing entry: speaker=${entry?.speaker}, text preview=${entry?.text?.substring(0, 50)}`);
+      
+      // Skip null or empty entries
+      if (!entry || !entry.text || !entry.text.trim()) {
+        console.log('Skipping empty entry');
+        continue;
+      }
+      
+      // Special case: system notifications
+      if (entry.speaker === 'system') {
+        console.log('Found system entry');
+        initialFiltered.push(entry);
+        continue;
+      }
+      
+      // If this entry contains a summary and transcript, extract just the transcript part
+      if (entry.text.includes("I've reviewed my notes from our previous sessions") && 
+          entry.text.includes("Full conversation transcript:")) {
+        
+        console.log('Found combined summary+transcript entry, extracting transcript part');
+        
+        // Extract only the part after "Full conversation transcript:"
+        const fullTranscriptPart = entry.text.split("Full conversation transcript:")[1];
+        
+        if (fullTranscriptPart && fullTranscriptPart.trim()) {
+          // Process the transcript text into individual entries
+          const lines = fullTranscriptPart.trim().split("\n");
+          console.log(`Extracted ${lines.length} lines from transcript part`);
+          
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line || line === "-----") continue;
+            
+            // Try to parse each line as a speaker: text format
+            const match = line.match(/^([^:]+):\s*(.+)$/);
+            if (match) {
+              const speaker = match[1].trim().toLowerCase();
+              const text = match[2].trim();
+              
+              if (text) {
+                initialFiltered.push({
+                  id: `extracted-${entry.id}-${i}`,
+                  sessionId: entry.sessionId,
+                  speaker: speaker === 'client' || speaker === 'you' ? 'user' : 'assistant',
+                  text: text,
+                  timestamp: new Date(Date.now() - (lines.length - i) * 10000).toISOString(),
+                  isFinal: true
+                });
+              }
+            }
+          }
+        }
+      } 
+      // If entry contains only session summary but no conversation - filter it out
+      else if (entry.text.includes("I've reviewed my notes from our previous sessions") ||
+          entry.text.includes("Key client concerns discussed:") ||
+          entry.text.includes("Guidance I provided:")) {
+        
+        console.log('Found summary-only entry - excluding');
+      }
+      // Regular conversation entry - include as is
+      else {
+        console.log('Found regular conversation entry - including');
+        initialFiltered.push(entry);
+      }
+    }
+    
+    console.log(`Filtered to ${initialFiltered.length} entries`);
+    
+    // If all entries were filtered out, add placeholder
+    if (initialFiltered.length === 0) {
+      console.log('No valid entries after filtering - adding placeholder');
+      initialFiltered.push({
+        id: 'placeholder',
+        sessionId: session.id,
+        speaker: 'system',
+        text: 'No conversation data available after filtering summaries. Try refreshing or creating a new session.',
+        timestamp: new Date().toISOString(),
+        isFinal: true
+      });
+    }
+  }
   
   // Sort by timestamp first
   const sortedEntries = [...initialFiltered].sort((a, b) => {
@@ -820,17 +950,6 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
         )}
       </div>
       
-      {session.notes && (
-        <div className="border-t border-gray-100 p-5 bg-gray-50">
-          <h3 className="font-medium text-gray-800 mb-3 flex items-center">
-            <svg className="h-4 w-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Session Notes
-          </h3>
-          <p className="text-gray-600 text-sm bg-white p-4 rounded-lg border border-gray-100">{session.notes}</p>
-        </div>
-      )}
     </div>
   )
 }

@@ -1171,7 +1171,7 @@ export default function Home() {
             }} // Use optimized delay
           >
             {/* Map over features (Original data structure) */}
-            {[
+            {([
               {
                 title: "Private Sessions",
                 description:
@@ -1237,7 +1237,7 @@ export default function Home() {
                   </svg>
                 ),
               },
-            ].map((feature, index) => (
+            ] as const).map((feature, index) => (
               // Feature Card Item
               <motion.div
                 key={index} // Use index as key if titles aren't unique, otherwise feature.title

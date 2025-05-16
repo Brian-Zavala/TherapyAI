@@ -514,12 +514,12 @@ export default function CommunicationMetrics() {
     cx,
     cy,
     midAngle,
-    innerRadius,
+    // innerRadius,
     outerRadius,
     percent,
     index,
-    name,
-    value,
+    // name,
+    // value,
   }: CustomLabelProps) => {
     const RADIAN = Math.PI / 180;
     // Calculate radius based on the chart dimensions
@@ -863,7 +863,7 @@ export default function CommunicationMetrics() {
         </div>
 
         {/* Assessment Modal */}
-        {isAssessmentOpen && (
+        {isAssessmentOpen ? (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
               <div className="p-4 border-b border-gray-100 flex justify-between items-center">
@@ -905,7 +905,7 @@ export default function CommunicationMetrics() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </>
     );
   } else {
@@ -1342,13 +1342,18 @@ export default function CommunicationMetrics() {
               @media (max-width: 430px) {
                 .recharts-pie {
                   transform: scale(0.75);
+                  transform-origin: center center;
+                  position: relative;
+                  left: 0;
                 }
                 .recharts-radial-bar-background-sector,
                 .recharts-radial-bar-sector {
                   transform: scale(0.8);
+                  transform-origin: center center;
                 }
                 .recharts-radar {
                   transform: scale(0.8);
+                  transform-origin: center center;
                 }
                 .recharts-legend-item-text {
                   max-width: 60px;
@@ -1403,9 +1408,34 @@ export default function CommunicationMetrics() {
                 /* Fix all SVG elements positioning */
                 .recharts-surface {
                   margin: 0 auto !important;
-                  display: inline-block !important;
-                  left: 50% !important;
-                  transform: translateX(-50%) !important;
+                  display: block !important;
+                  left: 0 !important;
+                  transform: none !important;
+                }
+              }
+              
+              /* Very small screens - under 432px */
+              @media (max-width: 432px) {
+                .recharts-wrapper {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                  left: 0 !important;
+                  transform: none !important;
+                  position: relative !important;
+                }
+                
+                .recharts-surface {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  left: 0 !important;
+                  transform: none !important;
+                }
+                
+                .recharts-responsive-container {
+                  padding: 0 10px !important;
+                  margin: 0 !important;
+                  width: 100% !important;
                 }
               }
               
@@ -1470,7 +1500,7 @@ export default function CommunicationMetrics() {
           </style>
 
           <motion.div
-            className="relative w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-6"
+            className="relative w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6 overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -1493,14 +1523,19 @@ export default function CommunicationMetrics() {
                 {metricsData && metricsData.length > 0 ? (
                   <div className="w-full h-full overflow-visible">
                     {chartType === "radar" ? (
-                      <div style={{ width: "100%", height: 400 }}>
+                      <div style={{ width: "100%", height: isSmallScreen ? 420 : 450 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadarChart
                             cx="50%"
                             cy="50%"
-                            outerRadius="65%"
+                            outerRadius={isSmallScreen ? "90%" : "85%"}
                             data={metricsData}
-                            margin={{ top: 60, right: 60, bottom: 60, left: 60 }}
+                            margin={{ 
+                              top: isSmallScreen ? 40 : 120, 
+                              right: isSmallScreen ? 30 : 120, 
+                              bottom: isSmallScreen ? 40 : 120, 
+                              left: isSmallScreen ? 30 : 120 
+                            }}
                             className="overflow-visible"
                           >
                           <defs>
@@ -1542,7 +1577,7 @@ export default function CommunicationMetrics() {
                             dataKey={isSmallScreen ? "shortName" : "name"}
                             tick={{
                               fill: "#9CA3AF",
-                              fontSize: isSmallScreen ? 11 : 12,
+                              fontSize: isSmallScreen ? 14 : 12,
                               fontWeight: 500,
                               dy: 3,
                             }}
@@ -1551,7 +1586,11 @@ export default function CommunicationMetrics() {
                           <PolarRadiusAxis
                             angle={30}
                             domain={[0, 100]}
-                            tick={{ fill: "#9CA3AF", fontWeight: 400 }}
+                            tick={{ 
+                              fill: "#9CA3AF", 
+                              fontWeight: 400, 
+                              fontSize: isSmallScreen ? 14 : 11 
+                            }}
                             tickCount={5}
                             stroke="#374151"
                           />
@@ -1559,7 +1598,7 @@ export default function CommunicationMetrics() {
                             name=""
                             dataKey="value"
                             stroke="#4F46E5"
-                            strokeWidth={3}
+                            strokeWidth={isSmallScreen ? 5 : 3}
                             fill="url(#radarFill)"
                             fillOpacity={1}
                             animationDuration={1500}
@@ -1568,22 +1607,20 @@ export default function CommunicationMetrics() {
                             style={{ filter: "url(#glow)" }}
                             dot={{
                               stroke: "#4F46E5",
-                              strokeWidth: 2.5,
+                              strokeWidth: isSmallScreen ? 3.5 : 2.5,
                               fill: "white",
-                              r: 5,
+                              r: isSmallScreen ? 8 : 5,
                             }}
                             activeDot={{
                               stroke: "#8B5CF6",
-                              strokeWidth: 4,
+                              strokeWidth: isSmallScreen ? 5 : 4,
                               fill: "white",
-                              r: 8,
+                              r: isSmallScreen ? 10 : 8,
                               className: "animate-pulse",
                             }}
                           />
                           <Tooltip
-                            content={
-                              <CustomTooltip active={false} payload={[]} />
-                            }
+                            content={CustomTooltip}
                             animationDuration={0}
                             isAnimationActive={false}
                             cursor={false}
@@ -1600,10 +1637,15 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : chartType === "pie" ? (
-                      <div style={{ width: "100%", height: 400 }}>
+                      <div style={{ width: "100%", height: isSmallScreen ? 420 : 450 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart 
-                            margin={{ top: 60, right: 30, bottom: 30, left: 30 }}>
+                            margin={{ 
+                              top: isSmallScreen ? 60 : 120, 
+                              right: isSmallScreen ? 40 : 60, 
+                              bottom: isSmallScreen ? 60 : 60, 
+                              left: isSmallScreen ? 40 : 60 
+                            }}>
                           <defs>
                             {/* Regular gradients for inactive slices */}
                             {COLORS.map((color, index) => (
@@ -1698,8 +1740,8 @@ export default function CommunicationMetrics() {
                             data={metricsData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
+                            innerRadius={isSmallScreen ? 90 : 120}
+                            outerRadius={isSmallScreen ? 160 : 200}
                             paddingAngle={6}
                             fill="#8884d8"
                             dataKey="value"
@@ -1743,7 +1785,7 @@ export default function CommunicationMetrics() {
                             })}
 
                             {/* Clear and visible highlight for active pie section */}
-                            {activePieSection !== null && (
+                            {activePieSection !== null ? (
                               <g className="pie-active-section">
                                 {/* Create a more visible highlight effect */}
                                 <circle
@@ -2029,12 +2071,10 @@ export default function CommunicationMetrics() {
                                 `}
                                 </style>
                               </g>
-                            )}
+                            ) : null}
                           </Pie>
                           <Tooltip
-                            content={
-                              <CustomTooltip active={false} payload={[]} />
-                            }
+                            content={CustomTooltip}
                             animationDuration={0}
                             animationEasing="linear"
                             wrapperStyle={{ pointerEvents: "none" }}
@@ -2082,7 +2122,7 @@ export default function CommunicationMetrics() {
                               justifyContent: "center",
                               gap: "6px",
                             }}
-                            formatter={(value, entry, index) => {
+                            formatter={(value: any, entry: any, index: any) => {
                               return (
                                 <div
                                   className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md hover:bg-gray-100"
@@ -2124,18 +2164,23 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div style={{ width: "100%", height: 400, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <div style={{ width: "100%", height: isSmallScreen ? 420 : 450, display: "flex", justifyContent: "center", alignItems: "center" }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadialBarChart
                             cx="50%"
                             cy="50%"
-                            innerRadius="20%"
-                            outerRadius="80%"
+                            innerRadius={isSmallScreen ? "20%" : "35%"}
+                            outerRadius={isSmallScreen ? "95%" : "95%"}
                             data={metricsData}
                             startAngle={180}
                             endAngle={0}
-                            barSize={14}
-                            margin={{ top: 80, right: 20, bottom: 60, left: 20 }}
+                            barSize={isSmallScreen ? 24 : 14}
+                            margin={{ 
+                              top: isSmallScreen ? 40 : 160, 
+                              right: isSmallScreen ? 20 : 40, 
+                              bottom: isSmallScreen ? 40 : 120, 
+                              left: isSmallScreen ? 20 : 40 
+                            }}
                             className="overflow-visible"
                             style={{ margin: "0 auto" }}
                           >
@@ -2165,8 +2210,8 @@ export default function CommunicationMetrics() {
                           <RadialBar
                             label={{
                               fill: "#666",
-                              position: "insideStart",
-                              fontSize: 14,
+                              position: "insideStart" as const,
+                              fontSize: isSmallScreen ? 16 : 14,
                               fontWeight: 600,
                             }}
                             background={{ fill: "#E1E9F8" }}
@@ -2194,9 +2239,7 @@ export default function CommunicationMetrics() {
                             ))}
                           </RadialBar>
                           <Tooltip
-                            content={
-                              <CustomTooltip active={false} payload={[]} />
-                            }
+                            content={CustomTooltip}
                             animationDuration={0}
                             animationEasing="linear"
                             wrapperStyle={{ pointerEvents: "none" }}
@@ -2232,7 +2275,7 @@ export default function CommunicationMetrics() {
                               left: "0 !important",
                               right: "0 !important",
                             }}
-                            formatter={(value, entry, index) => {
+                            formatter={(value: any, entry: any, index: any) => {
                               return (
                                 <div
                                   className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md hover:bg-gray-100"
@@ -2369,7 +2412,7 @@ export default function CommunicationMetrics() {
 
           {/* Additional insights for expanded view */}
           <AnimatePresence>
-            {isExpanded && (
+            {isExpanded ? (
               <motion.div
                 id="communication-insights"
                 initial={{ opacity: 0, height: 0 }}
@@ -2439,11 +2482,11 @@ export default function CommunicationMetrics() {
                   )}
                 </div>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
           {/* Assessment Modal - accessible from any view with enhanced styling */}
-          {isAssessmentOpen && (
+          {isAssessmentOpen ? (
             <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -2548,7 +2591,7 @@ export default function CommunicationMetrics() {
                 </div>
               </motion.div>
             </div>
-          )}
+          ) : null}
         </motion.div>
       </>
     );

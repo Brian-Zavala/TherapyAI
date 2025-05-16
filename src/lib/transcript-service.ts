@@ -601,7 +601,7 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
         
-        // Separate user and therapist messages
+        // Separate user and therapist messages for summary
         const userMessages = entries
           .filter((entry: any) => entry.speaker === 'user')
           .map((entry: any) => entry.text);
@@ -625,7 +625,7 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
           }
         }
         
-        // Add therapist guidance
+        // Add therapist guidance summary
         if (therapistMessages.length > 0) {
           // Select representative therapeutic interventions
           const sample = therapistMessages.length > 2 
@@ -639,8 +639,17 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
             }
           }
         }
+        
+        // Add the full conversation transcript
+        formattedTranscript += "\nFull conversation transcript:\n";
+        
+        // Include the full transcript entries
+        for (const entry of entries) {
+          const speakerName = entry.speaker === 'user' ? 'Client' : 'Therapist';
+          formattedTranscript += `${speakerName}: ${entry.text}\n`;
+        }
       } else if (session.transcript) {
-        // Use legacy transcript - extract client concerns and therapist responses
+        // Use legacy transcript - extract client concerns and therapist responses for summary
         const lines = session.transcript.split('\n');
         
         // Extract user messages
@@ -666,6 +675,10 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
             formattedTranscript += `- ${line.substring(0, 100)}${line.length > 100 ? '...' : ''}\n`;
           }
         }
+        
+        // Include the full legacy transcript
+        formattedTranscript += "\nFull conversation transcript:\n";
+        formattedTranscript += session.transcript;
       } else {
         formattedTranscript += 'I don\'t have detailed notes from this session, but I recall we had a productive conversation.\n';
       }
