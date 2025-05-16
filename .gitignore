@@ -53,3 +53,13 @@ create-test-user.js
 test-transcript.js
 migrate-transcripts.js
 debug.txt
+update_env.sh
+
+# IDE files
+.idea/
+
+# Windows Zone identifiers
+*:Zone.Identifier
+
+# Temporary files
+/public/tmp/

@@ -70,7 +70,11 @@ export default function Login() {
 
         {/* Social login buttons */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 mb-6">
-          <button className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 dark:text-gray-200 transition-colors bg-gray-100 dark:bg-gray-700 rounded-lg px-4 hover:bg-gray-200 dark:hover:bg-gray-600">
+          <button 
+            onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+            type="button"
+            className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 dark:text-gray-200 transition-colors bg-gray-100 dark:bg-gray-700 rounded-lg px-4 hover:bg-gray-200 dark:hover:bg-gray-600"
+          >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18.7511 10.1944C18.7511 9.47495 18.6915 8.94995 18.5626 8.40552H10.1797V11.6527H15.1003C15.0011 12.4597 14.4654 13.675 13.2749 14.4916L13.2582 14.6003L15.9087 16.6126L16.0924 16.6305C17.7788 15.1041 18.7511 12.8583 18.7511 10.1944Z" fill="#4285F4"/>
               <path d="M10.1788 18.75C12.5895 18.75 14.6133 17.9722 16.0915 16.6305L13.274 14.4916C12.5201 15.0068 11.5081 15.3666 10.1788 15.3666C7.81773 15.3666 5.81379 13.8402 5.09944 11.7305L4.99473 11.7392L2.23868 13.8295L2.20264 13.9277C3.67087 16.786 6.68674 18.75 10.1788 18.75Z" fill="#34A853"/>

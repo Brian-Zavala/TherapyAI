@@ -255,6 +255,20 @@ export default function Navigation() {
                         Profile
                       </a>
                     </b>
+                    <b>
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsMenuOpen(false);
+                          logout();
+                        }}
+                        tabIndex={isMenuOpen ? 0 : -1}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        Logout
+                      </a>
+                    </b>
                   </>
                 )}
               </h1>
