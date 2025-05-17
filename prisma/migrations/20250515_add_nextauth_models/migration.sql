@@ -23,13 +23,13 @@ CREATE TABLE IF NOT EXISTS "Account" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "Session" (
+CREATE TABLE IF NOT EXISTS "AuthSession" (
     "id" TEXT NOT NULL,
     "sessionToken" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "expires" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AuthSession_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS "VerificationToken" (
 CREATE UNIQUE INDEX IF NOT EXISTS "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "Session_sessionToken_key" ON "Session"("sessionToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "AuthSession_sessionToken_key" ON "AuthSession"("sessionToken");
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "VerificationToken_token_key" ON "VerificationToken"("token");
@@ -55,4 +55,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS "VerificationToken_identifier_token_key" ON "V
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AuthSession" ADD CONSTRAINT "AuthSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

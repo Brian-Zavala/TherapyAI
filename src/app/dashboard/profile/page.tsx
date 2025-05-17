@@ -54,7 +54,7 @@ export default function ProfileSettings() {
     if (status === "loading") return
     
     if (status === "unauthenticated") {
-      router.push("/login")
+      router.replace("/auth/login")
       return
     }
     

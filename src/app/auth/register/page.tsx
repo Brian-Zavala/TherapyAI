@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { motion } from 'framer-motion'
-import BokehBackground from '@/components/ui/bokeh-background'
+import { Spotlight } from '@/components/ui/spotlight-new'
 import GlassCard from '@/components/ui/glass-card'
 
 export default function Register() {
@@ -83,7 +83,7 @@ export default function Register() {
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
       {/* Light overlay to make background less dark */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
-      <BokehBackground />
+      <Spotlight />
       
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md">

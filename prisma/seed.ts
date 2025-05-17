@@ -5,6 +5,16 @@ import { v4 as uuidv4 } from 'uuid'
 const prisma = new PrismaClient()
 
 async function main() {
+  // Check if we're in a development environment
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (!isDevelopment) {
+    console.log('Skipping seed data in non-development environment');
+    return;
+  }
+  
+  console.log('Seeding development database...');
+  
   // Create test user
   const password = await bcrypt.hash('password123', 10)
   

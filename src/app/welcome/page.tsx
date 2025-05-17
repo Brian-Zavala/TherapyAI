@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import BokehBackground from '@/components/ui/bokeh-background'
+import { Spotlight } from '@/components/ui/spotlight-new'
 import GlassCard from '@/components/ui/glass-card'
 import { useSession } from 'next-auth/react'
 import ButtonWithSound from '@/components/ButtonWithSound'
@@ -253,15 +253,25 @@ export default function WelcomePage() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
   useEffect(() => {
+    // Redirect immediately if unauthenticated
     if (status === 'unauthenticated') {
-      router.push('/auth/login')
-    } else if (status === 'authenticated') {
+      router.replace('/auth/login')
+      return
+    } 
+    
+    // If authenticated, check onboarding status
+    if (status === 'authenticated') {
       // Check if user has already completed onboarding
       fetch('/api/user/profile')
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`Error fetching profile: ${res.status}`)
+          }
+          return res.json()
+        })
         .then(data => {
           if (data.onboardingCompleted) {
-            router.push('/')
+            router.replace('/')
           } else {
             setCheckingOnboarding(false)
           }
@@ -342,7 +352,7 @@ export default function WelcomePage() {
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
       {/* Light overlay to make background less dark */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
-      <BokehBackground />
+      <Spotlight />
       <ConfettiAnimation trigger={showConfetti} />
       
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
@@ -443,6 +453,19 @@ export default function WelcomePage() {
                         value={formData[field.name] || ''}
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
                         className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                      />
+                    )}
+                    
+                    {field.type === 'number' && (
+                      <motion.input
+                        type="number"
+                        name={field.name}
+                        placeholder={field.placeholder}
+                        value={formData[field.name] || ''}
+                        onChange={(e) => handleInputChange(field.name, e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                        min="1"
+                        max="120"
                       />
                     )}
                     

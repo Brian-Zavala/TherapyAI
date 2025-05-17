@@ -19,10 +19,11 @@ export default function SpotlightManager() {
   // Debug log
   console.log('Current pathname:', pathname);
   
-  // Disable spotlight effect for login, register, and support pages
+  // Disable spotlight effect for login, register, welcome, and support pages
   const disableSpotlight = 
     pathname?.startsWith('/auth') || 
-    pathname?.includes('support');
+    pathname?.includes('support') ||
+    pathname === '/welcome';
   
   console.log('Spotlight disabled?', disableSpotlight);
   

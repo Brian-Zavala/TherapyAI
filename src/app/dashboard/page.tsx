@@ -19,7 +19,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/auth/login");
+      router.replace("/auth/login");
+      return;
     }
 
     if (status === "authenticated" && session?.user?.email) {

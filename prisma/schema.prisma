@@ -14,31 +14,31 @@ model User {
   name                 String?
   password             String?
   partnerName          String?
-  partnerAge           Int?
   relationshipStatus   String?                @default("Married")
   assistantId          String?
   familyMember1        String?
-  familyMember1Age     Int?
   familyMember2        String?
-  familyMember2Age     Int?
   familyMember3        String?
-  familyMember3Age     Int?
   familyMember4        String?
-  familyMember4Age     Int?
+  image                String?
+  emailVerified        DateTime?
+  onboardingCompleted  Boolean                @default(false)
+  onboardingData       Json?
   pronouns             String?
-  age                  Int?
   therapyType          String?
   currentConcerns      Json?
   emergencyContact     String?
   sessionPreference    String?
   communicationStyle   String?
   additionalNotes      String?
-  image                String?
-  emailVerified        DateTime?
-  onboardingCompleted  Boolean                @default(false)
-  onboardingData       Json?
   phone                String?
   notificationPrefs    String?                @default("email")
+  age                  Int?
+  partnerAge           Int?
+  familyMember1Age     Int?
+  familyMember2Age     Int?
+  familyMember3Age     Int?
+  familyMember4Age     Int?
   accounts             Account[]
   authSessions         AuthSession[]
   communicationMetrics CommunicationMetrics[]
@@ -58,8 +58,8 @@ model Session {
   reminderSent      Boolean           @default(false)
   transcript        String?
   notificationPrefs String?           @default("email")
-  smsReminderSent   Boolean           @default(false)
-  emailReminderSent Boolean           @default(false)
+  smsReminderSent   Boolean?          @default(false)
+  emailReminderSent Boolean?          @default(false)
   user              User              @relation(fields: [userId], references: [id])
   transcriptEntries TranscriptEntry[]
 
@@ -99,15 +99,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -149,11 +148,11 @@ model TherapySession {
   notes             String?
   status            String   @default("scheduled")
   reminderSent      Boolean  @default(false)
-  notificationPrefs String?  @default("email")
-  smsReminderSent   Boolean  @default(false)
-  emailReminderSent Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  notificationPrefs String?  @default("email")
+  smsReminderSent   Boolean? @default(false)
+  emailReminderSent Boolean? @default(false)
   user              User     @relation(fields: [userId], references: [id])
 
   @@index([userId])

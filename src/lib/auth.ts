@@ -18,6 +18,8 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/login",
     error: "/auth/login?error=true",
   },
+  // Allow signing in with different providers using the same email
+  allowDangerousEmailAccountLinking: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,

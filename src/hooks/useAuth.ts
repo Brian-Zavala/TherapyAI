@@ -11,9 +11,10 @@ export function useAuth() {
   const isLoading = status === 'loading'
   
   const logout = () => {
-    signOut({ redirect: false }).then(() => {
-      router.push('/auth/login')
-      router.refresh()
+    // Use redirect: true to ensure proper redirect to login page after signout
+    signOut({ 
+      callbackUrl: '/auth/login',
+      redirect: true
     })
   }
   
