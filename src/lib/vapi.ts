@@ -273,13 +273,25 @@ export const getPersonalizedSystemPrompt = (userProfile?: any) => {
 
   // Get safe values with defaults
   const userName = userProfile?.userName || "the client";
+  const userAge = userProfile?.userAge ? `(${userProfile.userAge} years old)` : "";
   const partnerName = userProfile?.partnerName || "their partner";
+  const partnerAge = userProfile?.partnerAge ? `(${userProfile.partnerAge} years old)` : "";
   const relationshipStatus =
     userProfile?.relationshipStatus || "In a relationship";
   const pronouns = userProfile?.pronouns || null;
   const communicationStyle = userProfile?.communicationStyle || "balanced";
   const currentConcerns = userProfile?.currentConcerns || [];
   const additionalNotes = userProfile?.additionalNotes || "";
+  
+  // Get family member information with their ages
+  const familyMember1 = userProfile?.familyMember1 || null;
+  const familyMember1Age = userProfile?.familyMember1Age || null;
+  const familyMember2 = userProfile?.familyMember2 || null;
+  const familyMember2Age = userProfile?.familyMember2Age || null;
+  const familyMember3 = userProfile?.familyMember3 || null;
+  const familyMember3Age = userProfile?.familyMember3Age || null;
+  const familyMember4 = userProfile?.familyMember4 || null;
+  const familyMember4Age = userProfile?.familyMember4Age || null;
   
   // Build communication style guidance
   let communicationGuidance = "";
@@ -314,10 +326,16 @@ Your therapeutic approach focuses on:
 4. Strengthening attachment bonds and emotional engagement
 5. Facilitating vulnerability and emotional intimacy between partners
   
-IMPORTANT: Your client's name is ${userName}${pronouns ? ` (${pronouns})` : ""} and their partner's name is ${partnerName}. 
+IMPORTANT: Your client's name is ${userName}${pronouns ? ` (${pronouns})` : ""} ${userAge} and their partner's name is ${partnerName} ${partnerAge}. 
 Their relationship status is: ${relationshipStatus}.
 ${currentConcerns.length > 0 ? `They are seeking help with: ${concernsList}.` : ""}
 ${additionalNotes ? `Additional context: ${additionalNotes}` : ""}
+
+${familyMember1 ? `Family information:
+${familyMember1}${familyMember1Age ? ` (${familyMember1Age} years old)` : ""}
+${familyMember2 ? `${familyMember2}${familyMember2Age ? ` (${familyMember2Age} years old)` : ""}` : ""}
+${familyMember3 ? `${familyMember3}${familyMember3Age ? ` (${familyMember3Age} years old)` : ""}` : ""}
+${familyMember4 ? `${familyMember4}${familyMember4Age ? ` (${familyMember4Age} years old)` : ""}` : ""}` : ""}
 
 COMMUNICATION STYLE:
 ${communicationGuidance}
@@ -570,9 +588,16 @@ Your therapeutic approach emphasizes:
 4. Building value-driven goals and meaningful actions
 5. Integrating mindfulness practices into daily life
     
-IMPORTANT: Your client's name is ${userName}${pronounStr}.
+IMPORTANT: Your client's name is ${userName}${pronounStr}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""}.
 ${currentConcerns.length > 0 ? `They are seeking help with: ${concernsList}.` : ""}
 ${additionalNotes ? `Additional context: ${additionalNotes}` : ""}
+
+${userProfile?.partnerName ? `Family information:
+Partner: ${userProfile.partnerName}${userProfile?.partnerAge ? ` (${userProfile.partnerAge} years old)` : ""}
+${userProfile?.familyMember1 ? `${userProfile.familyMember1}${userProfile?.familyMember1Age ? ` (${userProfile.familyMember1Age} years old)` : ""}` : ""}
+${userProfile?.familyMember2 ? `${userProfile.familyMember2}${userProfile?.familyMember2Age ? ` (${userProfile.familyMember2Age} years old)` : ""}` : ""}
+${userProfile?.familyMember3 ? `${userProfile.familyMember3}${userProfile?.familyMember3Age ? ` (${userProfile.familyMember3Age} years old)` : ""}` : ""}
+${userProfile?.familyMember4 ? `${userProfile.familyMember4}${userProfile?.familyMember4Age ? ` (${userProfile.familyMember4Age} years old)` : ""}` : ""}` : ""}
 
 COMMUNICATION STYLE:
 ${communicationGuidance}
@@ -618,12 +643,20 @@ Your ultimate goal is to help ${userName} develop greater psychological flexibil
     // Format the family members string
     let familyMembersString;
     if (familyMemberNames.length === 0) {
-      familyMembersString = `${userProfile?.userName || "the client"}'s family`;
+      familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""}'s family`;
     } else if (familyMemberNames.length === 1) {
-      familyMembersString = `${userProfile?.userName || "the client"} and ${familyMemberNames[0]}`;
+      // Get the age of the first family member
+      const memberAge = userProfile?.familyMember1Age ? ` (${userProfile.familyMember1Age} years old)` : "";
+      familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""} and ${familyMemberNames[0]}${memberAge}`;
     } else {
       const lastMember = familyMemberNames.pop();
-      familyMembersString = `${userProfile?.userName || "the client"}, ${familyMemberNames.join(", ")}, and ${lastMember}`;
+      // Get the age of the last family member
+      let lastMemberAge = "";
+      if (userProfile?.familyMember4 === lastMember) lastMemberAge = userProfile?.familyMember4Age ? ` (${userProfile.familyMember4Age} years old)` : "";
+      else if (userProfile?.familyMember3 === lastMember) lastMemberAge = userProfile?.familyMember3Age ? ` (${userProfile.familyMember3Age} years old)` : "";
+      else if (userProfile?.familyMember2 === lastMember) lastMemberAge = userProfile?.familyMember2Age ? ` (${userProfile.familyMember2Age} years old)` : "";
+      
+      familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""}, ${familyMemberNames.join(", ")}, and ${lastMember}${lastMemberAge}`;
     }
     
     // Build communication style guidance

@@ -45,7 +45,7 @@ export async function GET(request: Request) {
         if (!session.emailReminderSent && session.user.email) {
           try {
             await resend.emails.send({
-              from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+              from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
               to: session.user.email,
               subject: 'Reminder: Your Upcoming Therapy Session',
               react: SessionReminderEmail({

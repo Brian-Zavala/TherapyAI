@@ -17,12 +17,18 @@ export default function ProfileSettings() {
     name: "",
     email: "",
     pronouns: "",
+    age: "",
     partnerName: "",
+    partnerAge: "",
     relationshipStatus: "Married",
     familyMember1: "",
+    familyMember1Age: "",
     familyMember2: "",
+    familyMember2Age: "",
     familyMember3: "",
+    familyMember3Age: "",
     familyMember4: "",
+    familyMember4Age: "",
     therapyType: "",
     currentConcerns: null,
     emergencyContact: "",
@@ -72,12 +78,18 @@ export default function ProfileSettings() {
           name: userData.name || "",
           email: userData.email || "",
           pronouns: userData.pronouns || "",
+          age: userData.age?.toString() || "",
           partnerName: userData.partnerName || "",
+          partnerAge: userData.partnerAge?.toString() || "",
           relationshipStatus: userData.relationshipStatus || "Married",
           familyMember1: userData.familyMember1 || "",
+          familyMember1Age: userData.familyMember1Age?.toString() || "",
           familyMember2: userData.familyMember2 || "",
+          familyMember2Age: userData.familyMember2Age?.toString() || "",
           familyMember3: userData.familyMember3 || "",
+          familyMember3Age: userData.familyMember3Age?.toString() || "",
           familyMember4: userData.familyMember4 || "",
+          familyMember4Age: userData.familyMember4Age?.toString() || "",
           therapyType: userData.therapyType || "",
           currentConcerns: userData.currentConcerns || null,
           emergencyContact: userData.emergencyContact || "",
@@ -213,17 +225,33 @@ export default function ProfileSettings() {
                 />
               </div>
               
-              <div>
-                <label htmlFor="pronouns" className="block text-sm font-medium text-gray-700 mb-1">Pronouns</label>
-                <input
-                  type="text"
-                  id="pronouns"
-                  name="pronouns"
-                  value={formData.pronouns}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  placeholder="e.g., he/him, she/her, they/them"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="pronouns" className="block text-sm font-medium text-gray-700 mb-1">Pronouns</label>
+                  <input
+                    type="text"
+                    id="pronouns"
+                    name="pronouns"
+                    value={formData.pronouns}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    placeholder="e.g., he/him, she/her, they/them"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">Your Age</label>
+                  <input
+                    type="number"
+                    id="age"
+                    name="age"
+                    value={formData.age}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    placeholder="Your age"
+                    min="1"
+                    max="120"
+                  />
+                </div>
               </div>
               
               <div>
@@ -256,17 +284,33 @@ export default function ProfileSettings() {
                 </h3>
                 
                 <div className="space-y-4">
-                  <div>
-                    <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1">Partner&apos;s Name</label>
-                    <input
-                      type="text"
-                      id="partnerName"
-                      name="partnerName"
-                      value={formData.partnerName}
-                      onChange={handleChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder="Enter your partner's name"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="partnerName" className="block text-sm font-medium text-gray-700 mb-1">Partner&apos;s Name</label>
+                      <input
+                        type="text"
+                        id="partnerName"
+                        name="partnerName"
+                        value={formData.partnerName}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        placeholder="Enter your partner's name"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="partnerAge" className="block text-sm font-medium text-gray-700 mb-1">Partner&apos;s Age</label>
+                      <input
+                        type="number"
+                        id="partnerAge"
+                        name="partnerAge"
+                        value={formData.partnerAge}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        placeholder="Their age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -302,7 +346,7 @@ export default function ProfileSettings() {
                 </p>
                 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label htmlFor="familyMember1" className="block text-sm font-medium text-gray-700 mb-1">Family Member 1</label>
                       <input
@@ -317,6 +361,23 @@ export default function ProfileSettings() {
                     </div>
                     
                     <div>
+                      <label htmlFor="familyMember1Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 1</label>
+                      <input
+                        type="number"
+                        id="familyMember1Age"
+                        name="familyMember1Age"
+                        value={formData.familyMember1Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
                       <label htmlFor="familyMember2" className="block text-sm font-medium text-gray-700 mb-1">Family Member 2</label>
                       <input
                         type="text"
@@ -329,6 +390,23 @@ export default function ProfileSettings() {
                       />
                     </div>
                     
+                    <div>
+                      <label htmlFor="familyMember2Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 2</label>
+                      <input
+                        type="number"
+                        id="familyMember2Age"
+                        name="familyMember2Age"
+                        value={formData.familyMember2Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label htmlFor="familyMember3" className="block text-sm font-medium text-gray-700 mb-1">Family Member 3</label>
                       <input
@@ -343,6 +421,23 @@ export default function ProfileSettings() {
                     </div>
                     
                     <div>
+                      <label htmlFor="familyMember3Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 3</label>
+                      <input
+                        type="number"
+                        id="familyMember3Age"
+                        name="familyMember3Age"
+                        value={formData.familyMember3Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
                       <label htmlFor="familyMember4" className="block text-sm font-medium text-gray-700 mb-1">Family Member 4</label>
                       <input
                         type="text"
@@ -352,6 +447,21 @@ export default function ProfileSettings() {
                         onChange={handleChange}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                         placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember4Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 4</label>
+                      <input
+                        type="number"
+                        id="familyMember4Age"
+                        name="familyMember4Age"
+                        value={formData.familyMember4Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
                       />
                     </div>
                   </div>

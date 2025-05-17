@@ -32,6 +32,8 @@ export const ImagesSlider = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<string[]>([]);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [startSlider, setStartSlider] = useState(false);
 
   const handleNext = useCallback(() => {
     setCurrentIndex((prevIndex) =>
@@ -48,6 +50,18 @@ export const ImagesSlider = ({
   useEffect(() => {
     loadImages();
   }, []);
+  
+  // Start slider animation after a delay to allow first image to display without animation
+  useEffect(() => {
+    if (areImagesLoaded && initialLoad) {
+      const timer = setTimeout(() => {
+        setInitialLoad(false);
+        setStartSlider(true);
+      }, 1000); // Wait 1 second before enabling slide animations
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loadedImages]);
 
   const loadImages = () => {
     setLoading(true);
@@ -79,9 +93,9 @@ export const ImagesSlider = ({
 
     window.addEventListener("keydown", handleKeyDown);
 
-    // autoplay
+    // autoplay - only start after initial load animation
     let interval: any;
-    if (autoplay) {
+    if (autoplay && startSlider) {
       interval = setInterval(() => {
         handleNext();
       }, 5000);
@@ -91,7 +105,7 @@ export const ImagesSlider = ({
       window.removeEventListener("keydown", handleKeyDown);
       clearInterval(interval);
     };
-  }, [handleNext, handlePrevious, autoplay]);
+  }, [handleNext, handlePrevious, autoplay, startSlider]);
 
   const slideVariants = {
     initial: {
@@ -147,9 +161,9 @@ export const ImagesSlider = ({
         <AnimatePresence>
           <motion.div
             key={currentIndex}
-            initial="initial"
+            initial={initialLoad ? false : "initial"}
             animate="visible"
-            exit={direction === "up" ? "upExit" : "downExit"}
+            exit={!initialLoad && direction === "up" ? "upExit" : (!initialLoad ? "downExit" : false)}
             variants={slideVariants}
             className="absolute inset-0 flex items-center justify-center"
           >

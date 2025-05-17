@@ -23,13 +23,13 @@ const SpiralTextAnimation: React.FC<Props> = memo(({ className = "" }) => {
   };
 
   // The text to be revealed
-  const text = "Strengthen Your Relationships";
+  const text = "";
   const letters = text.split("");
 
   return (
     <div className={`relative overflow-visible ${className}`}>
       {/* Hidden text for SEO */}
-      <span className="sr-only">Strengthen Your Relationships</span>
+      <span className="sr-only"></span>
 
       {/* Text that appears letter by letter */}
       <div className="text-2xl sm:text-5xl md:text-9xlxl font-bold flex justify-center overflow-visible">

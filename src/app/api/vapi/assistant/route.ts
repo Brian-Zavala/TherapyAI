@@ -58,8 +58,18 @@ export async function GET(req: NextRequest) {
         select: { 
           assistantId: true,
           name: true,
-          partnerName: true, 
-          relationshipStatus: true
+          age: true,
+          partnerName: true,
+          partnerAge: true,
+          relationshipStatus: true,
+          familyMember1: true,
+          familyMember1Age: true,
+          familyMember2: true,
+          familyMember2Age: true,
+          familyMember3: true,
+          familyMember3Age: true,
+          familyMember4: true,
+          familyMember4Age: true
         }
       });
       
@@ -73,8 +83,18 @@ export async function GET(req: NextRequest) {
         // Create a personalized assistant config based on user profile
         const personalizedConfig = getPersonalizedAssistantConfig({
           userName: user.name,
+          userAge: user.age,
           partnerName: user.partnerName,
-          relationshipStatus: user.relationshipStatus
+          partnerAge: user.partnerAge,
+          relationshipStatus: user.relationshipStatus,
+          familyMember1: user.familyMember1,
+          familyMember1Age: user.familyMember1Age,
+          familyMember2: user.familyMember2,
+          familyMember2Age: user.familyMember2Age,
+          familyMember3: user.familyMember3,
+          familyMember3Age: user.familyMember3Age,
+          familyMember4: user.familyMember4,
+          familyMember4Age: user.familyMember4Age
         });
         
         // Return the personalized config without creating an actual assistant

@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     // Send email to support
     try {
       const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'Therapy Support <onboarding@resend.dev>',
+        from: process.env.EMAIL_FROM || 'Therapy AI Support <support@therapyai.us>',
         to: SUPPORT_EMAIL,
         reply_to: email,
         subject: formattedSubject,

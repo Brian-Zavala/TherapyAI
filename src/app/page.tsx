@@ -18,7 +18,6 @@ import {
 // Custom components
 import TypewriterText from "@/components/TypewriterText";
 import ButtonWithSound from "@/components/ButtonWithSound";
-import SpiralTextAnimation from "@/components/SpiralTextAnimation";
 import ScrollDownArrow from "@/components/ScrollDownArrow";
 import Hero3DBackground from "@/components/Hero3DBackground";
 import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
@@ -310,16 +309,6 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.6, 0.05, 0.01, 0.9] }} // Use original duration/ease
         >
-          {/* Spiral Text Animation (Original Structure) */}
-          <motion.div
-            className="w-full mb-8 md:mb-10 px-2 py-1 overflow-visible"
-            initial={{ opacity: 0 }} // Keep original animation
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }} // Keep original transition
-          >
-            <SpiralTextAnimation className="w-full" />
-          </motion.div>
-
           {/* Hero Highlight */}
           <div className="mb-12 md:mb-16">
             <HeroHighlightDemo />
@@ -1875,6 +1864,21 @@ export default function Home() {
             <p className="text-sm text-white mb-4">
               © {new Date().getFullYear()} TherapyAI. All rights reserved.
             </p>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <Link 
+                href="/terms" 
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Terms and Conditions
+              </Link>
+              <span className="text-xs text-gray-500">|</span>
+              <Link 
+                href="/privacy" 
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+            </div>
             <p className="text-xs text-white">
               Powered by advanced AI to help the planet build stronger,
               healthier relationships

@@ -40,6 +40,13 @@ const formSteps: FormStep[] = [
         required: true
       },
       {
+        name: 'age',
+        label: 'Your age',
+        type: 'number',
+        placeholder: 'Your age',
+        required: false
+      },
+      {
         name: 'pronouns',
         label: 'Your pronouns',
         type: 'select',
@@ -80,10 +87,24 @@ const formSteps: FormStep[] = [
         required: false
       },
       {
+        name: 'partnerAge',
+        label: "Partner's age (if applicable)",
+        type: 'number',
+        placeholder: 'Their age',
+        required: false
+      },
+      {
         name: 'familyMember1',
         label: 'Family member 1',
         type: 'text',
         placeholder: 'Name (e.g., John - Son)',
+        required: false
+      },
+      {
+        name: 'familyMember1Age',
+        label: 'Age of family member 1',
+        type: 'number',
+        placeholder: 'Age',
         required: false
       },
       {
@@ -94,6 +115,13 @@ const formSteps: FormStep[] = [
         required: false
       },
       {
+        name: 'familyMember2Age',
+        label: 'Age of family member 2',
+        type: 'number',
+        placeholder: 'Age',
+        required: false
+      },
+      {
         name: 'familyMember3',
         label: 'Family member 3',
         type: 'text',
@@ -101,10 +129,24 @@ const formSteps: FormStep[] = [
         required: false
       },
       {
+        name: 'familyMember3Age',
+        label: 'Age of family member 3',
+        type: 'number',
+        placeholder: 'Age',
+        required: false
+      },
+      {
         name: 'familyMember4',
         label: 'Family member 4',
         type: 'text',
         placeholder: 'Name (e.g., Linda - Mother)',
+        required: false
+      },
+      {
+        name: 'familyMember4Age',
+        label: 'Age of family member 4',
+        type: 'number',
+        placeholder: 'Age',
         required: false
       }
     ]

@@ -14,13 +14,19 @@ model User {
   name                 String?
   password             String?
   partnerName          String?
+  partnerAge           Int?
   relationshipStatus   String?                @default("Married")
   assistantId          String?
   familyMember1        String?
+  familyMember1Age     Int?
   familyMember2        String?
+  familyMember2Age     Int?
   familyMember3        String?
+  familyMember3Age     Int?
   familyMember4        String?
+  familyMember4Age     Int?
   pronouns             String?
+  age                  Int?
   therapyType          String?
   currentConcerns      Json?
   emergencyContact     String?

@@ -40,9 +40,13 @@ export const config = {
     '/dashboard/:path*',
     '/auth/:path*',
     '/welcome',
+    '/schedule/:path*',
+    '/support/:path*',
+    // Separate matcher for public paths that we still want middleware to run on
+    // but don't want to enforce authentication for
     '/terms',
     '/privacy',
     // Exclude public static assets from middleware
-    '/((?!api|_next/static|_next/image|favicon.ico|images|sounds|fonts|videos).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|images|sounds|fonts|videos|terms|privacy).*)',
   ]
 }
