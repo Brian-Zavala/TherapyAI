@@ -11,7 +11,9 @@ export async function middleware(request: NextRequest) {
   const isPublicPath = path === '/auth/login' || 
                         path === '/auth/register' || 
                         path.startsWith('/api/auth') ||
-                        path === '/' // Make homepage public
+                        path === '/' || // Make homepage public
+                        path === '/terms' || // Make terms page public
+                        path === '/privacy' // Make privacy page public
   
   // Check if the user is authenticated
   const token = await getToken({ 
@@ -38,6 +40,8 @@ export const config = {
     '/dashboard/:path*',
     '/auth/:path*',
     '/welcome',
+    '/terms',
+    '/privacy',
     // Exclude public static assets from middleware
     '/((?!api|_next/static|_next/image|favicon.ico|images|sounds|fonts|videos).*)',
   ]
