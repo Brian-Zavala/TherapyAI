@@ -9,6 +9,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const therapyType = searchParams.get('type') || 'couple';
     const timeframe = searchParams.get('timeframe') || 'all'; // 'week', 'month', 'all'
+    
+    // Don't include solo therapy data in relationship progress
+    if (therapyType === 'solo') {
+      return NextResponse.json([]);
+    }
 
     const session = await getServerSession(authOptions);
 
@@ -53,7 +58,8 @@ export async function GET(request: Request) {
         communicationScore: true,
         notes: true,
         therapyType: true,
-        sessionId: true
+        sessionId: true,
+        assistantId: true // Include assistant ID
       },
       orderBy: {
         date: 'asc'

@@ -809,8 +809,15 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   const filteredEntries = finalEntries;
   
   // If still no valid entries, show placeholder
-  const displayEntries = filteredEntries.length > 0 
-    ? filteredEntries 
+  // Filter out system messages with "no recorded conversation" to prevent showing them when real entries exist
+  const filteredWithoutPlaceholders = filteredEntries.filter(
+    entry => !(entry.speaker === 'system' && 
+              (entry.text.includes('This session does not have any recorded conversation yet') || 
+               entry.text === 'No conversation data is available for this session.'))
+  );
+
+  const displayEntries = filteredWithoutPlaceholders.length > 0 
+    ? filteredWithoutPlaceholders 
     : [{
         id: 'placeholder',
         sessionId: session.id,

@@ -144,6 +144,7 @@ export async function POST(request: Request) {
       duration = 60, 
       notes = '',
       notificationPrefs,
+      assistantId = '', // New field to capture assistant ID
       context = {} // Capture but ignore context data (it doesn't go in the DB)
     } = body;
     
@@ -190,7 +191,8 @@ export async function POST(request: Request) {
           theme,
           notes,
           status,
-          notificationPrefs: effectiveNotificationPrefs
+          notificationPrefs: effectiveNotificationPrefs,
+          assistantId: assistantId // Store the assistant ID from Vapi
         }
       });
       

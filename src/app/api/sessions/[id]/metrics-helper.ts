@@ -2,7 +2,7 @@
 import { prisma } from '@/lib/prisma'
 
 // Helper function to generate metrics from the session
-export async function generateMetricsFromSession(userId: string, duration: number, sessionId?: string, transcript?: string, therapyType: string = 'couple') {
+export async function generateMetricsFromSession(userId: string, duration: number, sessionId?: string, transcript?: string, therapyType: string = 'couple', assistantId?: string) {
   // Validate the userId exists first
   try {
     const userExists = await prisma.user.findUnique({
@@ -14,18 +14,26 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
       return;
     }
     
-    // Check the session's theme to determine therapy type if not provided
-    if (sessionId && !therapyType) {
+    // Check the session's theme and assistantId to determine therapy type if not provided
+    if (sessionId && (!therapyType || !assistantId)) {
       const session = await prisma.session.findUnique({
         where: { id: sessionId },
-        select: { theme: true }
+        select: { theme: true, assistantId: true }
       });
       
       if (session) {
-        if (session.theme.toLowerCase().includes('family')) {
-          therapyType = 'family';
-        } else if (session.theme.toLowerCase().includes('relationship') || session.theme.toLowerCase().includes('couple')) {
-          therapyType = 'couple';
+        // Get therapy type from theme if not provided
+        if (!therapyType) {
+          if (session.theme.toLowerCase().includes('family')) {
+            therapyType = 'family';
+          } else if (session.theme.toLowerCase().includes('relationship') || session.theme.toLowerCase().includes('couple')) {
+            therapyType = 'couple';
+          }
+        }
+        
+        // Get assistantId from session if not provided
+        if (!assistantId && session.assistantId) {
+          assistantId = session.assistantId;
         }
       }
     }
@@ -106,7 +114,8 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
         communicationScore: metrics.communicationScore,
         therapyType,
         notes,
-        sessionId
+        sessionId,
+        assistantId // Include the assistant ID in progress tracking
       }
     });
     
@@ -117,22 +126,12 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
         activeListeningScore: metrics.activeListeningScore,
         expressingNeedsScore: metrics.expressingNeedsScore,
         conflictResolutionScore: metrics.conflictResolutionScore,
-        emotionalSupportScore: metrics.emotionalSupportScore
+        emotionalSupportScore: metrics.emotionalSupportScore,
+        assistantId // Include the assistant ID in communication metrics
       }
     });
     
-    // If this is family therapy, also create family therapy metrics
-    if (therapyType === 'family') {
-      await prisma.familyTherapyMetrics.create({
-        data: {
-          userId,
-          familyCommunicationScore: Math.min(100, metrics.activeListeningScore + 5),
-          roleDefinitionScore: Math.min(100, metrics.expressingNeedsScore),
-          conflictManagementScore: Math.min(100, metrics.conflictResolutionScore + 3),
-          familyBondingScore: Math.min(100, metrics.emotionalSupportScore + 7)
-        }
-      });
-    }
+    // Family therapy type has been handled by CommunicationMetrics
     
     console.log(`Successfully generated ${therapyType} metrics for user ${userId} based on session transcript analysis`);
   } catch (error) {

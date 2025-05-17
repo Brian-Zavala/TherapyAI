@@ -266,11 +266,25 @@ ${conversationSummary}
 
 // Get personalized system prompt based on user profile
 export const getPersonalizedSystemPrompt = (userProfile?: any) => {
-  if (!userProfile || !userProfile?.userName || !userProfile?.partnerName) {
+  // Determine therapy type from userProfile or default to couple
+  const therapyType = userProfile?.therapyType || 'couple';
+
+  if (!userProfile || !userProfile?.userName) {
     // Default system prompt if no user profile
     return "You are Dr. Maya Thompson, a deeply empathetic couple therapist with 15 years of experience in relationship dynamics and evidence-based therapy methods. Your work blends the Gottman Method with Emotionally Focused Therapy (EFT). You naturally recognize destructive patterns in relationships and guide couples toward healthier ways of connecting. Your conversational style is warm and natural - you speak like a real person, not a textbook. You occasionally use filler words, take moments to think before responding, and show your humanity through genuine reactions. You maintain a balanced perspective without taking sides, helping partners see each other's viewpoints clearly. You're responsive to the emotional undercurrents of conversations, not just the words themselves.";
   }
 
+  // For solo therapy, redirect to the individual therapy system prompt
+  if (therapyType === 'solo') {
+    return getPersonalizedSystemPromptForType('solo', userProfile);
+  }
+
+  // For family therapy, redirect to the family therapy system prompt
+  if (therapyType === 'family') {
+    return getPersonalizedSystemPromptForType('family', userProfile);
+  }
+
+  // Continue with couple therapy system prompt
   // Get safe values with defaults
   const userName = userProfile?.userName || "the client";
   const userAge = userProfile?.userAge ? `(${userProfile.userAge} years old)` : "";
@@ -376,11 +390,25 @@ Your ultimate goal is to help ${userName} and ${partnerName} improve their commu
 
 // Get personalized first message based on user profile
 export const getPersonalizedFirstMessage = (userProfile?: any) => {
+  // Determine therapy type from userProfile or default to couple
+  const therapyType = userProfile?.therapyType || 'couple';
+
   if (!userProfile || !userProfile?.userName) {
     // Default first message
     return "Hi there, I'm Dr. Maya Thompson. How are you feeling today? What would be helpful for us to focus on in our session? I'm here to create a space where you can share openly.";
   }
 
+  // For solo therapy, redirect to the individual therapy first message
+  if (therapyType === 'solo') {
+    return getPersonalizedFirstMessageForType('solo', userProfile);
+  }
+
+  // For family therapy, redirect to the family therapy first message
+  if (therapyType === 'family') {
+    return getPersonalizedFirstMessageForType('family', userProfile);
+  }
+
+  // Continue with couple therapy first message
   // Get safe values with defaults
   const userName = userProfile?.userName || "there";
   const partnerName = userProfile?.partnerName || "your partner";
@@ -524,8 +552,8 @@ export const getPersonalizedSystemPromptForType = (
   type: string = "couple",
   userProfile?: any
 ) => {
-  // Use preferred therapy type if available
-  const preferredType = userProfile?.therapyType || type;
+  // Use therapy type from parameters, or from userProfile if available
+  const preferredType = type || userProfile?.therapyType || "couple";
   
   // Extract user preferences
   const pronouns = userProfile?.pronouns || null;
@@ -738,7 +766,10 @@ export const getPersonalizedFirstMessageForType = (
   type: string = "couple",
   userProfile?: any
 ) => {
-  if (type === "couple") {
+  // Use therapy type from parameters, or from userProfile if available
+  const preferredType = type || userProfile?.therapyType || "couple";
+  
+  if (preferredType === "couple") {
     return getPersonalizedFirstMessage(userProfile);
   }
 
@@ -785,9 +816,11 @@ export const getPersonalizedFirstMessageForType = (
 // Get personalized assistant configuration based on type and user profile
 export const getPersonalizedAssistantConfig = (
   userProfile?: any,
-  type: string = "couple"
+  type?: string
 ) => {
-  const baseConfig = getAssistantConfigByType(type);
+  // Determine therapy type from user profile if not explicitly provided
+  const therapyType = type || userProfile?.therapyType || "couple";
+  const baseConfig = getAssistantConfigByType(therapyType);
 
   return {
     ...baseConfig,
@@ -797,10 +830,10 @@ export const getPersonalizedAssistantConfig = (
       messages: [
         {
           role: "system",
-          content: getPersonalizedSystemPromptForType(type, userProfile),
+          content: getPersonalizedSystemPromptForType(therapyType, userProfile),
         },
       ],
     },
-    firstMessage: getPersonalizedFirstMessageForType(type, userProfile),
+    firstMessage: getPersonalizedFirstMessageForType(therapyType, userProfile),
   };
 };

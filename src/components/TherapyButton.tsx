@@ -1031,6 +1031,8 @@ function TherapyButton({
           theme: therapyType === 'couple' ? 'Relationship Counseling' : 
                  therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy',
           notes: `${therapyType} therapy session started at ${new Date().toLocaleTimeString()}`,
+          // Include assistant ID to link with Vapi assistant
+          assistantId: assistantConfig.id || '',
           // Include context for session personalization
           context: userProfile ? {
             userName: userProfile.name,

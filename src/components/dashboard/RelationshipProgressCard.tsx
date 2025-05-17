@@ -875,12 +875,12 @@ export default function RelationshipProgressCard() {
       ) : (
         // Display message when no data is available (after loading finishes)
         !loading && (
-          <div className="w-full h-full flex items-center justify-center text-center">
+          <div className="w-full h-full flex items-center justify-center text-center -mt-10">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="max-w-md"
+              className="max-w-md flex flex-col items-center text-center"
             >
               <h3 className="text-xl font-semibold text-white mb-2">
                 Your Progress Awaits

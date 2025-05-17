@@ -46,7 +46,7 @@ export async function POST(
     }
     
     // Parse the request body
-    const { speaker, text, timestamp, isFinal } = await request.json()
+    const { speaker, text, timestamp, isFinal, assistantId } = await request.json()
     
     // Validate required fields
     if (!speaker || !text) {
@@ -97,13 +97,25 @@ export async function POST(
       // Standardize speaker to lowercase for consistency
       const normalizedSpeaker = speaker.toLowerCase();
       
+      // Try to get the assistantId from the session if not provided
+      let entryAssistantId = assistantId;
+      if (!entryAssistantId) {
+        try {
+          // Get the assistantId from the session if available
+          entryAssistantId = therapySession.assistantId || null;
+        } catch (err) {
+          console.log('Could not retrieve assistantId from session');
+        }
+      }
+
       newEntry = await prisma.transcriptEntry.create({
         data: {
           sessionId,
           speaker: normalizedSpeaker,
           text: cleanText,
           timestamp: timestampObj,
-          isFinal: isFinal !== undefined ? Boolean(isFinal) : true
+          isFinal: isFinal !== undefined ? Boolean(isFinal) : true,
+          assistantId: entryAssistantId
         }
       });
       
@@ -674,8 +686,14 @@ export async function GET(
         }
         
         // If we still don't have any entries, add a placeholder
-        if (!entriesAdded) {
-          console.log('No transcript data found, adding system notification entry');
+        // First check if there are any existing entries in the database for this session
+        const existingEntries = await prisma.transcriptEntry.count({
+          where: { sessionId: sessionId }
+        });
+        
+        // Only add a placeholder if there are truly no entries at all
+        if (!entriesAdded && existingEntries === 0) {
+          console.log('No transcript data found and no entries in database, adding system notification entry');
           // Create and persist a proper entry
           try {
             // Create in database first
@@ -707,17 +725,32 @@ export async function GET(
             });
           }
         }
+        }
       } catch (error) {
         console.error('Error checking for legacy transcript:', error);
-        // Add informative system entry as fallback
-        dedupedEntries.push({
-          id: 'system-error',
-          sessionId: sessionId,
-          speaker: 'system',
-          text: 'This session does not have any recorded conversation yet.',
-          timestamp: new Date(),
-          isFinal: true
-        });
+        
+        // First check if there are any existing entries in the database for this session
+        try {
+          const existingEntries = await prisma.transcriptEntry.count({
+            where: { sessionId: sessionId }
+          });
+          
+          // Only add a placeholder if there are truly no entries at all
+          if (existingEntries === 0) {
+            // Add informative system entry as fallback
+            dedupedEntries.push({
+              id: 'system-error',
+              sessionId: sessionId,
+              speaker: 'system',
+              text: 'This session does not have any recorded conversation yet.',
+              timestamp: new Date(),
+              isFinal: true
+            });
+          }
+        } catch (countError) {
+          console.error('Error checking for existing entries:', countError);
+          // If we can't check, default to showing nothing rather than a potentially incorrect message
+        }
       }
     }
     

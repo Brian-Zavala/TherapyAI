@@ -16,6 +16,7 @@ export type TranscriptEntry = {
   text: string
   timestamp?: string
   isFinal?: boolean
+  assistantId?: string  // ID of the Vapi assistant
 }
 
 /**
@@ -335,7 +336,7 @@ export async function deleteTranscriptEntry(sessionId: string, entryId: string):
  * This function can be attached to various speech event handlers to automatically
  * add transcript entries as they occur.
  */
-export function createTranscriptHandler(sessionId: string) {
+export function createTranscriptHandler(sessionId: string, assistantId?: string) {
   // Enhanced helper function to save to session storage with multiple backups
   const saveToSessionStorage = (speaker: string, text: string) => {
     try {
@@ -424,6 +425,7 @@ export function createTranscriptHandler(sessionId: string) {
           text,
           timestamp: new Date().toISOString(),
           isFinal,
+          assistantId,
         })
       } catch (error) {
         console.error('Failed to add assistant transcript entry:', error)
@@ -446,6 +448,7 @@ export function createTranscriptHandler(sessionId: string) {
           text,
           timestamp: new Date().toISOString(),
           isFinal,
+          assistantId,
         })
       } catch (error) {
         console.error('Failed to add user transcript entry:', error)

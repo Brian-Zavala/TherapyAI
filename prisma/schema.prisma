@@ -60,23 +60,27 @@ model Session {
   notificationPrefs String?           @default("email")
   smsReminderSent   Boolean?          @default(false)
   emailReminderSent Boolean?          @default(false)
+  assistantId       String?           // ID of the Vapi assistant used in this session
   user              User              @relation(fields: [userId], references: [id])
   transcriptEntries TranscriptEntry[]
 
   @@index([userId])
+  @@index([assistantId])
 }
 
 model TranscriptEntry {
-  id        String   @id @default(cuid())
-  sessionId String
-  speaker   String
-  text      String
-  timestamp DateTime @default(now())
-  isFinal   Boolean  @default(true)
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  sessionId   String
+  speaker     String
+  text        String
+  timestamp   DateTime @default(now())
+  isFinal     Boolean  @default(true)
+  assistantId String?  // ID of the assistant that generated this transcript entry
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([timestamp])
+  @@index([assistantId])
 }
 
 model ProgressTracking {
@@ -88,9 +92,11 @@ model ProgressTracking {
   therapyType        String   @default("couple")
   notes              String?
   sessionId          String?
+  assistantId        String?  // ID of the Vapi assistant used in this session
   user               User     @relation(fields: [userId], references: [id])
 
   @@index([therapyType])
+  @@index([assistantId])
 }
 
 model Account {
@@ -137,7 +143,10 @@ model CommunicationMetrics {
   expressingNeedsScore    Int
   conflictResolutionScore Int
   emotionalSupportScore   Int
+  assistantId             String?  // ID of the Vapi assistant used in this session
   user                    User     @relation(fields: [userId], references: [id])
+
+  @@index([assistantId])
 }
 
 model TherapySession {
