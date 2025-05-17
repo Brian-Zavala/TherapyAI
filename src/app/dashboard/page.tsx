@@ -56,7 +56,7 @@ export default function Dashboard() {
   if (status === "loading" || isProfileLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -96,20 +96,20 @@ export default function Dashboard() {
             </div>
             <Link
               href="/dashboard/therapy"
-              className="mt-6 sm:mt-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-lg hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden"
+              className="mt-6 sm:mt-0 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-green-500/30 transition-all duration-300 hover:shadow-lg hover:from-green-600 hover:to-green-600 focus:ring-4 focus:ring-green-400 relative overflow-hidden"
             >
               Start New Session
-              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
-              <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-green-400 to-green-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+              <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-green-400 to-green-500 opacity-30 blur-lg"></span>
             </Link>
           </div>
         </motion.div>
 
         {/* Dashboard Tab Navigation for Mobile */}
-        <div className="sm:hidden mb-4 overflow-x-auto scrollbar-hide flex space-x-2 pb-2 border-b border-white/20">
+        <div className="sm:hidden mb-4 overflow-x-auto scrollbar-hide flex space-x-1 pb-2 border-b border-white/20">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
+            className={`px-2 py-2 rounded-lg font-medium flex-1 text-xs ${
               activeTab === "overview"
                 ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
@@ -119,7 +119,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setActiveTab("progress")}
-            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
+            className={`px-2 py-2 rounded-lg font-medium flex-1 text-xs ${
               activeTab === "progress"
                 ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
@@ -129,17 +129,17 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setActiveTab("communication")}
-            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
+            className={`px-2 py-2 rounded-lg font-medium flex-1 text-xs ${
               activeTab === "communication"
                 ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
-            Comm.
+            Communication
           </button>
           <button
             onClick={() => setActiveTab("sessions")}
-            className={`px-3 py-2 rounded-lg font-medium flex-shrink-0 text-sm min-w-[90px] ${
+            className={`px-2 py-2 rounded-lg font-medium flex-1 text-xs ${
               activeTab === "sessions"
                 ? "bg-green-500/50 text-white"
                 : "bg-white/20 text-white hover:bg-white/30"
@@ -159,7 +159,7 @@ export default function Dashboard() {
           {/* Session Time Visualization */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "520px" }}
+            className="w-full h-[520px]"
           >
             <SessionTimeChart />
           </motion.div>
@@ -167,7 +167,7 @@ export default function Dashboard() {
           {/* Relationship Progress Card */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "520px" }}
+            className="w-full h-[520px]"
           >
             <RelationshipProgressCard />
           </motion.div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
           {/* Communication Metrics */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "520px" }}
+            className="w-full h-[520px]"
           >
             <CommunicationMetrics />
           </motion.div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
           {/* Upcoming Sessions */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "520px" }}
+            className="w-full h-[520px]"
           >
             <UpcomingSessions />
           </motion.div>
@@ -197,7 +197,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "520px" }}
+              className="w-full h-[520px] mb-6"
             >
               <SessionTimeChart />
             </motion.div>
@@ -208,7 +208,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "520px" }}
+              className="w-full h-[520px] mb-6"
             >
               <RelationshipProgressCard />
             </motion.div>
@@ -219,7 +219,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "520px" }}
+              className="w-full h-[520px] mb-6"
             >
               <CommunicationMetrics />
             </motion.div>
@@ -230,7 +230,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "520px" }}
+              className="w-full h-[520px] mb-6"
             >
               <UpcomingSessions />
             </motion.div>
@@ -249,9 +249,9 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3">
               <Link
                 href="/dashboard/therapy"
-                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-green-100"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white mb-1 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mb-1 shadow-sm">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4"
@@ -268,7 +268,7 @@ export default function Dashboard() {
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-medium text-blue-800">
+                  <p className="text-xs font-medium text-green-800">
                     Start Therapy
                   </p>
                 </div>
@@ -276,9 +276,9 @@ export default function Dashboard() {
 
               <Link
                 href="/dashboard/sessions"
-                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-green-100"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white mb-1 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mb-1 shadow-sm">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4"
@@ -295,7 +295,7 @@ export default function Dashboard() {
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-medium text-blue-800">
+                  <p className="text-xs font-medium text-green-800">
                     Past Sessions
                   </p>
                 </div>
@@ -303,9 +303,9 @@ export default function Dashboard() {
 
               <Link
                 href="/dashboard/resources"
-                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-green-100"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white mb-1 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mb-1 shadow-sm">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4"
@@ -322,15 +322,15 @@ export default function Dashboard() {
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-medium text-blue-800">Resources</p>
+                  <p className="text-xs font-medium text-green-800">Resources</p>
                 </div>
               </Link>
 
               <Link
                 href="/dashboard/profile"
-                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+                className="flex flex-col items-center p-3 bg-white/70 rounded-lg hover:bg-white/80 transition-colors shadow-md border border-green-100"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white mb-1 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mb-1 shadow-sm">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4"
@@ -347,7 +347,7 @@ export default function Dashboard() {
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-medium text-blue-800">Profile</p>
+                  <p className="text-xs font-medium text-green-800">Profile</p>
                 </div>
               </Link>
             </div>
@@ -367,9 +367,9 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/dashboard/therapy"
-              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-green-100"
             >
-              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-blue-500 flex items-center justify-center text-white mr-3 shadow-md">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-green-500 flex items-center justify-center text-white mr-3 shadow-md">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-6 w-6"
@@ -386,16 +386,16 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-black/80">Start Therapy</h3>
-                <p className="text-sm text-black">Begin a new session</p>
+                <h3 className="font-medium text-green-800">Start Therapy</h3>
+                <p className="text-sm text-green-600">Begin a new session</p>
               </div>
             </Link>
 
             <Link
               href="/dashboard/sessions"
-              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-green-100"
             >
-              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-blue-600 flex items-center justify-center text-white mr-3 shadow-md">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-green-500 flex items-center justify-center text-white mr-3 shadow-md">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-6 w-6"
@@ -412,16 +412,16 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-blue-800">Past Sessions</h3>
-                <p className="text-sm text-blue-600">View your history</p>
+                <h3 className="font-medium text-green-800">Past Sessions</h3>
+                <p className="text-sm text-green-600">View your history</p>
               </div>
             </Link>
 
             <Link
               href="/dashboard/resources"
-              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-green-100"
             >
-              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-blue-600 flex items-center justify-center text-white mr-3 shadow-md">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-green-500 flex items-center justify-center text-white mr-3 shadow-md">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-6 w-6"
@@ -438,16 +438,16 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-blue-800">Resources</h3>
-                <p className="text-sm text-blue-600">Find helpful guides</p>
+                <h3 className="font-medium text-green-800">Resources</h3>
+                <p className="text-sm text-green-600">Find helpful guides</p>
               </div>
             </Link>
 
             <Link
               href="/dashboard/profile"
-              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-blue-100"
+              className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-green-100"
             >
-              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-blue-600 flex items-center justify-center text-white mr-3 shadow-md">
+              <div className="w-10 h-10 min-w-[2.5rem] rounded-full bg-green-500 flex items-center justify-center text-white mr-3 shadow-md">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-6 w-6"
@@ -464,8 +464,8 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-blue-800">Profile</h3>
-                <p className="text-sm text-blue-600">View your details</p>
+                <h3 className="font-medium text-green-800">Profile</h3>
+                <p className="text-sm text-green-600">View your details</p>
               </div>
             </Link>
           </div>

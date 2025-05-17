@@ -680,7 +680,7 @@ export default function RelationshipProgressCard() {
   // Now this check happens AFTER all hooks have been called
   if (loading) {
     return (
-      <div className="w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full overflow-hidden">
         <div className="flex items-center mb-4">
           <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
             <svg
@@ -764,7 +764,7 @@ export default function RelationshipProgressCard() {
 
   // --- Final Render ---
   return (
-    <div className="w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+    <div className={`bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full ${data.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
       <div className="flex items-center mb-4">
         <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
           <svg
@@ -790,7 +790,7 @@ export default function RelationshipProgressCard() {
         <div className="flex space-x-2 mb-2 sm:mb-0 items-center">
           {" "}
           {/* Added items-center */}
-          {dataSource === "api" && (
+          {dataSource === "api" && data.length > 0 && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/80 text-white shadow-sm">
               <span className="w-2 h-2 mr-1.5 bg-green-300 rounded-full animate-pulse"></span>{" "}
               {/* Added pulse */}
@@ -875,28 +875,13 @@ export default function RelationshipProgressCard() {
       ) : (
         // Display message when no data is available (after loading finishes)
         !loading && (
-          <div className="w-full h-[450px] sm:h-[480px] md:h-[520px] flex items-center justify-center text-center">
+          <div className="w-full h-full flex items-center justify-center text-center">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
               className="max-w-md"
             >
-              <svg
-                className="mx-auto h-16 w-16 text-white/80 mb-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  vectorEffect="non-scaling-stroke"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 17v-2m3 2v-4m3 4v-6m-1.5-6.354a7.5 7.5 0 11-10.606 0M12 6v1m0 9v1m-4.243-3.757l.707-.707M15.536 8.464l.707.707M6.757 17.243l-.707.707M17.243 6.757l-.707-.707"
-                />
-              </svg>
               <h3 className="text-xl font-semibold text-white mb-2">
                 Your Progress Awaits
               </h3>

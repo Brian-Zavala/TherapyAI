@@ -794,9 +794,9 @@ export default function CommunicationMetrics() {
 
   if (loading) {
     content = (
-      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 h-full overflow-y-auto">
         <div className="flex items-center mb-6">
-          <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
+          <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6"
@@ -829,9 +829,9 @@ export default function CommunicationMetrics() {
   } else if (error) {
     content = (
       <>
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 h-full overflow-y-auto">
           <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
+            <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-6 w-6"
@@ -853,21 +853,6 @@ export default function CommunicationMetrics() {
           </div>
           
           <div className="text-center py-28">
-            <div className="w-16 h-16 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-4">
-              <svg
-                className="w-8 h-8 text-purple-200"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-            </div>
             <p className="text-xl font-medium text-white">
               Your Communication Journey Awaits
             </p>
@@ -955,11 +940,11 @@ export default function CommunicationMetrics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full flex flex-col relative bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6"
+          className="w-full h-full flex flex-col relative bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center text-white mr-3">
+            <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-6 w-6"

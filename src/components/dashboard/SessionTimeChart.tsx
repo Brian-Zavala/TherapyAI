@@ -242,13 +242,6 @@ export default function SessionTimeChart() {
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-sm">
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
-              {/* Icon removed as we now have it in the header */}
-            </motion.div>
-            <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -388,7 +381,7 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="min-h-[520px] mb-4 sm:mb-0 flex flex-col p-6 w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
+      className="flex flex-col p-6 w-full h-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
       style={{
         maxWidth: "100%",
         overflowX: "hidden",
