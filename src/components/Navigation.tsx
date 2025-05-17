@@ -85,7 +85,7 @@ export default function Navigation() {
   return (
     <div className="fixed top-2 w-full flex justify-between items-center z-40 px-4 py-4 nav-container">
       {/* Logo/Site Title - left aligned */}
-      <div className="absolute text-white text-lg font-semibold cursor-default">
+      <div className="absolute text-white text-lg font-semibold">
         TherapyAI&#8482;
       </div>
 
@@ -93,7 +93,7 @@ export default function Navigation() {
       {!isMenuOpen && (
         <div
           id="menu-tab"
-          className="hidden md:block"
+          className="hidden md:block cursor-pointer"
           onMouseOver={() => {
             setIsMenuOpen(true);
             playSound();
@@ -124,10 +124,11 @@ export default function Navigation() {
           <figure id="welcomeMessage">
             <figcaption>
               <h1>
-                <label htmlFor="toggleOpen" title="Click to Open"></label>
+                <label htmlFor="toggleOpen" title="Click to Open" className="cursor-pointer"></label>
                 <label
                   htmlFor="toggleClose"
                   title="Click to Close"
+                  className="cursor-pointer"
                   onClick={() => {
                     setIsMenuOpen(false);
                     playSound();
@@ -253,6 +254,19 @@ export default function Navigation() {
                         tabIndex={isMenuOpen ? 0 : -1}
                       >
                         Profile
+                      </a>
+                    </b>
+                    <b>
+                      <a
+                        href="/support"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsMenuOpen(false);
+                          window.location.href = "/support";
+                        }}
+                        tabIndex={isMenuOpen ? 0 : -1}
+                      >
+                        Support
                       </a>
                     </b>
                     <b>
@@ -494,6 +508,27 @@ export default function Navigation() {
                     />
                   </svg>
                   Profile
+                </Link>
+                <Link
+                  href="/support"
+                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/support")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <svg
+                    className="w-7 h-7 mr-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                  Support
                 </Link>
 
                 <div className="pt-8 mt-4 border-t border-stone-600/50 w-full flex justify-center">

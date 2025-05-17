@@ -702,7 +702,7 @@ export default function RelationshipProgressCard() {
             Relationship Progress
           </h2>
         </div>
-        <div className="min-h-[450px] flex items-center justify-center">
+        <div className="min-h-[600px] flex items-center justify-center">
           <div className="flex flex-col items-center">
             <svg
               className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-white/80"
@@ -831,20 +831,22 @@ export default function RelationshipProgressCard() {
         </div>
       </div>
 
-      {/* Controls section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
-        {" "}
-        {/* Adjusted margin */}
-        <div className="md:col-span-1">
-          <TherapyTypeSelector />
+      {/* Controls section - only show when data is available */}
+      {data.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+          {" "}
+          {/* Adjusted margin */}
+          <div className="md:col-span-1">
+            <TherapyTypeSelector />
+          </div>
+          <div className="md:col-span-1">
+            <TimeframeSelector />
+          </div>
+          <div className="md:col-span-1">
+            <ChartTypeSelector />
+          </div>
         </div>
-        <div className="md:col-span-1">
-          <TimeframeSelector />
-        </div>
-        <div className="md:col-span-1">
-          <ChartTypeSelector />
-        </div>
-      </div>
+      )}
 
       {/* Error message for actual errors */}
       {error && (
@@ -859,12 +861,12 @@ export default function RelationshipProgressCard() {
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6"
+          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6 min-h-[520px]"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[420px]'} w-full relative`} style={{ overflow: 'visible' }}>
+          <div className={`${isSmallScreen ? 'h-[420px]' : 'h-[480px]'} w-full relative`} style={{ overflow: 'visible' }}>
             <ResponsiveContainer width="100%" height="100%" debounce={150}>
               {renderChart}
             </ResponsiveContainer>
@@ -873,7 +875,7 @@ export default function RelationshipProgressCard() {
       ) : (
         // Display message when no data is available (after loading finishes)
         !loading && (
-          <div className="w-full h-[250px] sm:h-[300px] md:h-[340px] flex items-center justify-center text-center">
+          <div className="w-full h-[450px] sm:h-[480px] md:h-[520px] flex items-center justify-center text-center">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

@@ -158,7 +158,7 @@ export default function Dashboard() {
           {/* Session Time Visualization */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "500px" }}
+            className="w-full" style={{ minHeight: "520px" }}
           >
             <SessionTimeChart />
           </motion.div>
@@ -166,7 +166,7 @@ export default function Dashboard() {
           {/* Relationship Progress Card */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "480px" }}
+            className="w-full" style={{ minHeight: "520px" }}
           >
             <RelationshipProgressCard />
           </motion.div>
@@ -174,7 +174,7 @@ export default function Dashboard() {
           {/* Communication Metrics */}
           <motion.div
             variants={item}
-            className="w-full" style={{ minHeight: "500px" }}
+            className="w-full" style={{ minHeight: "520px" }}
           >
             <CommunicationMetrics />
           </motion.div>
@@ -182,7 +182,7 @@ export default function Dashboard() {
           {/* Upcoming Sessions */}
           <motion.div
             variants={item}
-            className="w-full"
+            className="w-full" style={{ minHeight: "520px" }}
           >
             <UpcomingSessions />
           </motion.div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "450px" }}
+              className="w-full mb-6" style={{ minHeight: "520px" }}
             >
               <SessionTimeChart />
             </motion.div>
@@ -207,7 +207,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "450px" }}
+              className="w-full mb-6" style={{ minHeight: "520px" }}
             >
               <RelationshipProgressCard />
             </motion.div>
@@ -218,7 +218,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6" style={{ minHeight: "480px" }}
+              className="w-full mb-6" style={{ minHeight: "520px" }}
             >
               <CommunicationMetrics />
             </motion.div>
@@ -229,7 +229,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full mb-6"
+              className="w-full mb-6" style={{ minHeight: "520px" }}
             >
               <UpcomingSessions />
             </motion.div>

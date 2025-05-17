@@ -570,7 +570,7 @@ export default function Resources() {
                   key={resource.id}
                   variants={fadeIn}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-100"
+                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-100 cursor-pointer"
                 >
                   <div className={`h-2 ${
                     resource.tags?.includes('communication') ? 'bg-blue-500' :

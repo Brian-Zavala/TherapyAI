@@ -317,7 +317,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="terms" className="text-sm text-white/70">
+                  <label htmlFor="terms" className="text-sm text-white/70 cursor-pointer">
                     By creating an account, I agree to the{' '}
                     <Link href="/terms" className="text-blue-500 hover:text-blue-400">
                       Terms and Conditions

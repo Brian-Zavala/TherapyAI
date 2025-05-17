@@ -29,6 +29,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+debug.txt
+debug-log.txt
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -48,11 +50,13 @@ CUSTOM-TRANSCRIBER.md
 TRANSCRIPT-GUIDE.md
 TRANSCRIPT-MIGRATION.md
 
+# auth setup docs
+docs/FACEBOOK_AUTH_SETUP.md
+
 # utility scripts
 create-test-user.js
 test-transcript.js
 migrate-transcripts.js
-debug.txt
 update_env.sh
 
 # IDE files
@@ -63,3 +67,31 @@ update_env.sh
 
 # Temporary files
 /public/tmp/
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# Session files
+*.session
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+
+# Test files
+test-email.js
+test-support-email.js

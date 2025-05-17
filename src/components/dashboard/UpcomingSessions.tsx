@@ -117,7 +117,7 @@ export default function UpcomingSessions() {
 
   if (loading) {
     return (
-      <div className="h-80 flex items-center justify-center bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg">
+      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
         <motion.div 
           animate={{ 
             scale: [1, 1.1, 1],
@@ -138,18 +138,18 @@ export default function UpcomingSessions() {
 
   if (error) {
     return (
-      <div className="h-80 flex items-center justify-center bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg">
-        <div className="text-center p-6 bg-white/90 rounded-lg max-w-sm shadow-md">
-          <svg className="w-12 h-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+        <div className="text-center p-6 bg-white/10 backdrop-blur-md rounded-lg max-w-sm shadow-md border border-white/20">
+          <svg className="w-12 h-12 mx-auto text-red-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-lg font-medium text-gray-800">Couldn't load your sessions</p>
-          <p className="text-sm mt-2 text-red-600">{error}</p>
+          <p className="text-lg font-medium text-white">Couldn't load your sessions</p>
+          <p className="text-sm mt-2 text-red-200">{error}</p>
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={fetchSessions}
-            className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-lg"
+            className="mt-4 px-4 py-2 bg-white/20 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-white/30 active:bg-white/25 transition-colors duration-200 border border-white/30"
           >
             Try Again
           </motion.button>
@@ -163,7 +163,7 @@ export default function UpcomingSessions() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full"
+      className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full min-h-[520px]"
     >
       <div className="flex items-center mb-4">
         <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-white mr-3">
@@ -209,12 +209,12 @@ export default function UpcomingSessions() {
         </motion.div>
       </div>
 
-      <div className="h-80 overflow-y-auto">
+      <div className="h-[420px] overflow-y-auto">
         {sessions.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="h-64 flex items-center justify-center"
+          className="h-[380px] flex items-center justify-center"
         >
           <div className="text-center p-6 max-w-sm">
             <motion.div
@@ -236,7 +236,7 @@ export default function UpcomingSessions() {
             >
               <Link 
                 href="/schedule" 
-                className="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-full text-sm font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30"
+                className="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 active:bg-white/25 transition-colors duration-200 backdrop-blur-md border border-white/30"
               >
                 Schedule Your First Session
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
-import { sendSessionReminder } from '@/lib/sms-service';
+import { sendSessionReminder } from '@/lib/sms-service'; // Currently using mock implementation
 
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -38,12 +38,11 @@ export async function GET(request: Request) {
     // Process each session
     const reminderResults = await Promise.allSettled(
       upcomingSessions.map(async (session) => {
-        const notificationPrefs = session.notificationPrefs || session.user.notificationPrefs || 'email';
+        // Always use email for notifications
         const updates: any = {};
         
         // Send email reminder if needed
-        if ((notificationPrefs === 'email' || notificationPrefs === 'both') && 
-            !session.emailReminderSent && session.user.email) {
+        if (!session.emailReminderSent && session.user.email) {
           try {
             await resend.emails.send({
               from: `Therapy Support <${process.env.EMAIL_FROM}>`,
@@ -60,18 +59,6 @@ export async function GET(request: Request) {
             console.log(`Email reminder sent for session ${session.id}`);
           } catch (emailError) {
             console.error(`Failed to send email reminder for session ${session.id}:`, emailError);
-          }
-        }
-        
-        // Send SMS reminder if needed
-        if ((notificationPrefs === 'sms' || notificationPrefs === 'both') && 
-            !session.smsReminderSent && session.user.phone) {
-          try {
-            await sendSessionReminder(session.user.phone, session.date, session.duration);
-            updates.smsReminderSent = true;
-            console.log(`SMS reminder sent for session ${session.id}`);
-          } catch (smsError) {
-            console.error(`Failed to send SMS reminder for session ${session.id}:`, smsError);
           }
         }
         

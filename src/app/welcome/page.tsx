@@ -169,21 +169,13 @@ const formSteps: FormStep[] = [
       },
       {
         name: 'notificationPrefs',
-        label: 'How would you like to receive session reminders?',
-        type: 'multiselect',
+        label: 'Would you like to receive email session reminders?',
+        type: 'select',
         options: [
-          { value: 'email', label: 'Email' },
-          { value: 'sms', label: 'Text message (SMS)' },
-          { value: 'both', label: 'Both email and text' }
+          { value: 'email', label: 'Yes, send me email reminders' },
+          { value: 'none', label: 'No, I don\'t want reminders' }
         ],
         required: true
-      },
-      {
-        name: 'phone',
-        label: 'Phone number (for text reminders)',
-        type: 'tel',
-        placeholder: '+1 (555) 000-0000',
-        required: false
       }
     ]
   },

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
-import { sendSessionConfirmation } from '@/lib/sms-service';
+import { sendSessionConfirmation } from '@/lib/sms-service'; // Currently using mock implementation
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -178,8 +178,8 @@ export async function POST(request: Request) {
     });
     
     try {
-      // Get the notification preferences - use user default if not specified
-      const effectiveNotificationPrefs = notificationPrefs || user.notificationPrefs || 'email';
+      // Always use email for notifications
+      const effectiveNotificationPrefs = 'email';
       
       // Create session using the fields from your schema
       const newSession = await prisma.session.create({
@@ -196,34 +196,23 @@ export async function POST(request: Request) {
       
       console.log('Session created successfully:', newSession.id);
       
-      // Send confirmation notifications based on preferences
-      if (effectiveNotificationPrefs === 'email' || effectiveNotificationPrefs === 'both') {
-        try {
-          await resend.emails.send({
-            from: `Therapy Support <${process.env.EMAIL_FROM}>`,
-            to: user.email,
-            subject: 'Your Therapy Session is Confirmed',
-            react: SessionConfirmationEmail({
-              username: user.name || 'Valued Client',
-              sessionDate: sessionDate,
-              duration: Number(duration),
-              theme: theme,
-              notes: notes,
-            }),
-          });
-          console.log('Confirmation email sent successfully');
-        } catch (emailError) {
-          console.error('Error sending confirmation email:', emailError);
-        }
-      }
-      
-      if ((effectiveNotificationPrefs === 'sms' || effectiveNotificationPrefs === 'both') && user.phone) {
-        try {
-          await sendSessionConfirmation(user.phone, sessionDate, Number(duration));
-          console.log('Confirmation SMS sent successfully');
-        } catch (smsError) {
-          console.error('Error sending confirmation SMS:', smsError);
-        }
+      // Send confirmation email
+      try {
+        await resend.emails.send({
+          from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+          to: user.email,
+          subject: 'Your Therapy Session is Confirmed',
+          react: SessionConfirmationEmail({
+            username: user.name || 'Valued Client',
+            sessionDate: sessionDate,
+            duration: Number(duration),
+            theme: theme,
+            notes: notes,
+          }),
+        });
+        console.log('Confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
       }
       
       return NextResponse.json(newSession, { status: 201 });

@@ -816,7 +816,7 @@ export default function CommunicationMetrics() {
             Communication Quality
           </h2>
         </div>
-        <div className="h-[400px] flex items-center justify-center">
+        <div className="h-[520px] flex items-center justify-center">
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 border-4 border-white/40 border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-6 text-white font-medium text-center">
@@ -852,7 +852,7 @@ export default function CommunicationMetrics() {
             </h2>
           </div>
           
-          <div className="text-center py-20">
+          <div className="text-center py-28">
             <div className="w-16 h-16 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-4">
               <svg
                 className="w-8 h-8 text-purple-200"
@@ -872,15 +872,12 @@ export default function CommunicationMetrics() {
               Your Communication Journey Awaits
             </p>
             <p className="text-sm mt-3 text-white/80 max-w-sm mx-auto">
-              Complete a {therapyType} assessment or therapy session to see
+              Complete an assessment or therapy session to see
               detailed analytics and personalized insights about your
               communication patterns.
             </p>
 
-            {/* Therapy Type Selector when no data is available */}
-            <div className="my-6">
-              <TherapyTypeSelector />
-            </div>
+            {/* Removed therapy type selector when no data is available */}
 
             <div className="flex flex-col sm:flex-row sm:space-x-4 justify-center mt-6 gap-3">
               <button
@@ -983,8 +980,8 @@ export default function CommunicationMetrics() {
             </h2>
           </div>
 
-          {/* Use the reusable therapy type selector */}
-          <TherapyTypeSelector />
+          {/* Use the reusable therapy type selector - only show when data is available */}
+          {metricsData.length > 0 && <TherapyTypeSelector />}
 
           {/* Header with expanded view toggle */}
           <div className="flex justify-end mb-2 sticky top-0 z-10">

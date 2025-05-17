@@ -58,6 +58,42 @@ const config = {
           "100%": {
             borderColor: "rgb(34, 197, 94)"
           }
+        },
+        "pulse-slow": {
+          "0%, 100%": {
+            opacity: 0.2,
+          },
+          "50%": {
+            opacity: 0.6,
+          },
+        },
+        "gradient-colors": {
+          "0%": {
+            "background-position": "0% 50%",
+            "background-image": "linear-gradient(to right, rgba(255, 0, 0, 0.2), rgba(255, 165, 0, 0.2))",
+          },
+          "14%": {
+            "background-image": "linear-gradient(to right, rgba(255, 165, 0, 0.2), rgba(255, 215, 0, 0.2))",
+          },
+          "28%": {
+            "background-image": "linear-gradient(to right, rgba(255, 215, 0, 0.2), rgba(50, 205, 50, 0.2))",
+          },
+          "42%": {
+            "background-image": "linear-gradient(to right, rgba(50, 205, 50, 0.2), rgba(30, 144, 255, 0.2))",
+          },
+          "56%": {
+            "background-image": "linear-gradient(to right, rgba(30, 144, 255, 0.2), rgba(75, 0, 130, 0.2))",
+          },
+          "70%": {
+            "background-image": "linear-gradient(to right, rgba(75, 0, 130, 0.2), rgba(138, 43, 226, 0.2))",
+          },
+          "84%": {
+            "background-image": "linear-gradient(to right, rgba(138, 43, 226, 0.2), rgba(255, 105, 180, 0.2))",
+          },
+          "100%": {
+            "background-position": "100% 50%",
+            "background-image": "linear-gradient(to right, rgba(255, 105, 180, 0.2), rgba(255, 0, 0, 0.2))",
+          },
         }
       },
       animation: {
@@ -65,7 +101,11 @@ const config = {
         "gradientBG": "gradient-bg 30s ease infinite",
         "float-slow": "float 8s ease-in-out infinite",
         "float-medium": "float 6s ease-in-out infinite",
-        "typing": "typing 3s steps(12) infinite alternate, blink .7s infinite"
+        "typing": "typing 3s steps(12) infinite alternate, blink .7s infinite",
+        "pulse-slow": "pulse-slow 4s ease-in-out infinite",
+        "pulse-slower": "pulse-slow 6s ease-in-out infinite",
+        "pulse-slowest": "pulse-slow 8s ease-in-out infinite",
+        "gradient-slow": "gradient-colors 30s ease infinite"
       },
     },
   },

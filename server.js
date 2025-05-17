@@ -9,8 +9,8 @@ const next = require('next');
 const path = require('path');
 const fs = require('fs');
 
-// Set up environment variables from .env file
-require('dotenv').config();
+// Set up environment variables from .env.local file
+require('dotenv').config({ path: '.env.local' });
 
 const port = parseInt(process.env.PORT, 10) || 3000;
 const dev = process.env.NODE_ENV !== 'production';

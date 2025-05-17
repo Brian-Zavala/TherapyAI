@@ -138,7 +138,7 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center"
+        className="min-h-[520px] flex items-center justify-center"
       >
         <div className="flex flex-col items-center px-4">
           {/* Enhanced Spinner */}
@@ -176,7 +176,7 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex items-center justify-center"
+        className="min-h-[520px] flex items-center justify-center"
       >
         <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-md">
           <ExclamationTriangleIcon className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-white/80 mb-4" />
@@ -229,9 +229,16 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] flex flex-col mb-6 sm:mb-0 bg-white/15 backdrop-blur-sm border border-white/30 p-6 rounded-xl shadow-lg" // Added glass styling to match loading state
+        className="min-h-[520px] flex flex-col mb-6 sm:mb-0 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6" 
       >
-        <TherapyTypeSelector />
+        <div className="flex items-center mb-6">
+          <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+            <DocumentChartBarIcon className="h-6 w-6" />
+          </div>
+          <h2 className="text-xl font-semibold text-white">
+            Therapy Insights
+          </h2>
+        </div>
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-sm">
             <motion.div
@@ -239,7 +246,7 @@ export default function SessionTimeChart() {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <DocumentChartBarIcon className="w-16 h-16 sm:w-20 sm:h-20 mx-auto text-white/80 mb-4 sm:mb-6" />
+              {/* Icon removed as we now have it in the header */}
             </motion.div>
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -250,12 +257,12 @@ export default function SessionTimeChart() {
                 Welcome to Your Journey
               </h3>
               <p className="text-sm sm:text-base text-white/80 mb-6 leading-relaxed">
-                Begin tracking your {therapyType} therapy sessions to unlock valuable insights about your progress and growth over time.
+                Begin tracking your therapy sessions to unlock valuable insights about your progress and growth over time.
               </p>
               <motion.button
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 sm:px-8 py-3 bg-white/20 text-white rounded-full text-sm sm:text-base font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30 shadow-lg"
+                className="px-6 sm:px-8 py-3 bg-white/20 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-white/30 active:bg-white/25 transition-colors duration-200 backdrop-blur-md border border-white/30 shadow-md"
                 onClick={() => (window.location.href = "/dashboard/therapy")}
               >
                 <span className="flex items-center">
@@ -381,7 +388,7 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="min-h-[630px] sm:min-h-[580px] md:min-h-[600px] lg:min-h-[620px] mb-4 sm:mb-0 flex flex-col p-6 w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
+      className="min-h-[520px] mb-4 sm:mb-0 flex flex-col p-6 w-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
       style={{
         maxWidth: "100%",
         overflowX: "hidden",
@@ -410,7 +417,7 @@ export default function SessionTimeChart() {
           Session Time Overview
         </h2>
       </div>
-      <TherapyTypeSelector />
+      {sessionData.length > 0 && <TherapyTypeSelector />}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">

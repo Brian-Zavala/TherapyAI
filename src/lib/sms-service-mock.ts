@@ -1,28 +1,6 @@
-// src/lib/sms-service.ts
-// NOTE: SMS functionality currently using mock implementation
-// To enable real SMS, uncomment Twilio code and add credentials to .env
-
-// import twilio from 'twilio';
-
-// For now, always use mock SMS service
-const USE_MOCK_SMS = true;
-
-// Initialize Twilio client (disabled for now)
-const getClient = () => {
-  return null;
-  
-  /* Uncomment when ready to use Twilio:
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  
-  if (!accountSid || !authToken) {
-    console.error('Missing Twilio credentials');
-    return null;
-  }
-  
-  return twilio(accountSid, authToken);
-  */
-};
+// src/lib/sms-service-mock.ts
+// Mock SMS service that logs messages instead of sending them
+// Use this for development/testing without SMS costs
 
 export interface SMSOptions {
   to: string;
@@ -30,46 +8,14 @@ export interface SMSOptions {
 }
 
 export const sendSMS = async (options: SMSOptions): Promise<boolean> => {
-  if (USE_MOCK_SMS) {
-    // Mock implementation - just log the message
-    console.log('📱 [MOCK SMS] Would send to:', options.to);
-    console.log('📱 [MOCK SMS] Message:', options.body);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return true;
-  }
-
-  /* Real Twilio implementation - uncomment when ready:
-  try {
-    const client = getClient();
-    if (!client) {
-      console.error('Twilio client not initialized');
-      return false;
-    }
-
-    const from = process.env.TWILIO_PHONE_NUMBER;
-    if (!from) {
-      console.error('Missing Twilio phone number');
-      return false;
-    }
-
-    // Send the message
-    const message = await client.messages.create({
-      body: options.body,
-      from: from,
-      to: options.to
-    });
-
-    console.log(`SMS sent successfully. Message SID: ${message.sid}`);
-    return true;
-  } catch (error) {
-    console.error('Error sending SMS:', error);
-    return false;
-  }
-  */
+  console.log('📱 [MOCK SMS] Would send to:', options.to);
+  console.log('📱 [MOCK SMS] Message:', options.body);
   
-  return false;
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Always return success in mock mode
+  return true;
 };
 
 export const formatPhoneNumber = (phone: string): string => {

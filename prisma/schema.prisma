@@ -42,19 +42,19 @@ model User {
 }
 
 model Session {
-  id           String   @id @default(uuid())
-  userId       String
-  date         DateTime
-  duration     Int
-  theme        String   @default("AI Therapy Session")
-  notes        String?  @default("")
-  status       String   @default("scheduled")
-  reminderSent Boolean  @default(false)
-  transcript   String?
-  notificationPrefs String? @default("email")
-  smsReminderSent Boolean  @default(false)
-  emailReminderSent Boolean  @default(false)
-  user         User     @relation(fields: [userId], references: [id])
+  id                String            @id @default(uuid())
+  userId            String
+  date              DateTime
+  duration          Int
+  theme             String            @default("AI Therapy Session")
+  notes             String?           @default("")
+  status            String            @default("scheduled")
+  reminderSent      Boolean           @default(false)
+  transcript        String?
+  notificationPrefs String?           @default("email")
+  smsReminderSent   Boolean           @default(false)
+  emailReminderSent Boolean           @default(false)
+  user              User              @relation(fields: [userId], references: [id])
   transcriptEntries TranscriptEntry[]
 
   @@index([userId])
@@ -112,7 +112,7 @@ model AuthSession {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("AuthSession")
 }
 
@@ -136,19 +136,19 @@ model CommunicationMetrics {
 }
 
 model TherapySession {
-  id           String   @id @default(cuid())
-  userId       String
-  sessionDate  DateTime
-  duration     Int
-  notes        String?
-  status       String   @default("scheduled")
-  reminderSent Boolean  @default(false)
-  notificationPrefs String? @default("email")
-  smsReminderSent Boolean  @default(false)
+  id                String   @id @default(cuid())
+  userId            String
+  sessionDate       DateTime
+  duration          Int
+  notes             String?
+  status            String   @default("scheduled")
+  reminderSent      Boolean  @default(false)
+  notificationPrefs String?  @default("email")
+  smsReminderSent   Boolean  @default(false)
   emailReminderSent Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([sessionDate])

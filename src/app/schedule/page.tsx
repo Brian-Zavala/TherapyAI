@@ -14,7 +14,7 @@ export default function SchedulePage() {
   const [duration, setDuration] = useState<number>(60);
   const [theme, setTheme] = useState<string>('AI Therapy Session');
   const [notes, setNotes] = useState<string>('');
-  const [notificationPrefs, setNotificationPrefs] = useState<string>('email');
+  const [notificationPrefs] = useState<string>('email'); // Removed state setter, always use email
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -27,9 +27,7 @@ export default function SchedulePage() {
         .then(res => res.json())
         .then(data => {
           setUserProfile(data);
-          if (data.notificationPrefs) {
-            setNotificationPrefs(data.notificationPrefs);
-          }
+          // No longer setting notification preferences from user profile
         })
         .catch(error => console.error('Error fetching profile:', error));
     }
@@ -269,56 +267,14 @@ export default function SchedulePage() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reminder Preferences
+                    Email Reminders
                   </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="notificationPrefs"
-                        value="email"
-                        checked={notificationPrefs === 'email'}
-                        onChange={(e) => setNotificationPrefs(e.target.value)}
-                        className="mr-2"
-                      />
-                      <Mail className="h-4 w-4 mr-2" />
-                      Email only
-                    </label>
-                    {userProfile?.phone && (
-                      <>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="notificationPrefs"
-                            value="sms"
-                            checked={notificationPrefs === 'sms'}
-                            onChange={(e) => setNotificationPrefs(e.target.value)}
-                            className="mr-2"
-                          />
-                          <Phone className="h-4 w-4 mr-2" />
-                          Text message only
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="notificationPrefs"
-                            value="both"
-                            checked={notificationPrefs === 'both'}
-                            onChange={(e) => setNotificationPrefs(e.target.value)}
-                            className="mr-2"
-                          />
-                          <Mail className="h-4 w-4 mr-2" />
-                          <Phone className="h-4 w-4 mr-2" />
-                          Both email and text
-                        </label>
-                      </>
-                    )}
-                  </div>
-                  {!userProfile?.phone && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      To receive text message reminders, please add your phone number in your profile settings.
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    <p className="text-gray-700">
+                      You'll receive an email reminder 24 hours before your session
                     </p>
-                  )}
+                  </div>
                 </div>
                 
                 <div className="pt-2">
