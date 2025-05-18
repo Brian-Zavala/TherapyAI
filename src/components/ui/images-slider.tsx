@@ -7,8 +7,8 @@ import Image from "next/image";
 // Define image config type
 export interface ImageConfig {
   src: string;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   objectFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
   objectPosition?: string;
   priority?: boolean;
@@ -51,8 +51,21 @@ export const ImagesSlider = ({
     );
   }, [images.length]);
 
+  // Prefetch images as early as possible with a higher priority
   useEffect(() => {
+    // Start loading immediately
     loadImages();
+    
+    // Use Next.js Image prefetching for better performance
+    if (typeof window !== 'undefined') {
+      images.forEach(image => {
+        const src = typeof image === 'string' ? image : image.src;
+        const img = new window.Image();
+        img.src = src;
+        // Set to highest priority
+        img.fetchPriority = 'high';
+      });
+    }
   }, []);
   
   // Start slider animation after a delay to allow first image to display without animation
@@ -69,10 +82,39 @@ export const ImagesSlider = ({
 
   const loadImages = () => {
     setLoading(true);
+    
+    // Create an array to track which images are already cached
+    const cachedImages = [];
+    
+    // Check if images are already in browser cache
+    images.forEach((image) => {
+      const imageSrc = typeof image === 'string' ? image : image.src;
+      const tempImg = new window.Image();
+      // If the image is already in cache, this will trigger immediately
+      tempImg.src = imageSrc;
+      if (tempImg.complete) {
+        cachedImages.push(imageSrc);
+      }
+    });
+    
+    // If all images are already cached, use them immediately
+    if (cachedImages.length === images.length) {
+      setLoadedImages(cachedImages);
+      setLoading(false);
+      return;
+    }
+    
+    // Otherwise load them with promises
     const loadPromises = images.map((image) => {
       return new Promise((resolve, reject) => {
-        const img = new Image();
+        // Use the global HTMLImageElement constructor instead of the imported Next Image component
+        const img = new window.Image();
         const imageSrc = typeof image === 'string' ? image : image.src;
+        
+        // Set highest priority for loading
+        img.loading = 'eager';
+        img.fetchPriority = 'high';
+        
         img.src = imageSrc;
         img.onload = () => resolve(imageSrc);
         img.onerror = reject;
@@ -144,24 +186,43 @@ export const ImagesSlider = ({
 
   const areImagesLoaded = loadedImages.length > 0;
 
-  return (
-    <div
-      className={cn(
-        "overflow-hidden h-full w-full relative flex items-center justify-center",
-        className
-      )}
-      style={{
-        perspective: "1000px",
-      }}
-    >
-      {areImagesLoaded && children}
-      {areImagesLoaded && overlay && (
-        <div
-          className={cn("absolute inset-0 bg-black/60 z-40", overlayClassName)}
-        />
-      )}
-
-      {areImagesLoaded && (
+  // Handle rendering of slides - returning early with a placeholder during loading
+  const renderContent = () => {
+    // Loading state - show a low-quality placeholder until images are ready
+    if (!areImagesLoaded) {
+      return (
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+          {/* This is a hidden preloader that forces browsers to load the first image */}
+          {typeof images[0] === 'string' ? (
+            <Image 
+              src={typeof images[0] === 'string' ? images[0] : images[0].src}
+              width={1920}
+              height={1080}
+              quality={1} // Low quality for fast loading
+              priority={true}
+              fetchPriority="high"
+              style={{ opacity: 0, position: 'absolute' }}
+              alt="Preload"
+            />
+          ) : null}
+          
+          <div className="w-12 h-12 rounded-full" />
+        </div>
+      );
+    }
+    
+    // Images are loaded - show the slider
+    return (
+      <>
+        {/* Show children when loaded */}
+        {children}
+        
+        {/* Show overlay when loaded */}
+        {overlay && (
+          <div className={cn("absolute inset-0 bg-black/60 z-40", overlayClassName)} />
+        )}
+        
+        {/* Slides container */}
         <AnimatePresence>
           <motion.div
             key={currentIndex}
@@ -169,7 +230,7 @@ export const ImagesSlider = ({
             animate="visible"
             exit={!initialLoad && direction === "up" ? "upExit" : (!initialLoad ? "downExit" : false)}
             variants={slideVariants}
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center w-full h-full"
           >
             {(() => {
               const currentImage = images[currentIndex];
@@ -180,18 +241,20 @@ export const ImagesSlider = ({
               return (
                 <Image
                   src={imageConfig.src}
-                  width={imageConfig.width || 1920}
-                  height={imageConfig.height || 1080}
+                  width={typeof imageConfig.width === 'string' ? 1920 : (imageConfig.width || 1920)}
+                  height={typeof imageConfig.height === 'string' ? 1080 : (imageConfig.height || 1080)}
                   quality={imageConfig.quality || 85}
-                  priority={imageConfig.priority || currentIndex === 0}
-                  fetchPriority={currentIndex === 0 ? "high" : "auto"}
+                  priority={true} // Always set to priority
+                  fetchPriority="high" // Always high priority
                   sizes={imageConfig.sizes || "(max-width: 768px) 100vw, 100vw"}
                   className={cn(
-                    "image",
+                    "image w-full h-full",
                     imageConfig.objectFit === 'contain' ? 'object-contain' : 'object-cover',
                     "object-center"
                   )}
                   style={{
+                    width: typeof imageConfig.width === 'string' ? imageConfig.width : '100%',
+                    height: typeof imageConfig.height === 'string' ? imageConfig.height : '100%',
                     objectFit: imageConfig.objectFit || 'cover',
                     objectPosition: imageConfig.objectPosition || 'center',
                   }}
@@ -203,7 +266,21 @@ export const ImagesSlider = ({
             })()}
           </motion.div>
         </AnimatePresence>
+      </>
+    );
+  };
+
+  return (
+    <div
+      className={cn(
+        "overflow-hidden h-full w-full relative flex items-center justify-center",
+        className
       )}
+      style={{
+        perspective: "1000px",
+      }}
+    >
+      {renderContent()}
     </div>
   );
 };

@@ -10,6 +10,7 @@ import ButtonWithSound from '@/components/ButtonWithSound'
 import ConfettiAnimation from '@/components/ui/confetti-animation'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 import RelationshipAssessment from '@/components/RelationshipAssessment'
+import OnboardingSuccessSplash from '@/components/OnboardingSuccessSplash'
 
 interface FormStep {
   id: number
@@ -45,7 +46,7 @@ const formSteps: FormStep[] = [
         label: 'Your age',
         type: 'number',
         placeholder: 'Your age',
-        required: false
+        required: true
       },
       {
         name: 'pronouns',
@@ -259,6 +260,8 @@ export default function WelcomePage() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
   const [assessmentResults, setAssessmentResults] = useState<any[]>([])
+  const [showTooltip, setShowTooltip] = useState(false)
+  const [showSplashScreen, setShowSplashScreen] = useState(false)
 
   useEffect(() => {
     // Redirect immediately if unauthenticated
@@ -309,7 +312,34 @@ export default function WelcomePage() {
     setFormData({ ...formData, [name]: updated })
   }
 
+  // Check if the current step has all required fields filled
+  const isCurrentStepValid = () => {
+    if (currentStep === 0) { // Step 1 (index 0)
+      // Check if nickname and age are filled
+      const isValid = !!formData.nickname && !!formData.age;
+      console.log("Step 1 validation:", { 
+        isValid, 
+        nickname: formData.nickname, 
+        age: formData.age 
+      });
+      return isValid;
+    }
+    return true; // Other steps don't have validation yet
+  }
+
   const handleNext = () => {
+    if (!isCurrentStepValid()) {
+      // Show tooltip if step 1 is not valid
+      setShowTooltip(true);
+      console.log("Showing tooltip, validation failed"); // Debug log
+      // Hide tooltip after 3 seconds
+      setTimeout(() => {
+        setShowTooltip(false);
+        console.log("Hiding tooltip after timeout");
+      }, 3000);
+      return;
+    }
+
     if (currentStep < formSteps.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
@@ -390,16 +420,23 @@ export default function WelcomePage() {
           }
         }
         
+        // Show confetti animation
         setShowConfetti(true)
+        
+        // Show splash screen instead of immediately redirecting
         setTimeout(() => {
-          router.push('/')
-        }, 2000)
+          setShowSplashScreen(true)
+        }, 1000)
       }
     } catch (error) {
       console.error('Error saving profile:', error)
-    } finally {
       setLoading(false)
     }
+  }
+  
+  // Handle completion of splash screen
+  const handleSplashComplete = () => {
+    router.push('/')
   }
 
   const progress = ((currentStep + 1) / formSteps.length) * 100
@@ -410,6 +447,14 @@ export default function WelcomePage() {
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
     </div>
   }
+  
+  // Show splash screen after form submission
+  if (showSplashScreen) {
+    return <OnboardingSuccessSplash 
+      userData={formData} 
+      onComplete={handleSplashComplete} 
+    />
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
@@ -419,6 +464,17 @@ export default function WelcomePage() {
       <ConfettiAnimation trigger={showConfetti} />
       
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        {/* Global tooltip that appears when user tries to proceed without filling required fields */}
+        {showTooltip && currentStep === 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed z-50 top-10 left-1/2 transform -translate-x-1/2 px-5 py-4 bg-red-500 text-white text-center text-sm sm:text-base font-medium rounded-lg shadow-xl max-w-[95vw] sm:max-w-max mx-auto"
+          >
+            ⚠️ Please fill out your name and age to continue
+          </motion.div>
+        )}
+        
         <GlassCard className="w-full max-w-2xl">
           {/* Progress bar and step indicators */}
           <div className="mb-8">
@@ -502,7 +558,12 @@ export default function WelcomePage() {
                     <div key={field.name}>
                       <label className="block text-white mb-2">
                         {field.label}
-                        {field.required && <span className="text-blue-400 ml-1">*</span>}
+                        {field.required && (
+                          <span className={`ml-1 ${showTooltip && 
+                            ((field.name === 'nickname' && !formData.nickname) || 
+                             (field.name === 'age' && !formData.age)) 
+                            ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>*</span>
+                        )}
                       </label>
                       
                       {field.type === 'text' && (
@@ -512,7 +573,11 @@ export default function WelcomePage() {
                           placeholder={field.placeholder}
                           value={formData[field.name] || ''}
                           onChange={(e) => handleInputChange(field.name, e.target.value)}
-                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
+                            field.name === 'nickname' && showTooltip && !formData.nickname
+                              ? 'border-red-500 focus:border-red-400'
+                              : 'border-white/20 focus:border-blue-400'
+                          }`}
                         />
                       )}
                       
@@ -534,7 +599,11 @@ export default function WelcomePage() {
                           placeholder={field.placeholder}
                           value={formData[field.name] || ''}
                           onChange={(e) => handleInputChange(field.name, e.target.value)}
-                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
+                            field.name === 'age' && showTooltip && !formData.age
+                              ? 'border-red-500 focus:border-red-400'
+                              : 'border-white/20 focus:border-blue-400'
+                          }`}
                           min="1"
                           max="120"
                         />
@@ -607,7 +676,7 @@ export default function WelcomePage() {
               </div>
 
               {/* Navigation buttons */}
-              <div className={`flex ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'flex-col sm:flex-row gap-3 sm:gap-4' : 'justify-between'} mt-8`}>
+              <div className={`flex ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'flex-col sm:flex-row sm:justify-between' : 'justify-between'} mt-8 w-full`}>
                 <ButtonWithSound
                   onClick={handleBack}
                   disabled={currentStep === 0}
@@ -624,33 +693,41 @@ export default function WelcomePage() {
                 {currentStep === formSteps.length - 1 && assessmentResults.length === 0 && (
                   <ButtonWithSound
                     onClick={handleSkipAssessment}
-                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-red-500 hover:bg-red-600"
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-red-500 hover:bg-red-600 order-last"
                   >
                     Not in a relationship
                   </ButtonWithSound>
                 )}
                 
-                <ButtonWithSound
-                  onClick={handleNext}
-                  disabled={loading || (currentStep === formSteps.length - 1 && assessmentResults.length === 0)}
-                  className={`px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base ${
-                    currentStep === formSteps.length - 1 && assessmentResults.length === 0
-                      ? 'bg-blue-500/50 cursor-not-allowed' 
-                      : 'bg-blue-500 hover:bg-blue-600'
-                  } text-white rounded-xl font-medium transition-all transform hover:scale-105 ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'w-full sm:w-auto' : ''}`}
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving...
-                    </span>
-                  ) : currentStep === formSteps.length - 1 ? (
-                    assessmentResults.length === 0 ? 'Complete Assessment' : 'Complete Onboarding'
-                  ) : 'Next'}
-                </ButtonWithSound>
+                {/* Next/Complete button container */}
+                <div className={`relative ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'w-full sm:w-auto order-2 mt-3 sm:mt-0' : ''}`}>
+                  {/* Tooltip moved outside the button for better visibility */}
+                  
+                  {/* Only show Next/Complete button if not on assessment step or if assessment is completed */}
+                  {(currentStep !== formSteps.length - 1 || assessmentResults.length > 0) && (
+                    <ButtonWithSound
+                      onClick={handleNext}
+                      disabled={loading || (currentStep === 0 && !isCurrentStepValid())}
+                      className={`px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base ${
+                        currentStep === 0 && !isCurrentStepValid()
+                          ? 'bg-blue-500/70 hover:bg-blue-600/70 cursor-not-allowed'
+                          : 'bg-blue-500 hover:bg-blue-600'
+                      } text-white rounded-xl font-medium transition-all transform hover:scale-105 ${
+                        currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'w-full sm:w-auto' : ''
+                      }`}
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </span>
+                      ) : currentStep === formSteps.length - 1 ? 'Complete Onboarding' : 'Next'}
+                    </ButtonWithSound>
+                  )}
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>

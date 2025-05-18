@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRef, useState, useEffect, Suspense, lazy } from "react";
 import dynamic from "next/dynamic";
+import ImagePreloader from "@/components/ImagePreloader";
 
 // Framer Motion imports
 import {
@@ -23,25 +24,38 @@ import TypewriterText from "@/components/TypewriterText";
 import { ImagesSlider, ImageConfig } from "@/components/ui/images-slider";
 
 // Dynamic imports with loading fallbacks
-const Hero3DBackground = dynamic(() => import("@/components/Hero3DBackground"), {
-  ssr: false,
-  loading: () => <div className="w-full h-full bg-black/20"></div>
-});
+const Hero3DBackground = dynamic(
+  () => import("@/components/Hero3DBackground"),
+  {
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-black/20"></div>,
+  }
+);
 
-const HeroHighlightDemo = dynamic(() => import("@/components/ui/hero-highlight-demo"), {
-  ssr: true,
-  loading: () => <div className="w-full h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl animate-pulse"></div>
-});
+const HeroHighlightDemo = dynamic(
+  () => import("@/components/ui/hero-highlight-demo"),
+  {
+    ssr: true,
+    loading: () => (
+      <div className="w-full h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl animate-pulse"></div>
+    ),
+  }
+);
 
 // Layout grid for therapy options - lazy loaded
-const LayoutGrid = dynamic(() => import("@/components/ui/layout-grid").then(mod => mod.LayoutGrid), {
-  ssr: true,
-  loading: () => <div className="w-full h-[600px] grid grid-cols-2 gap-4 animate-pulse">
-    {[...Array(4)].map((_, i) => (
-      <div key={i} className="bg-gray-800/30 rounded-xl"></div>
-    ))}
-  </div>
-});
+const LayoutGrid = dynamic(
+  () => import("@/components/ui/layout-grid").then((mod) => mod.LayoutGrid),
+  {
+    ssr: true,
+    loading: () => (
+      <div className="w-full h-[600px] grid grid-cols-2 gap-4 animate-pulse">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-gray-800/30 rounded-xl"></div>
+        ))}
+      </div>
+    ),
+  }
+);
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px
@@ -56,7 +70,6 @@ const fadeInUp = {
   hidden: { opacity: 0, y: 15 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
-
 
 // --- Reusable Hook for Viewport-Controlled Animation ---
 // Encapsulates the useInView + useAnimation pattern
@@ -94,6 +107,36 @@ export default function Home() {
   const prefersReducedMotion = useReducedMotion();
   const [isMobileView, setIsMobileView] = useState(false);
 
+  // Preload all hero images immediately
+  const heroImages = [
+    "/images/home/happy-couple.jpg",
+    "/images/home/happy-family.jpg",
+    "/images/home/happy-person.jpg",
+    "/images/home/happy-group.jpg",
+  ];
+
+  // Preload videos as well
+  const videoSources = [
+    "/videos/couple.mp4",
+    "/videos/mental_health.mp4",
+    "/videos/family.mp4",
+    "/videos/solo.mp4",
+    "/videos/depressed.mp4",
+  ];
+
+  // Preload videos when the component mounts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      videoSources.forEach((src) => {
+        const link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "video";
+        link.href = src;
+        document.head.appendChild(link);
+      });
+    }
+  }, []);
+
   // Effect for mobile view detection (copied from original)
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -111,12 +154,12 @@ export default function Home() {
     if (prefersReducedMotion) return 0;
     return defaultDuration;
   };
-  
+
   const getOptimizedThreshold = (defaultThreshold: number): number => {
     if (isMobileView) return 0.1; // Adjusted threshold slightly
     return defaultThreshold;
   };
-  
+
   const getOptimizedDelay = (defaultDelay: number): number => {
     if (prefersReducedMotion) return 0;
     if (isMobileView) return defaultDelay * 0.5; // Less aggressive mobile reduction
@@ -166,7 +209,7 @@ export default function Home() {
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
-    
+
     if (statsVideoCardView.isInView && !prefersReducedMotion) {
       if (videoElement.paused) {
         // Only attempt to play if paused
@@ -236,7 +279,6 @@ export default function Home() {
     },
   };
 
-
   // Plans Sliding Beam
   const plansBeamVariant = {
     hidden: { opacity: 0, x: "-100%", transition: { duration: 0.3 } },
@@ -266,42 +308,56 @@ export default function Home() {
   // --- Component Return Start ---
   return (
     <div className="flex flex-col items-center w-full overflow-x-hidden">
+      {/* Preload hero images */}
+      <ImagePreloader imagePaths={heroImages} />
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref
         className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
       >
         {/* Background Images Slider */}
-        <div className="absolute inset-0 h-full z-0">
+        <div className="absolute inset-0 h-full w-full z-0">
           <ImagesSlider
-            images={[
-              // First image - default full size behavior
-              "/images/home/happy-couple.jpg",
-              
-              // Second image - custom sizing with contain
-              {
-                src: "/images/home/happy-family.jpg",
+            images={
+              [
+                // First image - with explicit sizing for consistency
+                {
+                  src: "/images/home/happy-person.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
 
+                // Second image - force coverage
+                {
+                  src: "/images/home/happy-family.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
 
-              },
-              
-              // Third image - different aspect ratio
-              {
-                src: "/images/home/happy-person.jpg",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              },
-              
-              // Fourth image - smaller centered image
-              {
-                src: "/images/home/happy-group.jpg",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }
-            ] as (string | ImageConfig)[]}
-            className="h-full rounded-b-[4rem] md:rounded-b-[5rem]"
+                // Third image - force coverage
+                {
+                  src: "/images/home/happy-couple.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                // Fourth image - force coverage
+                {
+                  src: "/images/home/happy-group.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+              ] as (string | ImageConfig)[]
+            }
+            className="h-full w-full rounded-b-[4rem] md:rounded-b-[5rem]"
             overlayClassName="bg-black/40 rounded-b-[4rem] md:rounded-b-[5rem]"
             autoplay={true}
             direction="up"
@@ -1198,73 +1254,75 @@ export default function Home() {
             }} // Use optimized delay
           >
             {/* Map over features (Original data structure) */}
-            {([
-              {
-                title: "Private Sessions",
-                description:
-                  "Connect with an AI therapist in a safe, confidential environment. Our virtual sessions provide the same privacy as traditional therapy, with enhanced security protocols to protect your conversations and personal information.",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-white"
-                  >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                  </svg>
-                ),
-              },
-              {
-                title: "24/7 Availability",
-                description:
-                  "Get help whenever you need it, any day, any time. Relationship issues don't follow a schedule, and neither do we. Start a therapy session at your convenience without waiting for appointments or office hours.",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-white"
-                  >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                ),
-              },
-              {
-                title: "Proven Techniques",
-                description:
-                  "Our AI is trained in evidence-based therapeutic approaches including Cognitive Behavioral Therapy, Emotionally Focused Therapy, and Gottman Method principles to help couples build stronger connections and resolve conflicts effectively.",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-white"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                  </svg>
-                ),
-              },
-            ] as const).map((feature, index) => (
+            {(
+              [
+                {
+                  title: "Private Sessions",
+                  description:
+                    "Connect with an AI therapist in a safe, confidential environment. Our virtual sessions provide the same privacy as traditional therapy, with enhanced security protocols to protect your conversations and personal information.",
+                  icon: (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-white"
+                    >
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  ),
+                },
+                {
+                  title: "24/7 Availability",
+                  description:
+                    "Get help whenever you need it, any day, any time. Relationship issues don't follow a schedule, and neither do we. Start a therapy session at your convenience without waiting for appointments or office hours.",
+                  icon: (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-white"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                  ),
+                },
+                {
+                  title: "Proven Techniques",
+                  description:
+                    "Our AI is trained in evidence-based therapeutic approaches including Cognitive Behavioral Therapy, Emotionally Focused Therapy, and Gottman Method principles to help couples build stronger connections and resolve conflicts effectively.",
+                  icon: (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-white"
+                    >
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  ),
+                },
+              ] as const
+            ).map((feature, index) => (
               // Feature Card Item
               <motion.div
                 key={index} // Use index as key if titles aren't unique, otherwise feature.title
@@ -1882,15 +1940,15 @@ export default function Home() {
               © {new Date().getFullYear()} TherapyAI. All rights reserved.
             </p>
             <div className="flex items-center justify-center gap-4 mb-4">
-              <Link 
-                href="/terms" 
+              <Link
+                href="/terms"
                 className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
               >
                 Terms and Conditions
               </Link>
               <span className="text-xs text-gray-500">|</span>
-              <Link 
-                href="/privacy" 
+              <Link
+                href="/privacy"
                 className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
               >
                 Privacy Policy

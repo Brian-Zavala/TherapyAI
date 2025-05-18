@@ -124,7 +124,11 @@ export default function Navigation() {
           <figure id="welcomeMessage">
             <figcaption>
               <h1>
-                <label htmlFor="toggleOpen" title="Click to Open" className="cursor-pointer"></label>
+                <label
+                  htmlFor="toggleOpen"
+                  title="Click to Open"
+                  className="cursor-pointer"
+                ></label>
                 <label
                   htmlFor="toggleClose"
                   title="Click to Close"
@@ -300,7 +304,7 @@ export default function Navigation() {
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMenuOpen}
         >
-          <div className="bg-black w-10 h-10 flex items-center justify-center border-2 border-white rounded-sm">
+          <div className="bg-black w-10 h-10 flex items-center justify-center border-1 border-white rounded-sm">
             <div className="w-6 h-5 relative flex items-center justify-center">
               <span
                 className={`absolute h-0.5 bg-white transition-all duration-300 transform ${
@@ -328,7 +332,7 @@ export default function Navigation() {
 
       {/* Mobile Menu - covers entire screen (only for mobile) */}
       <div
-        className={`md:hidden fixed inset-0 bg-gradient-to-r from-neutral-700 via-black to-neutral-700 backdrop-blur-sm z-50 overflow-y-auto transition-all duration-300 ease-in-out ${
+        className={`md:hidden fixed inset-0 bg-gradient-to-r from-slate-800 via-slate-950 to-slate-800 backdrop-blur-sm z-50 overflow-y-auto transition-all duration-300 ease-in-out ${
           isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
       >

@@ -85,36 +85,16 @@ export async function POST(request: Request) {
     // Calculate relationship progress data and save it
     const week = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7)); // Current week number
     
-    // Create or update progress data
-    const existingProgress = await prisma.relationshipProgress.findFirst({
-      where: {
+    // Create progress tracking data
+    await prisma.progressTracking.create({
+      data: {
         userId: user.id,
-        week: week,
+        closenessScore: Math.round((communicationScore + intimacyScore) / 2),
+        communicationScore: Math.round(communicationScore),
+        date: new Date(),
+        therapyType: user.therapyType || 'couple'
       },
     });
-    
-    if (existingProgress) {
-      // Update existing progress
-      await prisma.relationshipProgress.update({
-        where: { id: existingProgress.id },
-        data: {
-          closeness: (communicationScore + intimacyScore) / 2,
-          communication: communicationScore, // Fix: use communicationScore directly
-          date: new Date(),
-        },
-      });
-    } else {
-      // Create new progress
-      await prisma.relationshipProgress.create({
-        data: {
-          userId: user.id,
-          week: week,
-          closeness: (communicationScore + intimacyScore) / 2,
-          communication: communicationScore, // Fix: use communicationScore directly
-          date: new Date(),
-        },
-      });
-    }
     
     return NextResponse.json({ success: true, savedMetrics });
   } catch (error) {

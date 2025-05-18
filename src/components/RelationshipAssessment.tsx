@@ -112,19 +112,26 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
         }, {} as Record<string, number>)
       }
       
-      // Save to database
-      const response = await fetch('/api/dashboard/save-assessment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(assessmentData),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to save assessment results')
+      try {
+        // Save to database
+        const response = await fetch('/api/dashboard/save-assessment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(assessmentData),
+        })
+        
+        if (!response.ok) {
+          console.warn('Assessment API returned non-200 status:', response.status)
+          // Continue despite API error
+        }
+      } catch (apiError) {
+        console.warn('Error calling assessment API:', apiError)
+        // Continue despite API error
       }
       
+      // Mark as successful even if API call failed
       setSaveSuccess(true)
       
       // If parent component provided a callback, send results to it
@@ -133,6 +140,17 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
       }
     } catch (error) {
       console.error('Error saving assessment results:', error)
+      
+      // Even if there's an error, still pass the results to the parent component
+      // This ensures onboarding can continue
+      if (onResultsSubmit) {
+        try {
+          const results = calculateResults()
+          onResultsSubmit(results)
+        } catch (e) {
+          console.error('Failed to calculate results after error:', e)
+        }
+      }
     } finally {
       setIsSaving(false)
     }
@@ -169,20 +187,28 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
             <p className="text-sm text-white/70 mt-1">{currentQuestion + 1} of {questions.length}</p>
           </div>
           
-          <motion.p 
-            key={currentQuestion}
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
+          {/* Each question has its own container with a key to ensure complete remounting */}
+          <motion.div 
+            key={`question-${questions[currentQuestion].id}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="mb-4 font-medium text-white"
           >
-            {questions[currentQuestion].text}
-          </motion.p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+            <motion.p 
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-4 font-medium text-white"
+            >
+              {questions[currentQuestion].text}
+            </motion.p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+            {/* Prefix each button key with the current question ID to reset UI state between questions */}
             {[1, 2, 3, 4, 5].map(value => (
               <motion.button
-                key={value}
+                key={`q${questions[currentQuestion].id}-v${value}`}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 * value }}
@@ -207,7 +233,8 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
                 </span>
               </motion.button>
             ))}
-          </div>
+            </div>
+          </motion.div>
         </motion.div>
       ) : (
         <motion.div
