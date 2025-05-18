@@ -49,9 +49,10 @@ DEEPGRAM-SETUP.md
 CUSTOM-TRANSCRIBER.md
 TRANSCRIPT-GUIDE.md
 TRANSCRIPT-MIGRATION.md
+VAPI-JWT-SETUP.md
 
-# auth setup docs
-docs/FACEBOOK_AUTH_SETUP.md
+# docs directory
+/docs/
 
 # utility scripts
 create-test-user.js
