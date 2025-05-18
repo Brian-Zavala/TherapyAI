@@ -2,7 +2,8 @@
 
 // React and Next.js imports
 import Link from "next/link";
-import { useRef, useState, useEffect, Suspense } from "react";
+import { useRef, useState, useEffect, Suspense, lazy } from "react";
+import dynamic from "next/dynamic";
 
 // Framer Motion imports
 import {
@@ -15,16 +16,32 @@ import {
   useReducedMotion,
 } from "framer-motion";
 
-// Custom components
-import TypewriterText from "@/components/TypewriterText";
+// Regular imports
 import ButtonWithSound from "@/components/ButtonWithSound";
 import ScrollDownArrow from "@/components/ScrollDownArrow";
-import Hero3DBackground from "@/components/Hero3DBackground";
-import HeroHighlightDemo from "@/components/ui/hero-highlight-demo";
+import TypewriterText from "@/components/TypewriterText";
 import { ImagesSlider, ImageConfig } from "@/components/ui/images-slider";
 
-// Layout grid for therapy options
-import { LayoutGrid } from "@/components/ui/layout-grid";
+// Dynamic imports with loading fallbacks
+const Hero3DBackground = dynamic(() => import("@/components/Hero3DBackground"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-black/20"></div>
+});
+
+const HeroHighlightDemo = dynamic(() => import("@/components/ui/hero-highlight-demo"), {
+  ssr: true,
+  loading: () => <div className="w-full h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl animate-pulse"></div>
+});
+
+// Layout grid for therapy options - lazy loaded
+const LayoutGrid = dynamic(() => import("@/components/ui/layout-grid").then(mod => mod.LayoutGrid), {
+  ssr: true,
+  loading: () => <div className="w-full h-[600px] grid grid-cols-2 gap-4 animate-pulse">
+    {[...Array(4)].map((_, i) => (
+      <div key={i} className="bg-gray-800/30 rounded-xl"></div>
+    ))}
+  </div>
+});
 
 // Media query helper constant
 const MOBILE_BREAKPOINT = 768; // px

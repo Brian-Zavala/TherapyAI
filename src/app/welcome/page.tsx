@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react'
 import ButtonWithSound from '@/components/ButtonWithSound'
 import ConfettiAnimation from '@/components/ui/confetti-animation'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
+import RelationshipAssessment from '@/components/RelationshipAssessment'
 
 interface FormStep {
   id: number
@@ -66,7 +67,7 @@ const formSteps: FormStep[] = [
     fields: [
       {
         name: 'relationshipStatus',
-        label: 'Relationship status',
+        label: 'Relationship status (if applicable)',
         type: 'select',
         options: [
           { value: 'Single', label: 'Single' },
@@ -239,6 +240,12 @@ const formSteps: FormStep[] = [
         placeholder: 'Feel free to share any additional information...'
       }
     ]
+  },
+  {
+    id: 6,
+    title: "Relationship Assessment",
+    subtitle: "Help us understand your communication dynamics better",
+    fields: [] // We'll use a custom component for this step
   }
 ]
 
@@ -251,6 +258,7 @@ export default function WelcomePage() {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({})
   const [showConfetti, setShowConfetti] = useState(false)
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
+  const [assessmentResults, setAssessmentResults] = useState<any[]>([])
 
   useEffect(() => {
     // Redirect immediately if unauthenticated
@@ -315,6 +323,45 @@ export default function WelcomePage() {
     }
   }
 
+  // Handler for assessment results
+  const handleAssessmentResults = (results: any[]) => {
+    setAssessmentResults(results)
+    
+    // Convert assessment results to the format expected by the API
+    const assessmentData = results.reduce((acc, item) => {
+      acc[`${item.category}Score`] = Math.round(item.average * 20) // Scale to 0-100
+      return acc
+    }, {} as Record<string, number>)
+    
+    // Add assessment data to form data
+    setFormData({
+      ...formData,
+      assessmentResults: assessmentData
+    })
+  }
+  
+  // Handler for users not in a relationship who want to skip assessment
+  const handleSkipAssessment = () => {
+    // Set empty assessment results with zero scores
+    const emptyResults = {
+      communicationScore: 0,
+      trustScore: 0,
+      intimacyScore: 0,
+      conflictScore: 0
+    }
+    
+    // Add empty assessment data to form data
+    setFormData({
+      ...formData,
+      assessmentResults: emptyResults,
+      relationshipStatus: formData.relationshipStatus || 'Single',
+      skipAssessmentReason: 'Not in a relationship'
+    })
+    
+    // Set assessment results to a non-empty array so the button becomes enabled
+    setAssessmentResults([{ category: 'skipped', average: 0 }])
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     
@@ -327,6 +374,22 @@ export default function WelcomePage() {
       })
 
       if (response.ok) {
+        // If assessment results exist, also save them separately
+        if (assessmentResults.length > 0) {
+          const assessmentResponse = await fetch('/api/dashboard/save-assessment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: new Date().toISOString(),
+              results: formData.assessmentResults
+            })
+          })
+          
+          if (!assessmentResponse.ok) {
+            console.error('Error saving assessment results')
+          }
+        }
+        
         setShowConfetti(true)
         setTimeout(() => {
           router.push('/')
@@ -427,141 +490,166 @@ export default function WelcomePage() {
               </p>
 
               <div className="space-y-6">
-                {formSteps[currentStep].fields.map((field) => (
-                  <div key={field.name}>
-                    <label className="block text-white mb-2">
-                      {field.label}
-                      {field.required && <span className="text-blue-400 ml-1">*</span>}
-                    </label>
-                    
-                    {field.type === 'text' && (
-                      <motion.input
-                        type="text"
-                        name={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
-                      />
-                    )}
-                    
-                    {field.type === 'tel' && (
-                      <motion.input
-                        type="tel"
-                        name={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
-                      />
-                    )}
-                    
-                    {field.type === 'number' && (
-                      <motion.input
-                        type="number"
-                        name={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
-                        min="1"
-                        max="120"
-                      />
-                    )}
-                    
-                    {field.type === 'select' && (
-                      <motion.select
-                        name={field.name}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="" className="bg-gray-900 text-gray-400">Select an option</option>
-                        {field.options?.map((option) => (
-                          <option key={option.value} value={option.value} className="bg-gray-900 text-white">
-                            {option.label}
-                          </option>
-                        ))}
-                      </motion.select>
-                    )}
-                    
-                    {field.type === 'multiselect' && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {field.options?.map((option) => {
-                          const isSelected = selectedOptions[field.name]?.includes(option.value)
-                          return (
-                            <motion.button
-                              key={option.value}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => handleMultiSelectChange(field.name, option.value)}
-                              className={`relative px-4 py-2 rounded-xl border transition-all ${
-                                isSelected
-                                  ? 'bg-blue-500/30 border-blue-400 text-white'
-                                  : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'
-                              }`}
-                            >
-                              <span className="relative z-10 flex items-center justify-center">
-                                {option.label}
-                                {isSelected && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ duration: 0.1 }}
-                                    className="ml-2"
-                                  >
-                                    <CheckCircleIcon className="w-5 h-5 text-green-400" />
-                                  </motion.div>
-                                )}
-                              </span>
-                            </motion.button>
-                          )
-                        })}
-                      </div>
-                    )}
-                    
-                    {field.type === 'textarea' && (
-                      <motion.textarea
-                        name={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        rows={4}
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all resize-none"
-                      />
-                    )}
-                  </div>
-                ))}
+                {currentStep === formSteps.length - 1 ? (
+                  // Render the RelationshipAssessment component for the last step
+                  <RelationshipAssessment 
+                    onResultsSubmit={handleAssessmentResults}
+                    onClose={() => {}} // Empty function since we don't want to close
+                  />
+                ) : (
+                  // Render regular form fields for all other steps
+                  formSteps[currentStep].fields.map((field) => (
+                    <div key={field.name}>
+                      <label className="block text-white mb-2">
+                        {field.label}
+                        {field.required && <span className="text-blue-400 ml-1">*</span>}
+                      </label>
+                      
+                      {field.type === 'text' && (
+                        <motion.input
+                          type="text"
+                          name={field.name}
+                          placeholder={field.placeholder}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                        />
+                      )}
+                      
+                      {field.type === 'tel' && (
+                        <motion.input
+                          type="tel"
+                          name={field.name}
+                          placeholder={field.placeholder}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                        />
+                      )}
+                      
+                      {field.type === 'number' && (
+                        <motion.input
+                          type="number"
+                          name={field.name}
+                          placeholder={field.placeholder}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                          min="1"
+                          max="120"
+                        />
+                      )}
+                      
+                      {field.type === 'select' && (
+                        <motion.select
+                          name={field.name}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="" className="bg-gray-900 text-gray-400">Select an option</option>
+                          {field.options?.map((option) => (
+                            <option key={option.value} value={option.value} className="bg-gray-900 text-white">
+                              {option.label}
+                            </option>
+                          ))}
+                        </motion.select>
+                      )}
+                      
+                      {field.type === 'multiselect' && (
+                        <div className="grid grid-cols-2 gap-3">
+                          {field.options?.map((option) => {
+                            const isSelected = selectedOptions[field.name]?.includes(option.value)
+                            return (
+                              <motion.button
+                                key={option.value}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleMultiSelectChange(field.name, option.value)}
+                                className={`relative px-4 py-2 rounded-xl border transition-all ${
+                                  isSelected
+                                    ? 'bg-blue-500/30 border-blue-400 text-white'
+                                    : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'
+                                }`}
+                              >
+                                <span className="relative z-10 flex items-center justify-center">
+                                  {option.label}
+                                  {isSelected && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{ duration: 0.1 }}
+                                      className="ml-2"
+                                    >
+                                      <CheckCircleIcon className="w-5 h-5 text-green-400" />
+                                    </motion.div>
+                                  )}
+                                </span>
+                              </motion.button>
+                            )
+                          })}
+                        </div>
+                      )}
+                      
+                      {field.type === 'textarea' && (
+                        <motion.textarea
+                          name={field.name}
+                          placeholder={field.placeholder}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          rows={4}
+                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all resize-none"
+                        />
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Navigation buttons */}
-              <div className="flex justify-between mt-8">
+              <div className={`flex ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'flex-col sm:flex-row gap-3 sm:gap-4' : 'justify-between'} mt-8`}>
                 <ButtonWithSound
                   onClick={handleBack}
                   disabled={currentStep === 0}
-                  className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                  className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all ${
                     currentStep === 0
                       ? 'bg-white/5 text-white/30 cursor-not-allowed'
                       : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                  }`}
+                  } ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'w-full sm:w-auto' : ''}`}
                 >
                   Back
                 </ButtonWithSound>
                 
+                {/* Show "Not in a relationship" button only on assessment step and when assessment is not completed */}
+                {currentStep === formSteps.length - 1 && assessmentResults.length === 0 && (
+                  <ButtonWithSound
+                    onClick={handleSkipAssessment}
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
+                  >
+                    Not in a relationship
+                  </ButtonWithSound>
+                )}
+                
                 <ButtonWithSound
                   onClick={handleNext}
-                  disabled={loading}
-                  className="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all transform hover:scale-105"
+                  disabled={loading || (currentStep === formSteps.length - 1 && assessmentResults.length === 0)}
+                  className={`px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base ${
+                    currentStep === formSteps.length - 1 && assessmentResults.length === 0
+                      ? 'bg-blue-500/50 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600'
+                  } text-white rounded-xl font-medium transition-all transform hover:scale-105 ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'w-full sm:w-auto' : ''}`}
                 >
                   {loading ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       Saving...
                     </span>
-                  ) : currentStep === formSteps.length - 1 ? 'Complete' : 'Next'}
+                  ) : currentStep === formSteps.length - 1 ? (
+                    assessmentResults.length === 0 ? 'Complete Assessment' : 'Complete Onboarding'
+                  ) : 'Next'}
                 </ButtonWithSound>
               </div>
             </motion.div>

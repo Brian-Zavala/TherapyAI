@@ -13,15 +13,16 @@ export default function PrivacyPolicy() {
       
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-4xl">
-          <Link 
-            href="/auth/register" 
-            className="inline-flex items-center text-blue-500 hover:text-blue-400 mb-6"
+          <button 
+            type="button"
+            className="inline-flex items-center text-white hover:text-white/60 mb-6 cursor-pointer bg-transparent p-2"
+            onClick={() => window.location.href = '/auth/register'}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
             Back to Registration
-          </Link>
+          </button>
           
           <GlassCard className="w-full">
             <div className="text-center mb-8">
@@ -44,7 +45,7 @@ export default function PrivacyPolicy() {
                   <h2 className="text-xl font-semibold text-white mb-3">1. Information We Collect</h2>
                   <p>We collect information you provide directly to us, such as when you create an account, schedule a therapy session, or contact us for support. This may include:</p>
                   <ul className="list-disc list-inside ml-4 mt-2">
-                    <li>Name, email address, and phone number</li>
+                    <li>Name and email address</li>
                     <li>Health information relevant to therapy sessions</li>
                     <li>Session notes and transcripts (with your consent)</li>
                     <li>Payment information</li>
@@ -69,7 +70,7 @@ export default function PrivacyPolicy() {
                   <h2 className="text-xl font-semibold text-white mb-3">3. Information Sharing and Disclosure</h2>
                   <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:</p>
                   <ul className="list-disc list-inside ml-4 mt-2">
-                    <li>With your therapist for the purpose of providing therapy services</li>
+                    <li>With our AI therapist system for the purpose of providing therapy services</li>
                     <li>With service providers who assist in our operations (under strict confidentiality agreements)</li>
                     <li>If required by law or to respond to legal process</li>
                     <li>To protect the rights and safety of our users or others</li>
@@ -150,9 +151,7 @@ export default function PrivacyPolicy() {
                   <h2 className="text-xl font-semibold text-white mb-3">11. Contact Us</h2>
                   <p>If you have any questions about this Privacy Policy, please contact us at:</p>
                   <ul className="list-none ml-4 mt-2">
-                    <li>Email: privacy@coupletherapywebsite.com</li>
-                    <li>Phone: 1-800-THERAPY</li>
-                    <li>Address: [Your Company Address]</li>
+                    <li>Email: privacy@therapyai.us</li>
                   </ul>
                 </section>
 
@@ -160,7 +159,7 @@ export default function PrivacyPolicy() {
                   <h2 className="text-xl font-semibold text-white mb-3">12. Data Protection Officer</h2>
                   <p>For privacy-related inquiries, you may also contact our Data Protection Officer at:</p>
                   <ul className="list-none ml-4 mt-2">
-                    <li>Email: dpo@coupletherapywebsite.com</li>
+                    <li>Email: dpo@therapyai.us</li>
                   </ul>
                 </section>
               </motion.div>

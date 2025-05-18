@@ -2,14 +2,18 @@
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import React, { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 
 // Define image config type
 export interface ImageConfig {
   src: string;
-  width?: string;
-  height?: string;
+  width?: number;
+  height?: number;
   objectFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
   objectPosition?: string;
+  priority?: boolean;
+  quality?: number;
+  sizes?: string;
 }
 
 export const ImagesSlider = ({
@@ -174,20 +178,26 @@ export const ImagesSlider = ({
                 : { ...currentImage, src: loadedImages[currentIndex] };
               
               return (
-                <img
+                <Image
                   src={imageConfig.src}
+                  width={imageConfig.width || 1920}
+                  height={imageConfig.height || 1080}
+                  quality={imageConfig.quality || 85}
+                  priority={imageConfig.priority || currentIndex === 0}
+                  fetchPriority={currentIndex === 0 ? "high" : "auto"}
+                  sizes={imageConfig.sizes || "(max-width: 768px) 100vw, 100vw"}
                   className={cn(
                     "image",
                     imageConfig.objectFit === 'contain' ? 'object-contain' : 'object-cover',
                     "object-center"
                   )}
                   style={{
-                    width: imageConfig.width || '100%',
-                    height: imageConfig.height || '100%',
                     objectFit: imageConfig.objectFit || 'cover',
                     objectPosition: imageConfig.objectPosition || 'center',
                   }}
-                  alt=""
+                  alt="Slider image"
+                  placeholder="blur"
+                  blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMjAyMDIwIi8+PC9zdmc+"
                 />
               );
             })()}

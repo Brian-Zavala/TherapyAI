@@ -1,5 +1,7 @@
 "use client";
 
+// Import the server layout's metadata
+import "./metadata";
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";

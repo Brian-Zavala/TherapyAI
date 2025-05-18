@@ -147,8 +147,9 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
   }, [isCompleted])
   
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4">Relationship Assessment</h2>
+    <div>
+      <h2 className="text-xl font-semibold mb-4 text-white">Relationship Assessment</h2>
+      <p className="text-sm text-white/70 mb-4">This assessment helps us understand your relationship dynamics. If you're not currently in a relationship, you can skip this step.</p>
       
       {!isCompleted ? (
         <motion.div
@@ -157,15 +158,15 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
           transition={{ duration: 0.3 }}
         >
           <div className="mb-6">
-            <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
               <motion.div 
-                className="h-2 bg-purple-600 rounded-full" 
+                className="h-2 bg-blue-500 rounded-full" 
                 initial={{ width: 0 }}
                 animate={{ width: `${(currentQuestion / questions.length) * 100}%` }}
                 transition={{ duration: 0.5 }}
               ></motion.div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">{currentQuestion + 1} of {questions.length}</p>
+            <p className="text-sm text-white/70 mt-1">{currentQuestion + 1} of {questions.length}</p>
           </div>
           
           <motion.p 
@@ -173,7 +174,7 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="mb-4 font-medium text-gray-800"
+            className="mb-4 font-medium text-white"
           >
             {questions[currentQuestion].text}
           </motion.p>
@@ -185,10 +186,10 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 * value }}
-                whileHover={{ scale: 1.05, backgroundColor: '#F9FAFB' }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleAnswer(value)}
-                className="py-2 px-2 sm:px-1 md:px-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="py-2 px-2 sm:px-1 md:px-2 border border-white/20 bg-white/10 backdrop-blur-md rounded-xl hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white"
                 style={{ 
                   transform: 'none',
                   minHeight: '44px',
@@ -219,9 +220,9 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
               <motion.div 
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="mx-auto w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full"
+                className="mx-auto w-10 h-10 border-4 border-white/20 border-t-blue-500 rounded-full"
               ></motion.div>
-              <p className="mt-4 text-purple-600 font-medium">Saving your assessment...</p>
+              <p className="mt-4 text-blue-400 font-medium">Saving your assessment...</p>
             </div>
           ) : saveSuccess ? (
             <motion.div
@@ -229,40 +230,40 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-4"
             >
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
-                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="mx-auto w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center mb-3">
+                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="font-medium text-lg text-green-700 mb-2">Assessment Saved!</h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <h3 className="font-medium text-lg text-white mb-2">Assessment Saved!</h3>
+              <p className="text-sm text-white/70 mb-4">
                 Your assessment has been saved and will be used to personalize your therapy experience.
               </p>
-              <div className="space-y-4 mt-6 mb-6 bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-sm text-gray-700">Your Assessment Results</h4>
+              <div className="space-y-4 mt-6 mb-6 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl">
+                <h4 className="font-medium text-sm text-white">Your Assessment Results</h4>
                 {calculateResults().map(result => (
                   <div key={result.category}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="capitalize text-sm">{result.category}</span>
-                      <span className="text-sm font-medium">{result.average.toFixed(1)}/5</span>
+                      <span className="capitalize text-sm text-white/90">{result.category}</span>
+                      <span className="text-sm font-medium text-white">{result.average.toFixed(1)}/5</span>
                     </div>
-                    <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${(result.average / 5) * 100}%` }}
                         transition={{ duration: 0.8, delay: 0.1 }}
-                        className="h-2 bg-purple-600 rounded-full" 
+                        className="h-2 bg-blue-500 rounded-full" 
                       ></motion.div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-center space-x-3">
+              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onClose && onClose()}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 text-sm"
+                  className="px-4 py-2 border border-white/20 bg-white/10 backdrop-blur-md rounded-xl text-white text-sm hover:bg-white/20 transition-all w-full sm:w-auto"
                 >
                   Close
                 </motion.button>
@@ -270,7 +271,7 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={reset}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm"
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition-all w-full sm:w-auto"
                 >
                   Take New Assessment
                 </motion.button>
@@ -278,38 +279,38 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
             </motion.div>
           ) : (
             <>
-              <h3 className="font-medium mb-4">Your Assessment Results</h3>
+              <h3 className="font-medium mb-4 text-white">Your Assessment Results</h3>
               
               <div className="space-y-4 mb-6">
                 {calculateResults().map(result => (
                   <div key={result.category}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="capitalize">{result.category}</span>
-                      <span className="text-sm">{result.average.toFixed(1)}/5</span>
+                      <span className="capitalize text-white">{result.category}</span>
+                      <span className="text-sm text-white">{result.average.toFixed(1)}/5</span>
                     </div>
-                    <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${(result.average / 5) * 100}%` }}
                         transition={{ duration: 0.8 }}
-                        className="h-2 bg-purple-600 rounded-full" 
+                        className="h-2 bg-blue-500 rounded-full" 
                       ></motion.div>
                     </div>
                   </div>
                 ))}
               </div>
               
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-white/70 mb-4">
                 Based on your responses, consider focusing on the areas with lower scores
                 for potential growth in your relationship.
               </p>
               
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={saveResults}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm"
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition-all w-full sm:w-auto"
                 >
                   Save Results
                 </motion.button>
@@ -318,7 +319,7 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={reset}
-                  className="text-purple-600 hover:text-purple-800 text-sm font-medium px-4 py-2"
+                  className="text-blue-400 hover:text-blue-300 text-sm font-medium px-4 py-2 transition-all w-full sm:w-auto border border-white/10 bg-white/5 rounded-xl"
                 >
                   Take Again
                 </motion.button>

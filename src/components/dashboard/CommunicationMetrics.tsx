@@ -857,31 +857,21 @@ export default function CommunicationMetrics() {
               Your Communication Journey Awaits
             </p>
             <p className="text-sm mt-3 text-white/80 max-w-sm mx-auto">
-              Complete an assessment or therapy session to see
+              Complete your onboarding or a therapy session to see
               detailed analytics and personalized insights about your
               communication patterns.
             </p>
 
-            {/* Removed therapy type selector when no data is available */}
-
-            <div className="flex flex-col sm:flex-row sm:space-x-4 justify-center mt-6 gap-3">
+            {/* Added "What to Work On" button and removed assessment buttons */}
+            <div className="flex justify-center mt-6">
               <button
-                className="px-5 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-white/30 active:bg-white/25 transition-colors duration-200 border border-white/30"
+                className="px-5 py-2.5 bg-blue-500/80 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-blue-600/80 active:bg-blue-700/80 transition-colors duration-200 border border-blue-400/30"
                 onClick={() => {
-                  toggleAssessment();
+                  router.push("/dashboard/resources/communication-techniques");
                   playSound();
                 }}
               >
-                Take Assessment
-              </button>
-              <button
-                className="px-5 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-white/30 active:bg-white/25 transition-colors duration-200 border border-white/30"
-                onClick={() => {
-                  router.push("/schedule");
-                  playSound();
-                }}
-              >
-                Schedule Session
+                Therapy Insights
               </button>
             </div>
           </div>

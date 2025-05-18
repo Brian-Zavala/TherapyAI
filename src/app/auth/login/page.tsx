@@ -98,7 +98,7 @@ export default function Login() {
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20 10.0278C20 4.50278 15.52 0.0277786 10 0.0277786C4.48 0.0277786 0 4.50278 0 10.0278C0 14.9144 3.44 18.9644 8 19.8478V13.0278H6V10.0278H8V7.52778C8 5.61111 9.57 4.02778 11.5 4.02778H14V7.02778H12C11.45 7.02778 11 7.47778 11 8.02778V10.0278H14V13.0278H11V20C16.05 19.5 20 15.2278 20 10.0278Z" fill="#1877F2"/>
                 </svg>
-                Sign in with Facebook
+                Sign in with Meta
               </motion.button>
             </div>
 

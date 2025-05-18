@@ -127,12 +127,14 @@ export default function Register() {
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => signIn('facebook', { callbackUrl: '/welcome' })}
+                type="button"
                 className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20"
               >
-                <svg width="21" height="20" viewBox="0 0 21 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15.6705 1.875H18.4272L12.4047 8.75833L19.4897 18.125H13.9422L9.59717 12.4442L4.62554 18.125H1.86721L8.30887 10.7625L1.51221 1.875H7.20054L11.128 7.0675L15.6705 1.875ZM14.703 16.475H16.2305L6.37054 3.43833H4.73137L14.703 16.475Z" />
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 10.0278C20 4.50278 15.52 0.0277786 10 0.0277786C4.48 0.0277786 0 4.50278 0 10.0278C0 14.9144 3.44 18.9644 8 19.8478V13.0278H6V10.0278H8V7.52778C8 5.61111 9.57 4.02778 11.5 4.02778H14V7.02778H12C11.45 7.02778 11 7.47778 11 8.02778V10.0278H14V13.0278H11V20C16.05 19.5 20 15.2278 20 10.0278Z" fill="#1877F2"/>
                 </svg>
-                Sign up with X
+                Sign up with Meta
               </motion.button>
             </div>
 

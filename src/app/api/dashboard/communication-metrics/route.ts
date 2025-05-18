@@ -195,7 +195,6 @@ export async function GET(request: Request) {
         // No completed sessions for individual therapy
         return NextResponse.json([]);
       }
-    }
     } else if (therapyType === 'family') {
       // Calculate from the primary metrics as a fallback
       const completedSessions = await prisma.session.count({
@@ -218,7 +217,6 @@ export async function GET(request: Request) {
         // No completed sessions for family therapy
         return NextResponse.json([]);
       }
-    }
     } else {
       // Default 'couple' metrics - handle case where metrics might be null  
       if (!metrics) {

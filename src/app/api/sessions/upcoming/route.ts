@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
     const now = new Date();
 
-    // Query Session model
+    // Query only Session model - with improved selection
     const upcomingSessions = await prisma.session.findMany({
       where: {
         userId: user.id,
@@ -35,46 +35,28 @@ export async function GET(request: Request) {
         },
         status: 'scheduled' // Only include scheduled sessions, not cancelled or completed
       },
+      select: {
+        id: true,
+        userId: true,
+        date: true,
+        duration: true,
+        theme: true,
+        notes: true,
+        status: true,
+        reminderSent: true,
+        assistantId: true
+      },
       orderBy: {
         date: 'asc'
       }
     });
 
-    // Also query TherapySession model
-    const upcomingTherapySessions = await prisma.therapySession.findMany({
-      where: {
-        userId: user.id,
-        sessionDate: {
-          gte: now
-        },
-        status: 'scheduled' // Only include scheduled sessions, not cancelled or completed
-      },
-      orderBy: {
-        sessionDate: 'asc'
-      }
-    });
+    // Sort by date (already sorted by query, but just in case)
+    upcomingSessions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Map TherapySession objects to match Session format
-    const mappedTherapySessions = upcomingTherapySessions.map(ts => ({
-      id: ts.id,
-      userId: ts.userId,
-      date: ts.sessionDate,
-      duration: ts.duration,
-      theme: 'Therapy Session', // Default since TherapySession might not have this field
-      notes: ts.notes || '',
-      status: ts.status,
-      reminderSent: ts.reminderSent
-    }));
+    console.log(`Found ${upcomingSessions.length} upcoming sessions`);
 
-    // Combine both arrays
-    const combinedSessions = [...upcomingSessions, ...mappedTherapySessions];
-
-    // Sort by date
-    combinedSessions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    console.log(`Found ${upcomingSessions.length} sessions and ${upcomingTherapySessions.length} therapy sessions`);
-
-    return NextResponse.json(combinedSessions);
+    return NextResponse.json(upcomingSessions);
   } catch (error) {
     console.error('Error fetching upcoming sessions:', error);
     return NextResponse.json(

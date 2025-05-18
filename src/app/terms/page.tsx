@@ -13,15 +13,16 @@ export default function TermsAndConditions() {
       
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-4xl">
-          <Link 
-            href="/auth/register" 
-            className="inline-flex items-center text-blue-500 hover:text-blue-400 mb-6"
+          <button 
+            type="button"
+            className="inline-flex items-center text-white hover:text-white/60 mb-6 cursor-pointer bg-transparent p-2"
+            onClick={() => window.location.href = '/auth/register'}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
             Back to Registration
-          </Link>
+          </button>
           
           <GlassCard className="w-full">
             <div className="text-center mb-8">
@@ -42,12 +43,12 @@ export default function TermsAndConditions() {
               >
                 <section>
                   <h2 className="text-xl font-semibold text-white mb-3">1. Acceptance of Terms</h2>
-                  <p>By accessing and using Couple Therapy Website, you accept and agree to be bound by the terms and provision of this agreement.</p>
+                  <p>By accessing and using TherapyAI.us, you accept and agree to be bound by the terms and provision of this agreement.</p>
                 </section>
 
                 <section>
                   <h2 className="text-xl font-semibold text-white mb-3">2. Use License</h2>
-                  <p>Permission is granted to temporarily download one copy of the materials (information or software) on Couple Therapy Website for personal, non-commercial transitory viewing only.</p>
+                  <p>Permission is granted to temporarily download one copy of the materials (information or software) on TherapyAI.us for personal, non-commercial transitory viewing only.</p>
                   <ul className="list-disc list-inside ml-4 mt-2">
                     <li>This is the grant of a license, not a transfer of title</li>
                     <li>This license shall automatically terminate if you violate any of these restrictions</li>
@@ -71,12 +72,12 @@ export default function TermsAndConditions() {
                 </section>
 
                 <section>
-                  <h2 className="text-xl font-semibold text-white mb-3">5. Therapist Services</h2>
-                  <p>Our platform connects you with licensed therapists. The following terms apply:</p>
+                  <h2 className="text-xl font-semibold text-white mb-3">5. AI Therapist Services</h2>
+                  <p>Our platform provides AI therapist services. The following terms apply:</p>
                   <ul className="list-disc list-inside ml-4 mt-2">
-                    <li>All therapists are independently licensed professionals</li>
-                    <li>We do not provide medical or therapeutic services directly</li>
-                    <li>Sessions are confidential as per standard therapeutic practice</li>
+                    <li>Our services use advanced AI technology, not licensed human therapists</li>
+                    <li>AI therapists are designed to provide supportive conversation and guidance</li>
+                    <li>Sessions are confidential as per our privacy policy</li>
                     <li>You must be 18 years or older to use our services</li>
                   </ul>
                 </section>
@@ -99,12 +100,12 @@ export default function TermsAndConditions() {
 
                 <section>
                   <h2 className="text-xl font-semibold text-white mb-3">8. Disclaimer</h2>
-                  <p>The materials on Couple Therapy Website are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.</p>
+                  <p>The materials on TherapyAI.us are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.</p>
                 </section>
 
                 <section>
                   <h2 className="text-xl font-semibold text-white mb-3">9. Limitations</h2>
-                  <p>In no event shall Couple Therapy Website or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our website.</p>
+                  <p>In no event shall TherapyAI.us or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our website.</p>
                 </section>
 
                 <section>
@@ -116,8 +117,7 @@ export default function TermsAndConditions() {
                   <h2 className="text-xl font-semibold text-white mb-3">11. Contact Information</h2>
                   <p>If you have any questions about these Terms and Conditions, please contact us at:</p>
                   <ul className="list-none ml-4 mt-2">
-                    <li>Email: support@coupletherapywebsite.com</li>
-                    <li>Address: [Your Company Address]</li>
+                    <li>Email: support@therapyai.us</li>
                   </ul>
                 </section>
               </motion.div>

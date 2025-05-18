@@ -254,11 +254,11 @@ export default function RelationshipProgressCard() {
 
   const TimeframeSelector = useMemo(() => {
     return () => (
-      <div className="flex justify-center mb-2 mt-1">
-        <div className="inline-flex p-1 bg-blue-600/90 rounded-lg shadow-md text-xs backdrop-blur-sm border border-white/20">
+      <div className="flex justify-center mb-0">
+        <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full">
           <button
             onClick={() => setTimeframe("week")}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
               timeframe === "week"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
@@ -268,7 +268,7 @@ export default function RelationshipProgressCard() {
           </button>
           <button
             onClick={() => setTimeframe("month")}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
               timeframe === "month"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
@@ -278,13 +278,13 @@ export default function RelationshipProgressCard() {
           </button>
           <button
             onClick={() => setTimeframe("all")}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
               timeframe === "all"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
             }`}
           >
-            All Time
+            All
           </button>
         </div>
       </div>
@@ -293,11 +293,11 @@ export default function RelationshipProgressCard() {
 
   const ChartTypeSelector = useMemo(() => {
     return () => (
-      <div className="flex justify-center mt-1 mb-2">
-        <div className="inline-flex p-1 bg-blue-600/90 rounded-lg shadow-md text-xs backdrop-blur-sm border border-white/20">
+      <div className="flex justify-center mb-0">
+        <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full">
           <button
             onClick={() => setChartType("line")}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
               chartType === "line"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
@@ -307,7 +307,7 @@ export default function RelationshipProgressCard() {
           </button>
           <button
             onClick={() => setChartType("area")}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
               chartType === "area"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
@@ -317,13 +317,13 @@ export default function RelationshipProgressCard() {
           </button>
           <button
             onClick={() => setChartType("composed")}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
               chartType === "composed"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
             }`}
           >
-            Combined
+            Combo
           </button>
         </div>
       </div>
@@ -332,11 +332,11 @@ export default function RelationshipProgressCard() {
 
   const TherapyTypeSelector = useMemo(() => {
     return () => (
-      <div className="flex justify-center mb-2">
-        <div className="inline-flex p-1 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20">
+      <div className="flex justify-center mb-0">
+        <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full">
           <button
             onClick={() => setTherapyType("couple")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-sm font-medium rounded-md flex-1 ${
               therapyType === "couple"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
@@ -346,7 +346,7 @@ export default function RelationshipProgressCard() {
           </button>
           <button
             onClick={() => setTherapyType("family")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+            className={`px-1 py-0.5 text-[10px] md:text-sm font-medium rounded-md flex-1 ${
               therapyType === "family"
                 ? "bg-blue-800 text-white"
                 : "text-white hover:bg-blue-500/80"
@@ -391,7 +391,7 @@ export default function RelationshipProgressCard() {
               {/* Reduced space */}
               <p className="flex items-center justify-between">
                 <span className="flex items-center text-gray-700">
-                  <span className="inline-block w-2.5 h-2.5 bg-purple-500 rounded-full mr-1.5"></span>
+                  <span className="inline-block w-2.5 h-2.5 bg-blue-500 rounded-full mr-1.5"></span>
                   Closeness:
                 </span>
                 <span className="font-medium text-gray-900">
@@ -401,7 +401,7 @@ export default function RelationshipProgressCard() {
               {payload[1] && ( // Check if second payload item exists
                 <p className="flex items-center justify-between">
                   <span className="flex items-center text-gray-700">
-                    <span className="inline-block w-2.5 h-2.5 bg-pink-500 rounded-full mr-1.5"></span>
+                    <span className="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full mr-1.5"></span>
                     Communication:
                   </span>
                   <span className="font-medium text-gray-900">
@@ -412,7 +412,7 @@ export default function RelationshipProgressCard() {
               {chartType === "composed" && ( // No need to check payload length here, just use calculated score
                 <p className="flex items-center justify-between">
                   <span className="flex items-center text-gray-700">
-                    <span className="inline-block w-2.5 h-2.5 bg-emerald-400 rounded-full mr-1.5"></span>
+                    <span className="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-full mr-1.5"></span>
                     Overall Quality:
                   </span>
                   <span className="font-medium text-gray-900">
@@ -579,14 +579,16 @@ export default function RelationshipProgressCard() {
           <Line
             {...lineProps}
             dataKey="closeness"
-            stroke="#8B5CF6"
+            stroke="#3B82F6" /* Blue-500 */
             name="Closeness"
+            strokeWidth={3}
           />
           <Line
             {...lineProps}
             dataKey="communication"
-            stroke="#EC4899"
+            stroke="#10B981" /* Emerald-500 */
             name="Communication"
+            strokeWidth={3}
             animationBegin={200}
           />
         </LineChart>
@@ -602,27 +604,29 @@ export default function RelationshipProgressCard() {
           {/* Ensure definitions for gradients if using them */}
           <defs>
             <linearGradient id="colorCloseness" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.6} />
-              <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1} />
+              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} /> {/* Blue-500 */}
+              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
             </linearGradient>
             <linearGradient id="colorCommunication" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#EC4899" stopOpacity={0.6} />
-              <stop offset="95%" stopColor="#EC4899" stopOpacity={0.1} />
+              <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} /> {/* Emerald-500 */}
+              <stop offset="95%" stopColor="#10B981" stopOpacity={0.1} />
             </linearGradient>
           </defs>
           <Area
             {...areaProps}
             dataKey="closeness"
-            stroke="#8B5CF6"
+            stroke="#3B82F6" /* Blue-500 */
             fill="url(#colorCloseness)"
             name="Closeness"
+            strokeWidth={2.5}
           />
           <Area
             {...areaProps}
             dataKey="communication"
-            stroke="#EC4899"
+            stroke="#10B981" /* Emerald-500 */
             fill="url(#colorCommunication)"
             name="Communication"
+            strokeWidth={2.5}
           />
         </AreaChart>
       );
@@ -644,30 +648,33 @@ export default function RelationshipProgressCard() {
           {refLine}
           <defs>
             <linearGradient id="colorQuality" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.5} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+              <stop offset="5%" stopColor="#6366F1" stopOpacity={0.5} /> {/* Indigo-500 */}
+              <stop offset="95%" stopColor="#6366F1" stopOpacity={0.1} />
             </linearGradient>
           </defs>
           <Area
             {...areaProps}
             dataKey="qualityScore"
-            stroke="#10b981"
+            stroke="#6366F1" /* Indigo-500 */
             fill="url(#colorQuality)"
             name="Overall Quality"
+            strokeWidth={2}
             animationDuration={600} // Different duration maybe
           />
           <Line
             {...lineProps}
             dataKey="closeness"
-            stroke="#8B5CF6"
+            stroke="#3B82F6" /* Blue-500 */
             name="Closeness"
+            strokeWidth={3}
             animationBegin={100}
           />
           <Line
             {...lineProps}
             dataKey="communication"
-            stroke="#EC4899"
+            stroke="#10B981" /* Emerald-500 */
             name="Communication"
+            strokeWidth={3}
             animationBegin={300}
           />
         </ComposedChart>
@@ -739,27 +746,33 @@ export default function RelationshipProgressCard() {
     label,
     bgColor,
     textColor,
+    dotColor = "bg-blue-500",
   }: {
     value: number;
     label: string;
     bgColor: string;
     textColor: string;
+    dotColor?: string;
   }) => (
-    <div className={`${bgColor} p-3 rounded-lg flex-1`}>
-      <p className={`text-xs ${textColor} font-semibold mb-1`}>{label}</p>{" "}
-      {/* Added margin bottom */}
+    <motion.div 
+      whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(0, 0, 0, 0.07)" }}
+      className={`${bgColor} p-3 rounded-lg flex-1 border border-blue-100/30 transition-all duration-200`}
+    >
+      <div className="flex items-center mb-1.5">
+        <span className={`inline-block w-2.5 h-2.5 ${dotColor} rounded-full mr-1.5`}></span>
+        <p className={`text-xs ${textColor} font-semibold`}>{label}</p>
+      </div>
       <div className="flex items-baseline">
         <p className={`text-xl md:text-2xl font-bold ${textColor}`}>
-          {value > 0 ? `+${value}` : value} {/* Always show sign */}
+          {value > 0 ? `+${value}` : value}
         </p>
-        {/* Simplified points display */}
         <span
           className={`ml-1.5 text-xs font-medium ${value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-500"}`}
         >
           pts change
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 
   // --- Final Render ---
@@ -831,22 +844,27 @@ export default function RelationshipProgressCard() {
         </div>
       </div>
 
-      {/* Controls section - only show when data is available */}
-      {data.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
-          {" "}
-          {/* Adjusted margin */}
-          <div className="md:col-span-1">
+      {/* Always show therapy type selector to allow users to switch between types */}
+      <div className="mb-4">
+        {/* All controls in one scrollable container on mobile and grid on desktop */}
+        <div className="flex md:grid md:grid-cols-3 md:gap-2 overflow-x-auto pb-2 scrollbar-hide space-x-1 md:space-x-0">
+          <div className="flex-shrink-0 md:col-span-1 min-w-[100px] md:min-w-0">
             <TherapyTypeSelector />
           </div>
-          <div className="md:col-span-1">
-            <TimeframeSelector />
-          </div>
-          <div className="md:col-span-1">
-            <ChartTypeSelector />
-          </div>
+          
+          {/* Other controls only shown when data is available */}
+          {data.length > 0 && (
+            <>
+              <div className="flex-shrink-0 md:col-span-1 min-w-[110px] md:min-w-0">
+                <TimeframeSelector />
+              </div>
+              <div className="flex-shrink-0 md:col-span-1 min-w-[100px] md:min-w-0">
+                <ChartTypeSelector />
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Error message for actual errors */}
       {error && (
@@ -861,7 +879,7 @@ export default function RelationshipProgressCard() {
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-3 sm:p-6 min-h-[520px]"
+          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 min-h-[520px] hover:bg-white/25 transition-all duration-300"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -875,7 +893,7 @@ export default function RelationshipProgressCard() {
       ) : (
         // Display message when no data is available (after loading finishes)
         !loading && (
-          <div className="w-full h-full flex items-center justify-center text-center -mt-10">
+          <div className="w-full h-full flex items-center justify-center text-center -mt-5">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -883,12 +901,12 @@ export default function RelationshipProgressCard() {
               className="max-w-md flex flex-col items-center text-center"
             >
               <h3 className="text-xl font-semibold text-white mb-2">
-                Your Progress Awaits
+                {therapyType === "couple" ? "Relationship" : "Family"} Progress Awaits
               </h3>
               <p className="text-sm text-white/80 mb-4 px-4">
                 {error
                   ? "Could not load relationship data at this time."
-                  : "Start your therapy journey to track meaningful progress and insights."}
+                  : `Start your ${therapyType} therapy journey to track meaningful progress and insights.`}
               </p>
               {timeframe !== "all" && !error && (
                 <p className="text-xs text-white/60 mb-4">
@@ -901,7 +919,7 @@ export default function RelationshipProgressCard() {
                 className="px-6 py-2.5 bg-white/20 text-white rounded-full text-sm font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30"
                 onClick={() => (window.location.href = "/dashboard/therapy")}
               >
-                Begin Session
+                Begin {therapyType === "couple" ? "Relationship" : "Family"} Session
               </motion.button>
             </motion.div>
           </div>
@@ -911,67 +929,88 @@ export default function RelationshipProgressCard() {
       {/* Enhanced metrics display */}
       {/* Only show metrics if data is present and metrics are calculated */}
       {data.length > 0 && chartMetrics && (
-        <div className="mt-4 bg-blue-700/50 p-4 rounded-lg shadow-md">
-          <h4 className="text-xs text-white uppercase tracking-wider mb-2 font-bold">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10"
+        >
+          <h4 className="text-xs text-white uppercase tracking-wider mb-3 font-bold flex items-center">
+            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
             Therapy Progress Metrics ({timeframe})
-          </h4>{" "}
-          {/* Added timeframe context */}
+          </h4>
           {/* Upper metrics row: Averages */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-            <div className="bg-white/80 shadow-md p-3 rounded-lg text-center">
-              {" "}
-              {/* Centered text */}
-              <p className="text-xs text-blue-700 font-semibold mb-0.5">
-                Avg Closeness
-              </p>{" "}
-              {/* Shortened label */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+            <motion.div 
+              whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
+              className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
+            >
+              <div className="flex items-center justify-center mb-1">
+                <span className="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></span>
+                <p className="text-xs text-blue-700 font-semibold">
+                  Avg Closeness
+                </p>
+              </div>
               <p className="text-2xl font-bold text-blue-800">
                 {chartMetrics.averages.closeness}
                 <span className="text-xs font-normal text-blue-600">/100</span>
               </p>
-            </div>
-            <div className="bg-white/80 shadow-md p-3 rounded-lg text-center">
-              <p className="text-xs text-pink-700 font-semibold mb-0.5">
-                Avg Communication
-              </p>
-              <p className="text-2xl font-bold text-pink-800">
-                {chartMetrics.averages.communication}
-                <span className="text-xs font-normal text-pink-600">/100</span>
-              </p>
-            </div>
-            <div className="bg-white/80 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center">
-              <p className="text-xs text-emerald-700 font-semibold mb-0.5">
-                Avg Relationship Quality
-              </p>
+            </motion.div>
+            <motion.div 
+              whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
+              className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
+            >
+              <div className="flex items-center justify-center mb-1">
+                <span className="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>
+                <p className="text-xs text-emerald-700 font-semibold">
+                  Avg Communication
+                </p>
+              </div>
               <p className="text-2xl font-bold text-emerald-800">
+                {chartMetrics.averages.communication}
+                <span className="text-xs font-normal text-emerald-600">/100</span>
+              </p>
+            </motion.div>
+            <motion.div 
+              whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
+              className="bg-white/90 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
+            >
+              <div className="flex items-center justify-center mb-1">
+                <span className="w-3 h-3 bg-indigo-500 rounded-full mr-1.5"></span>
+                <p className="text-xs text-indigo-700 font-semibold">
+                  Avg Relationship Quality
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-indigo-800">
                 {chartMetrics.averages.quality}
-                <span className="text-xs font-normal text-emerald-600">
+                <span className="text-xs font-normal text-indigo-600">
                   /100
                 </span>
               </p>
-            </div>
+            </motion.div>
           </div>
           {/* Lower metrics row: Progress indicators */}
-          <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg">
+          <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
+            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
             Overall Change ({timeframe})
           </h4>
           <div className="grid grid-cols-2 gap-3">
-            {" "}
-            {/* Removed mt-2, added above heading */}
             <ProgressIndicator
               value={chartMetrics.overallChange.closeness}
               label="Closeness Change"
-              bgColor="bg-white/80 shadow-md"
+              bgColor="bg-white/90 shadow-md"
               textColor="text-blue-800"
+              dotColor="bg-blue-500"
             />
             <ProgressIndicator
               value={chartMetrics.overallChange.communication}
               label="Communication Change"
-              bgColor="bg-white/80 shadow-md"
-              textColor="text-pink-800"
+              bgColor="bg-white/90 shadow-md"
+              textColor="text-emerald-800"
+              dotColor="bg-emerald-500"
             />
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -12,20 +12,22 @@ export async function POST(request: Request) {
   }
   
   try {
-    const { sessionDate, duration, notes, userId } = await request.json();
+    const { sessionDate, duration, notes, userId, theme } = await request.json();
     
     // Validate user has permission (e.g., if admin scheduling for someone else)
     if (session.user.id !== userId && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
     
-    const therapySession = await prisma.therapySession.create({
+    // Create in primary Session model instead of TherapySession
+    const therapySession = await prisma.session.create({
       data: {
         userId,
-        sessionDate: new Date(sessionDate),
+        date: new Date(sessionDate),  // Use 'date' field in Session model
         duration,
         notes,
         status: 'scheduled',
+        theme: theme || 'Therapy Session',  // Use theme field from request or default
       },
     });
     
