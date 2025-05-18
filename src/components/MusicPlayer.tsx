@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSoundContext } from './SoundProvider'
+import { usePathname } from 'next/navigation'
 import { 
   Music, 
   Shuffle, 
@@ -142,6 +143,7 @@ const tracks = [
 ]
 
 export default function MusicPlayer() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [currentTrack, setCurrentTrack] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -150,12 +152,27 @@ export default function MusicPlayer() {
   const [currentTime, setCurrentTime] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   
+  // Define routes where the music player should be hidden
+  const hiddenRoutes = [
+    '/dashboard/therapy',        // Hide in active therapy sessions
+    '/dashboard/therapy/client', // Hide in client therapy view
+    '/auth/login',               // Hide on login page
+    '/auth/register',            // Hide on register page
+    '/welcome',                  // Hide on onboarding page
+    '/api/sessions'              // Hide on session API routes
+  ]
+  
+  // Get the sound context to register this music player and check session status
+  const { registerMusicPlayer, isSessionActive } = useSoundContext()
+  
+  // Check if the current path starts with any of the hidden routes or if there's an active session
+  const shouldHidePlayer = hiddenRoutes.some(route => pathname?.startsWith(route)) || isSessionActive
+  
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const shouldPlayRef = useRef(false)
   
-  // Get the sound context to register this music player
-  const { registerMusicPlayer, isSessionActive } = useSoundContext()
+  // This section is now redundant, as we've already registered the music player above
   
   // Check for mobile screen size
   useEffect(() => {
@@ -400,6 +417,11 @@ export default function MusicPlayer() {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
   }
 
+  // If we're on a route where the player should be hidden, don't render anything
+  if (shouldHidePlayer) {
+    return null
+  }
+  
   return (
     <>
       {/* Music Player Button */}

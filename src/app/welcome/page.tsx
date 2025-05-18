@@ -624,7 +624,7 @@ export default function WelcomePage() {
                 {currentStep === formSteps.length - 1 && assessmentResults.length === 0 && (
                   <ButtonWithSound
                     onClick={handleSkipAssessment}
-                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-red-500 hover:bg-red-600"
                   >
                     Not in a relationship
                   </ButtonWithSound>
