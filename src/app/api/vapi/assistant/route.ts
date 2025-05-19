@@ -77,13 +77,45 @@ export async function GET(req: NextRequest) {
       
       // If creating a personalized assistant is requested
       if (searchParams.get('personalized') === 'true' && user) {
-        // Import the personalized assistant function
-        const { getPersonalizedAssistantConfig } = await import('@/lib/vapi');
+        // Import the necessary functions
+        const { getPersonalizedAssistantConfig, formatSessionHistory } = await import('@/lib/vapi');
         
-        // Create a personalized assistant config based on user profile
-        const personalizedConfig = getPersonalizedAssistantConfig({
+        // Fetch user's previous sessions for context
+        let sessionHistory = "No previous sessions found.";
+        try {
+          const sessions = await prisma.session.findMany({
+            where: {
+              userId: user.id,
+              status: 'completed'
+            },
+            include: {
+              transcriptEntries: {
+                orderBy: {
+                  timestamp: 'asc'
+                }
+              }
+            },
+            orderBy: {
+              date: 'desc'
+            },
+            take: 3 // Get last 3 sessions
+          });
+          
+          if (sessions.length > 0) {
+            sessionHistory = formatSessionHistory(sessions);
+          }
+        } catch (error) {
+          console.error('Error fetching session history:', error);
+        }
+        
+        // Create a comprehensive user profile with all available data
+        const userProfile = {
+          id: user.id,
+          name: user.name,
           userName: user.name,
+          age: user.age,
           userAge: user.age,
+          pronouns: user.pronouns,
           partnerName: user.partnerName,
           partnerAge: user.partnerAge,
           relationshipStatus: user.relationshipStatus,
@@ -94,14 +126,39 @@ export async function GET(req: NextRequest) {
           familyMember3: user.familyMember3,
           familyMember3Age: user.familyMember3Age,
           familyMember4: user.familyMember4,
-          familyMember4Age: user.familyMember4Age
-        });
+          familyMember4Age: user.familyMember4Age,
+          therapyType: user.therapyType || searchParams.get('therapyType') || 'couple',
+          currentConcerns: user.currentConcerns || [],
+          communicationStyle: user.communicationStyle || 'balanced',
+          sessionPreference: user.sessionPreference || 'flexible',
+          additionalNotes: user.additionalNotes || '',
+          sessionHistory: sessionHistory
+        };
+        
+        // Get the therapy type from query params or user profile
+        const therapyType = searchParams.get('therapyType') || user.therapyType || 'couple';
+        
+        // Create a personalized assistant config based on user profile
+        const personalizedConfig = getPersonalizedAssistantConfig(userProfile, therapyType);
+        
+        // Determine the appropriate assistant ID based on therapy type
+        let assistantId;
+        if (therapyType === 'couple') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
+        } else if (therapyType === 'solo') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
+        } else if (therapyType === 'family') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
+        } else {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+        }
         
         // Return the personalized config without creating an actual assistant
         return NextResponse.json({
-          id: process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID, // Use default ID
+          id: assistantId,
           ...personalizedConfig,
-          personalized: true
+          personalized: true,
+          userProfile: userProfile
         });
       }
     }

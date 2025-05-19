@@ -725,7 +725,6 @@ export async function GET(
             });
           }
         }
-        }
       } catch (error) {
         console.error('Error checking for legacy transcript:', error);
         

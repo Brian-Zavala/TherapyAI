@@ -407,18 +407,49 @@ function TherapyButton({
         try {
           const { getPersonalizedAssistantConfig, getPersonalizedSystemPromptForType, getPersonalizedFirstMessageForType } = await import('@/lib/vapi')
           
-          // Create profile data object with appropriate fields based on therapy type
+          // Create comprehensive profile data object with all user information
           const userProfileData = {
+            // Core identification
+            id: userProfile.id,
             userName: userProfile.name,
+            name: userProfile.name,
+            userAge: userProfile.age,
+            age: userProfile.age,
+            pronouns: userProfile.pronouns,
+            
+            // Relationship data for couple therapy
             partnerName: userProfile.partnerName,
+            partnerAge: userProfile.partnerAge,
             relationshipStatus: userProfile.relationshipStatus,
-            // Include family members for family therapy
+            
+            // Family members for family therapy
             familyMember1: userProfile.familyMember1,
+            familyMember1Age: userProfile.familyMember1Age,
             familyMember2: userProfile.familyMember2,
+            familyMember2Age: userProfile.familyMember2Age,
             familyMember3: userProfile.familyMember3,
+            familyMember3Age: userProfile.familyMember3Age,
             familyMember4: userProfile.familyMember4,
-            // Include session history
-            sessionHistory: userProfile.sessionHistory || 'No previous sessions found.'
+            familyMember4Age: userProfile.familyMember4Age,
+            
+            // Therapy preferences and concerns
+            therapyType: therapyType || userProfile.therapyType || 'couple',
+            currentConcerns: userProfile.currentConcerns || [],
+            communicationStyle: userProfile.communicationStyle || 'balanced',
+            sessionPreference: userProfile.sessionPreference || 'flexible',
+            additionalNotes: userProfile.additionalNotes || '',
+            
+            // Emergency and contact info
+            emergencyContact: userProfile.emergencyContact,
+            phone: userProfile.phone,
+            notificationPrefs: userProfile.notificationPrefs,
+            
+            // Session history
+            sessionHistory: userProfile.sessionHistory || 'No previous sessions found.',
+            
+            // Metadata
+            onboardingCompleted: userProfile.onboardingCompleted,
+            onboardingData: userProfile.onboardingData
           };
           
           console.log('Including session history in assistant prompt');
@@ -1327,22 +1358,137 @@ function TherapyButton({
           console.log('Starting call with ONLY the assistantId parameter:', assistantId);
           
           try {
-            // Call start with ONLY the assistantId - no other parameters
-            // This follows exactly what is shown in the Vapi API documentation
-            await vapiInstanceRef.current.start(assistantId);
-            console.log('Successfully started call with minimal configuration');
-          } catch (startError) {
-            console.error('Error starting call with minimal config:', startError);
+            // Create user profile variables
+            const variableValues: Record<string, any> = {};
             
-            // If that fails, try one more time with bare minimum config
-            console.log('Retrying with minimal variableValues...');
-            const bareMinimumConfig = {
-              variableValues: userProfile ? {
-                userName: userProfile.name || ''
-              } : undefined
-            };
+            if (userProfile || enhancedUserProfile) {
+              const fullProfile = enhancedUserProfile || userProfile;
+              
+              // Core user information
+              variableValues.userName = fullProfile.name || 'the client';
+              variableValues.userAge = fullProfile.age || null;
+              variableValues.pronouns = fullProfile.pronouns || null;
+              
+              // Communication preferences
+              variableValues.communicationStyle = fullProfile.communicationStyle || 'balanced';
+              variableValues.sessionPreference = fullProfile.sessionPreference || 'flexible';
+              
+              // Therapy type specific data
+              if (therapyType === 'couple') {
+                variableValues.partnerName = fullProfile.partnerName || 'their partner';
+                variableValues.partnerAge = fullProfile.partnerAge || null;
+                variableValues.relationshipStatus = fullProfile.relationshipStatus || 'In a relationship';
+              }
+              
+              if (therapyType === 'family') {
+                for (let i = 1; i <= 4; i++) {
+                  const memberKey = `familyMember${i}`;
+                  const ageKey = `familyMember${i}Age`;
+                  if (fullProfile[memberKey]) {
+                    variableValues[memberKey] = fullProfile[memberKey];
+                    if (fullProfile[ageKey]) {
+                      variableValues[ageKey] = fullProfile[ageKey];
+                    }
+                  }
+                }
+              }
+              
+              // Current concerns as a string
+              if (fullProfile.currentConcerns) {
+                const concernsList = Array.isArray(fullProfile.currentConcerns) 
+                  ? fullProfile.currentConcerns.join(', ') 
+                  : fullProfile.currentConcerns;
+                variableValues.currentConcerns = concernsList;
+              }
+              
+              // Additional notes  
+              if (fullProfile.additionalNotes) {
+                variableValues.additionalNotes = fullProfile.additionalNotes;
+              }
+              
+              // Session history (limit length)
+              if (fullProfile.sessionHistory) {
+                variableValues.sessionHistory = typeof fullProfile.sessionHistory === 'string' 
+                  ? fullProfile.sessionHistory.substring(0, 1000)
+                  : 'No previous sessions';
+              }
+            }
             
-            await vapiInstanceRef.current.start(assistantId, bareMinimumConfig);
+            // Option 1: Use assistant ID with overrides (if we have a pre-configured assistant)
+            if (assistantId) {
+              const assistantOverrides = {
+                variableValues: variableValues,
+                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
+                // Can add other overrides like transcriber, recording settings here
+              };
+              
+              console.log('Starting call with assistant ID:', assistantId);
+              console.log('Variables being passed:', Object.keys(variableValues));
+              
+              await vapiInstanceRef.current.start(assistantId, assistantOverrides);
+              console.log('Successfully started call with assistant overrides');
+            } else {
+              // Option 2: Create ephemeral assistant with inline configuration
+              const inlineAssistant = {
+                name: therapyType === 'family' ? 'Dr. Jada Pearson' : 
+                      therapyType === 'solo' ? 'Dr. Elliot Mackaphy' : 
+                      'Dr. Maya Thompson',
+                model: {
+                  provider: "anthropic",
+                  model: "claude-3-7-sonnet-20250219",
+                  messages: [{
+                    role: "system",
+                    content: vapiInstanceRef.current?._customData?.systemPrompt || "You are a helpful therapy assistant."
+                  }]
+                },
+                voice: {
+                  provider: "11labs",
+                  voiceId: therapyType === 'family' ? process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID :
+                           therapyType === 'solo' ? process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID :
+                           process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID
+                },
+                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
+                variableValues: variableValues
+              };
+              
+              console.log('Starting call with inline assistant configuration');
+              await vapiInstanceRef.current.start(inlineAssistant);
+              console.log('Successfully started call with inline assistant');
+            }
+          } catch (startError: any) {
+            console.error('Error starting call:', startError);
+            
+            // Try to parse the error for more details
+            if (startError.response) {
+              console.error('Error response:', startError.response);
+            }
+            if (startError.message) {
+              console.error('Error message:', startError.message);
+            }
+            
+            // If we have an assistant ID, try with minimal overrides
+            if (assistantId) {
+              console.log('Retrying with minimal overrides...');
+              try {
+                const minimalOverrides = {
+                  variableValues: {
+                    userName: userProfile?.name || 'the client'
+                  }
+                };
+                
+                await vapiInstanceRef.current.start(assistantId, minimalOverrides);
+                console.log('Started with minimal overrides');
+              } catch (minimalError) {
+                console.error('Minimal override attempt failed:', minimalError);
+                
+                // Final attempt with just assistant ID
+                console.log('Final attempt with just assistant ID...');
+                await vapiInstanceRef.current.start(assistantId);
+              }
+            } else {
+              // No assistant ID, can't recover
+              throw new Error('No assistant ID available and inline config failed');
+            }
           }
           console.log('✅ Successfully started call with assistant ID only')
         } catch (err) {

@@ -120,7 +120,7 @@ export const ImagesSlider = ({
       console.log('Starting slider animations after static display');
       setInitialLoad(false); // Enable animations
       setStartSlider(true); // Enable autoplay
-    }, 7000); // 7 second delay before starting animations
+    }, 3000); // 3 second delay before starting animations (reduced from 7)
     
     setDisplayFirstImageTimer(timer);
     
@@ -234,7 +234,7 @@ export const ImagesSlider = ({
       console.log('Setting up autoplay timer');
       interval = setInterval(() => {
         handleNext();
-      }, 6000);
+      }, 4000); // Reduced from 6000ms to 4000ms for faster progression
     }
 
     return () => {
@@ -254,7 +254,7 @@ export const ImagesSlider = ({
       rotateX: 0,
       opacity: 1,
       transition: {
-        duration: 0.5,
+        duration: 0.3, // Reduced from 0.5 for faster enter animation
         ease: [0.645, 0.045, 0.355, 1.0],
       },
     },
@@ -262,14 +262,14 @@ export const ImagesSlider = ({
       opacity: 1,
       y: "-150%",
       transition: {
-        duration: 1,
+        duration: 0.6, // Reduced from 1 for faster exit animation
       },
     },
     downExit: {
       opacity: 1,
       y: "150%",
       transition: {
-        duration: 1,
+        duration: 0.6, // Reduced from 1 for faster exit animation
       },
     },
   };

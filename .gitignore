@@ -51,6 +51,11 @@ TRANSCRIPT-GUIDE.md
 TRANSCRIPT-MIGRATION.md
 VAPI-JWT-SETUP.md
 
+# documentation
+/src/docs/
+*.md
+!README.md
+
 # docs directory
 /docs/
 

@@ -98,23 +98,47 @@ function useViewportAnimation(
 export default function Home() {
   // --- Basic State and Hooks ---
   const prefersReducedMotion = useReducedMotion();
-  const [isMobileView, setIsMobileView] = useState(false);
+  // Initialize with window check if available, otherwise default to mobile
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < MOBILE_BREAKPOINT;
+    }
+    return true; // Default to mobile for SSR
+  });
 
-  // Preload all hero images immediately
-  const heroImages = [
-    "/images/home/7.jpg",         // First image - the one that should show immediately
+  // Preload all hero images immediately - mobile and desktop
+  const mobileHeroImages = [
+    "/images/home/3.jpg", // First image - the one that should show immediately
     "/images/home/2.jpg",
     "/images/home/happy-person.jpg",
-    "/images/home/3.jpg",
+    "/images/home/group.jpg",
     "/images/home/4.jpg",
     "/images/home/5.jpg",
     "/images/home/9.jpg",
     "/images/home/10.jpg",
     "/images/home/happy-couple.jpg",
     "/images/home/hands.jpg",
-    "/images/home/group.jpg",
+    "/images/home/7.jpg",
     "/images/home/6.jpg",
   ];
+
+  const desktopHeroImages = [
+    "/images/home/large/1-lg.jpg", // First image - the one that should show immediately
+    "/images/home/large/2-lg.jpg",
+    "/images/home/large/3-lg.jpg",
+    "/images/home/large/4-lg.jpg",
+    "/images/home/large/5-lg.jpg",
+    "/images/home/large/4-lg.jpg",
+    "/images/home/large/5-lg.jpg",
+    "/images/home/large/9-lg.jpg",
+    "/images/home/large/10-lg.jpg",
+    "/images/home/large/hands-lg.jpg",
+    "/images/home/large/group-lg.jpg",
+    "/images/home/large/6-lg.jpg",
+  ];
+
+  // Select appropriate images based on screen size
+  const heroImages = isMobileView ? mobileHeroImages : desktopHeroImages;
 
   // Video sources - not preloaded to avoid console warnings
   // Videos will be loaded when needed
@@ -308,10 +332,10 @@ export default function Home() {
           }
         }
       `}</style>
-      {/* Preload hero images with key to force re-render if paths change */}
-      <ImagePreloader 
-        key="hero-images-preloader"
-        imagePaths={heroImages} 
+      {/* Preload all hero images - both mobile and desktop */}
+      <ImagePreloader
+        key="all-hero-images-preloader"
+        imagePaths={[...mobileHeroImages, ...desktopHeroImages]}
       />
       {/* Hero section with 3D Background */}
       <section
@@ -324,107 +348,18 @@ export default function Home() {
           <div className="hero-overlay"></div>
           <ImagesSlider
             images={
-              [
-                // First image - with explicit sizing for consistency
-                {
-                  src: "/images/home/7.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                // Second image - force coverage
-                {
-                  src: "/images/home/2.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                // Third image - force coverage
-                {
-                  src: "/images/home/happy-person.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                // Fourth image - force coverage
-                {
-                  src: "/images/home/3.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/4.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/5.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/9.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/10.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/happy-couple.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/hands.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/group.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-
-                {
-                  src: "/images/home/6.jpg",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center center",
-                },
-              ] as (string | ImageConfig)[]
+              heroImages.map((src) => ({
+                src,
+                width: isMobileView ? 1200 : 1920,
+                height: isMobileView ? 800 : 1080,
+                objectFit: "cover",
+                objectPosition: "center center",
+                sizes: isMobileView
+                  ? "(max-width: 768px) 100vw, 100vw"
+                  : "(min-width: 769px) 100vw, 100vw",
+                quality: isMobileView ? 85 : 100,
+                priority: true,
+              })) as (string | ImageConfig)[]
             }
             className="h-full w-full rounded-b-[4rem] md:rounded-b-[5rem]"
             autoplay={true}
