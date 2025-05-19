@@ -109,10 +109,18 @@ export default function Home() {
 
   // Preload all hero images immediately
   const heroImages = [
-    "/images/home/happy-couple.jpg",
-    "/images/home/happy-family.jpg",
+    "/images/home/7.jpg",         // First image - the one that should show immediately
+    "/images/home/2.jpg",
     "/images/home/happy-person.jpg",
-    "/images/home/happy-group.jpg",
+    "/images/home/3.jpg",
+    "/images/home/4.jpg",
+    "/images/home/5.jpg",
+    "/images/home/9.jpg",
+    "/images/home/10.jpg",
+    "/images/home/happy-couple.jpg",
+    "/images/home/hands.jpg",
+    "/images/home/group.jpg",
+    "/images/home/6.jpg",
   ];
 
   // Preload videos as well
@@ -308,12 +316,15 @@ export default function Home() {
   // --- Component Return Start ---
   return (
     <div className="flex flex-col items-center w-full overflow-x-hidden">
-      {/* Preload hero images */}
-      <ImagePreloader imagePaths={heroImages} />
+      {/* Preload hero images with key to force re-render if paths change */}
+      <ImagePreloader 
+        key="hero-images-preloader"
+        imagePaths={heroImages} 
+      />
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref
-        className="w-full relative overflow-hidden min-h-[70vh] sm:min-h-[85vh] md:min-h-[95vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Added white background to prevent gradient showing through
+        className="w-full relative overflow-hidden min-h-[100vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Full viewport height
       >
         {/* Background Images Slider */}
         <div className="absolute inset-0 h-full w-full z-0">
@@ -322,7 +333,7 @@ export default function Home() {
               [
                 // First image - with explicit sizing for consistency
                 {
-                  src: "/images/home/happy-person.jpg",
+                  src: "/images/home/7.jpg",
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
@@ -331,7 +342,7 @@ export default function Home() {
 
                 // Second image - force coverage
                 {
-                  src: "/images/home/happy-family.jpg",
+                  src: "/images/home/2.jpg",
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
@@ -340,7 +351,7 @@ export default function Home() {
 
                 // Third image - force coverage
                 {
-                  src: "/images/home/happy-couple.jpg",
+                  src: "/images/home/happy-person.jpg",
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
@@ -349,7 +360,71 @@ export default function Home() {
 
                 // Fourth image - force coverage
                 {
-                  src: "/images/home/happy-group.jpg",
+                  src: "/images/home/3.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/4.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/5.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/9.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/10.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/happy-couple.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/hands.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/group.jpg",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center center",
+                },
+
+                {
+                  src: "/images/home/6.jpg",
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
@@ -376,7 +451,7 @@ export default function Home() {
         </Suspense>
         {/* Hero content with enhanced animations (Original Structure) */}
         <motion.div
-          className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] justify-center"
+          className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[100vh] justify-center"
           // Keep original initial animation logic
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
