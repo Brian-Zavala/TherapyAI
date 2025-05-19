@@ -1414,25 +1414,19 @@ function TherapyButton({
               }
             }
             
-            // Option 1: Use assistant ID with overrides (if we have a pre-configured assistant)
-            if (assistantId) {
-              const assistantOverrides = {
-                variableValues: variableValues,
-                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
-                // Can add other overrides like transcriber, recording settings here
-              };
+            // For both family therapy and solo therapy, always use inline assistant to include the custom system prompt
+            // since Vapi doesn't allow system prompt overrides with pre-configured assistants
+            if (therapyType === 'family' || therapyType === 'solo') {
+              console.log(`Using inline assistant for ${therapyType} therapy to include custom system prompt`);
               
-              console.log('Starting call with assistant ID:', assistantId);
-              console.log('Variables being passed:', Object.keys(variableValues));
+              const assistantName = therapyType === 'family' ? 'Dr. Jada Pearson' : 'Dr. Elliot Mackaphy';
+              const voiceProvider = therapyType === 'family' ? "11labs" : "vapi";
+              const voiceId = therapyType === 'family' ? 
+                process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID :
+                process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID;
               
-              await vapiInstanceRef.current.start(assistantId, assistantOverrides);
-              console.log('Successfully started call with assistant overrides');
-            } else {
-              // Option 2: Create ephemeral assistant with inline configuration
               const inlineAssistant = {
-                name: therapyType === 'family' ? 'Dr. Jada Pearson' : 
-                      therapyType === 'solo' ? 'Dr. Elliot Mackaphy' : 
-                      'Dr. Maya Thompson',
+                name: assistantName,
                 model: {
                   provider: "anthropic",
                   model: "claude-3-7-sonnet-20250219",
@@ -1442,10 +1436,49 @@ function TherapyButton({
                   }]
                 },
                 voice: {
-                  provider: "11labs",
-                  voiceId: therapyType === 'family' ? process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID :
-                           therapyType === 'solo' ? process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID :
-                           process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID
+                  provider: voiceProvider,
+                  voiceId: voiceId
+                },
+                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
+                variableValues: variableValues
+              };
+              
+              console.log(`System prompt for ${therapyType} therapy:`, inlineAssistant.model.messages[0].content.substring(0, 200) + '...');
+              console.log(`Starting call with inline ${therapyType} therapy assistant`);
+              await vapiInstanceRef.current.start(inlineAssistant);
+              console.log(`Successfully started ${therapyType} therapy session`);
+            }
+            // For couple therapy, use assistant ID with overrides if available
+            else if (assistantId) {
+              const assistantOverrides = {
+                variableValues: variableValues,
+                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
+              };
+              
+              console.log('Starting call with assistant ID:', assistantId);
+              console.log('Variables being passed:', Object.keys(variableValues));
+              
+              await vapiInstanceRef.current.start(assistantId, assistantOverrides);
+              console.log('Successfully started call with assistant overrides');
+            }
+            // Fallback: Create inline assistant if no ID available
+            else {
+              console.log('No assistant ID available, using inline configuration');
+              const inlineAssistant = {
+                name: therapyType === 'solo' ? 'Dr. Elliot Mackaphy' : 'Dr. Maya Thompson',
+                model: {
+                  provider: "anthropic",
+                  model: "claude-3-7-sonnet-20250219",
+                  messages: [{
+                    role: "system",
+                    content: vapiInstanceRef.current?._customData?.systemPrompt || "You are a helpful therapy assistant."
+                  }]
+                },
+                voice: {
+                  provider: therapyType === 'solo' ? "vapi" : "11labs",
+                  voiceId: therapyType === 'solo' ? 
+                    process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID :
+                    process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID
                 },
                 firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
                 variableValues: variableValues

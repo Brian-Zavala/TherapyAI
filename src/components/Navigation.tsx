@@ -332,7 +332,7 @@ export default function Navigation() {
 
       {/* Mobile Menu - covers entire screen (only for mobile) */}
       <div
-        className={`md:hidden fixed inset-0 bg-gradient-to-r from-slate-800 via-slate-950 to-slate-800 backdrop-blur-sm z-50 overflow-y-auto transition-all duration-300 ease-in-out ${
+        className={`md:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto transition-all duration-300 ease-in-out ${
           isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
       >

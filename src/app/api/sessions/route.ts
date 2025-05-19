@@ -198,12 +198,12 @@ export async function POST(request: Request) {
       
       console.log('Session created successfully:', newSession.id);
       
-      // Send confirmation email
+      // Send scheduling confirmation email (only when session is scheduled, not for each session start)
       try {
         await resend.emails.send({
           from: `Therapy Support <${process.env.EMAIL_FROM}>`,
           to: user.email,
-          subject: 'Your Therapy Session is Confirmed',
+          subject: 'Your Therapy Session is Scheduled',
           react: SessionConfirmationEmail({
             username: user.name || 'Valued Client',
             sessionDate: sessionDate,
@@ -212,9 +212,9 @@ export async function POST(request: Request) {
             notes: notes,
           }),
         });
-        console.log('Confirmation email sent successfully');
+        console.log('Scheduling confirmation email sent successfully');
       } catch (emailError) {
-        console.error('Error sending confirmation email:', emailError);
+        console.error('Error sending scheduling confirmation email:', emailError);
       }
       
       return NextResponse.json(newSession, { status: 201 });

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
+import SessionMissedEmail from '@/emails/SessionMissed';
 import { sendSessionReminder } from '@/lib/sms-service'; // Currently using mock implementation
 
 // Initialize Resend with your API key
@@ -75,23 +76,78 @@ export async function GET(request: Request) {
     );
 
     // Handle missed sessions (past scheduled time without completion)
-    const missedSessions = await prisma.session.updateMany({
+    const missedSessionsToUpdate = await prisma.session.findMany({
       where: {
         status: 'scheduled',
         date: {
           lt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         },
       },
-      data: {
-        status: 'missed',
+      include: {
+        user: true,
       },
     });
+
+    // Send SessionMissed emails for each missed session
+    const missedEmailResults = await Promise.allSettled(
+      missedSessionsToUpdate.map(async (session) => {
+        try {
+          // Update session status to missed
+          await prisma.session.update({
+            where: { id: session.id },
+            data: { status: 'missed' },
+          });
+
+          // Find available slots for rescheduling (next 7 days)
+          const nextAvailableSlots = await prisma.session.findMany({
+            where: {
+              userId: null, // Unused slots
+              status: 'available',
+              date: {
+                gte: new Date(),
+                lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
+              },
+            },
+            orderBy: {
+              date: 'asc',
+            },
+            take: 3, // Show only 3 options
+          });
+
+          const formattedSlots = nextAvailableSlots.map(slot => ({
+            date: slot.date.toLocaleDateString(),
+            time: slot.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }));
+
+          // Send missed session email
+          await resend.emails.send({
+            from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+            to: session.user.email,
+            subject: 'You Missed Your Therapy Session',
+            react: SessionMissedEmail({
+              userName: session.user.name || 'Valued Client',
+              sessionDate: session.date.toLocaleDateString(),
+              sessionTime: session.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
+              sessionType: session.theme || 'Therapy Session',
+              nextAvailableSlots: formattedSlots.length > 0 ? formattedSlots : undefined,
+            }),
+          });
+          console.log(`Missed session email sent for session ${session.id}`);
+        } catch (error) {
+          console.error(`Failed to process missed session ${session.id}:`, error);
+          throw error;
+        }
+      })
+    );
 
     // Return processing results
     return NextResponse.json({
       remindersSent: reminderResults.filter(r => r.status === 'fulfilled').length,
       remindersFailed: reminderResults.filter(r => r.status === 'rejected').length,
-      missedSessionsUpdated: missedSessions.count,
+      missedSessionsUpdated: missedSessionsToUpdate.length,
+      missedEmailsSent: missedEmailResults.filter(r => r.status === 'fulfilled').length,
+      missedEmailsFailed: missedEmailResults.filter(r => r.status === 'rejected').length,
     });
   } catch (error) {
     console.error('Error processing session reminders:', error);
