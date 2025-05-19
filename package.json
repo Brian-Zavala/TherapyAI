@@ -23,8 +23,6 @@
     "@prisma/client": "^6.5.0",
     "@react-email/components": "^0.0.34",
     "@react-email/render": "^1.0.5",
-    "@react-three/drei": "^10.0.6",
-    "@react-three/fiber": "^9.1.2",
     "@supabase/supabase-js": "^2.49.4",
     "@types/jsonwebtoken": "^9.0.9",
     "@vapi-ai/web": "^2.2.4",
@@ -48,7 +46,6 @@
     "resend": "^4.2.0",
     "simplex-noise": "^4.0.3",
     "tailwind-merge": "^3.2.0",
-    "three": "^0.175.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {

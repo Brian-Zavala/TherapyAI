@@ -24,13 +24,6 @@ import TypewriterText from "@/components/TypewriterText";
 import { ImagesSlider, ImageConfig } from "@/components/ui/images-slider";
 
 // Dynamic imports with loading fallbacks
-const Hero3DBackground = dynamic(
-  () => import("@/components/Hero3DBackground"),
-  {
-    ssr: false,
-    loading: () => null, // Remove loading placeholder to reduce visual lag
-  }
-);
 
 const HeroHighlightDemo = dynamic(
   () => import("@/components/ui/hero-highlight-demo"),
@@ -128,12 +121,6 @@ export default function Home() {
 
   // Remove video preloading to prevent console warnings
   // Videos will be loaded when needed as user scrolls
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Only prefetch Hero3DBackground component
-      import("@/components/Hero3DBackground");
-    }
-  }, []);
 
   // Effect for mobile view detection (copied from original)
   useEffect(() => {
@@ -447,15 +434,6 @@ export default function Home() {
             <></>
           </ImagesSlider>
         </div>
-        {/* Integrated 3D Background (Original Structure) */}
-        <Suspense fallback={null}>
-          <Hero3DBackground
-            pointColor="#a5b4fc" // Original props
-            pointSize={0.0035} // Original props
-            // Optimization: Pass visibility state
-            isVisible={isHeroInView}
-          />
-        </Suspense>
         {/* Hero content with enhanced animations (Original Structure) */}
         <motion.div
           className="relative z-10 flex flex-col items-center text-center p-4 sm:py-12 md:py-20 min-h-[100vh] justify-center"
