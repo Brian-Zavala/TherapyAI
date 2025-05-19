@@ -7,6 +7,13 @@ export async function middleware(request: NextRequest) {
   // Get the pathname of the request
   const path = request.nextUrl.pathname
   
+  // Handle webmanifest file with proper content type
+  if (path === '/site.webmanifest') {
+    const response = NextResponse.next()
+    response.headers.set('Content-Type', 'application/manifest+json')
+    return response
+  }
+  
   // Public paths that don't require authentication
   const isPublicPath = path === '/auth/login' || 
                         path === '/auth/register' || 

@@ -28,7 +28,7 @@ const Hero3DBackground = dynamic(
   () => import("@/components/Hero3DBackground"),
   {
     ssr: false,
-    loading: () => <div className="w-full h-full bg-black/20"></div>,
+    loading: () => null, // Remove loading placeholder to reduce visual lag
   }
 );
 
@@ -123,25 +123,15 @@ export default function Home() {
     "/images/home/6.jpg",
   ];
 
-  // Preload videos as well
-  const videoSources = [
-    "/videos/couple.mp4",
-    "/videos/mental_health.mp4",
-    "/videos/family.mp4",
-    "/videos/solo.mp4",
-    "/videos/depressed.mp4",
-  ];
+  // Video sources - not preloaded to avoid console warnings
+  // Videos will be loaded when needed
 
-  // Preload videos when the component mounts
+  // Remove video preloading to prevent console warnings
+  // Videos will be loaded when needed as user scrolls
   useEffect(() => {
     if (typeof window !== "undefined") {
-      videoSources.forEach((src) => {
-        const link = document.createElement("link");
-        link.rel = "preload";
-        link.as = "video";
-        link.href = src;
-        document.head.appendChild(link);
-      });
+      // Only prefetch Hero3DBackground component
+      import("@/components/Hero3DBackground");
     }
   }, []);
 
@@ -199,7 +189,7 @@ export default function Home() {
   };
 
   // --- Hooks for Viewport-Controlled Animations (Defined Here) ---
-  const isHeroInView = useInView(heroRef, { amount: 0.1 }); // For 3D background prop
+  const isHeroInView = true; // Always show Hero3DBackground for better performance
 
   const statsHeadingView = useViewportAnimation({ threshold: 0.5, once: true });
   const statsCostsTradPulse1 = useViewportAnimation({ threshold: 0.5 });
@@ -316,6 +306,21 @@ export default function Home() {
   // --- Component Return Start ---
   return (
     <div className="flex flex-col items-center w-full overflow-x-hidden">
+      {/* Critical CSS for immediate overlay display */}
+      <style jsx priority>{`
+        .hero-overlay {
+          position: absolute;
+          inset: 0;
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 0 0 4rem 4rem;
+          z-index: 10;
+        }
+        @media (min-width: 768px) {
+          .hero-overlay {
+            border-radius: 0 0 5rem 5rem;
+          }
+        }
+      `}</style>
       {/* Preload hero images with key to force re-render if paths change */}
       <ImagePreloader 
         key="hero-images-preloader"
@@ -328,6 +333,8 @@ export default function Home() {
       >
         {/* Background Images Slider */}
         <div className="absolute inset-0 h-full w-full z-0">
+          {/* Overlay - Show immediately on page load */}
+          <div className="hero-overlay"></div>
           <ImagesSlider
             images={
               [
@@ -433,9 +440,9 @@ export default function Home() {
               ] as (string | ImageConfig)[]
             }
             className="h-full w-full rounded-b-[4rem] md:rounded-b-[5rem]"
-            overlayClassName="bg-black/40 rounded-b-[4rem] md:rounded-b-[5rem]"
             autoplay={true}
             direction="up"
+            overlay={false}
           >
             <></>
           </ImagesSlider>
@@ -463,25 +470,11 @@ export default function Home() {
           </div>
 
           {/* Hero Button Container (Original Structure) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }} // Keep original animation
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{
-              // Keep original transition
-              duration: 0.5,
-              delay: 0.6,
-              type: "spring",
-              stiffness: 200,
-            }}
+          <div
             className="w-full sm:w-auto px-4 sm:px-0" // Original classes
           >
             {/* Button Hover/Tap Wrapper (Original Structure) */}
-            <motion.div
-              variants={floatingButtonVariants} // Keep original variants
-              initial="rest"
-              whileHover={prefersReducedMotion ? "rest" : "hover"} // Use optimized check
-              whileTap={prefersReducedMotion ? "rest" : "tap"} // Use optimized check
-            >
+            <div>
               {/* Button Component (Original Structure) */}
               <ButtonWithSound
                 as={Link}
@@ -495,8 +488,8 @@ export default function Home() {
                 <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
                 <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
               </ButtonWithSound>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Scroll Down Arrow (Original Structure) */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu">

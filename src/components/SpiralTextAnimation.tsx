@@ -8,16 +8,16 @@ interface Props {
 }
 
 const SpiralTextAnimation: React.FC<Props> = memo(({ className = "" }) => {
-  // Animation settings for revealing each letter
+  // Animation settings for revealing each letter - optimized for performance
   const letterVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: (i: number) => ({
       opacity: 1,
       y: 0,
       transition: {
-        delay: i * 0.08, // Staggered delay for each letter
-        duration: 0.4,
-        ease: "easeOut",
+        delay: i * 0.04, // Reduced delay for faster animation
+        duration: 0.2, // Reduced duration
+        ease: [0.4, 0, 0.2, 1], // Optimized ease curve
       },
     }),
   };
@@ -32,7 +32,7 @@ const SpiralTextAnimation: React.FC<Props> = memo(({ className = "" }) => {
       <span className="sr-only"></span>
 
       {/* Text that appears letter by letter */}
-      <div className="text-2xl sm:text-5xl md:text-9xlxl font-bold flex justify-center overflow-visible">
+      <div className="text-2xl sm:text-5xl md:text-9xlxl font-bold flex justify-center overflow-visible will-change-transform">
         <div className="flex flex-wrap justify-center px-2 text-center overflow-visible py-2 min-h-[5rem]">
           {letters.map((letter, index) => (
             <motion.span
@@ -41,7 +41,10 @@ const SpiralTextAnimation: React.FC<Props> = memo(({ className = "" }) => {
               initial="hidden"
               animate="visible"
               custom={index}
-              className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600 overflow-visible"
+              className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600 overflow-visible inline-block"
+              style={{
+                will-change: "opacity, transform"
+              }}
             >
               {letter === " " ? <span>&nbsp;</span> : letter}
             </motion.span>

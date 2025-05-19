@@ -1,0 +1,1 @@
+These images are used for desktop screen sizes only (> 768px)

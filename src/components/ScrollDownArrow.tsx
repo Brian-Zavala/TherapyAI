@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface ScrollDownArrowProps {
@@ -9,51 +9,58 @@ interface ScrollDownArrowProps {
 
 export default function ScrollDownArrow({ onClick }: ScrollDownArrowProps) {
   const [isHovered, setIsHovered] = useState(false);
+  
+  const handleHoverStart = useCallback(() => setIsHovered(true), []);
+  const handleHoverEnd = useCallback(() => setIsHovered(false), []);
 
   return (
     <motion.div
-      className="cursor-pointer"
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
+      className="cursor-pointer will-change-transform"
+      onHoverStart={handleHoverStart}
+      onHoverEnd={handleHoverEnd}
       onClick={onClick}
       animate={{
-        y: [0, 10, 0],
+        y: [0, 8, 0],
         opacity: [0.7, 1, 0.7],
       }}
       transition={{
         y: {
-          duration: 2.5,
+          duration: 2,
           repeat: Infinity,
           ease: "easeInOut",
         },
         opacity: {
-          duration: 2.5,
+          duration: 2,
           repeat: Infinity,
           ease: "easeInOut",
         },
       }}
-      whileHover={{ scale: 1.2 }}
-      whileTap={{ scale: 0.9 }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.95 }}
+      style={{
+        transform: "translateZ(0)", // Enable hardware acceleration
+      }}
     >
       <AnimatePresence mode="wait">
         {isHovered ? (
           <motion.div
             key="text"
-            initial={{ opacity: 0, y: 7 }}
-            animate={{ opacity: 1, y: 8 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.3 }}
-            className="text-stone-50 font-medium text-3xl"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 6 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{ duration: 0.2 }}
+            className="text-stone-50 font-medium text-3xl will-change-transform"
           >
             Scroll Down
           </motion.div>
         ) : (
           <motion.div
             key="arrow"
-            initial={{ opacity: 0, y: -5 }}
+            initial={{ opacity: 0, y: -3 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: 3 }}
+            transition={{ duration: 0.2 }}
+            className="will-change-transform"
           >
             <svg
               className="w-8 h-8 text-stone-50"

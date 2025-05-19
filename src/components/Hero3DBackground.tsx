@@ -1,5 +1,5 @@
 // src/components/Hero3DBackground.tsx
-import { useRef, useMemo, memo } from "react";
+import { useRef, useMemo, memo, useEffect, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 import * as random from "maath/random/dist/maath-random.esm";
@@ -17,8 +17,8 @@ const Stars = memo(function Stars(props: Hero3DBackgroundProps) {
   
   // Generate spherical points - moved to useMemo to avoid recreating on each render
   const sphere = useMemo(() => {
-    // Create points array
-    const positions = new Float32Array(5000 * 3); // 5000 points * 3 coordinates (x,y,z)
+    // Create points array - reduced count for better performance
+    const positions = new Float32Array(1200 * 3); // 1200 points * 3 coordinates (x,y,z)
     
     // Fill with valid data to avoid NaN values
     for (let i = 0; i < positions.length; i += 3) {
@@ -35,11 +35,11 @@ const Stars = memo(function Stars(props: Hero3DBackgroundProps) {
     return positions;
   }, []); // Empty dependencies so it's created only once
 
-  // Rotate the points over time
+  // Rotate the points over time - throttled for performance
   useFrame((state, delta) => {
     if (ref.current) {
-      ref.current.rotation.x -= delta / 15;
-      ref.current.rotation.y -= delta / 20;
+      ref.current.rotation.x -= delta / 25;
+      ref.current.rotation.y -= delta / 30;
     }
   });
 
@@ -59,15 +59,31 @@ const Stars = memo(function Stars(props: Hero3DBackgroundProps) {
 });
 
 const Hero3DBackground = memo(function Hero3DBackground(props: Hero3DBackgroundProps) {
-  // If not visible, don't render the canvas at all
-  if (props.isVisible === false) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  // If not visible or not mounted, don't render the canvas at all
+  if (!isMounted || props.isVisible === false) {
     return null;
   }
   
   return (
     // Position canvas absolutely to fill the container
-    <div className="absolute inset-0 w-full h-full z-1 opacity-50 pointer-events-none">
-      <Canvas camera={{ position: [0, 0, 1] }}>
+    <div className="absolute inset-0 w-full h-full z-1 pointer-events-none">
+      <Canvas 
+        camera={{ position: [0, 0, 1] }}
+        gl={{ 
+          antialias: false,
+          alpha: true,  // Changed to true to allow transparency
+          stencil: false,
+          depth: false,
+          powerPreference: "low-power"
+        }}
+        dpr={[1, 1.5]}
+      >
         {/* <ambientLight intensity={0.5} />  Optional: Add lights if needed */}
         <Stars {...props} />
       </Canvas>
