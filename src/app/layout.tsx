@@ -81,8 +81,8 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="min-h-screen w-full overflow-x-hidden">
+    <html lang="en" className="scroll-smooth bg-gray-900">
+      <body className="min-h-screen w-full overflow-x-hidden bg-gray-900">
         <ClientProviders>
           <main className="overflow-x-hidden w-full min-h-screen">
             {children}

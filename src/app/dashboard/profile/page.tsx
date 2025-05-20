@@ -158,7 +158,7 @@ export default function ProfileSettings() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 py-8 px-4 sm:py-12">
+    <div className="min-h-screen bg-gray-900 py-8 px-4 sm:py-12">
       <div className="max-w-lg mx-auto">
         <div className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center border-b border-gray-100 pb-4 mb-6">

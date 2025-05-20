@@ -77,7 +77,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6">
+    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6 bg-gray-900">
       <div className="max-w-7xl mx-auto">
         {/* Dashboard Header with Welcome Message */}
         <motion.div

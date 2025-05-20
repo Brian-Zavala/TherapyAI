@@ -44,14 +44,14 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+    <div className="fixed inset-0 bg-gray-900 overflow-hidden">
       {/* Light overlay to make background less dark */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
       <Spotlight />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <GlassCard className="w-full">
+      <div className="relative z-10 h-screen flex items-center justify-center p-4 overflow-hidden">
+        <div className="w-full max-w-md py-6">
+          <GlassCard className="w-full max-h-[85vh] overflow-y-auto no-scrollbar">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-white">
                 Welcome Back

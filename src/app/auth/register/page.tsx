@@ -80,12 +80,12 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+    <div className="h-screen bg-gray-900 relative overflow-hidden">
       {/* Light overlay to make background less dark */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
       <Spotlight />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+      <div className="relative z-10 h-screen flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-md">
           <GlassCard className="w-full">
             <div className="text-center mb-8">

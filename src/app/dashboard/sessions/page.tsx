@@ -119,7 +119,7 @@ export default function SessionsPage() {
   // Mobile tab view is handled above with the other state hooks
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-100/80 via-purple-100/70 to-white/40 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-900 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}

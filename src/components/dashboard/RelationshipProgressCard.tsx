@@ -64,11 +64,7 @@ export default function RelationshipProgressCard() {
   );
   const [chartMetrics, setChartMetrics] = useState<ChartMetrics>(null); // Moved UP
   const [isSmallScreen, setIsSmallScreen] = useState(false); // Track small screen size
-  const [viewType, setViewType] = useState<"grid" | "full">("grid"); // Track view type - grid or full screen
-  const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false); // Track view dropdown state
-  
   // --- Refs ---
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Helper Functions & Callbacks (Defined using useCallback/useMemo) ---
@@ -143,24 +139,7 @@ export default function RelationshipProgressCard() {
   // Track screen size for responsive design
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   
-  // Effect for handling click outside to close dropdown
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && isViewDropdownOpen) {
-        setIsViewDropdownOpen(false);
-      }
-    }
-    
-    // Add event listener when dropdown is open
-    if (isViewDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isViewDropdownOpen]);
+  // Dropdown click outside handler removed
   
   useEffect(() => {
     const checkScreenSize = () => {
@@ -681,124 +660,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
     );
   }, [chartType]); // Depends on chartType state
   
-  // View type dropdown selector (shown on medium screens and larger)
-  const ViewTypeSelector = useMemo(() => {
-    return () => (
-      <div className="relative hidden md:block" ref={dropdownRef}>
-        <motion.button
-          onClick={() => setIsViewDropdownOpen(!isViewDropdownOpen)}
-          className="flex items-center justify-between w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xl border border-white/30 text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
-          whileHover={{ scale: 1.03, y: -2 }}
-          whileTap={{ scale: 0.97 }}
-          initial={{ opacity: 0.9 }}
-          animate={{ opacity: 1 }}
-        >
-          <span className="flex items-center">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="currentColor" 
-              className="w-5 h-5 mr-2"
-            >
-              {viewType === "grid" ? (
-                // Grid view icon
-                <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
-              ) : (
-                // Full view icon
-                <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
-              )}
-            </svg>
-            <span className="relative">
-              {viewType === "grid" ? "Grid View" : "Full View"}
-              {/* Pulsing dot indicator */}
-              <span className="absolute -top-1 -right-2.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-              </span>
-            </span>
-          </span>
-          <svg
-            className={`w-4 h-4 ml-2 transition-transform duration-300 ${isViewDropdownOpen ? 'rotate-180' : ''}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </motion.button>
-        
-        {/* Dropdown Menu */}
-        {isViewDropdownOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-lg shadow-2xl z-50 overflow-hidden border border-blue-100"
-          >
-            <div className="py-2">
-              <h3 className="text-xs font-semibold text-blue-600 px-4 py-1 border-b border-blue-50 mb-1">Select View Mode</h3>
-              <motion.button
-                onClick={() => {
-                  setViewType("grid");
-                  setIsViewDropdownOpen(false);
-                }}
-                className={`flex items-center w-full px-4 py-3 hover:bg-blue-50 transition-colors duration-150 ${viewType === "grid" ? "bg-blue-100/80 text-blue-700 font-medium" : "text-gray-700"}`}
-                whileHover={{ x: 3 }}
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 24 24" 
-                  fill="currentColor" 
-                  className="w-5 h-5 mr-3 text-blue-500 flex-shrink-0"
-                >
-                  <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
-                </svg>
-                <div className="text-left">
-                  <div className="font-medium">Grid View</div>
-                  <div className="text-xs text-gray-500">Standard dashboard layout</div>
-                </div>
-                {viewType === "grid" && (
-                  <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
-                )}
-              </motion.button>
-              <motion.button
-                onClick={() => {
-                  setViewType("full");
-                  setIsViewDropdownOpen(false);
-                }}
-                className={`flex items-center w-full px-4 py-3 hover:bg-blue-50 transition-colors duration-150 ${viewType === "full" ? "bg-blue-100/80 text-blue-700 font-medium" : "text-gray-700"}`}
-                whileHover={{ x: 3 }}
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 24 24" 
-                  fill="currentColor" 
-                  className="w-5 h-5 mr-3 text-indigo-500 flex-shrink-0"
-                >
-                  <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
-                </svg>
-                <div className="text-left">
-                  <div className="font-medium">Full View</div>
-                  <div className="text-xs text-gray-500">Expanded chart visualization</div>
-                </div>
-                {viewType === "full" && (
-                  <span className="ml-auto bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
-                )}
-              </motion.button>
-            </div>
-            <div className="px-4 py-2 bg-blue-50 text-xs text-blue-600 italic border-t border-blue-100">
-              Tip: Full view gives you a larger visualization area
-            </div>
-          </motion.div>
-        )}
-      </div>
-    );
-  }, [viewType, isViewDropdownOpen]); // Depends on viewType and isViewDropdownOpen states
+  // ViewTypeSelector has been removed
 
   const TherapyTypeSelector = useMemo(() => {
     return () => (
@@ -1430,12 +1292,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
         </div>
       </div>
 
-      {/* View toggle button positioned at top-right corner of page (visible on medium screens and up) */}
-      {data.length > 0 && (
-        <div className="fixed top-6 right-6 z-50">
-          <ViewTypeSelector />
-        </div>
-      )}
+      {/* View toggle button removed */}
       
       {/* Always show therapy type selector to allow users to switch between types */}
       <div className="mb-4">
@@ -1472,14 +1329,14 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className={`relationship-chart-container w-full mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 ${viewType === "full" && isLargeScreen ? "min-h-[calc(100vh-300px)]" : "min-h-[520px]"} hover:bg-white/25 transition-all duration-300 ${viewType === "full" && isLargeScreen ? "max-w-full" : "max-w-[900px]"}`}
+          className="relationship-chart-container w-full mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 min-h-[520px] hover:bg-white/25 transition-all duration-300 max-w-[900px]"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           style={{ position: 'relative', zIndex: 5 }}
         >
           <div 
-            className={`${isSmallScreen ? 'h-[380px]' : viewType === "full" && isLargeScreen ? 'h-[calc(100vh-400px)]' : 'h-[480px]'} w-full relative`} 
+            className={`${isSmallScreen ? 'h-[380px]' : 'h-[480px]'} w-full relative`} 
             style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}
           >
             <ResponsiveContainer width="100%" height="100%" debounce={50}>
@@ -1487,22 +1344,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
             </ResponsiveContainer>
           </div>
           
-          {/* Show view type indicator for full view */}
-          {viewType === "full" && isLargeScreen && (
-            <div className="absolute top-4 right-4 bg-blue-600/90 text-white text-xs px-3 py-1 rounded-full shadow-md">
-              <span className="flex items-center">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 24 24" 
-                  fill="currentColor" 
-                  className="w-3 h-3 mr-1"
-                >
-                  <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
-                </svg>
-                Full View Mode
-              </span>
-            </div>
-          )}
+          {/* View type indicator removed */}
         </motion.div>
       ) : (
         // Display message when no data is available (after loading finishes)
@@ -1547,7 +1389,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className={`relationship-metrics-card mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10 ${viewType === "full" && isLargeScreen ? "absolute bottom-4 right-4 max-w-xs" : ""}`} 
+          className="relationship-metrics-card mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10" 
           style={{ position: 'relative', zIndex: 10 }}
         >
           <h4 className="text-xs text-white uppercase tracking-wider mb-3 font-bold flex items-center">
@@ -1555,150 +1397,80 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
             Therapy Metrics ({timeframe})
           </h4>
           
-          {/* Metrics displayed differently based on view mode */}
-          {viewType === "full" && isLargeScreen ? (
-            // Simplified metrics for full view mode (sidebar style)
-            <div className="space-y-3">
+          {/* Standard metrics display */}
+          <>
+            {/* Upper metrics row: Averages */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               <motion.div 
                 whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
                 className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
               >
                 <div className="flex items-center justify-center mb-1">
-                  <span className="w-2.5 h-2.5 bg-blue-500 rounded-full mr-1.5"></span>
-                  <p className="text-xs text-blue-700 font-semibold">Avg Closeness</p>
+                  <span className="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></span>
+                  <p className="text-xs text-blue-700 font-semibold">
+                    Avg Closeness
+                  </p>
                 </div>
-                <p className="text-xl font-bold text-blue-800">
+                <p className="text-2xl font-bold text-blue-800">
                   {chartMetrics.averages.closeness}
                   <span className="text-xs font-normal text-blue-600">/100</span>
                 </p>
               </motion.div>
-              
               <motion.div 
                 whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
                 className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
               >
                 <div className="flex items-center justify-center mb-1">
-                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full mr-1.5"></span>
-                  <p className="text-xs text-emerald-700 font-semibold">Avg Communication</p>
+                  <span className="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>
+                  <p className="text-xs text-emerald-700 font-semibold">
+                    Avg Communication
+                  </p>
                 </div>
-                <p className="text-xl font-bold text-emerald-800">
+                <p className="text-2xl font-bold text-emerald-800">
                   {chartMetrics.averages.communication}
                   <span className="text-xs font-normal text-emerald-600">/100</span>
                 </p>
               </motion.div>
-              
               <motion.div 
                 whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
-                className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-indigo-200/20"
+                className="bg-white/90 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
               >
                 <div className="flex items-center justify-center mb-1">
-                  <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full mr-1.5"></span>
-                  <p className="text-xs text-indigo-700 font-semibold">Relationship Quality</p>
+                  <span className="w-3 h-3 bg-indigo-500 rounded-full mr-1.5"></span>
+                  <p className="text-xs text-indigo-700 font-semibold">
+                    Avg Relationship Quality
+                  </p>
                 </div>
-                <p className="text-xl font-bold text-indigo-800">
+                <p className="text-2xl font-bold text-indigo-800">
                   {chartMetrics.averages.quality}
-                  <span className="text-xs font-normal text-indigo-600">/100</span>
+                  <span className="text-xs font-normal text-indigo-600">
+                    /100
+                  </span>
                 </p>
               </motion.div>
-              
-              <h4 className="text-[10px] text-white uppercase tracking-wider mt-3 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
-                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                Change ({timeframe})
-              </h4>
-              
-              <div className="space-y-2">
-                <ProgressIndicator
-                  value={chartMetrics.overallChange.closeness}
-                  label="Closeness"
-                  bgColor="bg-white/90 shadow-md"
-                  textColor="text-blue-800"
-                  dotColor="bg-blue-500"
-                />
-                <ProgressIndicator
-                  value={chartMetrics.overallChange.communication}
-                  label="Communication"
-                  bgColor="bg-white/90 shadow-md"
-                  textColor="text-emerald-800"
-                  dotColor="bg-emerald-500"
-                />
-              </div>
             </div>
-          ) : (
-            // Regular metrics for grid view mode
-            <>
-              {/* Upper metrics row: Averages */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                <motion.div 
-                  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
-                  className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
-                >
-                  <div className="flex items-center justify-center mb-1">
-                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></span>
-                    <p className="text-xs text-blue-700 font-semibold">
-                      Avg Closeness
-                    </p>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-800">
-                    {chartMetrics.averages.closeness}
-                    <span className="text-xs font-normal text-blue-600">/100</span>
-                  </p>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
-                  className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
-                >
-                  <div className="flex items-center justify-center mb-1">
-                    <span className="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>
-                    <p className="text-xs text-emerald-700 font-semibold">
-                      Avg Communication
-                    </p>
-                  </div>
-                  <p className="text-2xl font-bold text-emerald-800">
-                    {chartMetrics.averages.communication}
-                    <span className="text-xs font-normal text-emerald-600">/100</span>
-                  </p>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
-                  className="bg-white/90 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
-                >
-                  <div className="flex items-center justify-center mb-1">
-                    <span className="w-3 h-3 bg-indigo-500 rounded-full mr-1.5"></span>
-                    <p className="text-xs text-indigo-700 font-semibold">
-                      Avg Relationship Quality
-                    </p>
-                  </div>
-                  <p className="text-2xl font-bold text-indigo-800">
-                    {chartMetrics.averages.quality}
-                    <span className="text-xs font-normal text-indigo-600">
-                      /100
-                    </span>
-                  </p>
-                </motion.div>
-              </div>
-              {/* Lower metrics row: Progress indicators */}
-              <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
-                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                Overall Change ({timeframe})
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <ProgressIndicator
-                  value={chartMetrics.overallChange.closeness}
-                  label="Closeness Change"
-                  bgColor="bg-white/90 shadow-md"
-                  textColor="text-blue-800"
-                  dotColor="bg-blue-500"
-                />
-                <ProgressIndicator
-                  value={chartMetrics.overallChange.communication}
-                  label="Communication Change"
-                  bgColor="bg-white/90 shadow-md"
-                  textColor="text-emerald-800"
-                  dotColor="bg-emerald-500"
-                />
-              </div>
-            </>
-          )}
+            {/* Lower metrics row: Progress indicators */}
+            <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
+              <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+              Overall Change ({timeframe})
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <ProgressIndicator
+                value={chartMetrics.overallChange.closeness}
+                label="Closeness Change"
+                bgColor="bg-white/90 shadow-md"
+                textColor="text-blue-800"
+                dotColor="bg-blue-500"
+              />
+              <ProgressIndicator
+                value={chartMetrics.overallChange.communication}
+                label="Communication Change"
+                bgColor="bg-white/90 shadow-md"
+                textColor="text-emerald-800"
+                dotColor="bg-emerald-500"
+              />
+            </div>
+          </>
         </motion.div>
       )}
     </div>

@@ -14,6 +14,17 @@ export default function AuthLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // Add overflow-hidden to body on mount, remove on unmount
+  useEffect(() => {
+    document.documentElement.classList.add('overflow-hidden');
+    document.body.classList.add('overflow-hidden');
+    
+    return () => {
+      document.documentElement.classList.remove('overflow-hidden');
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, []);
+
   useEffect(() => {
     // Redirect authenticated users away from auth pages (login/signup)
     if (status === "authenticated") {
@@ -24,7 +35,7 @@ export default function AuthLayout({
   // --- Loading State ---
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900 overflow-hidden">
         {/* Simple loading spinner */}
         <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
       </div>
@@ -35,7 +46,7 @@ export default function AuthLayout({
   // Only render the layout if the user is unauthenticated
   if (status === "unauthenticated") {
     return (
-      <div className="relative w-full min-h-screen bg-black">
+      <div className="fixed inset-0 w-full bg-gray-900 overflow-hidden">
         {children}
       </div>
     );

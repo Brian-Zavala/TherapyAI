@@ -611,6 +611,15 @@ body.session-active .hide-during-session {
   perspective: 1000px;
 }
 
+/* Custom utility for removing scrollbars while allowing scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 /* 3D flip card styles */
 .preserve-3d {
   transform-style: preserve-3d;
