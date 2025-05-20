@@ -64,6 +64,12 @@ export default function RelationshipProgressCard() {
   );
   const [chartMetrics, setChartMetrics] = useState<ChartMetrics>(null); // Moved UP
   const [isSmallScreen, setIsSmallScreen] = useState(false); // Track small screen size
+  const [viewType, setViewType] = useState<"grid" | "full">("grid"); // Track view type - grid or full screen
+  const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false); // Track view dropdown state
+  
+  // --- Refs ---
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Helper Functions & Callbacks (Defined using useCallback/useMemo) ---
 
@@ -136,6 +142,25 @@ export default function RelationshipProgressCard() {
 
   // Track screen size for responsive design
   const [isLargeScreen, setIsLargeScreen] = useState(false);
+  
+  // Effect for handling click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && isViewDropdownOpen) {
+        setIsViewDropdownOpen(false);
+      }
+    }
+    
+    // Add event listener when dropdown is open
+    if (isViewDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isViewDropdownOpen]);
   
   useEffect(() => {
     const checkScreenSize = () => {
@@ -274,13 +299,35 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
   const [isHovering, setIsHovering] = useState(false); // Track if user is hovering on tooltip
   
-  // Handle mouse events on the tooltip
+  // Create refs to store timeouts
+  const hoverInTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverOutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Handle mouse events on the tooltip with enhanced stability
   const handleMouseEnter = useCallback(() => {
-    setIsHovering(true);
-  }, []);
+    // Clear any pending "leave" timeout
+    if (hoverOutTimeoutRef.current) {
+      clearTimeout(hoverOutTimeoutRef.current);
+      hoverOutTimeoutRef.current = null;
+    }
+    
+    // Set hover state immediately
+    if (!isHovering) {
+      setIsHovering(true);
+    }
+  }, [isHovering]);
   
   const handleMouseLeave = useCallback(() => {
-    setIsHovering(false);
+    // Use a longer delay for mouse leave to ensure stability
+    // This prevents flickering when the mouse moves between elements
+    if (hoverOutTimeoutRef.current) {
+      clearTimeout(hoverOutTimeoutRef.current);
+    }
+    
+    hoverOutTimeoutRef.current = setTimeout(() => {
+      setIsHovering(false);
+      hoverOutTimeoutRef.current = null;
+    }, 300); // Longer timeout for more stability
   }, []);
   
   // Effect to notify parent component about hover state changes
@@ -288,6 +335,29 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
     if (onHoverChange) {
       onHoverChange(isHovering);
     }
+    
+    // Add debug visual indication for hover state
+    if (tooltipRef.current) {
+      if (isHovering) {
+        console.log("Tooltip is being hovered");
+      } else {
+        console.log("Tooltip is NOT being hovered");
+      }
+    }
+    
+    // Clean up function
+    return () => {
+      // Clear all timeouts when the effect reruns or component unmounts
+      if (hoverInTimeoutRef.current) {
+        clearTimeout(hoverInTimeoutRef.current);
+        hoverInTimeoutRef.current = null;
+      }
+      
+      if (hoverOutTimeoutRef.current) {
+        clearTimeout(hoverOutTimeoutRef.current);
+        hoverOutTimeoutRef.current = null;
+      }
+    };
   }, [isHovering, onHoverChange]);
   
   // Calculate actual tooltip position - directly below the point
@@ -302,13 +372,14 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
     if (!element) {
       element = document.createElement('div');
       element.id = 'chart-tooltip-container';
-      element.style.position = 'fixed'; // Use fixed to be outside of all container constraints
+      element.style.position = 'absolute'; // Use absolute position in the portal to prevent scroll issues
       element.style.top = '0';
       element.style.left = '0';
-      element.style.width = '100%';
-      element.style.height = '100%';
+      element.style.width = '100vw';
+      element.style.height = '100vh';
       element.style.pointerEvents = 'none'; // Container is non-interactive
       element.style.zIndex = '9999999'; // Extremely high z-index
+      element.style.overflow = 'visible'; // Ensure content can overflow the container
       
       // Append to body for positioning outside all containers
       document.body.appendChild(element);
@@ -339,37 +410,90 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   // Default quality score calculation if needed
   const qualityScore = dataPoint.qualityScore ?? Math.round((dataPoint.closeness + dataPoint.communication) / 2);
   
-  // Use the properly calculated tooltip position
-  let posX = tooltipX; 
-  let posY = tooltipY;
+  // Calculate viewport-aware positioning to handle scrolling and screen boundaries
+  const viewport = document.documentElement;
+  const viewportWidth = viewport.clientWidth;
+  const viewportHeight = viewport.clientHeight;
+  
+  // Calculate position to keep tooltip fully in view, accounting for scroll
+  const scrollY = window.scrollY || document.documentElement.scrollTop;
+  const scrollX = window.scrollX || document.documentElement.scrollLeft;
+  
+  // Use client coordinates (viewport-relative) for tooltip positioning
+  const posX = tooltipX;
+  const posY = Math.min(
+    // Default position
+    tooltipY - scrollY,
+    // Don't let it go off the bottom of the screen
+    viewportHeight - (isSmallScreen ? 200 : 300)
+  );
   
   // Create tooltip content
   const tooltipContent = (
     <div 
       ref={tooltipRef}
-      className={`bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-2xl rounded-md border border-gray-200 ${isSmallScreen ? 'max-w-[240px]' : 'max-w-[280px]'} ${isSmallScreen ? 'text-[10px]' : 'text-xs'}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className={`bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-2xl rounded-md border border-gray-200 ${isSmallScreen ? 'max-w-[240px]' : 'max-w-[280px]'} ${isSmallScreen ? 'text-[10px]' : 'text-xs'} ${isHovering ? 'tooltip-active' : ''}`}
+      onMouseOver={handleMouseEnter}
+      onMouseOut={handleMouseLeave}
       style={{
-        position: 'fixed',  // Fixed position to work with screen coordinates
+        position: 'fixed', // Fixed to viewport to avoid scroll issues
         left: posX,
-        top: posY + 35,     // Push it down a bit more
-        transform: 'translate(-50%, 0)',
+        top: posY + 35, // Push it down a bit from the point
+        transform: isHovering ? 'translate(-50%, -3px)' : 'translate(-50%, 0)', // Center and lift on hover
         pointerEvents: 'auto', // Allow interaction with tooltip
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+        boxShadow: isHovering ? '0 12px 40px rgba(59, 130, 246, 0.8)' : '0 8px 32px rgba(0, 0, 0, 0.5)', // Stronger highlight when hovering
         zIndex: 9999999,
-        border: '2px solid #3B82F6',
-        transition: 'opacity 0.2s ease', // Smooth transition for better UX
-        cursor: 'pointer'  // Show pointer cursor when hovering over tooltip
-      }}>
+        border: isHovering ? '3px solid #60A5FA' : '2px solid #3B82F6', // Thicker border on hover
+        transition: 'all 0.2s ease', // Smooth transition for all properties
+        cursor: 'pointer',  // Show pointer cursor when hovering over tooltip
+        opacity: isHovering ? 1 : 0.95, // Slightly increase opacity on hover
+        maxHeight: '450px', // Limit max height with a fixed value
+        overflowY: 'auto', // Allow scrolling in the tooltip if needed
+        willChange: 'transform', // Optimize for animations
+        transformOrigin: 'top center' // Set transform origin
+      }}
+    >
       {offset > 0 ? (
         // Arrow at top for tooltip below point
-        <div className="w-5 h-5 bg-blue-500 absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 border-blue-500 z-50"></div>
+        <div 
+          className="w-5 h-5 absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2 rotate-45 z-50"
+          style={{
+            backgroundColor: isHovering ? '#60A5FA' : '#3B82F6',
+            borderLeft: isHovering ? '3px solid #60A5FA' : '2px solid #3B82F6',
+            borderTop: isHovering ? '3px solid #60A5FA' : '2px solid #3B82F6',
+            boxShadow: isHovering ? '0 4px 12px -2px rgba(59, 130, 246, 0.8)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        ></div>
       ) : (
         // Arrow at bottom for tooltip above point
-        <div className="w-5 h-5 bg-blue-500 absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 border-2 border-blue-500 z-50"></div>
+        <div 
+          className="w-5 h-5 absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 z-50"
+          style={{
+            backgroundColor: isHovering ? '#60A5FA' : '#3B82F6',
+            borderRight: isHovering ? '3px solid #60A5FA' : '2px solid #3B82F6',
+            borderBottom: isHovering ? '3px solid #60A5FA' : '2px solid #3B82F6',
+            boxShadow: isHovering ? '0 4px 12px -2px rgba(59, 130, 246, 0.8)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        ></div>
       )}
-      <p className={`font-semibold text-gray-800 ${isSmallScreen ? 'mb-1.5' : 'mb-2'}`}>{label}</p>
+      <div className="flex justify-between items-center">
+        <p className={`font-semibold text-gray-800 ${isSmallScreen ? 'mb-1.5' : 'mb-2'}`}>{label}</p>
+        <span 
+          className={`inline-flex items-center justify-center ${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} rounded-full bg-blue-100 transition-colors duration-300 ${isHovering ? 'bg-blue-500' : ''}`} 
+          title={isHovering ? "Tooltip is in interactive mode" : "Hover to interact"}
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className={`${isSmallScreen ? 'w-2 h-2' : 'w-2.5 h-2.5'} ${isHovering ? 'text-white' : 'text-blue-500'}`}
+          >
+            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+          </svg>
+        </span>
+      </div>
       {/* Show session number if available */}
       {dataPoint.sessionNumber != null && (
         <p className={`${isSmallScreen ? 'text-[9px]' : 'text-xs'} text-gray-500 ${isSmallScreen ? 'mb-0.5' : 'mb-1'}`}>
@@ -428,27 +552,48 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       )}
       {/* Link to session transcript if available */}
       {dataPoint.sessionId && (
-        <button
-          onClick={() => dataPoint.sessionId && viewSessionTranscript(dataPoint.sessionId)}
-          className={`${isSmallScreen ? 'mt-2 pt-1.5' : 'mt-3 pt-2'} border-t border-gray-200 w-full text-center ${isSmallScreen ? 'text-[9px]' : 'text-xs'} flex items-center justify-center text-white bg-indigo-600 hover:bg-indigo-700 font-medium disabled:opacity-50 rounded-md py-2 transition-colors duration-150`}
-          disabled={!dataPoint.sessionId}
-          style={{ pointerEvents: 'auto' }}
-        >
-          <svg
-            className={`${isSmallScreen ? 'w-3 h-3' : 'w-3.5 h-3.5'} mr-1.5 flex-shrink-0`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
+        <div className={`${isSmallScreen ? 'mt-2 pt-1.5' : 'mt-3 pt-2'} border-t border-gray-200 w-full`}>
+          <motion.button
+            onClick={() => dataPoint.sessionId && viewSessionTranscript(dataPoint.sessionId)}
+            className={`w-full text-center ${isSmallScreen ? 'text-[9px]' : 'text-xs'} flex items-center justify-center text-white bg-indigo-600 hover:bg-indigo-700 font-medium disabled:opacity-50 rounded-md py-2.5 transition-all duration-200`}
+            disabled={!dataPoint.sessionId}
+            onMouseOver={handleMouseEnter} 
+            onMouseOut={handleMouseLeave}
+            style={{ 
+              pointerEvents: 'auto',
+              boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1)'
+            }}
+            whileHover={{ 
+              y: -2, 
+              boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.2)'
+            }}
+            whileTap={{ scale: 0.98 }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          View Session Transcript
-        </button>
+            <svg
+              className={`${isSmallScreen ? 'w-3 h-3' : 'w-3.5 h-3.5'} mr-1.5 flex-shrink-0`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            View Session Transcript
+          </motion.button>
+          <div 
+            className={`text-center mt-1 flex items-center justify-center ${isHovering ? 'animate-pulse' : ''}`}
+            onMouseOver={handleMouseEnter}
+            onMouseOut={handleMouseLeave}
+          >
+            <p className={`text-[8px] ${isHovering ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+              {isHovering ? "✨ Click to view detailed conversation ✨" : "Click to view detailed conversation"}
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -535,6 +680,125 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       </div>
     );
   }, [chartType]); // Depends on chartType state
+  
+  // View type dropdown selector (shown on medium screens and larger)
+  const ViewTypeSelector = useMemo(() => {
+    return () => (
+      <div className="relative hidden md:block" ref={dropdownRef}>
+        <motion.button
+          onClick={() => setIsViewDropdownOpen(!isViewDropdownOpen)}
+          className="flex items-center justify-between w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xl border border-white/30 text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+          whileHover={{ scale: 1.03, y: -2 }}
+          whileTap={{ scale: 0.97 }}
+          initial={{ opacity: 0.9 }}
+          animate={{ opacity: 1 }}
+        >
+          <span className="flex items-center">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="currentColor" 
+              className="w-5 h-5 mr-2"
+            >
+              {viewType === "grid" ? (
+                // Grid view icon
+                <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+              ) : (
+                // Full view icon
+                <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
+              )}
+            </svg>
+            <span className="relative">
+              {viewType === "grid" ? "Grid View" : "Full View"}
+              {/* Pulsing dot indicator */}
+              <span className="absolute -top-1 -right-2.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+              </span>
+            </span>
+          </span>
+          <svg
+            className={`w-4 h-4 ml-2 transition-transform duration-300 ${isViewDropdownOpen ? 'rotate-180' : ''}`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </motion.button>
+        
+        {/* Dropdown Menu */}
+        {isViewDropdownOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-lg shadow-2xl z-50 overflow-hidden border border-blue-100"
+          >
+            <div className="py-2">
+              <h3 className="text-xs font-semibold text-blue-600 px-4 py-1 border-b border-blue-50 mb-1">Select View Mode</h3>
+              <motion.button
+                onClick={() => {
+                  setViewType("grid");
+                  setIsViewDropdownOpen(false);
+                }}
+                className={`flex items-center w-full px-4 py-3 hover:bg-blue-50 transition-colors duration-150 ${viewType === "grid" ? "bg-blue-100/80 text-blue-700 font-medium" : "text-gray-700"}`}
+                whileHover={{ x: 3 }}
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="currentColor" 
+                  className="w-5 h-5 mr-3 text-blue-500 flex-shrink-0"
+                >
+                  <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+                </svg>
+                <div className="text-left">
+                  <div className="font-medium">Grid View</div>
+                  <div className="text-xs text-gray-500">Standard dashboard layout</div>
+                </div>
+                {viewType === "grid" && (
+                  <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                )}
+              </motion.button>
+              <motion.button
+                onClick={() => {
+                  setViewType("full");
+                  setIsViewDropdownOpen(false);
+                }}
+                className={`flex items-center w-full px-4 py-3 hover:bg-blue-50 transition-colors duration-150 ${viewType === "full" ? "bg-blue-100/80 text-blue-700 font-medium" : "text-gray-700"}`}
+                whileHover={{ x: 3 }}
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="currentColor" 
+                  className="w-5 h-5 mr-3 text-indigo-500 flex-shrink-0"
+                >
+                  <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
+                </svg>
+                <div className="text-left">
+                  <div className="font-medium">Full View</div>
+                  <div className="text-xs text-gray-500">Expanded chart visualization</div>
+                </div>
+                {viewType === "full" && (
+                  <span className="ml-auto bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
+                )}
+              </motion.button>
+            </div>
+            <div className="px-4 py-2 bg-blue-50 text-xs text-blue-600 italic border-t border-blue-100">
+              Tip: Full view gives you a larger visualization area
+            </div>
+          </motion.div>
+        )}
+      </div>
+    );
+  }, [viewType, isViewDropdownOpen]); // Depends on viewType and isViewDropdownOpen states
 
   const TherapyTypeSelector = useMemo(() => {
     return () => (
@@ -594,15 +858,20 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   
   // State to track if user is hovering over the tooltip
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  
-  // Ref to store the timeout ID for clearing
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipHoverDebounceRef = useRef<NodeJS.Timeout | null>(null);
   
   // Clean up any tooltips when component unmounts
   useEffect(() => {
     return () => {
+      // Clear all timeout refs on unmount
       if (tooltipTimeoutRef.current) {
         clearTimeout(tooltipTimeoutRef.current);
+        tooltipTimeoutRef.current = null;
+      }
+      
+      if (tooltipHoverDebounceRef.current) {
+        clearTimeout(tooltipHoverDebounceRef.current);
+        tooltipHoverDebounceRef.current = null;
       }
     };
   }, []);
@@ -713,26 +982,22 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
         return;
       }
       
-      // Only close it if there's no active timeout already running
-      if (!tooltipTimeoutRef.current && tooltipData) {
-        // Calculate how long the tooltip has been open
-        const tooltipAge = Date.now() - tooltipData.timestamp;
-        
-        // Keep tooltip open for at least 2 seconds
-        if (tooltipAge < 2000) {
-          tooltipTimeoutRef.current = setTimeout(() => {
-            // Double check that we're not hovering before closing
-            if (!isTooltipHovered) {
-              setTooltipData(null);
-            }
-            tooltipTimeoutRef.current = null;
-          }, 2000 - tooltipAge);
-        } else {
-          // If it's already been open for 2+ seconds and not being hovered, close it
+      // Clear any existing timeout and set a new one to ensure tooltip stays open for at least 2 seconds
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+      
+      if (tooltipData) {
+        // Always keep tooltip open for exactly 2 seconds from now, regardless of how long it's been open
+        tooltipTimeoutRef.current = setTimeout(() => {
+          // Double check that we're not hovering before closing
           if (!isTooltipHovered) {
             setTooltipData(null);
           }
-        }
+          tooltipTimeoutRef.current = null;
+        }, 2000);
+      } else {
+        setTooltipData(null);
       }
     }
   }, [isLargeScreen, tooltipData, isTooltipHovered]); // Add isTooltipHovered to dependencies
@@ -748,7 +1013,31 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       },
       className: "mx-auto",
       onMouseMove: handleMouseMove,
-      onMouseLeave: () => setTooltipData(null)
+      onMouseLeave: (e) => {
+        // Trigger the tooltip persistent display using the same logic as in handleMouseMove
+        // Don't immediately close the tooltip
+        if (isTooltipHovered) {
+          return;
+        }
+        
+        // Clear any existing timeout and set a new one
+        if (tooltipTimeoutRef.current) {
+          clearTimeout(tooltipTimeoutRef.current);
+        }
+        
+        if (tooltipData) {
+          // Keep tooltip open for exactly 2 seconds from now
+          tooltipTimeoutRef.current = setTimeout(() => {
+            // Double check that we're not hovering before closing
+            if (!isTooltipHovered) {
+              setTooltipData(null);
+            }
+            tooltipTimeoutRef.current = null;
+          }, 2000);
+        } else {
+          setTooltipData(null);
+        }
+      }
     };
     const xAxis = (
       <XAxis
@@ -1042,7 +1331,37 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
           isSmallScreen={isSmallScreen}
           viewSessionTranscript={viewSessionTranscript}
           offset={tooltipData.offset}
-          onHoverChange={setIsTooltipHovered}
+          onHoverChange={(hovered) => {
+            // Use a stable hover state mechanism to prevent flickering
+            if (hovered) {
+              // Immediately set hover state to true
+              if (!isTooltipHovered) {
+                console.log("Tooltip hover state changed to true");
+                setIsTooltipHovered(true);
+              }
+              
+              // Always clear closing timeouts when hovering
+              if (tooltipTimeoutRef.current) {
+                clearTimeout(tooltipTimeoutRef.current);
+                tooltipTimeoutRef.current = null;
+              }
+              
+              if (tooltipHoverDebounceRef.current) {
+                clearTimeout(tooltipHoverDebounceRef.current);
+                tooltipHoverDebounceRef.current = null;
+              }
+            } else {
+              // Only trigger the "hover off" state if there's no active timeout
+              if (!tooltipHoverDebounceRef.current && isTooltipHovered) {
+                // Use a longer delay to prevent flicker during hover state transitions
+                tooltipHoverDebounceRef.current = setTimeout(() => {
+                  console.log("Tooltip hover state changed to false (debounced)");
+                  setIsTooltipHovered(false);
+                  tooltipHoverDebounceRef.current = null;
+                }, 350); // Longer timeout for better stability
+              }
+            }
+          }}
         />
       )}
       <div className="flex items-center mb-4">
@@ -1111,6 +1430,13 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
         </div>
       </div>
 
+      {/* View toggle button positioned at top-right corner of page (visible on medium screens and up) */}
+      {data.length > 0 && (
+        <div className="fixed top-6 right-6 z-50">
+          <ViewTypeSelector />
+        </div>
+      )}
+      
       {/* Always show therapy type selector to allow users to switch between types */}
       <div className="mb-4">
         {/* All controls in one scrollable container on mobile and grid on desktop */}
@@ -1146,17 +1472,37 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="relationship-chart-container w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 min-h-[520px] hover:bg-white/25 transition-all duration-300"
+          className={`relationship-chart-container w-full mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 ${viewType === "full" && isLargeScreen ? "min-h-[calc(100vh-300px)]" : "min-h-[520px]"} hover:bg-white/25 transition-all duration-300 ${viewType === "full" && isLargeScreen ? "max-w-full" : "max-w-[900px]"}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           style={{ position: 'relative', zIndex: 5 }}
         >
-          <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[480px]'} w-full relative`} style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}>
+          <div 
+            className={`${isSmallScreen ? 'h-[380px]' : viewType === "full" && isLargeScreen ? 'h-[calc(100vh-400px)]' : 'h-[480px]'} w-full relative`} 
+            style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}
+          >
             <ResponsiveContainer width="100%" height="100%" debounce={50}>
               {renderChart}
             </ResponsiveContainer>
           </div>
+          
+          {/* Show view type indicator for full view */}
+          {viewType === "full" && isLargeScreen && (
+            <div className="absolute top-4 right-4 bg-blue-600/90 text-white text-xs px-3 py-1 rounded-full shadow-md">
+              <span className="flex items-center">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="currentColor" 
+                  className="w-3 h-3 mr-1"
+                >
+                  <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
+                </svg>
+                Full View Mode
+              </span>
+            </div>
+          )}
         </motion.div>
       ) : (
         // Display message when no data is available (after loading finishes)
@@ -1201,83 +1547,158 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="relationship-metrics-card mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10" style={{ position: 'relative', zIndex: 10 }}
+          className={`relationship-metrics-card mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10 ${viewType === "full" && isLargeScreen ? "absolute bottom-4 right-4 max-w-xs" : ""}`} 
+          style={{ position: 'relative', zIndex: 10 }}
         >
           <h4 className="text-xs text-white uppercase tracking-wider mb-3 font-bold flex items-center">
             <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
-            Therapy Progress Metrics ({timeframe})
+            Therapy Metrics ({timeframe})
           </h4>
-          {/* Upper metrics row: Averages */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-            <motion.div 
-              whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
-              className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
-            >
-              <div className="flex items-center justify-center mb-1">
-                <span className="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></span>
-                <p className="text-xs text-blue-700 font-semibold">
-                  Avg Closeness
+          
+          {/* Metrics displayed differently based on view mode */}
+          {viewType === "full" && isLargeScreen ? (
+            // Simplified metrics for full view mode (sidebar style)
+            <div className="space-y-3">
+              <motion.div 
+                whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
+                className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
+              >
+                <div className="flex items-center justify-center mb-1">
+                  <span className="w-2.5 h-2.5 bg-blue-500 rounded-full mr-1.5"></span>
+                  <p className="text-xs text-blue-700 font-semibold">Avg Closeness</p>
+                </div>
+                <p className="text-xl font-bold text-blue-800">
+                  {chartMetrics.averages.closeness}
+                  <span className="text-xs font-normal text-blue-600">/100</span>
                 </p>
-              </div>
-              <p className="text-2xl font-bold text-blue-800">
-                {chartMetrics.averages.closeness}
-                <span className="text-xs font-normal text-blue-600">/100</span>
-              </p>
-            </motion.div>
-            <motion.div 
-              whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
-              className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
-            >
-              <div className="flex items-center justify-center mb-1">
-                <span className="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>
-                <p className="text-xs text-emerald-700 font-semibold">
-                  Avg Communication
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
+                className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
+              >
+                <div className="flex items-center justify-center mb-1">
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full mr-1.5"></span>
+                  <p className="text-xs text-emerald-700 font-semibold">Avg Communication</p>
+                </div>
+                <p className="text-xl font-bold text-emerald-800">
+                  {chartMetrics.averages.communication}
+                  <span className="text-xs font-normal text-emerald-600">/100</span>
                 </p>
-              </div>
-              <p className="text-2xl font-bold text-emerald-800">
-                {chartMetrics.averages.communication}
-                <span className="text-xs font-normal text-emerald-600">/100</span>
-              </p>
-            </motion.div>
-            <motion.div 
-              whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
-              className="bg-white/90 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
-            >
-              <div className="flex items-center justify-center mb-1">
-                <span className="w-3 h-3 bg-indigo-500 rounded-full mr-1.5"></span>
-                <p className="text-xs text-indigo-700 font-semibold">
-                  Avg Relationship Quality
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
+                className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-indigo-200/20"
+              >
+                <div className="flex items-center justify-center mb-1">
+                  <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full mr-1.5"></span>
+                  <p className="text-xs text-indigo-700 font-semibold">Relationship Quality</p>
+                </div>
+                <p className="text-xl font-bold text-indigo-800">
+                  {chartMetrics.averages.quality}
+                  <span className="text-xs font-normal text-indigo-600">/100</span>
                 </p>
+              </motion.div>
+              
+              <h4 className="text-[10px] text-white uppercase tracking-wider mt-3 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
+                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Change ({timeframe})
+              </h4>
+              
+              <div className="space-y-2">
+                <ProgressIndicator
+                  value={chartMetrics.overallChange.closeness}
+                  label="Closeness"
+                  bgColor="bg-white/90 shadow-md"
+                  textColor="text-blue-800"
+                  dotColor="bg-blue-500"
+                />
+                <ProgressIndicator
+                  value={chartMetrics.overallChange.communication}
+                  label="Communication"
+                  bgColor="bg-white/90 shadow-md"
+                  textColor="text-emerald-800"
+                  dotColor="bg-emerald-500"
+                />
               </div>
-              <p className="text-2xl font-bold text-indigo-800">
-                {chartMetrics.averages.quality}
-                <span className="text-xs font-normal text-indigo-600">
-                  /100
-                </span>
-              </p>
-            </motion.div>
-          </div>
-          {/* Lower metrics row: Progress indicators */}
-          <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
-            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-            Overall Change ({timeframe})
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            <ProgressIndicator
-              value={chartMetrics.overallChange.closeness}
-              label="Closeness Change"
-              bgColor="bg-white/90 shadow-md"
-              textColor="text-blue-800"
-              dotColor="bg-blue-500"
-            />
-            <ProgressIndicator
-              value={chartMetrics.overallChange.communication}
-              label="Communication Change"
-              bgColor="bg-white/90 shadow-md"
-              textColor="text-emerald-800"
-              dotColor="bg-emerald-500"
-            />
-          </div>
+            </div>
+          ) : (
+            // Regular metrics for grid view mode
+            <>
+              {/* Upper metrics row: Averages */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <motion.div 
+                  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
+                  className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
+                >
+                  <div className="flex items-center justify-center mb-1">
+                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></span>
+                    <p className="text-xs text-blue-700 font-semibold">
+                      Avg Closeness
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-800">
+                    {chartMetrics.averages.closeness}
+                    <span className="text-xs font-normal text-blue-600">/100</span>
+                  </p>
+                </motion.div>
+                <motion.div 
+                  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
+                  className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
+                >
+                  <div className="flex items-center justify-center mb-1">
+                    <span className="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>
+                    <p className="text-xs text-emerald-700 font-semibold">
+                      Avg Communication
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-800">
+                    {chartMetrics.averages.communication}
+                    <span className="text-xs font-normal text-emerald-600">/100</span>
+                  </p>
+                </motion.div>
+                <motion.div 
+                  whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
+                  className="bg-white/90 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
+                >
+                  <div className="flex items-center justify-center mb-1">
+                    <span className="w-3 h-3 bg-indigo-500 rounded-full mr-1.5"></span>
+                    <p className="text-xs text-indigo-700 font-semibold">
+                      Avg Relationship Quality
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold text-indigo-800">
+                    {chartMetrics.averages.quality}
+                    <span className="text-xs font-normal text-indigo-600">
+                      /100
+                    </span>
+                  </p>
+                </motion.div>
+              </div>
+              {/* Lower metrics row: Progress indicators */}
+              <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
+                <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Overall Change ({timeframe})
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <ProgressIndicator
+                  value={chartMetrics.overallChange.closeness}
+                  label="Closeness Change"
+                  bgColor="bg-white/90 shadow-md"
+                  textColor="text-blue-800"
+                  dotColor="bg-blue-500"
+                />
+                <ProgressIndicator
+                  value={chartMetrics.overallChange.communication}
+                  label="Communication Change"
+                  bgColor="bg-white/90 shadow-md"
+                  textColor="text-emerald-800"
+                  dotColor="bg-emerald-500"
+                />
+              </div>
+            </>
+          )}
         </motion.div>
       )}
     </div>

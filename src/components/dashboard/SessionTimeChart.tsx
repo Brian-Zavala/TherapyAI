@@ -287,67 +287,150 @@ export default function SessionTimeChart() {
       );
       if (!monthData) return null; // Should always find one if tooltip is active
 
+      // Calculate additional insights
+      // Find historical average session length
+      const allPreviousMonths = sessionData.filter(
+        (item) => new Date(item.date) <= new Date(monthData.date) && item.sessionCount > 0
+      );
+      let historicalAvg = 0;
+      if (allPreviousMonths.length > 0) {
+        const totalTime = allPreviousMonths.reduce((sum, item) => sum + item.sessionTime, 0);
+        const totalSessions = allPreviousMonths.reduce((sum, item) => sum + item.sessionCount, 0);
+        historicalAvg = totalSessions > 0 ? Math.round(totalTime / totalSessions) : 0;
+      }
+
+      // Calculate longer-term trend
+      const threeMonthsAgo = sessionData.filter(
+        (item) => {
+          const currentDate = new Date(monthData.date);
+          const itemDate = new Date(item.date);
+          const monthsDiff = (currentDate.getFullYear() - itemDate.getFullYear()) * 12 + 
+                            (currentDate.getMonth() - itemDate.getMonth());
+          return monthsDiff >= 0 && monthsDiff <= 3;
+        }
+      );
+      
+      let longTermTrend = 0;
+      if (threeMonthsAgo.length >= 2) {
+        const oldestTime = threeMonthsAgo[0].sessionTime;
+        const newestTime = threeMonthsAgo[threeMonthsAgo.length - 1].sessionTime;
+        longTermTrend = oldestTime > 0 ? Math.round((newestTime / oldestTime - 1) * 100) : 0;
+      }
+      
+      // Find index of current month in session data
+      const currentMonthIndex = sessionData.findIndex(item => item.monthFormatted === label);
+      const hasPreviousMonth = currentMonthIndex > 0;
+      const previousMonth = hasPreviousMonth ? sessionData[currentMonthIndex - 1] : null;
+      
+      // Determine overall session commitment based on consecutive months with sessions
+      let commitmentLevel = "Starting";
+      let consecutiveMonths = 0;
+      
+      // Calculate consecutive months with sessions
+      if (currentMonthIndex >= 0) {
+        let i = currentMonthIndex;
+        while (i >= 0 && sessionData[i].sessionCount > 0) {
+          consecutiveMonths++;
+          i--;
+        }
+        
+        if (consecutiveMonths >= 6) {
+          commitmentLevel = "Excellent";
+        } else if (consecutiveMonths >= 4) {
+          commitmentLevel = "Strong";
+        } else if (consecutiveMonths >= 2) {
+          commitmentLevel = "Building";
+        }
+      }
+      
+      // Calculate session time efficiency (% of recommended time)
+      // Assuming recommended is about 4 hours (240 minutes) per month
+      const recommendedMonthlyTime = 240;
+      const efficiencyPercentage = Math.min(100, Math.round((monthData.sessionTime / recommendedMonthlyTime) * 100));
+
       return (
         <div
-          className={`bg-white ${isSmallScreen ? "p-2" : "p-4"} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? "min-w-[180px] max-w-[220px]" : "min-w-[250px]"}`}
+          className={`bg-white ${isSmallScreen ? "p-2" : "p-4"} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? "min-w-[180px] max-w-[220px]" : "min-w-[300px] max-w-[350px]"}`}
         >
-          <p
-            className={`font-semibold text-blue-900 ${isSmallScreen ? "mb-1.5" : "mb-3"} border-b pb-1.5 ${isSmallScreen ? "text-xs" : "text-sm"}`}
-          >
-            {monthData.month}
-          </p>
+          <div className="flex justify-between items-center">
+            <p
+              className={`font-semibold text-blue-900 ${isSmallScreen ? "mb-1.5" : "mb-2"} ${isSmallScreen ? "text-xs" : "text-sm"}`}
+            >
+              {monthData.month}
+            </p>
+            <div className="flex items-center">
+              <span className={`inline-flex items-center justify-center ${efficiencyPercentage >= 75 ? 'bg-green-100 text-green-800' : efficiencyPercentage >= 50 ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'} text-[8px] font-medium px-1.5 py-0.5 rounded-full`}>
+                {efficiencyPercentage}% of target
+              </span>
+            </div>
+          </div>
+          
+          <div className="border-b border-gray-200 mb-2"></div>
+          
           <div className={isSmallScreen ? "space-y-1" : "space-y-2"}>
-            {/* Total Time */}
-            <div
-              className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
-            >
-              <div className="flex items-center text-gray-700">
-                <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-blue-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
-                Total Time:
-              </div>
-              <span className="font-medium text-gray-800">
-                {formatNumber(monthData.sessionTime)} mins
-                <span className={`${isSmallScreen ? "text-[9px]" : "text-xs"} text-blue-500 ml-1`}>
-                  ({Math.round((monthData.sessionTime / 60) * 10) / 10} hrs)
+            {/* Primary Stats Section */}
+            <div className="bg-blue-50/60 p-2 rounded-md">
+              {/* Total Time */}
+              <div
+                className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
+              >
+                <div className="flex items-center text-gray-700">
+                  <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-blue-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
+                  Total Time:
+                </div>
+                <span className="font-medium text-gray-800">
+                  {formatNumber(monthData.sessionTime)} mins
+                  <span className={`${isSmallScreen ? "text-[9px]" : "text-xs"} text-blue-500 ml-1`}>
+                    ({Math.round((monthData.sessionTime / 60) * 10) / 10} hrs)
+                  </span>
                 </span>
-              </span>
-            </div>
-
-            {/* Session Count */}
-            <div
-              className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
-            >
-              <div className="flex items-center text-gray-700">
-                <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-teal-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
-                Sessions:
               </div>
-              <span className="font-medium text-gray-800">
-                {formatNumber(monthData.sessionCount)}
-              </span>
-            </div>
 
-            {/* Average Session Length */}
-            <div
-              className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
-            >
-              <div className="flex items-center text-gray-700">
-                <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-green-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
-                Avg. Length:
+              {/* Session Count */}
+              <div
+                className={`flex items-center justify-between mt-1 ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
+              >
+                <div className="flex items-center text-gray-700">
+                  <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-teal-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
+                  Sessions:
+                </div>
+                <span className="font-medium text-gray-800">
+                  {formatNumber(monthData.sessionCount)}
+                </span>
               </div>
-              <span className="font-medium text-gray-800">
-                {formatNumber(monthData.avgSessionLength)} mins
-              </span>
+
+              {/* Average Session Length */}
+              <div
+                className={`flex items-center justify-between mt-1 ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
+              >
+                <div className="flex items-center text-gray-700">
+                  <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-green-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
+                  Avg. Length:
+                </div>
+                <span className="font-medium text-gray-800">
+                  {formatNumber(monthData.avgSessionLength)} mins
+                  
+                  {/* Historical comparison */}
+                  {historicalAvg > 0 && (
+                    <span className={`${isSmallScreen ? "ml-1 text-[8px]" : "ml-2 text-[10px]"}  ${monthData.avgSessionLength > historicalAvg ? "text-green-600" : monthData.avgSessionLength < historicalAvg ? "text-red-600" : "text-gray-600"}`}>
+                      {monthData.avgSessionLength > historicalAvg ? "↑" : monthData.avgSessionLength < historicalAvg ? "↓" : "="} 
+                      vs avg: {historicalAvg}m
+                    </span>
+                  )}
+                </span>
+              </div>
             </div>
 
-            {/* Growth Indicator */}
-            {monthData.growth !== undefined && (
-              <div className={`${isSmallScreen ? "mt-2 pt-1.5" : "mt-3 pt-2"} border-t border-gray-100`}>
+            {/* Growth Section */}
+            <div className="bg-gray-50 p-2 rounded-md">
+              {/* Monthly Growth */}
+              {monthData.growth !== undefined && (
                 <div
                   className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
                 >
                   <div className="flex items-center text-gray-700">
                     <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-amber-400 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
-                    {isSmallScreen ? "Growth:" : "Monthly Time Growth:"}
+                    Monthly Change:
                   </div>
                   <span
                     className={`font-semibold ${
@@ -362,10 +445,66 @@ export default function SessionTimeChart() {
                     {formatNumber(monthData.growth)}%
                   </span>
                 </div>
-                <p
-                  className={`${isSmallScreen ? "text-[8px]" : "text-xs"} text-gray-500 ${isSmallScreen ? "mt-0.5" : "mt-1"} text-right`}
+              )}
+
+              {/* Long Term Trend (3-month) */}
+              {longTermTrend !== 0 && (
+                <div
+                  className={`flex items-center justify-between mt-1 ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
                 >
-                  vs. previous month
+                  <div className="flex items-center text-gray-700">
+                    <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-purple-400 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
+                    3-Month Trend:
+                  </div>
+                  <span
+                    className={`font-semibold ${
+                      longTermTrend > 0
+                        ? "text-green-600"
+                        : longTermTrend < 0
+                          ? "text-red-600"
+                          : "text-gray-600"
+                    }`}
+                  >
+                    {longTermTrend >= 0 ? "+" : ""}
+                    {formatNumber(longTermTrend)}%
+                  </span>
+                </div>
+              )}
+              
+              {/* Consistency Indicator */}
+              <div
+                className={`flex items-center justify-between mt-1 ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
+              >
+                <div className="flex items-center text-gray-700">
+                  <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-indigo-400 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
+                  Consistency:
+                </div>
+                <span className="font-medium flex items-center">
+                  <span className={`${commitmentLevel === "Excellent" ? "text-green-600" : commitmentLevel === "Strong" ? "text-blue-600" : commitmentLevel === "Building" ? "text-amber-600" : "text-gray-600"}`}>
+                    {commitmentLevel}
+                  </span>
+                  <span className="text-gray-500 ml-1 text-[8px]">
+                    ({consecutiveMonths} {consecutiveMonths === 1 ? "month" : "months"})
+                  </span>
+                </span>
+              </div>
+            </div>
+            
+            {/* Insight Section - Only show for non-small screens */}
+            {!isSmallScreen && (
+              <div className="mt-1 pt-1 border-t border-gray-200">
+                <p className="text-[10px] text-gray-600 italic">
+                  {monthData.sessionCount === 0 ? (
+                    "No sessions recorded this month. Consider scheduling to maintain progress."
+                  ) : monthData.growth > 10 ? (
+                    "Significant increase in therapy time this month, great commitment!"
+                  ) : consecutiveMonths >= 3 ? (
+                    `Strong consistency with ${consecutiveMonths} consecutive months of sessions.`
+                  ) : monthData.avgSessionLength > 50 ? (
+                    "Your longer sessions may allow for deeper therapeutic work."
+                  ) : (
+                    "Regular sessions help build momentum in your therapy journey."
+                  )}
                 </p>
               </div>
             )}
@@ -538,7 +677,7 @@ export default function SessionTimeChart() {
               <XAxis
                 dataKey="monthFormatted"
                 tick={{
-                  fill: "#9CA3AF",
+                  fill: "#FFFFFF",
                   fontSize: isSmallScreen ? 7 : 10,
                   fontWeight: 500,
                 }}
@@ -555,7 +694,7 @@ export default function SessionTimeChart() {
               <YAxis
                 yAxisId="left"
                 orientation="left"
-                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 7 : 10 }}
+                tick={{ fill: "#FFFFFF", fontSize: isSmallScreen ? 7 : 10 }}
                 axisLine={{ stroke: "#374151" }}
                 tickLine={false}
                 domain={[0, "dataMax + 50"]}
@@ -565,7 +704,7 @@ export default function SessionTimeChart() {
                   angle: -90,
                   position: "insideLeft",
                   style: {
-                    fill: "#9CA3AF",
+                    fill: "#FFFFFF",
                     fontSize: isSmallScreen ? 8 : 11,
                     fontWeight: 500,
                     textAnchor: "middle",
@@ -583,7 +722,7 @@ export default function SessionTimeChart() {
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 7 : 10 }}
+                tick={{ fill: "#FFFFFF", fontSize: isSmallScreen ? 7 : 10 }}
                 axisLine={{ stroke: "#374151" }}
                 tickLine={false}
                 domain={[0, "dataMax + 5"]}
@@ -593,7 +732,7 @@ export default function SessionTimeChart() {
                   angle: 90,
                   position: "insideRight",
                   style: {
-                    fill: "#9CA3AF",
+                    fill: "#FFFFFF",
                     fontSize: isSmallScreen ? 8 : 11,
                     fontWeight: 500,
                     textAnchor: "middle",

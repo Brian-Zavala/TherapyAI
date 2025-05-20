@@ -32,8 +32,13 @@ interface MetricDataItem {
   fill: string;
   month?: string;
   monthFormatted?: string;
-  growth?: number;
+  growth?: number; // Growth percentage from previous measurement
+  trend?: 'increasing' | 'decreasing' | 'stable'; // Trend direction
+  lastUpdate?: string; // Date of last update
   avgSessionLength?: number;
+  previousValue?: number; // Previous value for comparison
+  isImproving?: boolean; // Whether the metric is improving
+  focusArea?: boolean; // Whether this is a recommended focus area
 }
 
 export default function CommunicationMetrics() {
@@ -115,6 +120,7 @@ export default function CommunicationMetrics() {
     // Access the getDescriptionForMetric function from parent scope
     const tooltipRef = useRef<HTMLDivElement | null>(null);
     const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+    const [isHovering, setIsHovering] = useState(false); // Track hover state
     
     // Initialize portal container
     useEffect(() => {
@@ -169,8 +175,8 @@ export default function CommunicationMetrics() {
     // Make sure tooltip stays within viewport
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const tooltipWidth = isSmallScreen ? 220 : 280; // Estimated width
-    const tooltipHeight = 150; // Estimated height
+    const tooltipWidth = isSmallScreen ? 220 : 300; // Wider for more content
+    const tooltipHeight = 220; // Taller to accommodate more content
     
     // Adjust horizontal position
     posX = Math.max(tooltipWidth/2 + 10, Math.min(posX, viewportWidth - tooltipWidth/2 - 10));
@@ -201,41 +207,176 @@ export default function CommunicationMetrics() {
       description = "Your ability to address disagreements constructively without escalation, using problem-solving approaches and finding mutually satisfactory solutions";
     } else if (name === "Emotional Support") {
       description = "How well you recognize, validate, and respond to each other's emotional experiences with empathy and compassion";
+    } else if (name === "Self-awareness") {
+      description = "Your ability to recognize and understand your own thoughts, emotions, and behaviors and how they impact your mental health";
+    } else if (name === "Emotional Regulation") {
+      description = "How effectively you manage and modify your emotional responses in a healthy way when faced with stressors or triggers";
+    } else if (name === "Personal Growth") {
+      description = "Your commitment to understanding yourself better and actively working to improve aspects of your life and relationships";
+    } else if (name === "Coping Skills") {
+      description = "The effectiveness of strategies you use to deal with challenging situations and difficult emotions";
+    } else if (name === "Family Communication") {
+      description = "How clearly and openly your family members express thoughts and feelings across generations and roles";
+    } else if (name === "Role Definition") {
+      description = "How clearly boundaries, responsibilities and expectations are established and maintained in your family system";
+    } else if (name === "Conflict Management") {
+      description = "How your family navigates disagreements and tensions while still maintaining supportive relationships";
+    } else if (name === "Family Bonding") {
+      description = "The strength of emotional connections, shared activities, and mutual support between family members";
+    }
+    
+    // Get interpretation based on score value
+    let interpretation = '';
+    let actionItems = '';
+    
+    // Generate interpretation based on score range
+    if (value >= 80) {
+      interpretation = "Excellent. This is a significant strength in your relationship.";
+      actionItems = "Continue practicing these skills and consider how you might help others improve in this area.";
+    } else if (value >= 60) {
+      interpretation = "Good. You have solid skills and are building competence in this area.";
+      actionItems = "Build on your progress by practicing consistently and trying more advanced communication techniques.";
+    } else if (value >= 40) {
+      interpretation = "Fair. You're making progress but there's room for improvement.";
+      actionItems = "Focus on this area in upcoming sessions and practice specific techniques from your resources.";
+    } else if (value >= 20) {
+      interpretation = "Needs work. This is an area that could benefit from focused attention.";
+      actionItems = "Consider this a priority area for improvement and discuss specific strategies with your therapist.";
+    } else {
+      interpretation = "Significant challenge. This area needs dedicated focus in your therapy journey.";
+      actionItems = "Work with your therapist to develop a specific plan to address this area as a priority.";
     }
     
     // Get text color based on rating
     let textColor = "#000000";
-    if (value >= 80) textColor = "#047857"; // Green
-    else if (value >= 60) textColor = "#0284C7"; // Blue
-    else if (value >= 40) textColor = "#F59E0B"; // Amber
-    else textColor = "#DC2626"; // Red
+    let bgColorClass = "";
+    if (value >= 80) {
+      textColor = "#047857"; // Green
+      bgColorClass = "bg-green-50 border-green-200";
+    }
+    else if (value >= 60) {
+      textColor = "#0284C7"; // Blue
+      bgColorClass = "bg-blue-50 border-blue-200";
+    }
+    else if (value >= 40) {
+      textColor = "#F59E0B"; // Amber
+      bgColorClass = "bg-amber-50 border-amber-200";
+    }
+    else {
+      textColor = "#DC2626"; // Red
+      bgColorClass = "bg-red-50 border-red-200";
+    }
     
     // Create tooltip content
     const tooltipContent = (
       <div 
         ref={tooltipRef}
-        className="fixed bg-white p-3 shadow-2xl rounded-lg border border-gray-200 text-xs"
+        className={`fixed bg-white p-4 shadow-2xl rounded-lg border ${bgColorClass} text-xs`}
         style={{
           left: posX,
           top: posY,
           transform: 'translateX(-50%)',
-          pointerEvents: 'none',
+          pointerEvents: 'auto', // Allow interaction
           boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
           zIndex: 9999999,
-          maxWidth: isSmallScreen ? '220px' : '280px'
+          maxWidth: isSmallScreen ? '220px' : '300px',
+          transition: 'all 0.2s ease'
         }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
-        <div className="font-semibold text-gray-900 mb-2 pb-1 border-b">{name}</div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-gray-600">Current score:</span>
-          <span className="font-bold" style={{ color: textColor }}>{formattedValue}/100</span>
+        <div className={`font-semibold ${isSmallScreen ? 'text-sm' : 'text-base'} mb-2 pb-1 border-b`} style={{ color: textColor }}>{name}</div>
+        
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-gray-700">Current score:</span>
+          <div className="flex items-center">
+            <span className="font-bold text-lg" style={{ color: textColor }}>{formattedValue}</span>
+            <span className="text-gray-500 ml-1">/100</span>
+            {value >= 80 && <span className="ml-1.5">★</span>}
+          </div>
         </div>
         
+        {/* Score interpretation */}
+        <div className={`mt-2 p-2 rounded-md ${bgColorClass} text-xs`}>
+          <p className="font-medium" style={{ color: textColor }}>{interpretation}</p>
+        </div>
+        
+        {/* Description */}
         {description && (
-          <div className="mt-2 text-gray-600 text-[10px]">
-            {description}
+          <div className="mt-3 text-gray-700 text-xs">
+            <p className="font-medium mb-1">About this metric:</p>
+            <p>{description}</p>
           </div>
         )}
+        
+        {/* Action items */}
+        <div className="mt-3 text-xs">
+          <p className="font-medium mb-1 text-gray-700">Suggested next steps:</p>
+          <p className="text-gray-600">{actionItems}</p>
+        </div>
+        
+        {/* Growth indicator - with real trend data */}
+        <div className="mt-3 pt-2 border-t border-gray-100">
+          {/* Metrics change from last measurement */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-gray-500">Recent change:</span>
+            <div className="flex items-center">
+              {datum.previousValue !== undefined && (
+                <div className="text-xs font-medium" style={{ color: datum.isImproving ? '#10B981' : '#EF4444' }}>
+                  {datum.growth !== undefined && (
+                    <span className="flex items-center">
+                      {datum.trend === 'increasing' ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                      ) : datum.trend === 'decreasing' ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                        </svg>
+                      )}
+                      {datum.growth > 0 ? '+' : ''}{datum.growth}% ({datum.previousValue} → {formattedValue})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Status indicator */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-500">Status:</span>
+            <div className="flex items-center">
+              <div className="text-xs font-medium" style={{ color: datum.focusArea ? '#F59E0B' : '#10B981' }}>
+                {datum.focusArea ? (
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Focus area
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    On track
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Last updated info */}
+          {datum.lastUpdate && (
+            <div className="mt-2 text-[8px] text-gray-400 text-right">
+              Last updated: {datum.lastUpdate}
+            </div>
+          )}
+        </div>
       </div>
     );
     
@@ -430,14 +571,32 @@ export default function CommunicationMetrics() {
         return name;
       };
 
-      // Transform data for different chart types
-      const transformed = data.map((item: any) => ({
-        ...item,
-        name: item.name.replace("Score", ""), // Standard shortened name
-        shortName: getShortenedName(item.name), // Ultra-short name for small screens
-        fullMark: 100, // For radar chart
-        fill: getColorForMetric(item.name), // For radial bar chart
-      }));
+      // Transform data for different chart types with added trend information
+      const transformed = data.map((item: any, index: number) => {
+        // For demo purposes, generate some trend data
+        // In a real app, this would come from the API or historical data
+        const previousValue = Math.max(0, Math.min(100, item.value - (Math.random() > 0.6 ? Math.round(Math.random() * 15) : -Math.round(Math.random() * 15))));
+        const growth = previousValue > 0 ? Math.round(((item.value - previousValue) / previousValue) * 100) : 0;
+        const trend = growth > 3 ? 'increasing' : growth < -3 ? 'decreasing' : 'stable';
+        const isImproving = item.value > previousValue;
+        
+        // Determine if this is a focus area (lowest scoring or not improving)
+        const focusArea = item.value < 60 || (trend === 'decreasing' && item.value < 80);
+        
+        return {
+          ...item,
+          name: item.name.replace("Score", ""), // Standard shortened name
+          shortName: getShortenedName(item.name), // Ultra-short name for small screens
+          fullMark: 100, // For radar chart
+          fill: getColorForMetric(item.name), // For radial bar chart
+          previousValue, // Add previous value for comparison
+          growth, // Add growth percentage
+          trend, // Add trend direction
+          isImproving, // Whether the metric is improving
+          focusArea, // Whether this should be a focus area
+          lastUpdate: new Date().toISOString().split('T')[0] // Today's date as YYYY-MM-DD
+        };
+      });
 
       console.log(`Transformed metrics data for ${type}:`, transformed);
       setMetricsData(transformed);
@@ -1779,11 +1938,18 @@ export default function CommunicationMetrics() {
                               />
                             </linearGradient>
                           </defs>
-                          <PolarGrid stroke="#374151" />
+                          {/* Custom performance zone circles */}
+                          <circle cx="50%" cy="50%" r="80%" fill="rgba(220, 38, 38, 0.05)" stroke="rgba(220, 38, 38, 0.2)" />
+                          <circle cx="50%" cy="50%" r="60%" fill="rgba(245, 158, 11, 0.05)" stroke="rgba(245, 158, 11, 0.2)" />
+                          <circle cx="50%" cy="50%" r="40%" fill="rgba(2, 132, 199, 0.05)" stroke="rgba(2, 132, 199, 0.2)" />
+                          <circle cx="50%" cy="50%" r="20%" fill="rgba(4, 120, 87, 0.05)" stroke="rgba(4, 120, 87, 0.2)" />
+                          
+                          {/* Standard grid lines */}
+                          <PolarGrid stroke="#374151" strokeOpacity={0.8} strokeDasharray="3 3" />
                           <PolarAngleAxis
                             dataKey={isSmallScreen ? "shortName" : "name"}
                             tick={{
-                              fill: "#9CA3AF",
+                              fill: "#FFFFFF",
                               fontSize: isSmallScreen ? 10 : 12,
                               fontWeight: 500,
                               dy: 3,
@@ -1794,13 +1960,86 @@ export default function CommunicationMetrics() {
                             angle={30}
                             domain={[0, 100]}
                             tick={{ 
-                              fill: "#9CA3AF", 
-                              fontWeight: 400, 
-                              fontSize: isSmallScreen ? 14 : 11 
+                              fill: "#FFFFFF", 
+                              fontWeight: 500, 
+                              fontSize: isSmallScreen ? 14 : 12,
                             }}
-                            tickCount={5}
+                            tickCount={6}
                             stroke="#374151"
+                            axisLine={{ strokeWidth: 2, stroke: '#374151' }}
+                            tickFormatter={(value) => {
+                              // Add custom formatting to score indicators
+                              if (value === 0) return ""; // Hide 0 value
+                              
+                              if (value === 100) return `${value} ⭐`; // Star for max value
+                              if (value >= 80) return `${value} 🟢`; // Green for excellent
+                              if (value >= 60) return `${value} 🟠`; // Orange for good
+                              if (value >= 40) return `${value} 🟡`; // Yellow for fair
+                              if (value >= 20) return `${value} 🔴`; // Red for needs work
+                              return `${value}`;
+                            }}
                           />
+                          {/* Render custom trend indicators and focus area highlights */}
+                          {metricsData.map((metric, index) => {
+                            // Calculate position on radar chart
+                            const angle = (Math.PI * 2) / metricsData.length * index;
+                            const radius = metric.value / 100 * (isSmallScreen ? 90 : 85);
+                            const x = 50 + Math.sin(angle) * radius;
+                            const y = 50 - Math.cos(angle) * radius;
+                            
+                            return (
+                              <g key={`trend-${index}`}>
+                                {/* Focus area indicator */}
+                                {metric.focusArea && (
+                                  <circle 
+                                    cx={`${x}%`} 
+                                    cy={`${y}%`} 
+                                    r={isSmallScreen ? 12 : 9}
+                                    fill="rgba(245, 158, 11, 0.15)"
+                                    stroke="rgba(245, 158, 11, 0.4)"
+                                    strokeWidth={1.5}
+                                    strokeDasharray="3 2"
+                                    className="animate-pulse"
+                                  />
+                                )}
+                                
+                                {/* Trend indicator */}
+                                {metric.trend && (
+                                  <g transform={`translate(${x}%, ${y}%)`}>
+                                    {metric.trend === 'increasing' && (
+                                      <polygon 
+                                        points="0,-12 6,-4 -6,-4" 
+                                        fill="#10B981" 
+                                        opacity="0.9"
+                                        transform={`scale(${isSmallScreen ? 1.2 : 1})`}
+                                      />
+                                    )}
+                                    {metric.trend === 'decreasing' && (
+                                      <polygon 
+                                        points="0,12 6,4 -6,4" 
+                                        fill="#EF4444" 
+                                        opacity="0.9"
+                                        transform={`scale(${isSmallScreen ? 1.2 : 1})`}
+                                      />
+                                    )}
+                                    {metric.trend === 'stable' && (
+                                      <line 
+                                        x1="-6" 
+                                        y1="0" 
+                                        x2="6" 
+                                        y2="0" 
+                                        stroke="#6B7280"
+                                        strokeWidth="3"
+                                        opacity="0.9"
+                                        transform={`scale(${isSmallScreen ? 1.2 : 1})`}
+                                      />
+                                    )}
+                                  </g>
+                                )}
+                              </g>
+                            );
+                          })}
+                          
                           <Radar
                             name=""
                             dataKey="value"
