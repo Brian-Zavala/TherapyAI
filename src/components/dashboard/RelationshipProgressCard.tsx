@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -16,6 +16,7 @@ import {
   AreaChart,
 } from "recharts";
 import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
 
 // Define types for better clarity (optional but recommended)
 type DataPoint = {
@@ -136,7 +137,7 @@ export default function RelationshipProgressCard() {
   // Track screen size for responsive design
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsSmallScreen(window.innerWidth < 432);
+      setIsSmallScreen(window.innerWidth < 640);
     };
 
     // Check initial size
@@ -250,7 +251,166 @@ export default function RelationshipProgressCard() {
     }
   }, [data, getChartMetrics]); // Dependencies are data and the memoized function
 
-  // --- Memoized UI Components & Values ---
+  // --- Custom Portal Tooltip Component ---
+interface PortalTooltipProps {
+  active?: boolean;
+  payload?: Array<any>;
+  label?: string;
+  x?: number;
+  y?: number;
+  chartType: string;
+  isSmallScreen: boolean;
+  viewSessionTranscript: (sessionId?: string) => void;
+}
+
+// Component to render tooltip with portal
+const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen, viewSessionTranscript }: PortalTooltipProps) => {
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+  
+  // Initialize portal container
+  useEffect(() => {
+    // Create portal container if it doesn't exist
+    let element = document.getElementById('chart-tooltip-container');
+    if (!element) {
+      element = document.createElement('div');
+      element.id = 'chart-tooltip-container';
+      element.style.position = 'fixed';
+      element.style.top = '0';
+      element.style.left = '0';
+      element.style.width = '100%';
+      element.style.height = '100%';
+      element.style.pointerEvents = 'none';
+      element.style.zIndex = '9999999'; // Extremely high z-index
+      document.body.appendChild(element);
+    }
+    setPortalElement(element);
+    
+    // Cleanup
+    return () => {
+      if (element && element.childNodes.length === 0) {
+        document.body.removeChild(element);
+      }
+    };
+  }, []);
+  
+  // Don't render anything if no portal element or inactive
+  if (!active || !payload || payload.length === 0 || !portalElement || !x || !y) {
+    return null;
+  }
+  
+  // Ensure payload[0] and its payload exist before accessing
+  const dataPoint = payload[0]?.payload;
+  if (!dataPoint) return null;
+  
+  // Default quality score calculation if needed
+  const qualityScore = dataPoint.qualityScore ?? Math.round((dataPoint.closeness + dataPoint.communication) / 2);
+  
+  // Calculate tooltip position, adjust for boundaries
+  let posX = x;
+  let posY = y + 10; // Position slightly below cursor
+  
+  // Create tooltip content
+  const tooltipContent = (
+    <div 
+      ref={tooltipRef}
+      className={`fixed bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-2xl rounded-md border border-gray-200 ${isSmallScreen ? 'max-w-[240px]' : 'max-w-[280px]'} ${isSmallScreen ? 'text-[10px]' : 'text-xs'}`}
+      style={{
+        left: posX,
+        top: posY,
+        transform: 'translate(-50%, 0)',
+        pointerEvents: 'none',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+        zIndex: 9999999
+      }}
+    >
+      <p className={`font-semibold text-gray-800 ${isSmallScreen ? 'mb-1.5' : 'mb-2'}`}>{label}</p>
+      {/* Show session number if available */}
+      {dataPoint.sessionNumber != null && (
+        <p className={`${isSmallScreen ? 'text-[9px]' : 'text-xs'} text-gray-500 ${isSmallScreen ? 'mb-0.5' : 'mb-1'}`}>
+          Session #{dataPoint.sessionNumber}
+        </p>
+      )}
+      <div className={`${isSmallScreen ? 'space-y-1' : 'space-y-1.5'}`}>
+        <p className="flex items-center justify-between">
+          <span className="flex items-center text-gray-700">
+            <span className={`inline-block ${isSmallScreen ? 'w-2 h-2' : 'w-2.5 h-2.5'} bg-blue-500 rounded-full ${isSmallScreen ? 'mr-1' : 'mr-1.5'}`}></span>
+            Closeness:
+          </span>
+          <span className="font-medium text-gray-900">
+            {payload[0]?.value ?? "N/A"}/100
+          </span>
+        </p>
+        {payload[1] && (
+          <p className="flex items-center justify-between">
+            <span className="flex items-center text-gray-700">
+              <span className={`inline-block ${isSmallScreen ? 'w-2 h-2' : 'w-2.5 h-2.5'} bg-emerald-500 rounded-full ${isSmallScreen ? 'mr-1' : 'mr-1.5'}`}></span>
+              Communication:
+            </span>
+            <span className="font-medium text-gray-900">
+              {payload[1]?.value ?? "N/A"}/100
+            </span>
+          </p>
+        )}
+        {chartType === "composed" && (
+          <p className="flex items-center justify-between">
+            <span className="flex items-center text-gray-700">
+              <span className={`inline-block ${isSmallScreen ? 'w-2 h-2' : 'w-2.5 h-2.5'} bg-indigo-500 rounded-full ${isSmallScreen ? 'mr-1' : 'mr-1.5'}`}></span>
+              Overall Quality:
+            </span>
+            <span className="font-medium text-gray-900">
+              {qualityScore}/100
+            </span>
+          </p>
+        )}
+      </div>
+      {/* Show insight if available */}
+      {dataPoint.insight && (
+        <div className={`${isSmallScreen ? 'mt-1.5 pt-1' : 'mt-2 pt-1.5'} border-t border-gray-100`}>
+          <p className={`${isSmallScreen ? 'text-[9px]' : 'text-xs'} italic text-gray-600`}>
+            {dataPoint.insight}
+          </p>
+        </div>
+      )}
+      {/* Show notes if available */}
+      {dataPoint.notes && dataPoint.notes !== "Sample data for demonstration" && (
+        <div className={`${isSmallScreen ? 'mt-1.5 pt-1' : 'mt-2 pt-1.5'} border-t border-gray-100`}>
+          <p className={`${isSmallScreen ? 'text-[9px]' : 'text-xs'} text-gray-500 line-clamp-3`}>
+            <span className="font-medium text-gray-600">Notes:</span>{" "}
+            {dataPoint.notes}
+          </p>
+        </div>
+      )}
+      {/* Link to session transcript if available */}
+      {dataPoint.sessionId && (
+        <button
+          onClick={() => dataPoint.sessionId && viewSessionTranscript(dataPoint.sessionId)}
+          className={`${isSmallScreen ? 'mt-1.5 pt-1' : 'mt-2 pt-1.5'} border-t border-gray-100 w-full text-left ${isSmallScreen ? 'text-[9px]' : 'text-xs'} flex items-center text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50`}
+          disabled={!dataPoint.sessionId}
+        >
+          <svg
+            className={`${isSmallScreen ? 'w-2.5 h-2.5' : 'w-3 h-3'} mr-1 flex-shrink-0`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          View Session Transcript
+        </button>
+      )}
+    </div>
+  );
+  
+  return createPortal(tooltipContent, portalElement);
+};
+
+// --- Memoized UI Components & Values ---
 
   const TimeframeSelector = useMemo(() => {
     return () => (
@@ -359,118 +519,10 @@ export default function RelationshipProgressCard() {
     );
   }, [therapyType]); // Depends on therapyType state
 
-  // Enhanced tooltip for the chart - using memo to avoid hooks error
+  // Enhanced tooltip for the chart - now just returns null as we use portal-based tooltip
   const CustomTooltip = useMemo(() => {
-    // The component returned here is memoized based on dependencies below
-    return ({ active, payload, label }: any): JSX.Element | null => {
-      // Consider adding more specific types for payload
-      if (active && payload && payload.length) {
-        // Ensure payload[0] and its payload exist before accessing
-        const dataPoint: DataPoint | undefined = payload[0]?.payload;
-
-        if (!dataPoint) return null; // Guard clause
-
-        // Default quality score calculation if needed
-        const qualityScore =
-          dataPoint.qualityScore ??
-          Math.round((dataPoint.closeness + dataPoint.communication) / 2);
-
-        return (
-          <div className="bg-white p-4 shadow-md rounded-md border border-gray-200 max-w-[280px] text-xs">
-            {" "}
-            {/* Adjusted max-width and font size */}
-            <p className="font-semibold text-gray-800 mb-2">{label}</p>
-            {/* Show session number if available */}
-            {dataPoint.sessionNumber != null && ( // Check for null/undefined explicitly
-              <p className="text-xs text-gray-500 mb-1">
-                Session #{dataPoint.sessionNumber}
-              </p>
-            )}
-            <div className="space-y-1.5">
-              {" "}
-              {/* Reduced space */}
-              <p className="flex items-center justify-between">
-                <span className="flex items-center text-gray-700">
-                  <span className="inline-block w-2.5 h-2.5 bg-blue-500 rounded-full mr-1.5"></span>
-                  Closeness:
-                </span>
-                <span className="font-medium text-gray-900">
-                  {payload[0]?.value ?? "N/A"}/100
-                </span>
-              </p>
-              {payload[1] && ( // Check if second payload item exists
-                <p className="flex items-center justify-between">
-                  <span className="flex items-center text-gray-700">
-                    <span className="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full mr-1.5"></span>
-                    Communication:
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {payload[1]?.value ?? "N/A"}/100
-                  </span>
-                </p>
-              )}
-              {chartType === "composed" && ( // No need to check payload length here, just use calculated score
-                <p className="flex items-center justify-between">
-                  <span className="flex items-center text-gray-700">
-                    <span className="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-full mr-1.5"></span>
-                    Overall Quality:
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {qualityScore}/100
-                  </span>
-                </p>
-              )}
-            </div>
-            {/* Show insight if available */}
-            {dataPoint.insight && (
-              <div className="mt-2 pt-1.5 border-t border-gray-100">
-                <p className="text-xs italic text-gray-600">
-                  {dataPoint.insight}
-                </p>
-              </div>
-            )}
-            {/* Show notes if available */}
-            {dataPoint.notes &&
-              dataPoint.notes !== "Sample data for demonstration" && (
-                <div className="mt-2 pt-1.5 border-t border-gray-100">
-                  <p className="text-xs text-gray-500 line-clamp-3">
-                    {/* Allow more lines */}
-                    <span className="font-medium text-gray-600">
-                      Notes:
-                    </span>{" "}
-                    {dataPoint.notes}
-                  </p>
-                </div>
-              )}
-            {/* Link to session transcript if available */}
-            {dataPoint.sessionId && (
-              <button
-                onClick={() => dataPoint.sessionId && viewSessionTranscript(dataPoint.sessionId)}
-                className="mt-2 pt-1.5 border-t border-gray-100 w-full text-left text-xs flex items-center text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50"
-                disabled={!dataPoint.sessionId} // Disable if no ID
-              >
-                <svg
-                  className="w-3 h-3 mr-1 flex-shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                View Session Transcript
-              </button>
-            )}
-          </div>
-        );
-      }
-      return null;
-    };
-  }, [chartType, viewSessionTranscript]); // Depends on chartType and the memoized function
+    return (): null => null;
+  }, []);
 
   // Chart title based on therapy type
   const chartTitle = useMemo(
@@ -483,57 +535,80 @@ export default function RelationshipProgressCard() {
   );
 
   // Render chart based on selected type
+  // State to track mouse position for custom tooltip
+  const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{
+    active: boolean;
+    payload: any[];
+    label: string;
+  } | null>(null);
+
+  // Chart event handler for tooltip
+  const handleMouseMove = useCallback((e: any) => {
+    if (e.isTooltipActive && e.activeCoordinate) {
+      setMousePosition({ 
+        x: e.activeCoordinate.x, 
+        y: e.activeCoordinate.y 
+      });
+      setActiveTooltip({
+        active: e.isTooltipActive,
+        payload: e.activePayload || [],
+        label: e.activeLabel || ''
+      });
+    } else {
+      setActiveTooltip(null);
+    }
+  }, []);
+
   const renderChart = useMemo(() => {
     const commonProps = {
       data: data,
       margin: { 
-        top: isSmallScreen ? 10 : 15, 
-        right: isSmallScreen ? 20 : 40, 
-        left: isSmallScreen ? 30 : 40, 
-        bottom: isSmallScreen ? 20 : 30 
+        top: isSmallScreen ? 8 : 15, 
+        right: isSmallScreen ? 15 : 40, 
+        left: isSmallScreen ? 25 : 40, 
+        bottom: isSmallScreen ? 15 : 30 
       },
-      className: "mx-auto"
+      className: "mx-auto",
+      onMouseMove: handleMouseMove,
+      onMouseLeave: () => setActiveTooltip(null)
     };
     const xAxis = (
       <XAxis
         dataKey="name"
-        tick={{ fontSize: 11, fill: "#9CA3AF" }}
-        tickMargin={10}
-        height={40}
-        interval="preserveStartEnd"
+        tick={{ fontSize: isSmallScreen ? 9 : 11, fill: "#9CA3AF" }}
+        tickMargin={isSmallScreen ? 8 : 10}
+        height={isSmallScreen ? 30 : 40}
+        interval={isSmallScreen ? "preserveEnd" : "preserveStartEnd"}
         stroke="#9CA3AF"
       />
     );
     const yAxis = (
-      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#9CA3AF" }} width={40} stroke="#9CA3AF" tickMargin={10} />
+      <YAxis 
+        domain={[0, 100]} 
+        tick={{ fontSize: isSmallScreen ? 9 : 11, fill: "#9CA3AF" }} 
+        width={isSmallScreen ? 30 : 40} 
+        stroke="#9CA3AF" 
+        tickMargin={isSmallScreen ? 8 : 10} 
+        tickCount={isSmallScreen ? 5 : 6}
+      />
     );
     const grid = <CartesianGrid strokeDasharray="3 3" stroke="#374151" />;
     const tooltip = (
       <Tooltip 
-        content={CustomTooltip} 
-        animationDuration={0}
-        isAnimationActive={false}
-        cursor={false}
-        wrapperStyle={{ 
-          zIndex: 9999,
-          position: 'absolute'
-        }}
-        contentStyle={{
-          backgroundColor: "white",
-          border: "none",
-          borderRadius: "8px",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-          padding: 0
-        }}
-        itemStyle={{ color: "#374151" }} 
-        allowEscapeViewBox={{ x: true, y: true }}
+        content={() => null} // Empty content as we're using our custom portal tooltip
+        cursor={{ fill: 'rgba(219, 234, 254, 0.3)' }}
       />
-    ); // Ensure tooltip is above other elements
+    );
     const legend = <Legend 
       verticalAlign="bottom" 
-      height={40} 
-      iconSize={10} 
+      height={isSmallScreen ? 30 : 40} 
+      iconSize={isSmallScreen ? 8 : 10} 
       align="center"
+      wrapperStyle={{
+        fontSize: isSmallScreen ? '10px' : '12px',
+        paddingTop: isSmallScreen ? '5px' : '10px'
+      }}
     />;
     const refLine = (
       <ReferenceLine
@@ -681,7 +756,7 @@ export default function RelationshipProgressCard() {
       );
     }
     return null; // Should not happen with current logic, but good practice
-  }, [chartType, data, CustomTooltip, isSmallScreen]); // Added CustomTooltip and isSmallScreen as dependencies
+  }, [chartType, data, isSmallScreen, handleMouseMove]); // Updated dependencies
 
   // --- Conditional Rendering (Loading State) ---
   // Now this check happens AFTER all hooks have been called
@@ -778,6 +853,19 @@ export default function RelationshipProgressCard() {
   // --- Final Render ---
   return (
     <div className={`bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full ${data.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+      {/* Render portal tooltip when active */}
+      {activeTooltip && activeTooltip.active && mousePosition && (
+        <PortalTooltip
+          active={activeTooltip.active}
+          payload={activeTooltip.payload}
+          label={activeTooltip.label}
+          x={mousePosition.x}
+          y={mousePosition.y}
+          chartType={chartType}
+          isSmallScreen={isSmallScreen}
+          viewSessionTranscript={viewSessionTranscript}
+        />
+      )}
       <div className="flex items-center mb-4">
         <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
           <svg
@@ -883,8 +971,9 @@ export default function RelationshipProgressCard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          style={{ position: 'relative', zIndex: 5 }}
         >
-          <div className={`${isSmallScreen ? 'h-[420px]' : 'h-[480px]'} w-full relative`} style={{ overflow: 'visible' }}>
+          <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[480px]'} w-full relative`} style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}>
             <ResponsiveContainer width="100%" height="100%" debounce={150}>
               {renderChart}
             </ResponsiveContainer>
@@ -933,7 +1022,7 @@ export default function RelationshipProgressCard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10"
+          className="mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10" style={{ position: 'relative', zIndex: 10 }}
         >
           <h4 className="text-xs text-white uppercase tracking-wider mb-3 font-bold flex items-center">
             <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>

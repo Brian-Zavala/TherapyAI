@@ -159,7 +159,7 @@ export default function Dashboard() {
           {/* Session Time Visualization */}
           <motion.div
             variants={item}
-            className="w-full h-[520px]"
+            className="w-full h-full min-h-[500px]"
           >
             <SessionTimeChart />
           </motion.div>
@@ -167,7 +167,7 @@ export default function Dashboard() {
           {/* Relationship Progress Card */}
           <motion.div
             variants={item}
-            className="w-full h-[520px]"
+            className="w-full h-full min-h-[500px]"
           >
             <RelationshipProgressCard />
           </motion.div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
           {/* Communication Metrics */}
           <motion.div
             variants={item}
-            className="w-full h-[520px]"
+            className="w-full h-full min-h-[500px]"
           >
             <CommunicationMetrics />
           </motion.div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
           {/* Upcoming Sessions */}
           <motion.div
             variants={item}
-            className="w-full h-[520px]"
+            className="w-full h-full min-h-[500px]"
           >
             <UpcomingSessions />
           </motion.div>
@@ -197,7 +197,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full h-[520px] mb-6"
+              className="w-full h-full min-h-[480px] mb-4 sm:mb-6"
             >
               <SessionTimeChart />
             </motion.div>
@@ -208,7 +208,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full h-[520px] mb-6"
+              className="w-full h-full min-h-[480px] mb-4 sm:mb-6"
             >
               <RelationshipProgressCard />
             </motion.div>
@@ -219,7 +219,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full h-[520px] mb-6"
+              className="w-full h-full min-h-[480px] mb-4 sm:mb-6"
             >
               <CommunicationMetrics />
             </motion.div>
@@ -230,7 +230,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full h-[520px] mb-6"
+              className="w-full h-full min-h-[480px] mb-4 sm:mb-6"
             >
               <UpcomingSessions />
             </motion.div>

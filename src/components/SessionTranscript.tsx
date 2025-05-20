@@ -555,50 +555,11 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
         continue;
       }
       
-      // If this entry contains a summary and transcript, extract just the transcript part
-      if (entry.text.includes("I've reviewed my notes from our previous sessions") && 
-          entry.text.includes("Full conversation transcript:")) {
-        
-        console.log('Found combined summary+transcript entry, extracting transcript part');
-        
-        // Extract only the part after "Full conversation transcript:"
-        const fullTranscriptPart = entry.text.split("Full conversation transcript:")[1];
-        
-        if (fullTranscriptPart && fullTranscriptPart.trim()) {
-          // Process the transcript text into individual entries
-          const lines = fullTranscriptPart.trim().split("\n");
-          console.log(`Extracted ${lines.length} lines from transcript part`);
-          
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line || line === "-----") continue;
-            
-            // Try to parse each line as a speaker: text format
-            const match = line.match(/^([^:]+):\s*(.+)$/);
-            if (match) {
-              const speaker = match[1].trim().toLowerCase();
-              const text = match[2].trim();
-              
-              if (text) {
-                initialFiltered.push({
-                  id: `extracted-${entry.id}-${i}`,
-                  sessionId: entry.sessionId,
-                  speaker: speaker === 'client' || speaker === 'you' ? 'user' : 'assistant',
-                  text: text,
-                  timestamp: new Date(Date.now() - (lines.length - i) * 10000).toISOString(),
-                  isFinal: true
-                });
-              }
-            }
-          }
-        }
-      } 
-      // If entry contains only session summary but no conversation - filter it out
-      else if (entry.text.includes("I've reviewed my notes from our previous sessions") ||
-          entry.text.includes("Key client concerns discussed:") ||
-          entry.text.includes("Guidance I provided:")) {
-        
-        console.log('Found summary-only entry - excluding');
+      // Filter out entries that start with "I've reviewed my notes from previous sessions"
+      if (entry.text.includes("I've reviewed my notes from our previous sessions")) {
+        console.log('Found summary entry - excluding');
+        // Skip entries with the summary text completely
+        continue;
       }
       // Regular conversation entry - include as is
       else {

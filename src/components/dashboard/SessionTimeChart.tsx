@@ -120,7 +120,7 @@ export default function SessionTimeChart() {
   // Track screen size for responsive adjustments
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsSmallScreen(window.innerWidth < 432);
+      setIsSmallScreen(window.innerWidth < 640);
     };
 
     // Initial check
@@ -289,25 +289,25 @@ export default function SessionTimeChart() {
 
       return (
         <div
-          className={`bg-white ${isSmallScreen ? "p-3" : "p-4"} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? "min-w-[200px]" : "min-w-[250px]"}`}
+          className={`bg-white ${isSmallScreen ? "p-2" : "p-4"} shadow-xl rounded-lg border border-gray-200 ${isSmallScreen ? "min-w-[180px] max-w-[220px]" : "min-w-[250px]"}`}
         >
           <p
-            className={`font-semibold text-blue-900 ${isSmallScreen ? "mb-2" : "mb-3"} border-b pb-2 ${isSmallScreen ? "text-sm" : ""}`}
+            className={`font-semibold text-blue-900 ${isSmallScreen ? "mb-1.5" : "mb-3"} border-b pb-1.5 ${isSmallScreen ? "text-xs" : "text-sm"}`}
           >
             {monthData.month}
           </p>
-          <div className={isSmallScreen ? "space-y-1.5" : "space-y-2"}>
+          <div className={isSmallScreen ? "space-y-1" : "space-y-2"}>
             {/* Total Time */}
             <div
-              className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+              className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
             >
               <div className="flex items-center text-gray-700">
-                <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2 flex-shrink-0"></span>
+                <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-blue-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
                 Total Time:
               </div>
               <span className="font-medium text-gray-800">
                 {formatNumber(monthData.sessionTime)} mins
-                <span className="text-xs text-blue-500 ml-1">
+                <span className={`${isSmallScreen ? "text-[9px]" : "text-xs"} text-blue-500 ml-1`}>
                   ({Math.round((monthData.sessionTime / 60) * 10) / 10} hrs)
                 </span>
               </span>
@@ -315,10 +315,10 @@ export default function SessionTimeChart() {
 
             {/* Session Count */}
             <div
-              className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+              className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
             >
               <div className="flex items-center text-gray-700">
-                <span className="inline-block w-3 h-3 bg-teal-500 rounded-full mr-2 flex-shrink-0"></span>
+                <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-teal-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
                 Sessions:
               </div>
               <span className="font-medium text-gray-800">
@@ -328,10 +328,10 @@ export default function SessionTimeChart() {
 
             {/* Average Session Length */}
             <div
-              className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+              className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
             >
               <div className="flex items-center text-gray-700">
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2 flex-shrink-0"></span>
+                <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-green-500 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
                 Avg. Length:
               </div>
               <span className="font-medium text-gray-800">
@@ -341,13 +341,13 @@ export default function SessionTimeChart() {
 
             {/* Growth Indicator */}
             {monthData.growth !== undefined && (
-              <div className="mt-3 pt-2 border-t border-gray-100">
+              <div className={`${isSmallScreen ? "mt-2 pt-1.5" : "mt-3 pt-2"} border-t border-gray-100`}>
                 <div
-                  className={`flex items-center justify-between ${isSmallScreen ? "text-xs" : "text-sm"}`}
+                  className={`flex items-center justify-between ${isSmallScreen ? "text-[10px]" : "text-sm"}`}
                 >
                   <div className="flex items-center text-gray-700">
-                    <span className="inline-block w-3 h-3 bg-amber-400 rounded-full mr-2 flex-shrink-0"></span>
-                    Monthly Time Growth:
+                    <span className={`inline-block ${isSmallScreen ? "w-2 h-2" : "w-3 h-3"} bg-amber-400 rounded-full ${isSmallScreen ? "mr-1.5" : "mr-2"} flex-shrink-0`}></span>
+                    {isSmallScreen ? "Growth:" : "Monthly Time Growth:"}
                   </div>
                   <span
                     className={`font-semibold ${
@@ -363,7 +363,7 @@ export default function SessionTimeChart() {
                   </span>
                 </div>
                 <p
-                  className={`${isSmallScreen ? "text-[10px]" : "text-xs"} text-gray-500 mt-1 text-right`}
+                  className={`${isSmallScreen ? "text-[8px]" : "text-xs"} text-gray-500 ${isSmallScreen ? "mt-0.5" : "mt-1"} text-right`}
                 >
                   vs. previous month
                 </p>
@@ -458,7 +458,7 @@ export default function SessionTimeChart() {
 
       {/* Simple Chart Container - Single-level wrapper */}
       <div
-        className={`w-full ${isSmallScreen ? "p-2" : "p-4 sm:p-6"} mb-6`}
+        className={`w-full ${isSmallScreen ? "p-1.5" : "p-4 sm:p-6"} mb-4 sm:mb-6`}
         style={{
           maxWidth: "100%",
           overflow: "hidden",
@@ -466,7 +466,7 @@ export default function SessionTimeChart() {
       >
         {/* Just a single height container with proper centering */}
         <div
-          className={isSmallScreen ? "h-[400px] w-full" : "h-[450px] w-full"}
+          className={isSmallScreen ? "h-[380px] w-full" : "h-[450px] w-full"}
           style={{
             minWidth: 0,
             overflow: "visible",
@@ -476,10 +476,10 @@ export default function SessionTimeChart() {
             <ComposedChart
               data={sessionData}
               margin={{
-                top: 10,
-                right: isSmallScreen ? 20 : 40,
-                left: isSmallScreen ? 30 : 40,
-                bottom: 10,
+                top: isSmallScreen ? 5 : 10,
+                right: isSmallScreen ? 15 : 40,
+                left: isSmallScreen ? 20 : 40,
+                bottom: isSmallScreen ? 5 : 10,
               }}
               barGap={isSmallScreen ? 2 : 4}
             >
@@ -539,73 +539,73 @@ export default function SessionTimeChart() {
                 dataKey="monthFormatted"
                 tick={{
                   fill: "#9CA3AF",
-                  fontSize: isSmallScreen ? 8 : 10,
+                  fontSize: isSmallScreen ? 7 : 10,
                   fontWeight: 500,
                 }}
                 axisLine={{ stroke: "#374151", strokeWidth: 1 }}
                 tickLine={false}
                 padding={{
-                  left: isSmallScreen ? 5 : 10,
-                  right: isSmallScreen ? 5 : 10,
+                  left: isSmallScreen ? 2 : 10,
+                  right: isSmallScreen ? 2 : 10,
                 }}
                 interval={isSmallScreen ? "preserveEnd" : "preserveStartEnd"}
-                height={isSmallScreen ? 25 : 30}
+                height={isSmallScreen ? 20 : 30}
               />
 
               <YAxis
                 yAxisId="left"
                 orientation="left"
-                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
+                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 7 : 10 }}
                 axisLine={{ stroke: "#374151" }}
                 tickLine={false}
                 domain={[0, "dataMax + 50"]}
-                width={isSmallScreen ? 30 : 40}
+                width={isSmallScreen ? 25 : 40}
                 label={{
-                  value: "Minutes",
+                  value: isSmallScreen ? "Min" : "Minutes",
                   angle: -90,
                   position: "insideLeft",
                   style: {
                     fill: "#9CA3AF",
-                    fontSize: isSmallScreen ? 9 : 11,
+                    fontSize: isSmallScreen ? 8 : 11,
                     fontWeight: 500,
                     textAnchor: "middle",
                   },
-                  offset: isSmallScreen ? 3 : 5,
+                  offset: isSmallScreen ? 2 : 5,
                 }}
                 tickFormatter={(value) =>
                   isSmallScreen
                     ? Math.round(value).toString()
                     : formatNumber(value)
                 }
-                tickCount={isSmallScreen ? 4 : 5}
+                tickCount={isSmallScreen ? 3 : 5}
               />
 
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 8 : 10 }}
+                tick={{ fill: "#9CA3AF", fontSize: isSmallScreen ? 7 : 10 }}
                 axisLine={{ stroke: "#374151" }}
                 tickLine={false}
                 domain={[0, "dataMax + 5"]}
-                width={isSmallScreen ? 30 : 40}
+                width={isSmallScreen ? 25 : 40}
                 label={{
-                  value: "Sessions",
+                  value: isSmallScreen ? "Sess" : "Sessions",
                   angle: 90,
                   position: "insideRight",
                   style: {
                     fill: "#9CA3AF",
-                    fontSize: isSmallScreen ? 9 : 11,
+                    fontSize: isSmallScreen ? 8 : 11,
                     fontWeight: 500,
                     textAnchor: "middle",
                   },
-                  offset: isSmallScreen ? 3 : 5,
+                  offset: isSmallScreen ? 2 : 5,
                 }}
                 tickFormatter={(value) =>
                   isSmallScreen
                     ? Math.round(value).toString()
                     : formatNumber(value)
                 }
-                tickCount={isSmallScreen ? 3 : 4}
+                tickCount={isSmallScreen ? 2 : 4}
               />
 
               <Tooltip
@@ -618,19 +618,32 @@ export default function SessionTimeChart() {
                 contentStyle={{
                   backgroundColor: "rgba(31, 41, 55, 0.8)",
                   borderColor: "#4B5563",
+                  overflow: 'visible',
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)"
                 }}
                 itemStyle={{ color: "#E5E7EB" }}
                 allowEscapeViewBox={{ x: true, y: true }}
+                wrapperStyle={{ 
+                  zIndex: 99999,
+                  position: 'absolute',
+                  left: isSmallScreen ? '-10px' : 'auto',
+                  transform: isSmallScreen ? 'translateX(10px)' : 'none',
+                  marginTop: isSmallScreen ? '5px' : '0',
+                  pointerEvents: 'none',
+                  overflow: 'visible'
+                }}
               />
 
               <Legend
                 verticalAlign="bottom"
                 align="center"
-                height={isSmallScreen ? 25 : 30}
-                iconSize={isSmallScreen ? 6 : 8}
+                height={isSmallScreen ? 20 : 30}
+                iconSize={isSmallScreen ? 5 : 8}
                 margin={{ top: 0, bottom: 0 }}
                 wrapperStyle={{
-                  fontSize: isSmallScreen ? 8 : 10,
+                  fontSize: isSmallScreen ? 7 : 10,
+                  paddingTop: isSmallScreen ? '2px' : '5px',
+                  paddingBottom: isSmallScreen ? '2px' : '5px'
                 }}
               />
 

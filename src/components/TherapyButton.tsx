@@ -1414,16 +1414,31 @@ function TherapyButton({
               }
             }
             
-            // For both family therapy and solo therapy, always use inline assistant to include the custom system prompt
-            // since Vapi doesn't allow system prompt overrides with pre-configured assistants
-            if (therapyType === 'family' || therapyType === 'solo') {
+            // For all therapy types, always use inline assistant to include the custom system prompt
+            // and ensure correct assistant names (since pre-configured assistants may have wrong names)
+            if (therapyType === 'family' || therapyType === 'solo' || therapyType === 'couple') {
               console.log(`Using inline assistant for ${therapyType} therapy to include custom system prompt`);
               
-              const assistantName = therapyType === 'family' ? 'Dr. Jada Pearson' : 'Dr. Elliot Mackaphy';
-              const voiceProvider = therapyType === 'family' ? "11labs" : "vapi";
-              const voiceId = therapyType === 'family' ? 
-                process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID :
-                process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID;
+              let assistantName, voiceProvider, voiceId;
+              
+              switch (therapyType) {
+                case 'family':
+                  assistantName = 'Dr. Jada Pearson';
+                  voiceProvider = "11labs";
+                  voiceId = process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID;
+                  break;
+                case 'solo':
+                  assistantName = 'Dr. Elliot Mackaphy';
+                  voiceProvider = "vapi";
+                  voiceId = process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID;
+                  break;
+                case 'couple':
+                default:
+                  assistantName = 'Dr. Maya Thompson';
+                  voiceProvider = "11labs";
+                  voiceId = process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID;
+                  break;
+              }
               
               const inlineAssistant = {
                 name: assistantName,
@@ -1439,8 +1454,7 @@ function TherapyButton({
                   provider: voiceProvider,
                   voiceId: voiceId
                 },
-                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
-                variableValues: variableValues
+                firstMessage: vapiInstanceRef.current?._customData?.firstMessage
               };
               
               console.log(`System prompt for ${therapyType} therapy:`, inlineAssistant.model.messages[0].content.substring(0, 200) + '...');
@@ -1448,8 +1462,8 @@ function TherapyButton({
               await vapiInstanceRef.current.start(inlineAssistant);
               console.log(`Successfully started ${therapyType} therapy session`);
             }
-            // For couple therapy, use assistant ID with overrides if available
-            else if (assistantId) {
+            // This path is no longer used since all therapy types use inline assistants
+            else if (false) {
               const assistantOverrides = {
                 variableValues: variableValues,
                 firstMessage: vapiInstanceRef.current?._customData?.firstMessage,

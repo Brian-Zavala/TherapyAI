@@ -53,6 +53,22 @@ export default function CommunicationMetrics() {
   const expandedRef = useRef(false); // Use ref to track expansion state for scroll timing
   const [userInteracted, setUserInteracted] = useState(false); // Track if user has interacted with chart types
   const [isSmallScreen, setIsSmallScreen] = useState(false); // Track small screen size for responsive adjustments
+  
+  // Effect to track screen size for responsive design
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 640);
+    };
+
+    // Check initial size
+    checkScreenSize();
+
+    // Add resize listener
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
   const playSound = useButtonSound(); // Sound effect for interactions
 
   // Mount and initialize component
@@ -1112,16 +1128,8 @@ export default function CommunicationMetrics() {
             <div className="flex flex-wrap gap-3 xs:gap-4 sm:gap-5 justify-start xs:justify-end w-full xs:w-auto">
               <motion.div
                 whileHover={{ y: -2, scale: 1.03 }}
-                onClick={() => {
-                  if (highestMetric) {
-                    handleMetricFocus(highestMetric.name);
-                    if (!userInteracted) {
-                      setUserInteracted(true);
-                      localStorage.setItem("chartUserInteracted", "true");
-                    }
-                  }
-                }}
-                className={`px-4 py-3 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg shadow-md border border-green-100 ${highestMetric ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+                // Removed onClick handler for better usability
+                className={`px-4 py-3 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg shadow-md border border-green-100 ${!highestMetric && "opacity-50"}`}
               >
                 <p className="text-sm text-green-600 font-medium flex items-center">
                   <svg
@@ -1144,16 +1152,8 @@ export default function CommunicationMetrics() {
               </motion.div>
               <motion.div
                 whileHover={{ y: -2, scale: 1.03 }}
-                onClick={() => {
-                  if (lowestMetric) {
-                    handleMetricFocus(lowestMetric.name);
-                    if (!userInteracted) {
-                      setUserInteracted(true);
-                      localStorage.setItem("chartUserInteracted", "true");
-                    }
-                  }
-                }}
-                className={`px-4 py-3 bg-gradient-to-br from-amber-50 to-orange-100 rounded-lg shadow-md border border-amber-100 ${lowestMetric ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+                // Removed onClick handler for better usability
+                className={`px-4 py-3 bg-gradient-to-br from-amber-50 to-orange-100 rounded-lg shadow-md border border-amber-100 ${!lowestMetric && "opacity-50"}`}
               >
                 <p className="text-sm text-amber-600 font-medium flex items-center">
                   <svg
@@ -1570,10 +1570,10 @@ export default function CommunicationMetrics() {
                             outerRadius={isSmallScreen ? "90%" : "85%"}
                             data={metricsData}
                             margin={{ 
-                              top: isSmallScreen ? 40 : 120, 
-                              right: isSmallScreen ? 30 : 120, 
-                              bottom: isSmallScreen ? 40 : 120, 
-                              left: isSmallScreen ? 30 : 120 
+                              top: isSmallScreen ? 20 : 120, 
+                              right: isSmallScreen ? 20 : 120, 
+                              bottom: isSmallScreen ? 20 : 120, 
+                              left: isSmallScreen ? 20 : 120 
                             }}
                             className="overflow-visible"
                           >
@@ -1616,7 +1616,7 @@ export default function CommunicationMetrics() {
                             dataKey={isSmallScreen ? "shortName" : "name"}
                             tick={{
                               fill: "#9CA3AF",
-                              fontSize: isSmallScreen ? 14 : 12,
+                              fontSize: isSmallScreen ? 10 : 12,
                               fontWeight: 500,
                               dy: 3,
                             }}
@@ -1664,15 +1664,23 @@ export default function CommunicationMetrics() {
                             isAnimationActive={false}
                             cursor={false}
                             wrapperStyle={{ 
-                              zIndex: 9999,
-                              position: 'absolute'
+                              zIndex: 99999,
+                              position: 'absolute',
+                              top: 'auto',
+                              bottom: '-120px', // Position below the chart
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              pointerEvents: 'none',
+                              overflow: 'visible'
                             }}
                             contentStyle={{
                               backgroundColor: "white",
                               border: "none",
                               borderRadius: "8px",
-                              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-                              padding: 0
+                              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                              padding: 0,
+                              maxWidth: isSmallScreen ? '260px' : '320px',
+                              overflow: 'visible'
                             }}
                             itemStyle={{ color: "#374151" }}
                             allowEscapeViewBox={{ x: true, y: true }}
@@ -1687,10 +1695,10 @@ export default function CommunicationMetrics() {
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart 
                             margin={{ 
-                              top: isSmallScreen ? 60 : 120, 
-                              right: isSmallScreen ? 40 : 60, 
-                              bottom: isSmallScreen ? 60 : 60, 
-                              left: isSmallScreen ? 40 : 60 
+                              top: isSmallScreen ? 40 : 120, 
+                              right: isSmallScreen ? 30 : 60, 
+                              bottom: isSmallScreen ? 40 : 60, 
+                              left: isSmallScreen ? 30 : 60 
                             }}>
                           <defs>
                             {/* Regular gradients for inactive slices */}
@@ -2125,16 +2133,22 @@ export default function CommunicationMetrics() {
                             isAnimationActive={false}
                             cursor={false}
                             wrapperStyle={{ 
-                              zIndex: 9999,
+                              zIndex: 99999,
                               position: 'absolute',
-                              pointerEvents: "none"
+                              top: 'auto',
+                              bottom: '-120px', // Position below the chart
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              pointerEvents: "none",
+                              overflow: 'visible'
                             }}
                             contentStyle={{
                               backgroundColor: "white",
                               border: "none",
                               borderRadius: "8px",
-                              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-                              padding: 0
+                              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                              padding: 0,
+                              overflow: 'visible'
                             }}
                             itemStyle={{ color: "#374151" }}
                             allowEscapeViewBox={{ x: true, y: true }}
@@ -2235,10 +2249,10 @@ export default function CommunicationMetrics() {
                             endAngle={0}
                             barSize={isSmallScreen ? 24 : 14}
                             margin={{ 
-                              top: isSmallScreen ? 40 : 160, 
-                              right: isSmallScreen ? 20 : 40, 
-                              bottom: isSmallScreen ? 40 : 120, 
-                              left: isSmallScreen ? 20 : 40 
+                              top: isSmallScreen ? 30 : 160, 
+                              right: isSmallScreen ? 15 : 40, 
+                              bottom: isSmallScreen ? 30 : 120, 
+                              left: isSmallScreen ? 15 : 40 
                             }}
                             className="overflow-visible"
                             style={{ margin: "0 auto" }}
@@ -2303,16 +2317,22 @@ export default function CommunicationMetrics() {
                             isAnimationActive={false}
                             cursor={false}
                             wrapperStyle={{ 
-                              zIndex: 9999,
+                              zIndex: 99999,
                               position: 'absolute',
-                              pointerEvents: "none"
+                              top: 'auto',
+                              bottom: '-120px', // Position below the chart
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              pointerEvents: "none",
+                              overflow: 'visible'
                             }}
                             contentStyle={{
                               backgroundColor: "white",
                               border: "none",
                               borderRadius: "8px",
-                              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-                              padding: 0
+                              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                              padding: 0,
+                              overflow: 'visible'
                             }}
                             itemStyle={{ color: "#374151" }}
                             allowEscapeViewBox={{ x: true, y: true }}
@@ -2364,27 +2384,14 @@ export default function CommunicationMetrics() {
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                   }}
-                                  onClick={() => {
-                                    handleMetricFocus(value);
-                                    if (!userInteracted) {
-                                      setUserInteracted(true);
-                                      localStorage.setItem(
-                                        "chartUserInteracted",
-                                        "true"
-                                      );
-                                    }
-                                  }}
+                                  // Removed onClick handler for better usability
                                 >
                                   <span
                                     style={{
-                                      color:
-                                        focusedMetric === value
-                                          ? COLORS[index % COLORS.length]
-                                          : "#666",
-                                      fontWeight:
-                                        focusedMetric === value ? 700 : 600,
+                                      color: "#666",
+                                      fontWeight: 600,
                                       fontSize: "12px",
-                                      cursor: "pointer",
+                                      cursor: "default",
                                       transition: "all 0.2s ease",
                                       textAlign: "center",
                                       whiteSpace: "nowrap",
@@ -2533,25 +2540,7 @@ export default function CommunicationMetrics() {
                     </p>
                   </div>
 
-                  {focusedMetric && (
-                    <div className="p-4 bg-rose-50 rounded-lg border border-rose-100 sm:col-span-2 shadow-sm">
-                      <p className="font-medium text-rose-800 mb-2">
-                        About {focusedMetric}:
-                      </p>
-                      <p className="text-gray-600 leading-relaxed">
-                        {getDescriptionForMetric(focusedMetric)}
-                      </p>
-                      <div className="mt-3 pt-3 border-t border-rose-200 flex items-center">
-                        <span className="text-rose-700 font-medium mr-2">
-                          Try this:
-                        </span>
-                        <span className="text-gray-600">
-                          {getSkillBuildingTips(focusedMetric, 60)?.[0] ||
-                            "Schedule a 15-minute check-in each day focused specifically on practicing this skill."}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Removed focused metric section */}
                 </div>
               </motion.div>
             ) : null}
