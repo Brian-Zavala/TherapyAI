@@ -395,18 +395,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
             key: "stars",
             className: "stars",
           }),
-          React.createElement("div", {
-            key: "shooting-star-1",
-            className: "shooting-star",
-          }),
-          React.createElement("div", {
-            key: "shooting-star-2",
-            className: "shooting-star",
-          }),
-          React.createElement("div", {
-            key: "shooting-star-3",
-            className: "shooting-star",
-          }),
+          // Shooting stars removed as requested
         ]
       ),
 

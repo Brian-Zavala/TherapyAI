@@ -135,9 +135,12 @@ export default function RelationshipProgressCard() {
   // --- Effect Hooks ---
 
   // Track screen size for responsive design
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  
   useEffect(() => {
     const checkScreenSize = () => {
       setIsSmallScreen(window.innerWidth < 640);
+      setIsLargeScreen(window.innerWidth >= 1024);
     };
 
     // Check initial size
@@ -261,27 +264,53 @@ interface PortalTooltipProps {
   chartType: string;
   isSmallScreen: boolean;
   viewSessionTranscript: (sessionId?: string) => void;
+  offset?: number; // Add offset parameter to determine arrow placement
+  onHoverChange?: (isHovering: boolean) => void; // Callback for hover state changes
 }
 
 // Component to render tooltip with portal
-const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen, viewSessionTranscript }: PortalTooltipProps) => {
+const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen, viewSessionTranscript, offset = 30, onHoverChange }: PortalTooltipProps) => {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+  const [isHovering, setIsHovering] = useState(false); // Track if user is hovering on tooltip
+  
+  // Handle mouse events on the tooltip
+  const handleMouseEnter = useCallback(() => {
+    setIsHovering(true);
+  }, []);
+  
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+  }, []);
+  
+  // Effect to notify parent component about hover state changes
+  useEffect(() => {
+    if (onHoverChange) {
+      onHoverChange(isHovering);
+    }
+  }, [isHovering, onHoverChange]);
+  
+  // Calculate actual tooltip position - directly below the point
+  const tooltipX = x;
+  const tooltipY = y;
   
   // Initialize portal container
   useEffect(() => {
-    // Create portal container if it doesn't exist
+    // We need to append to the body for proper positioning outside containers
     let element = document.getElementById('chart-tooltip-container');
+    
     if (!element) {
       element = document.createElement('div');
       element.id = 'chart-tooltip-container';
-      element.style.position = 'fixed';
+      element.style.position = 'fixed'; // Use fixed to be outside of all container constraints
       element.style.top = '0';
       element.style.left = '0';
       element.style.width = '100%';
       element.style.height = '100%';
-      element.style.pointerEvents = 'none';
+      element.style.pointerEvents = 'none'; // Container is non-interactive
       element.style.zIndex = '9999999'; // Extremely high z-index
+      
+      // Append to body for positioning outside all containers
       document.body.appendChild(element);
     }
     setPortalElement(element);
@@ -289,7 +318,11 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
     // Cleanup
     return () => {
       if (element && element.childNodes.length === 0) {
-        document.body.removeChild(element);
+        try {
+          document.body.removeChild(element);
+        } catch (e) {
+          console.error('Error removing tooltip container:', e);
+        }
       }
     };
   }, []);
@@ -306,24 +339,36 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   // Default quality score calculation if needed
   const qualityScore = dataPoint.qualityScore ?? Math.round((dataPoint.closeness + dataPoint.communication) / 2);
   
-  // Calculate tooltip position, adjust for boundaries
-  let posX = x;
-  let posY = y + 10; // Position slightly below cursor
+  // Use the properly calculated tooltip position
+  let posX = tooltipX; 
+  let posY = tooltipY;
   
   // Create tooltip content
   const tooltipContent = (
     <div 
       ref={tooltipRef}
-      className={`fixed bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-2xl rounded-md border border-gray-200 ${isSmallScreen ? 'max-w-[240px]' : 'max-w-[280px]'} ${isSmallScreen ? 'text-[10px]' : 'text-xs'}`}
+      className={`bg-white ${isSmallScreen ? 'p-3' : 'p-4'} shadow-2xl rounded-md border border-gray-200 ${isSmallScreen ? 'max-w-[240px]' : 'max-w-[280px]'} ${isSmallScreen ? 'text-[10px]' : 'text-xs'}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{
+        position: 'fixed',  // Fixed position to work with screen coordinates
         left: posX,
-        top: posY,
+        top: posY + 35,     // Push it down a bit more
         transform: 'translate(-50%, 0)',
-        pointerEvents: 'none',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
-        zIndex: 9999999
-      }}
-    >
+        pointerEvents: 'auto', // Allow interaction with tooltip
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+        zIndex: 9999999,
+        border: '2px solid #3B82F6',
+        transition: 'opacity 0.2s ease', // Smooth transition for better UX
+        cursor: 'pointer'  // Show pointer cursor when hovering over tooltip
+      }}>
+      {offset > 0 ? (
+        // Arrow at top for tooltip below point
+        <div className="w-5 h-5 bg-blue-500 absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 border-blue-500 z-50"></div>
+      ) : (
+        // Arrow at bottom for tooltip above point
+        <div className="w-5 h-5 bg-blue-500 absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 border-2 border-blue-500 z-50"></div>
+      )}
       <p className={`font-semibold text-gray-800 ${isSmallScreen ? 'mb-1.5' : 'mb-2'}`}>{label}</p>
       {/* Show session number if available */}
       {dataPoint.sessionNumber != null && (
@@ -385,11 +430,12 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       {dataPoint.sessionId && (
         <button
           onClick={() => dataPoint.sessionId && viewSessionTranscript(dataPoint.sessionId)}
-          className={`${isSmallScreen ? 'mt-1.5 pt-1' : 'mt-2 pt-1.5'} border-t border-gray-100 w-full text-left ${isSmallScreen ? 'text-[9px]' : 'text-xs'} flex items-center text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50`}
+          className={`${isSmallScreen ? 'mt-2 pt-1.5' : 'mt-3 pt-2'} border-t border-gray-200 w-full text-center ${isSmallScreen ? 'text-[9px]' : 'text-xs'} flex items-center justify-center text-white bg-indigo-600 hover:bg-indigo-700 font-medium disabled:opacity-50 rounded-md py-2 transition-colors duration-150`}
           disabled={!dataPoint.sessionId}
+          style={{ pointerEvents: 'auto' }}
         >
           <svg
-            className={`${isSmallScreen ? 'w-2.5 h-2.5' : 'w-3 h-3'} mr-1 flex-shrink-0`}
+            className={`${isSmallScreen ? 'w-3 h-3' : 'w-3.5 h-3.5'} mr-1.5 flex-shrink-0`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -535,30 +581,161 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   );
 
   // Render chart based on selected type
-  // State to track mouse position for custom tooltip
-  const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | null>(null);
-  const [activeTooltip, setActiveTooltip] = useState<{
+  // State to track tooltip data
+  const [tooltipData, setTooltipData] = useState<{
+    x: number;
+    y: number;
     active: boolean;
     payload: any[];
     label: string;
+    offset: number;
+    timestamp: number; // Add timestamp to track when tooltip was activated
   } | null>(null);
-
-  // Chart event handler for tooltip
+  
+  // State to track if user is hovering over the tooltip
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  
+  // Ref to store the timeout ID for clearing
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Clean up any tooltips when component unmounts
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Completely revised chart event handler for tooltip
   const handleMouseMove = useCallback((e: any) => {
-    if (e.isTooltipActive && e.activeCoordinate) {
-      setMousePosition({ 
-        x: e.activeCoordinate.x, 
-        y: e.activeCoordinate.y 
-      });
-      setActiveTooltip({
-        active: e.isTooltipActive,
+    if (e.isTooltipActive && e.activeCoordinate && e.activePayload) {
+      // Find all relevant containers
+      const chartWrapper = document.querySelector('.recharts-wrapper');
+      const chartContainer = document.querySelector('.relationship-chart-container');
+      const metricsCard = document.querySelector('.relationship-metrics-card');
+      
+      if (!chartWrapper) return;
+      
+      // Get dimensions of all relevant elements
+      const chartWrapperRect = chartWrapper.getBoundingClientRect();
+      const chartContainerRect = chartContainer ? chartContainer.getBoundingClientRect() : null;
+      const metricsCardRect = metricsCard ? metricsCard.getBoundingClientRect() : null;
+      
+      // Get scroll position for fixed positioning
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      
+      // Use the isLargeScreen state we're tracking
+      
+      // Basic coordinate calculation from chart data point
+      let pointX = chartWrapperRect.left + e.activeCoordinate.x;
+      
+      // For large screens, adjust X position to ensure tooltip stays over relationship container
+      if (isLargeScreen && chartContainerRect) {
+        // On large screens, we want to ensure the tooltip stays within the relationship progress container
+        // and doesn't overlap with other elements on the left side
+        
+        // First, set the minimum X position to keep it away from the left side of the screen
+        const minX = chartContainerRect.left + 150; 
+        
+        // Then set the maximum X position to keep it within the right boundary with some padding
+        const maxX = chartContainerRect.right - 150;
+        
+        // Override the pointX with position that ensures it stays within acceptable bounds
+        // For very small charts, default to center if min > max
+        if (minX < maxX) {
+          pointX = Math.max(minX, Math.min(maxX, pointX));
+        } else {
+          // If container is too small, center the tooltip
+          pointX = (chartContainerRect.left + chartContainerRect.right) / 2;
+        }
+      }
+      
+      // Calculate Y position:
+      // 1. Start with data point Y position
+      let pointY = chartWrapperRect.top + e.activeCoordinate.y;
+      
+      // 2. Add a base offset below the point
+      let offset = 30;
+      
+      // 3. Calculate better position based on containers and screen size
+      if (metricsCardRect) {
+        // If metrics card exists, calculate ideal position
+        // First check if the data point is in the bottom part of the chart
+        const isInBottomHalf = e.activeCoordinate.y > (chartWrapperRect.height / 2);
+        
+        if (isInBottomHalf) {
+          // For points in bottom half, make tooltip appear above point
+          offset = -80; // Move tooltip above the point
+        } else {
+          // For points in top half, make sure tooltip appears below point
+          // but doesn't overlap with metrics card
+          const distanceToMetricsCard = metricsCardRect.top - (pointY + 120); // Account for tooltip height
+          
+          if (distanceToMetricsCard < 0) {
+            // If tooltip would overlap metrics card, position it above the point
+            offset = -80;
+          } else {
+            // Otherwise keep it below the point with good spacing
+            offset = 60;
+          }
+        }
+      } else {
+        // Without metrics card, use standard offset
+        offset = 50;
+      }
+      
+      // Final screen coordinates with scroll adjustment
+      const screenX = pointX;
+      const screenY = pointY + offset;
+      
+      // Clear any existing timeouts when moving to a new point
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+        tooltipTimeoutRef.current = null;
+      }
+      
+      // Set the tooltip data with calculated coordinates and current timestamp
+      setTooltipData({
+        x: screenX,
+        y: screenY,
+        active: true,
         payload: e.activePayload || [],
-        label: e.activeLabel || ''
+        label: e.activeLabel || '',
+        offset: offset,
+        timestamp: Date.now() // Record time when tooltip was activated
       });
     } else {
-      setActiveTooltip(null);
+      // When mouse leaves the point, don't immediately close the tooltip
+      
+      // If user is hovering the tooltip, don't close it
+      if (isTooltipHovered) {
+        return;
+      }
+      
+      // Only close it if there's no active timeout already running
+      if (!tooltipTimeoutRef.current && tooltipData) {
+        // Calculate how long the tooltip has been open
+        const tooltipAge = Date.now() - tooltipData.timestamp;
+        
+        // Keep tooltip open for at least 2 seconds
+        if (tooltipAge < 2000) {
+          tooltipTimeoutRef.current = setTimeout(() => {
+            // Double check that we're not hovering before closing
+            if (!isTooltipHovered) {
+              setTooltipData(null);
+            }
+            tooltipTimeoutRef.current = null;
+          }, 2000 - tooltipAge);
+        } else {
+          // If it's already been open for 2+ seconds and not being hovered, close it
+          if (!isTooltipHovered) {
+            setTooltipData(null);
+          }
+        }
+      }
     }
-  }, []);
+  }, [isLargeScreen, tooltipData, isTooltipHovered]); // Add isTooltipHovered to dependencies
 
   const renderChart = useMemo(() => {
     const commonProps = {
@@ -571,7 +748,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       },
       className: "mx-auto",
       onMouseMove: handleMouseMove,
-      onMouseLeave: () => setActiveTooltip(null)
+      onMouseLeave: () => setTooltipData(null)
     };
     const xAxis = (
       <XAxis
@@ -854,16 +1031,18 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   return (
     <div className={`bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full ${data.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
       {/* Render portal tooltip when active */}
-      {activeTooltip && activeTooltip.active && mousePosition && (
+      {tooltipData && tooltipData.active && (
         <PortalTooltip
-          active={activeTooltip.active}
-          payload={activeTooltip.payload}
-          label={activeTooltip.label}
-          x={mousePosition.x}
-          y={mousePosition.y}
+          active={tooltipData.active}
+          payload={tooltipData.payload}
+          label={tooltipData.label}
+          x={tooltipData.x}
+          y={tooltipData.y}
           chartType={chartType}
           isSmallScreen={isSmallScreen}
           viewSessionTranscript={viewSessionTranscript}
+          offset={tooltipData.offset}
+          onHoverChange={setIsTooltipHovered}
         />
       )}
       <div className="flex items-center mb-4">
@@ -967,14 +1146,14 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 min-h-[520px] hover:bg-white/25 transition-all duration-300"
+          className="relationship-chart-container w-full max-w-[900px] mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 min-h-[520px] hover:bg-white/25 transition-all duration-300"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           style={{ position: 'relative', zIndex: 5 }}
         >
           <div className={`${isSmallScreen ? 'h-[380px]' : 'h-[480px]'} w-full relative`} style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}>
-            <ResponsiveContainer width="100%" height="100%" debounce={150}>
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
               {renderChart}
             </ResponsiveContainer>
           </div>
@@ -1022,7 +1201,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10" style={{ position: 'relative', zIndex: 10 }}
+          className="relationship-metrics-card mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10" style={{ position: 'relative', zIndex: 10 }}
         >
           <h4 className="text-xs text-white uppercase tracking-wider mb-3 font-bold flex items-center">
             <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>

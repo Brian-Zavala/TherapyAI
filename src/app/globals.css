@@ -233,16 +233,7 @@ body.session-active .hide-during-session {
   }
 }
 
-@keyframes shoot {
-  0% {
-    transform: translateX(0) translateY(0) rotate(205deg); /* Changed from 25deg to 205deg to reverse direction */
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(120vw) translateY(50vh) rotate(205deg); /* Changed from 25deg to 205deg to reverse direction */
-    opacity: 0;
-  }
-}
+/* Shooting star animation removed as requested */
 
 @keyframes circle-small-scale {
   0% {
@@ -516,37 +507,7 @@ body.session-active .hide-during-session {
   /* Inherits pointer-events: none from .stars */
 }
 
-/* Shooting stars */
-.shooting-star {
-  position: fixed;
-  width: 100px;
-  height: 2px;
-  background: linear-gradient(
-    -90deg,
-    transparent,
-    white
-  ); /* Reversed gradient direction from (90deg, white, transparent) */
-  z-index: 0; /* Above stars background, below most content */
-  pointer-events: none;
-  animation: shoot 12s infinite ease-in; /* Slowed down from 6s to 12s (another 50% slower) */
-}
-
-/* Stagger shooting stars */
-.shooting-star:nth-child(1) {
-  top: 20%;
-  left: -100px;
-  animation-delay: 0s;
-}
-.shooting-star:nth-child(2) {
-  top: 35%;
-  left: -100px;
-  animation-delay: 4s; /* Increased from 2s to 4s to maintain relative timing */
-}
-.shooting-star:nth-child(3) {
-  top: 50%;
-  left: -100px;
-  animation-delay: 8s; /* Increased from 4s to 8s to maintain relative timing */
-}
+/* Shooting stars removed as requested */
 
 /* --- Digital Clock Styles --- */
 .digital-clock {

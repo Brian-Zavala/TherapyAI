@@ -18,6 +18,7 @@ import {
   RadialBar,
 } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useButtonSound } from "@/hooks/useButtonSound";
 import RelationshipAssessment from "@/components/RelationshipAssessment";
@@ -70,6 +71,176 @@ export default function CommunicationMetrics() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
   const playSound = useButtonSound(); // Sound effect for interactions
+
+  // State for handling tooltip position
+  const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{
+    active: boolean;
+    payload: any[];
+    label: string;
+  } | null>(null);
+
+  // Chart event handler for tooltip
+  const handleMouseMove = useCallback((e: any) => {
+    if (e && e.activeCoordinate) {
+      // Always set position and make tooltip active whenever we have coordinates
+      setMousePosition({ 
+        x: e.activeCoordinate.x, 
+        y: e.activeCoordinate.y 
+      });
+      
+      if (e.activePayload && e.activePayload.length > 0) {
+        setActiveTooltip({
+          active: true,
+          payload: e.activePayload || [],
+          label: e.activeLabel || ''
+        });
+      }
+    } else if (!e || !e.activeCoordinate) {
+      setActiveTooltip(null);
+    }
+  }, []);
+
+  // Custom Portal Tooltip Component
+  interface PortalTooltipProps {
+    active?: boolean;
+    payload?: Array<any>;
+    label?: string;
+    x?: number;
+    y?: number;
+    isSmallScreen: boolean;
+  }
+
+  const PortalTooltip = ({ active, payload, x, y, isSmallScreen }: PortalTooltipProps) => {
+    // Access the getDescriptionForMetric function from parent scope
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
+    const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+    
+    // Initialize portal container
+    useEffect(() => {
+      // Create portal container if it doesn't exist
+      let element = document.getElementById('metrics-tooltip-container');
+      if (!element) {
+        element = document.createElement('div');
+        element.id = 'metrics-tooltip-container';
+        element.style.position = 'fixed';
+        element.style.top = '0';
+        element.style.left = '0';
+        element.style.width = '100%';
+        element.style.height = '100%';
+        element.style.pointerEvents = 'none';
+        element.style.zIndex = '9999999'; // Extremely high z-index
+        document.body.appendChild(element);
+      }
+      setPortalElement(element);
+      
+      // Cleanup
+      return () => {
+        if (element && element.childNodes.length === 0) {
+          document.body.removeChild(element);
+        }
+      };
+    }, []);
+    
+    // Don't render anything if no portal element or no coordinates
+    if (!portalElement || !x || !y) {
+      return null;
+    }
+    
+    // Need a payload
+    if (!active || !payload || payload.length === 0) {
+      return null;
+    }
+
+    // Calculate position, ensuring tooltip is always visible
+    // Get the approximate chart container bounds
+    const chartElement = document.querySelector('.recharts-wrapper');
+    let bounds = { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
+    
+    if (chartElement) {
+      const rect = chartElement.getBoundingClientRect();
+      bounds = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+    }
+    
+    // Position it at cursor coordinates, but adjust for viewport
+    let posX = x;
+    let posY = y + 30; // Position below cursor
+    
+    // Make sure tooltip stays within viewport
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const tooltipWidth = isSmallScreen ? 220 : 280; // Estimated width
+    const tooltipHeight = 150; // Estimated height
+    
+    // Adjust horizontal position
+    posX = Math.max(tooltipWidth/2 + 10, Math.min(posX, viewportWidth - tooltipWidth/2 - 10));
+    
+    // Adjust vertical position - prevent tooltip going off-screen
+    if (posY + tooltipHeight > viewportHeight) {
+      posY = y - tooltipHeight - 10; // Position above cursor
+    }
+    
+    // Extract data for tooltip
+    const data = payload[0];
+    if (!data) return null;
+    
+    const datum = data.payload || {};
+    const value = data.value;
+    const name = data.name;
+    const formattedValue = value;
+    
+    // Get description manually since we can't access the parent function
+    let description = '';
+    
+    // Descriptions for common metrics
+    if (name === "Active Listening") {
+      description = "Your ability to fully concentrate, understand, respond, and remember what your partner is saying without interrupting or preparing rebuttals";
+    } else if (name === "Expressing Needs") {
+      description = "How effectively you communicate your own desires, boundaries, and requirements in a clear, direct, and non-accusatory manner";
+    } else if (name === "Conflict Resolution") {
+      description = "Your ability to address disagreements constructively without escalation, using problem-solving approaches and finding mutually satisfactory solutions";
+    } else if (name === "Emotional Support") {
+      description = "How well you recognize, validate, and respond to each other's emotional experiences with empathy and compassion";
+    }
+    
+    // Get text color based on rating
+    let textColor = "#000000";
+    if (value >= 80) textColor = "#047857"; // Green
+    else if (value >= 60) textColor = "#0284C7"; // Blue
+    else if (value >= 40) textColor = "#F59E0B"; // Amber
+    else textColor = "#DC2626"; // Red
+    
+    // Create tooltip content
+    const tooltipContent = (
+      <div 
+        ref={tooltipRef}
+        className="fixed bg-white p-3 shadow-2xl rounded-lg border border-gray-200 text-xs"
+        style={{
+          left: posX,
+          top: posY,
+          transform: 'translateX(-50%)',
+          pointerEvents: 'none',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+          zIndex: 9999999,
+          maxWidth: isSmallScreen ? '220px' : '280px'
+        }}
+      >
+        <div className="font-semibold text-gray-900 mb-2 pb-1 border-b">{name}</div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-gray-600">Current score:</span>
+          <span className="font-bold" style={{ color: textColor }}>{formattedValue}/100</span>
+        </div>
+        
+        {description && (
+          <div className="mt-2 text-gray-600 text-[10px]">
+            {description}
+          </div>
+        )}
+      </div>
+    );
+    
+    return createPortal(tooltipContent, portalElement);
+  };
 
   // Mount and initialize component
   useEffect(() => {
@@ -133,15 +304,10 @@ export default function CommunicationMetrics() {
     }, 300); // Give time for the animation to start
   };
 
-  // Handle metric focus
+  // Handle metric focus - disabled to remove buttons
   const handleMetricFocus = (metricName: string) => {
-    setFocusedMetric(focusedMetric === metricName ? null : metricName);
-    playSound();
-    // Mark as interacted
-    if (!userInteracted) {
-      setUserInteracted(true);
-      localStorage.setItem("chartUserInteracted", "true");
-    }
+    // Disabled to prevent button functionality
+    return;
   };
 
   // Create a reusable component for the therapy type selector with enhanced styling
@@ -1576,6 +1742,8 @@ export default function CommunicationMetrics() {
                               left: isSmallScreen ? 20 : 120 
                             }}
                             className="overflow-visible"
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={() => setActiveTooltip(null)}
                           >
                           <defs>
                             <filter
@@ -1659,31 +1827,8 @@ export default function CommunicationMetrics() {
                             }}
                           />
                           <Tooltip
-                            content={CustomTooltip}
-                            animationDuration={0}
-                            isAnimationActive={false}
+                            content={() => null} // Empty content, using portal instead
                             cursor={false}
-                            wrapperStyle={{ 
-                              zIndex: 99999,
-                              position: 'absolute',
-                              top: 'auto',
-                              bottom: '-120px', // Position below the chart
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              pointerEvents: 'none',
-                              overflow: 'visible'
-                            }}
-                            contentStyle={{
-                              backgroundColor: "white",
-                              border: "none",
-                              borderRadius: "8px",
-                              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
-                              padding: 0,
-                              maxWidth: isSmallScreen ? '260px' : '320px',
-                              overflow: 'visible'
-                            }}
-                            itemStyle={{ color: "#374151" }}
-                            allowEscapeViewBox={{ x: true, y: true }}
                           />
                           {/* We're skipping the Legend component for the radar chart since 
                            it already has axis labels and doesn't need a separate legend */}
@@ -1699,7 +1844,17 @@ export default function CommunicationMetrics() {
                               right: isSmallScreen ? 30 : 60, 
                               bottom: isSmallScreen ? 40 : 60, 
                               left: isSmallScreen ? 30 : 60 
-                            }}>
+                            }}
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                          <Tooltip 
+                            content={() => null} // Empty content, using portal instead
+                            cursor={false}
+                            allowEscapeViewBox={{ x: true, y: true }}
+                            isAnimationActive={false}
+                            active={true}
+                          />
                           <defs>
                             {/* Regular gradients for inactive slices */}
                             {COLORS.map((color, index) => (
@@ -1799,8 +1954,24 @@ export default function CommunicationMetrics() {
                             paddingAngle={6}
                             fill="#8884d8"
                             dataKey="value"
-                            onMouseEnter={onPieEnter}
-                            onMouseLeave={onPieLeave}
+                            onMouseEnter={(_, index) => {
+                              setActiveIndex(index);
+                              setActivePieSection(index);
+                            }}
+                            onMouseMove={(e) => {
+                              if (e && e.chartX && e.chartY) {
+                                setMousePosition({ x: e.chartX, y: e.chartY });
+                                setActiveTooltip({
+                                  active: true,
+                                  payload: [metricsData[activeIndex]],
+                                  label: metricsData[activeIndex]?.name || ''
+                                });
+                              }
+                            }}
+                            onMouseLeave={() => {
+                              setActiveTooltip(null);
+                              setActivePieSection(null);
+                            }}
                             animationDuration={1500}
                             animationEasing="ease-out"
                             isAnimationActive={true}
@@ -1833,6 +2004,23 @@ export default function CommunicationMetrics() {
                                       : "none",
                                     cursor: "pointer",
                                     zIndex: isActive ? 10 : 1,
+                                  }}
+                                  onClick={() => {
+                                    // Set active section and activate tooltip on click
+                                    setActiveIndex(index);
+                                    setActivePieSection(index);
+                                    
+                                    // Create coordinates near the center of the pie chart
+                                    const centerX = 150; // Approximate pie chart center X
+                                    const centerY = 150; // Approximate pie chart center Y
+                                    
+                                    // Position tooltip correctly
+                                    setMousePosition({ x: centerX, y: centerY });
+                                    setActiveTooltip({
+                                      active: true,
+                                      payload: [entry],
+                                      label: entry.name
+                                    });
                                   }}
                                 />
                               );
@@ -2128,9 +2316,7 @@ export default function CommunicationMetrics() {
                             ) : null}
                           </Pie>
                           <Tooltip
-                            content={CustomTooltip}
-                            animationDuration={0}
-                            isAnimationActive={false}
+                            content={() => null} // Empty content, using portal instead
                             cursor={false}
                             wrapperStyle={{ 
                               zIndex: 99999,
@@ -2160,30 +2346,16 @@ export default function CommunicationMetrics() {
                             iconType="circle"
                             iconSize={12}
                             height={30}
-                            onClick={(data) => {
-                              // Allow clicking on legend items to focus on that section
-                              const index = metricsData.findIndex(
-                                (item) => item.name === data.value
-                              );
-                              if (index !== -1) {
-                                setActivePieSection(index);
-                                setActiveIndex(index);
-                                if (!userInteracted) {
-                                  setUserInteracted(true);
-                                  localStorage.setItem(
-                                    "chartUserInteracted",
-                                    "true"
-                                  );
-                                }
-                                playSound();
-                              }
+                            onClick={() => {
+                              // Disabled click functionality
+                              return;
                             }}
                             wrapperStyle={{
                               paddingTop: "0",
                               paddingBottom: "5px",
                               fontSize: "14px",
                               fontWeight: 600,
-                              cursor: "pointer",
+                              cursor: "default",
                               marginBottom: "0",
                               position: "absolute",
                               top: "10px",
@@ -2191,23 +2363,19 @@ export default function CommunicationMetrics() {
                               right: "0 !important",
                               zIndex: 25,
                               width: "100% !important",
-                              display: "flex",
+                              display: "none", /* Hide the legend buttons */
                               justifyContent: "center",
                               gap: "6px",
                             }}
                             formatter={(value: any, entry: any, index: any) => {
                               return (
                                 <div
-                                  className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md hover:bg-gray-100"
+                                  className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md"
                                   style={{
-                                    borderBottom:
-                                      activeIndex === index
-                                        ? `2px solid ${COLORS[index % COLORS.length]}`
-                                        : "none",
-                                    background:
-                                      activeIndex === index
-                                        ? `${COLORS[index % COLORS.length]}10`
-                                        : "transparent",
+                                    pointerEvents: "none",
+                                    cursor: "default",
+                                    borderBottom: "none",
+                                    background: "transparent",
                                     maxWidth: "100%",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
@@ -2254,6 +2422,8 @@ export default function CommunicationMetrics() {
                               bottom: isSmallScreen ? 30 : 120, 
                               left: isSmallScreen ? 15 : 40 
                             }}
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={() => setActiveTooltip(null)}
                             className="overflow-visible"
                             style={{ margin: "0 auto" }}
                           >
@@ -2312,9 +2482,7 @@ export default function CommunicationMetrics() {
                             ))}
                           </RadialBar>
                           <Tooltip
-                            content={CustomTooltip}
-                            animationDuration={0}
-                            isAnimationActive={false}
+                            content={() => null} // Empty content, using portal instead
                             cursor={false}
                             wrapperStyle={{ 
                               zIndex: 99999,
@@ -2361,7 +2529,7 @@ export default function CommunicationMetrics() {
                               top: "5px",
                               zIndex: 25,
                               width: "100% !important",
-                              display: "flex",
+                              display: "none", /* Hide the legend buttons */
                               justifyContent: "center",
                               gap: "8px",
                               left: "0 !important",
@@ -2370,21 +2538,16 @@ export default function CommunicationMetrics() {
                             formatter={(value: any, entry: any, index: any) => {
                               return (
                                 <div
-                                  className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md hover:bg-gray-100"
+                                  className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md"
                                   style={{
-                                    borderBottom:
-                                      focusedMetric === value
-                                        ? `2px solid ${COLORS[index % COLORS.length]}`
-                                        : "none",
-                                    background:
-                                      focusedMetric === value
-                                        ? `${COLORS[index % COLORS.length]}10`
-                                        : "transparent",
+                                    pointerEvents: "none", 
+                                    cursor: "default",
+                                    borderBottom: "none",
+                                    background: "transparent",
                                     maxWidth: "100%",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                   }}
-                                  // Removed onClick handler for better usability
                                 >
                                   <span
                                     style={{
@@ -2540,7 +2703,7 @@ export default function CommunicationMetrics() {
                     </p>
                   </div>
 
-                  {/* Removed focused metric section */}
+                  {/* Metric buttons removed */}
                 </div>
               </motion.div>
             ) : null}
@@ -2658,5 +2821,20 @@ export default function CommunicationMetrics() {
     );
   }
 
-  return content;
+  // Render portal tooltip when active, outside of main content flow
+  return (
+    <>
+      {activeTooltip && activeTooltip.active && mousePosition && (
+        <PortalTooltip
+          active={activeTooltip.active}
+          payload={activeTooltip.payload}
+          label={activeTooltip.label}
+          x={mousePosition.x}
+          y={mousePosition.y}
+          isSmallScreen={isSmallScreen}
+        />
+      )}
+      {content}
+    </>
+  );
 }
