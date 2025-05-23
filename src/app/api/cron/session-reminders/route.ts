@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
 import SessionMissedEmail from '@/emails/SessionMissed';
-import { sendSessionReminder } from '@/lib/sms-service'; // Currently using mock implementation
+// import { sendSessionReminder } from '@/lib/sms-service'; // Currently using mock implementation
 
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   try {
     // Find sessions happening in next 24 hours without reminders
-    const upcomingSessions = await prisma.session.findMany({
+    const upcomingSessions24h = await prisma.session.findMany({
       where: {
         status: 'scheduled',
         OR: [
@@ -36,11 +36,26 @@ export async function GET(request: Request) {
       },
     });
 
-    // Process each session
-    const reminderResults = await Promise.allSettled(
-      upcomingSessions.map(async (session) => {
+    // Find sessions happening in next 1 hour without 1-hour reminder
+    const upcomingSessions1h = await prisma.session.findMany({
+      where: {
+        status: 'scheduled',
+        oneHourReminderSent: false,
+        date: {
+          gt: new Date(),
+          lt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    // Process 24-hour reminders
+    const reminder24hResults = await Promise.allSettled(
+      upcomingSessions24h.map(async (session) => {
         // Always use email for notifications
-        const updates: any = {};
+        const updates: { emailReminderSent?: boolean } = {};
         
         // Send email reminder if needed
         if (!session.emailReminderSent && session.user.email) {
@@ -75,6 +90,38 @@ export async function GET(request: Request) {
       })
     );
 
+    // Process 1-hour reminders
+    const reminder1hResults = await Promise.allSettled(
+      upcomingSessions1h.map(async (session) => {
+        if (!session.oneHourReminderSent && session.user.email) {
+          try {
+            await resend.emails.send({
+              from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+              to: session.user.email,
+              subject: 'Starting Soon: Your Therapy Session in 1 Hour',
+              react: SessionReminderEmail({
+                username: session.user.name || 'Valued Client',
+                sessionDate: session.date,
+                duration: session.duration,
+                notes: session.notes || '',
+                isOneHourReminder: true, // Add this to customize the email template
+              }),
+            });
+            
+            // Update the session to mark 1-hour reminder as sent
+            await prisma.session.update({
+              where: { id: session.id },
+              data: { oneHourReminderSent: true },
+            });
+            
+            console.log(`1-hour reminder sent for session ${session.id}`);
+          } catch (emailError) {
+            console.error(`Failed to send 1-hour reminder for session ${session.id}:`, emailError);
+          }
+        }
+      })
+    );
+
     // Handle missed sessions (past scheduled time without completion)
     const missedSessionsToUpdate = await prisma.session.findMany({
       where: {
@@ -101,7 +148,6 @@ export async function GET(request: Request) {
           // Find available slots for rescheduling (next 7 days)
           const nextAvailableSlots = await prisma.session.findMany({
             where: {
-              userId: null, // Unused slots
               status: 'available',
               date: {
                 gte: new Date(),
@@ -143,8 +189,10 @@ export async function GET(request: Request) {
 
     // Return processing results
     return NextResponse.json({
-      remindersSent: reminderResults.filter(r => r.status === 'fulfilled').length,
-      remindersFailed: reminderResults.filter(r => r.status === 'rejected').length,
+      reminders24hSent: reminder24hResults.filter(r => r.status === 'fulfilled').length,
+      reminders24hFailed: reminder24hResults.filter(r => r.status === 'rejected').length,
+      reminders1hSent: reminder1hResults.filter(r => r.status === 'fulfilled').length,
+      reminders1hFailed: reminder1hResults.filter(r => r.status === 'rejected').length,
       missedSessionsUpdated: missedSessionsToUpdate.length,
       missedEmailsSent: missedEmailResults.filter(r => r.status === 'fulfilled').length,
       missedEmailsFailed: missedEmailResults.filter(r => r.status === 'rejected').length,

@@ -18,6 +18,7 @@ interface SessionReminderProps {
   sessionDate: Date;
   duration: number;
   notes?: string;
+  isOneHourReminder?: boolean;
 }
 
 export default function SessionReminderEmail({
@@ -25,6 +26,7 @@ export default function SessionReminderEmail({
   sessionDate,
   duration,
   notes,
+  isOneHourReminder = false,
 }: SessionReminderProps) {
   const formattedDate = new Date(sessionDate).toLocaleString('en-US', {
     weekday: 'long',
@@ -39,14 +41,18 @@ export default function SessionReminderEmail({
   return (
     <Html>
       <Head />
-      <Preview>Your therapy session is coming up soon</Preview>
+      <Preview>{isOneHourReminder ? 'Your session starts in 1 hour' : 'Your therapy session is coming up soon'}</Preview>
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
-          <Text style={headerStyle}>Session Reminder</Text>
+          <Text style={headerStyle}>
+            {isOneHourReminder ? '⏰ Starting Soon!' : 'Session Reminder'}
+          </Text>
           
           <Text style={textStyle}>Hello {username},</Text>
           <Text style={textStyle}>
-            This is a friendly reminder that you have a therapy session scheduled for:
+            {isOneHourReminder 
+              ? 'Your therapy session is starting in just 1 hour! Please prepare for your session.'
+              : 'This is a friendly reminder that you have a therapy session scheduled for:'}
           </Text>
           
           <Section style={dateBlockStyle}>

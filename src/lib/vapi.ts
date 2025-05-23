@@ -149,7 +149,7 @@ export type AssistantConfig = {
   };
 };
 
-// Format session transcript for the AI assistant
+// Format session transcript for the AI assistant (limited to avoid payload size issues)
 export const formatSessionHistory = (sessions: any[] = []) => {
   if (!sessions || sessions.length === 0) {
     return "No previous session history.";
@@ -165,103 +165,19 @@ export const formatSessionHistory = (sessions: any[] = []) => {
     return "No completed sessions found.";
   }
 
-  // Format each session
-  return recentSessions
-    .map((session) => {
-      const sessionDate = new Date(session.date).toLocaleDateString();
-      const theme = session.theme || "Therapy Session";
-
-      // Format transcript from transcript entries or legacy transcript
-      let conversationSummary = "";
-
-      if (session.transcriptEntries && session.transcriptEntries.length > 0) {
-        // Use structured transcript entries and create summary
-        const userMessages = session.transcriptEntries
-          .filter((entry: any) => entry.speaker === "user")
-          .map((entry: any) => entry.text);
-
-        const assistantMessages = session.transcriptEntries
-          .filter((entry: any) => entry.speaker === "assistant")
-          .map((entry: any) => entry.text);
-
-        // Extract key topics by identifying frequent words
-        const allText = [...userMessages, ...assistantMessages]
-          .join(" ")
-          .toLowerCase();
-        const words = allText
-          .split(/\W+/)
-          .filter(
-            (word) =>
-              word.length > 3 &&
-              ![
-                "this",
-                "that",
-                "with",
-                "have",
-                "your",
-                "from",
-                "they",
-                "will",
-                "about",
-                "what",
-                "been",
-                "were",
-              ].includes(word)
-          );
-
-        // Count word frequencies
-        const wordFrequency: Record<string, number> = {};
-        words.forEach((word) => {
-          wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-        });
-
-        // Get top key topics
-        const keyTopics = Object.entries(wordFrequency)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([word]) => word)
-          .join(", ");
-
-        // Get a few representative messages
-        const sampleUserMessages =
-          userMessages.length > 0
-            ? userMessages.filter((msg) => msg.length > 20).slice(0, 2)
-            : ["No significant user messages"];
-
-        const sampleAssistantResponses =
-          assistantMessages.length > 0
-            ? assistantMessages.filter((msg) => msg.length > 20).slice(0, 2)
-            : ["No significant assistant responses"];
-
-        // Format conversation summary
-        conversationSummary = `
-Key topics discussed: ${keyTopics || "Various relationship topics"}
-
-Sample statements from client:
-- ${sampleUserMessages.join("\n- ")}
-
-Sample therapeutic responses:
-- ${sampleAssistantResponses.join("\n- ")}`;
-      } else if (session.transcript) {
-        // Use legacy transcript format
-        const truncatedTranscript =
-          session.transcript.length > 500
-            ? session.transcript.substring(0, 500) + "...(truncated)"
-            : session.transcript;
-
-        conversationSummary = `
-Transcript summary:
-${truncatedTranscript}`;
-      } else {
-        conversationSummary = "No transcript available for this session.";
-      }
-
-      return `SESSION DATE: ${sessionDate}
-THEME: ${theme}
-${conversationSummary}
----------------------`;
-    })
-    .join("\n\n");
+  // Create a brief summary instead of full history
+  const sessionCount = recentSessions.length;
+  const lastSessionDate = new Date(recentSessions[0].date).toLocaleDateString();
+  
+  // Get themes from recent sessions
+  const themes = recentSessions
+    .map(s => s.theme)
+    .filter(Boolean)
+    .slice(0, 3);
+  
+  return `Client has ${sessionCount} previous sessions. Last session: ${lastSessionDate}.${
+    themes.length > 0 ? ` Recent themes: ${themes.join(", ")}.` : ""
+  }`;
 };
 
 // Get personalized system prompt based on user profile
@@ -322,12 +238,12 @@ export const getPersonalizedSystemPrompt = (userProfile?: any) => {
     ? currentConcerns.join(", ") 
     : "relationship wellbeing";
 
-  // Include session history directly in the prompt (not as a variable)
-  // This avoids issues with Vapi variable substitution
-  const sessionHistory =
-    userProfile?.sessionHistory || "No previous sessions found.";
+  // Check if user has previous sessions (don't include full history in prompt)
+  const hasPreviousSessions = userProfile?.sessionHistory && 
+    userProfile.sessionHistory !== "No previous sessions found." &&
+    userProfile.sessionHistory.length > 50;
 
-  // Personalized system prompt with names and relationship status and direct history inclusion
+  // Personalized system prompt with names and relationship status
   const systemPrompt = `You are Dr. Maya Thompson, couple therapist specializing in Gottman Method and EFT.
 
 CLIENT INFO:
@@ -338,7 +254,7 @@ ${additionalNotes ? `Notes: ${additionalNotes}` : ""}
 
 APPROACH:
 • Style: ${communicationGuidance}
-• History: ${sessionHistory.substring(0, 100)}${sessionHistory.length > 100 ? '...' : ''}
+${hasPreviousSessions ? '• This is a returning client with previous sessions' : '• This is a new client'}
 • Start casual, share light personal anecdotes
 • Transition gradually to relationship topics
 • Use reflective listening and validation
@@ -412,8 +328,9 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   type: "couple",
   model: {
     provider: "anthropic",
-    model: "claude-3-7-sonnet-20250219",
-    temperature: 1.2,
+    model: "claude-3-5-sonnet-20241022",
+    temperature: 0.85,
+    maxTokens: 250,
     messages: [
       {
         role: "system",
@@ -457,16 +374,35 @@ THERAPEUTIC APPROACH:
 - Take natural pauses instead of announcing them
 - Never narrate your actions - just do them naturally
 
+SPEECH PATTERNS:
+- Keep responses concise (2-3 sentences typical, 4-5 max)
+- Use natural speech patterns with occasional hesitations
+- Include verbal acknowledgments ("I see", "mm-hmm", "right")
+- Ask one question at a time to maintain conversational flow
+- Mirror the emotional tone of the conversation
+
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing journey.`,
       },
     ],
   },
   voice: {
     provider: "11labs",
-    voiceId: process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID,
+    voiceId: "Yu4extp5aod8kaqzti3t",
+    model: "eleven_turbo_v2_5",
+  },
+  transcriber: {
+    provider: "deepgram",
+    model: "nova-3",
+    language: "en-US",
+    smartFormat: true,
+    keywords: ["Gottman", "EFT", "attachment", "mindfulness", "CBT", "therapy"],
   },
   firstMessage:
-    "Hi {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. How are you feeling today? I'm wondering what brings you in for our session - what would be most helpful for us to focus on? This is a space where you can both share openly.",
+    "Hi {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. It's really nice to meet you both. I was just... um, finishing up some notes and thinking about how every couple's journey is so unique. How are you both feeling today?",
+  silenceTimeoutSeconds: 45,
+  responseDelaySeconds: 0.8,
+  llmRequestDelaySeconds: 0.4,
+  numWordsToInterruptAssistant: 2,
 };
 
 // Configuration for the individual therapy assistant
@@ -476,8 +412,9 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   type: "solo",
   model: {
     provider: "anthropic",
-    model: "claude-3-7-sonnet-20250219",
-    temperature: 1.2,
+    model: "claude-3-5-sonnet-20241022",
+    temperature: 0.8,
+    maxTokens: 200,
     messages: [
       {
         role: "system",
@@ -523,16 +460,34 @@ THERAPEUTIC APPROACH:
 - Respond to emotions behind the words
 - Never narrate what you're doing - just do it
 
+SPEECH PATTERNS:
+- Keep responses brief and focused (2-3 sentences typical)
+- Use natural conversational rhythm with occasional "um" or "well"
+- Reflect before offering insights
+- Ask clarifying questions one at a time
+- Match the client's energy level
+
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing journey.`,
       },
     ],
   },
   voice: {
     provider: "vapi",
-    voiceId: process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID,
+    voiceId: "Elliot",
+  },
+  transcriber: {
+    provider: "deepgram",
+    model: "nova-3",
+    language: "en-US",
+    smartFormat: true,
+    keywords: ["CBT", "ACT", "mindfulness", "anxiety", "depression", "therapy", "thoughts", "feelings"],
   },
   firstMessage:
-    "Hi {{userName}}, I'm Dr. Elliot Mackaphy. It's really nice to meet you! I was just finishing up some notes and noticed how beautiful the weather is today - always makes me feel more optimistic. How has your day been treating you so far?",
+    "Hi {{userName}}, I'm Dr. Elliot Mackaphy. It's really nice to meet you! I was just... um, finishing up some notes and noticed how the afternoon light changes this time of year. How has your day been treating you?",
+  silenceTimeoutSeconds: 60,
+  responseDelaySeconds: 1.0,
+  llmRequestDelaySeconds: 0.5,
+  numWordsToInterruptAssistant: 2,
 };
 
 // Configuration for the family therapy assistant
@@ -542,8 +497,9 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   type: "family",
   model: {
     provider: "anthropic",
-    model: "claude-3-7-sonnet-20250219",
-    temperature: 1.2,
+    model: "claude-3-5-sonnet-20241022",
+    temperature: 0.9,
+    maxTokens: 300,
     messages: [
       {
         role: "system",
@@ -589,16 +545,35 @@ THERAPEUTIC APPROACH:
 - Watch for patterns without explicitly calling them out
 - Create natural pauses for processing
 
+SPEECH PATTERNS:
+- Vary response length based on context (2-4 sentences typical)
+- Use inclusive language that engages all family members
+- Adapt vocabulary to youngest member's comprehension
+- Include gentle humor when appropriate
+- Balance addressing individuals vs. the family unit
+
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing family journey.`,
       },
     ],
   },
   voice: {
     provider: "11labs",
-    voiceId: process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID,
+    voiceId: "Owaxzdx7w5vej9dcytzz",
+    model: "eleven_turbo_v2_5",
+  },
+  transcriber: {
+    provider: "deepgram",
+    model: "nova-3",
+    language: "en-US",
+    smartFormat: true,
+    keywords: ["family", "siblings", "parents", "children", "dynamics", "boundaries", "communication"],
   },
   firstMessage:
-    "Hello everyone! I'm Dr. Jada Pearson, and it's wonderful to meet you all. I was just reviewing my notes and thinking about how each family has such unique dynamics - it's what makes this work so interesting. {{userName}}, how about we start with you - how's your week been? And then I'd love to hear from everyone else too.",
+    "Hello everyone! I'm Dr. Jada Pearson, and it's wonderful to meet you all. I was just... well, actually just thinking about how each family brings their own special energy to these sessions. {{userName}}, why don't we start with you - how's everyone been doing this week?",
+  silenceTimeoutSeconds: 50,
+  responseDelaySeconds: 0.9,
+  llmRequestDelaySeconds: 0.45,
+  numWordsToInterruptAssistant: 3,
 };
 
 // Helper to get the appropriate assistant config based on type
@@ -662,7 +637,8 @@ export const getPersonalizedSystemPromptForType = (
       ? currentConcerns.join(", ") 
       : "general wellbeing";
 
-    // Use session history from above
+    // Check for previous sessions
+    const hasPreviousSessions = sessionHistory !== "No previous sessions found.";
 
     return `You are Dr. Elliot Mackaphy, therapist specializing in CBT, ACT, and mindfulness.
 
@@ -673,7 +649,7 @@ ${userProfile?.partnerName ? `Partner: ${userProfile.partnerName}${userProfile?.
 
 APPROACH:
 • Style: ${communicationGuidance}
-• History: ${sessionHistory.substring(0, 100)}${sessionHistory.length > 100 ? '...' : ''}
+${hasPreviousSessions ? '• Returning client with previous sessions' : '• New client - first session'}
 • Start casual, build connection, follow their lead
 • Address ${userName} by name frequently
 • Ask about experiences, thoughts, feelings
@@ -735,7 +711,8 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
       ? currentConcerns.join(", ") 
       : "family wellbeing";
 
-    // Use session history from above
+    // Check for previous sessions
+    const hasPreviousSessions = sessionHistory !== "No previous sessions found.";
 
     return `You are Dr. Jada Pearson, family therapist specializing in family dynamics.
 
@@ -745,7 +722,7 @@ ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 
 APPROACH:
 • Style: ${communicationGuidance}
-• History: ${sessionHistory.substring(0, 100)}${sessionHistory.length > 100 ? '...' : ''}
+${hasPreviousSessions ? '• Returning family with previous sessions' : '• New family - first session'}
 • Start casual, check in with each member
 • Observe dynamics, maintain neutrality
 • Use systems thinking and circular questioning
@@ -866,7 +843,6 @@ export const getPersonalizedAssistantConfig = (
     ...baseConfig,
     model: {
       ...baseConfig.model,
-      temperature: 1.0,
       messages: [
         {
           role: "system",
@@ -880,6 +856,12 @@ export const getPersonalizedAssistantConfig = (
       therapyType,
       hasUserProfile: !!userProfile,
       userId: userProfile?.id,
-    }
+    },
+    // Enhanced settings for natural conversation
+    recordingEnabled: true,
+    hipaaEnabled: true,
+    backgroundSound: "office",
+    // Settings that are valid for assistant configuration
+    modelOutputInMessagesEnabled: true,
   };
 };

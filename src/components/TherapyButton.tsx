@@ -66,8 +66,10 @@ function TherapyButton({
   const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
   
   // Check for existing session on component mount using useCallback for performance
+  // Note: We don't auto-start sessions to avoid unexpected behavior
   const checkForActiveSession = useCallback(async () => {
     try {
+      console.log('Checking for active sessions for user:', userId);
       const response = await fetch(`/api/sessions/active?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
@@ -75,7 +77,13 @@ function TherapyButton({
           // Only store the session ID
           setSessionId(data.id)
           console.log('Found existing session, but not auto-starting:', data.id)
-          // Don't auto-start the session
+          // Don't auto-start the session, but set the flag to avoid cleanup
+          if (typeof window !== 'undefined') {
+            // Don't set as active yet because user hasn't clicked the button
+            (window as any).__existingSession = data.id;
+          }
+        } else {
+          console.log('No active session found for user');
         }
       }
     } catch (error) {
@@ -107,14 +115,35 @@ function TherapyButton({
       debugTranscriberConfig();
     }
     
-    // Cleanup on unmount
+    // NOTE: We DON'T want to clean up on unmount if a session is active
+    // Because this would immediately stop any session that was just started
     return () => {
-      cleanupResources()
+      // Check multiple indicators for active session
+      const hasSessionClass = document.body.classList.contains('session-active');
+      const hasWindowFlag = (window as any).__therapySessionActive === true;
+      const hasExistingSession = (window as any).__existingSession;
+      
+      if (hasSessionClass || hasWindowFlag || hasExistingSession) {
+        console.log('Component unmounting but session indicators present - NOT cleaning up', {
+          hasSessionClass,
+          hasWindowFlag,
+          hasExistingSession
+        });
+      } else {
+        console.log('Component unmounting, no active session - cleaning up resources');
+        cleanupResources();
+      }
     }
-  }, [checkForActiveSession, setSessionActive])
+  }, [checkForActiveSession]) // Only depend on checkForActiveSession
   
   // Enhanced cleanup function for thoroughly releasing resources
   const cleanupResources = () => {
+    // Check if we have an active session flag set
+    if (typeof window !== 'undefined' && (window as any).__therapySessionActive === true) {
+      console.log('⚠️ Cleanup requested but session is active - SKIPPING CLEANUP');
+      return;
+    }
+    
     console.log('🧹 Cleaning up resources...');
     
     // 1. Clean up animation frame
@@ -346,12 +375,24 @@ function TherapyButton({
       // Get API key from environment variables
       const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
       
+      // Check if API key exists
       if (!apiKey) {
         console.error('NEXT_PUBLIC_VAPI_API_KEY is not set in environment variables');
-        throw new Error('Vapi API key not configured');
+        
+        // Log all available NEXT_PUBLIC keys for debugging
+        console.log("Available environment variables:", 
+          Object.keys(process.env)
+            .filter(key => key.startsWith('NEXT_PUBLIC'))
+            .reduce((obj, key) => {
+              obj[key] = process.env[key] ? '✅ Set' : '❌ Not set';
+              return obj;
+            }, {})
+        );
+        
+        throw new Error('Vapi API key not configured - check environment variables');
       }
       
-      console.log('Using direct API key for Vapi authentication');
+      console.log('Found Vapi API key, starting authentication');
       
       try {
         // Import and use initVapi which has debugging built in
@@ -402,113 +443,38 @@ function TherapyButton({
         }
       }
       
-      // Customize assistant if profile available
+      // ULTRA-FAST MODE: Skip all personalization to improve startup time
+      // All customization should be handled by the pre-configured assistant in Vapi dashboard
+      console.log('⚡ ULTRA-FAST MODE: Skipping personalization to reduce startup time');
+      console.log('All customization will be handled by the pre-configured assistant');
+      
+      // Only store minimal data for transcript recording
       if (userProfile && vapiInstanceRef.current) {
-        try {
-          const { getPersonalizedAssistantConfig, getPersonalizedSystemPromptForType, getPersonalizedFirstMessageForType } = await import('@/lib/vapi')
-          
-          // Create comprehensive profile data object with all user information
-          const userProfileData = {
-            // Core identification
-            id: userProfile.id,
-            userName: userProfile.name,
-            name: userProfile.name,
-            userAge: userProfile.age,
-            age: userProfile.age,
-            pronouns: userProfile.pronouns,
-            
-            // Relationship data for couple therapy
-            partnerName: userProfile.partnerName,
-            partnerAge: userProfile.partnerAge,
-            relationshipStatus: userProfile.relationshipStatus,
-            
-            // Family members for family therapy
-            familyMember1: userProfile.familyMember1,
-            familyMember1Age: userProfile.familyMember1Age,
-            familyMember2: userProfile.familyMember2,
-            familyMember2Age: userProfile.familyMember2Age,
-            familyMember3: userProfile.familyMember3,
-            familyMember3Age: userProfile.familyMember3Age,
-            familyMember4: userProfile.familyMember4,
-            familyMember4Age: userProfile.familyMember4Age,
-            
-            // Therapy preferences and concerns
-            therapyType: therapyType || userProfile.therapyType || 'couple',
-            currentConcerns: userProfile.currentConcerns || [],
-            communicationStyle: userProfile.communicationStyle || 'balanced',
-            sessionPreference: userProfile.sessionPreference || 'flexible',
-            additionalNotes: userProfile.additionalNotes || '',
-            
-            // Emergency and contact info
-            emergencyContact: userProfile.emergencyContact,
-            phone: userProfile.phone,
-            notificationPrefs: userProfile.notificationPrefs,
-            
-            // Session history
-            sessionHistory: userProfile.sessionHistory || 'No previous sessions found.',
-            
-            // Metadata
-            onboardingCompleted: userProfile.onboardingCompleted,
-            onboardingData: userProfile.onboardingData
-          };
-          
-          console.log('Including session history in assistant prompt');
-          
-          // Get personalized prompt and message based on therapy type
-          const systemPrompt = getPersonalizedSystemPromptForType(therapyType, userProfileData);
-          const firstMessage = getPersonalizedFirstMessageForType(therapyType, userProfileData);
-          
-          vapiInstanceRef.current._customData = {
-            systemPrompt,
-            firstMessage
-          }
-          
-          // Check if there are previous sessions
-          try {
-            console.log('Checking for previous sessions to update first message...');
-            fetch('/api/sessions')
-              .then(response => response.json())
-              .then(sessions => {
-                const previousSessions = sessions.filter(s => s.status === 'completed');
-                if (previousSessions.length > 0) {
-                  console.log(`Found ${previousSessions.length} previous sessions, updating first message`);
-                  
-                  // Override the first message to acknowledge returning client
-                  // Use different greetings based on therapy type
-                  let continuityMessage = '';
-                  
-                  if (therapyType === 'couple') {
-                    continuityMessage = 
-                      `Hello ${userProfileData.userName || 'there'}, it's good to see you${userProfileData.partnerName ? ` and ${userProfileData.partnerName}` : ''} again. *warm pause* It's always valuable to continue our therapeutic journey together. What would you like to focus on in our session today?`;
-                  } else if (therapyType === 'family') {
-                    continuityMessage = 
-                      `Hello ${userProfileData.userName || 'there'} and family, welcome back! *warm pause* I'm glad we can continue our work together. What would your family like to explore in today's session?`;
-                  } else { // solo therapy
-                    continuityMessage = 
-                      `Hello ${userProfileData.userName || 'there'}, welcome back! *warm pause* It's great to continue our work together. What's been on your mind since we last spoke?`;
-                  }
-                  
-                  vapiInstanceRef.current._customData.firstMessage = continuityMessage;
-                  console.log('Updated first message to acknowledge returning client');
-                }
-              })
-              .catch(err => {
-                console.warn('Error checking previous sessions:', err);
-              });
-          } catch (err) {
-            console.warn('Error in previous sessions check:', err);
-          }
-        } catch (err) {
-          console.error('Error applying personalizations:', err)
-        }
+        vapiInstanceRef.current._customData = {
+          userName: userProfile.name || 'client',
+          therapyType: therapyType
+        };
       }
       
       
       // Set up event handlers
       vapiInstanceRef.current.on('call-start', () => {
-        console.log('Vapi call started')
-        setIsCallActive(true)
-        setErrorMessage(null)
+        console.log('✅ Vapi call started - call-start event fired');
+        setIsCallActive(true);
+        setErrorMessage(null);
+        
+        // Ensure session-active class is present (critical for starry night visualization)
+        if (!document.body.classList.contains('session-active')) {
+          console.log('WARNING: session-active class missing on call-start, adding it now');
+          document.body.classList.add('session-active');
+        }
+        
+        // Ensure we have applied all visualization settings
+        const main = document.querySelector('main');
+        if (main) {
+          main.style.transition = 'all 0.3s ease-in-out';
+          main.style.opacity = '0.95';
+        }
         
         // Add initial transcript entry to mark start of session
         if (sessionId) {
@@ -981,23 +947,24 @@ function TherapyButton({
 
   // Start therapy session
   const startTherapySession = useCallback(async () => {
+    console.log('⚙️ Starting therapy session initialization...');
     setErrorMessage(null)
     setIsLoading(true)
     
+    // Store a session flag in window object to ensure we don't accidentally clean up
+    if (typeof window !== 'undefined') {
+      (window as any).__therapySessionActive = true;
+      console.log('Setting session active flag in window object');
+    }
+    
     try {
-      // Note: UI changes are now handled in the button click handler for immediate feedback
-      // So we don't need to duplicate them here, but we'll ensure they're applied
+      // Verify the session-active class is present (double check as this is critical for visuals)
       if (!document.body.classList.contains('session-active')) {
-        document.body.classList.add('session-active')
+        console.warn('session-active class missing from document.body - adding it');
+        document.body.classList.add('session-active');
       }
       
-      // Ensure call is marked as active
-      if (!isCallActive) {
-        setIsCallActive(true)
-      }
-      
-      // Set session as active without stopping music
-      setSessionActive(true)
+      // Not setting isCallActive or setSessionActive here as it's already done in the button click handler
       
       // Store session start time for duration calculation
       const sessionStartTime = new Date();
@@ -1009,46 +976,33 @@ function TherapyButton({
         console.warn('Could not save session start time to sessionStorage', err);
       }
       
-      // Start loading the setup in parallel
-      // User profile, previous sessions and audio setup can happen in parallel
-      const [userProfilePromise, previousSessionsPromise, audioPromise] = [
-        // Get user profile
-        (async () => {
-          try {
-            const profileResponse = await fetch('/api/user/profile')
-            if (profileResponse.ok) {
-              return await profileResponse.json()
-            }
-          } catch (err) {
-            console.warn('Could not load user profile, using default experience')
-          }
-          return null
-        })(),
-        
-        // Fetch previous sessions
-        (async () => {
-          try {
-            const sessionsResponse = await fetch('/api/sessions')
-            if (sessionsResponse.ok) {
-              return await sessionsResponse.json()
-            }
-          } catch (err) {
-            console.warn('Could not load previous sessions:', err)
-          }
-          return []
-        })(),
-        
-        // Start setting up audio in parallel - this can happen independently
-        setupAudioAnalyzer()
-      ]
+      // ULTRA-FAST MODE: Minimize API calls during session start
+      // Only load essential data, skip heavy operations
+      console.log('⚡ ULTRA-FAST MODE: Loading only essential data for immediate session start');
       
-      // Wait for user profile and previous sessions to complete
-      const [userProfile, previousSessions] = await Promise.all([
-        userProfilePromise,
-        previousSessionsPromise
-      ]);
+      let userProfile = null;
+      try {
+        // Quick user profile fetch with timeout
+        const profileResponse = await Promise.race([
+          fetch('/api/user/profile'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Profile fetch timeout')), 2000))
+        ]);
+        
+        if (profileResponse.ok) {
+          userProfile = await profileResponse.json();
+          console.log('✅ Got user profile quickly');
+        }
+      } catch (err) {
+        console.warn('⚠️ Using default experience - profile load failed or timed out:', err);
+      }
       
-      // Create session in database
+      // Start audio setup in background (don't wait for it)
+      setupAudioAnalyzer().catch(err => {
+        console.warn('Audio setup failed, continuing anyway:', err);
+      });
+      
+      // ULTRA-FAST MODE: Create minimal session record
+      console.log('⚡ Creating minimal session record for faster startup');
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
@@ -1056,26 +1010,14 @@ function TherapyButton({
         },
         body: JSON.stringify({
           startTime: sessionStartTime.toISOString(),
-          date: sessionStartTime.toISOString(), // This is required by the schema
+          date: sessionStartTime.toISOString(),
           status: 'active',
-          duration: 60, // Required by the schema, default 60 minutes
-          theme: therapyType === 'couple' ? 'Relationship Counseling' : 
-                 therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy',
-          notes: `${therapyType} therapy session started at ${new Date().toLocaleTimeString()}`,
-          // Include assistant ID to link with Vapi assistant
+          duration: 60,
+          theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy`,
+          notes: `Session started`,
           assistantId: assistantConfig.id || '',
-          // Include context for session personalization
-          context: userProfile ? {
-            userName: userProfile.name,
-            partnerName: userProfile.partnerName,
-            relationshipStatus: userProfile.relationshipStatus,
-            // Include family members for family therapy
-            familyMember1: userProfile.familyMember1,
-            familyMember2: userProfile.familyMember2,
-            familyMember3: userProfile.familyMember3,
-            familyMember4: userProfile.familyMember4,
-            therapyType: therapyType
-          } : undefined,
+          // Minimal context to avoid bloated payloads
+          context: userProfile?.name ? { userName: userProfile.name, therapyType } : { therapyType }
         }),
       })
       
@@ -1106,102 +1048,17 @@ function TherapyButton({
         throw new Error('Failed to parse session data')
       }
       
-      // Format previous session history for the AI
-      let sessionHistory = '';
-      try {
-        if (previousSessions && previousSessions.length > 0) {
-          console.log(`Found ${previousSessions.length} previous sessions, formatting for AI context`);
-          
-          // Import the formatter
-          const { formatSessionHistory } = await import('@/lib/vapi');
-          sessionHistory = formatSessionHistory(previousSessions);
-          console.log('Previous session history formatted successfully');
-        } else {
-          console.log('No previous sessions found');
-          sessionHistory = 'No previous sessions found.';
-        }
-      } catch (historyError) {
-        console.error('Error formatting session history:', historyError);
-        sessionHistory = 'Error retrieving previous session history.';
-      }
+      // ULTRA-FAST MODE: Skip expensive session history processing
+      console.log('⚡ ULTRA-FAST MODE: Skipping session history processing for faster startup');
       
-      // Update user profile with session history
-      const enhancedUserProfile = {
-        ...userProfile,
-        sessionHistory
-      };
-      
-      // Initialize Vapi with custom transcriber - this can now happen in parallel with audio setup
-      const initialized = await createVapiInstance(enhancedUserProfile)
+      // Initialize Vapi immediately with minimal profile
+      const initialized = await createVapiInstance(userProfile)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
       }
       
-      // Add network connection and WebRTC reconnection listeners
-      if (vapiInstanceRef.current) {
-        // Add transport state change listener for WebRTC diagnostics
-        try {
-          vapiInstanceRef.current.on('transport-state-change', (event: any) => {
-            console.log('🔌 Transport state changed:', event);
-            if (event && event.state === 'disconnected') {
-              console.log('🔄 WebRTC transport disconnected - attempting recovery...');
-              
-              // If connection is lost but we're still in a session, attempt recovery
-              if (sessionId && isCallActive) {
-                // Show user feedback about connection state
-                setErrorMessage('Connection interrupted. Attempting to reconnect...');
-                
-                // Allow time for potential auto-recovery (3 seconds)
-                setTimeout(() => {
-                  if (isCallActive && vapiInstanceRef.current) {
-                    // Check if the call is still active
-                    const currentState = (vapiInstanceRef.current as any)._transportState;
-                    console.log('Current transport state:', currentState || 'unknown');
-                    
-                    if (currentState === 'disconnected' || currentState === 'failed') {
-                      console.log('Attempting to restart audio connection...');
-                      
-                      // Attempt to reinitialize audio
-                      setupAudioAnalyzer().then(() => {
-                        console.log('Audio analyzer reinitialized successfully');
-                        setErrorMessage(null);
-                      }).catch(err => {
-                        console.error('Failed to reinitialize audio:', err);
-                      });
-                    } else {
-                      console.log('Connection appears to have recovered automatically');
-                      setErrorMessage(null);
-                    }
-                  }
-                }, 3000);
-              }
-            }
-          });
-          
-          // Add network status listeners to handle online/offline events
-          window.addEventListener('online', () => {
-            console.log('🌐 Network connection restored');
-            if (sessionId && isCallActive && vapiInstanceRef.current) {
-              setErrorMessage('Network connection restored. Reconnecting...');
-              
-              // Attempt to reconnect audio
-              setupAudioAnalyzer().catch(err => {
-                console.error('Failed to reinitialize audio after network restore:', err);
-              });
-            }
-          });
-          
-          window.addEventListener('offline', () => {
-            console.log('🌐 Network connection lost');
-            if (sessionId && isCallActive) {
-              setErrorMessage('Network connection lost. Waiting to reconnect...');
-            }
-          });
-          
-        } catch (listenerError) {
-          console.warn('Could not add transport state listeners:', listenerError);
-        }
-      }
+      // ULTRA-FAST MODE: Skip complex network monitoring to reduce overhead
+      console.log('⚡ ULTRA-FAST MODE: Skipping network monitoring for faster startup');
       
       // Explicitly set the session ID on the Vapi instance for transcript recording
       if (vapiInstanceRef.current && session.id) {
@@ -1254,357 +1111,181 @@ function TherapyButton({
       console.log(`Starting ${therapyType} therapy session with assistant: ${assistantConfig?.name || 'Unknown'} (ID: ${assistantId})`);
       console.log(`Voice configuration: ${JSON.stringify(assistantConfig?.voice || 'default')}`);
       
-      // Use an enhanced approach with WebRTC optimizations
+      // Ensure we have a session-active class on the body - this is critical for the starry night visualization
+      if (!document.body.classList.contains('session-active')) {
+        console.log('WARNING: session-active class missing from document.body, adding it now');
+        document.body.classList.add('session-active');
+      } else {
+        console.log('Verified session-active class is present on document.body');
+      }
+      
+      // ENHANCED MODE: Start call with personalized assistant configuration
       try {
-        console.log('Starting call with assistant ID:', assistantId);
+        console.log('🚀 Starting enhanced therapy session with personalization');
+        console.log('Using assistant ID:', assistantId);
+        console.log('Therapy type:', therapyType);
         
-        // Create an enhanced configuration that includes connection optimizations
-        const enhancedAssistantConfig = {
-          variableValues: userProfile ? {
-            username: userProfile.name || 'user',
-            partnername: userProfile.partnerName || 'partner',
-            // Include family members if this is family therapy
-            ...(therapyType === 'family' ? {
-              familymember1: userProfile.familyMember1 || '',
-              familymember2: userProfile.familyMember2 || '',
-              familymember3: userProfile.familyMember3 || '',
-              familymember4: userProfile.familyMember4 || ''
-            } : {})
-          } : undefined,
-          // Use the possibly modified first message that acknowledges previous sessions
-          firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
-          
-          // Connection optimization settings
-          webrtc: {
-            // Force the use of relay servers if direct connection fails
-            iceTransportPolicy: 'all',
-            // Increase ICE gathering timeout for more reliable connections
-            iceCandidatePoolSize: 10,
-            // Enable connection resilience features
-            enableDtlsSrtp: true,
-            // Add additional diagnostic information
-            rtcStatsIntervalMs: 5000,
-            // Set a higher timeout for connection establishment (10 seconds)
-            timeout: 10000,
-          },
-          
-          // Enable auto-reconnection in case of network issues
-          reconnection: true,
-          
-          // Store current session info for recovery
-          metadata: {
-            sessionId: session.id,
-            sessionStartTime: new Date().toISOString(),
-            therapyType,
-            userProfileId: userProfile?.id,
-          }
-        };
-        
-        // Additional state tracking for the Vapi instance
+        // Ensure we have a clean state
         if (vapiInstanceRef.current) {
           (vapiInstanceRef.current as any)._isCallActive = true;
           (vapiInstanceRef.current as any)._currentAssistantId = assistantId;
           (vapiInstanceRef.current as any)._callStartTime = new Date();
         }
         
-        // Log the configuration for debugging (excluding sensitive info)
-        console.log('ENHANCED ASSISTANT CONFIG:', JSON.stringify({
-          assistantId,
-          variableKeys: enhancedAssistantConfig.variableValues ? Object.keys(enhancedAssistantConfig.variableValues) : [],
-          webrtcConfig: !!enhancedAssistantConfig.webrtc,
-          metadata: {
-            sessionId: session.id,
-            therapyType,
-          }
-        }, null, 2));
+        // Validate that assistantId exists
+        if (!assistantId) {
+          throw new Error('Assistant ID is missing or invalid');
+        }
         
-        // Start the call with the enhanced configuration
+        // Check if vapiInstanceRef.current exists before calling start
+        if (!vapiInstanceRef.current) {
+          throw new Error('Vapi instance not initialized');
+        }
+        
         try {
-          console.log('🚀 Starting call with enhanced config...');
-          // Check if vapiInstanceRef.current exists before calling start
-          if (!vapiInstanceRef.current) {
-            throw new Error('Vapi instance not initialized');
+          // Fetch personalized assistant configuration from API
+          console.log('Fetching personalized assistant configuration...');
+          const configResponse = await fetch(`/api/vapi/assistant?personalized=true&therapyType=${therapyType}`);
+          
+          if (!configResponse.ok) {
+            throw new Error('Failed to fetch personalized configuration');
           }
           
-          // Add additional error handling and validation
-          console.log('Validated Vapi instance exists, now starting call...');
+          const personalizedConfig = await configResponse.json();
+          console.log('✅ Received personalized configuration with enhanced settings');
           
-          // Validate that assistantId exists
-          if (!assistantId) {
-            throw new Error('Assistant ID is missing or invalid');
-          }
-          
-          // Simple config without validation
-          const finalConfig = enhancedAssistantConfig;
-          
-          // Make sure we disconnect from any previous sessions first
+          // Option 1: Try to configure assistant server-side first
           try {
-            const isAlreadyActive = (vapiInstanceRef.current as any)._isCallActive;
-            if (isAlreadyActive) {
-              console.log('Attempting to stop any existing call before starting a new one');
-              await vapiInstanceRef.current.stop();
-              // Add small delay to ensure clean state
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-          } catch (stopError) {
-            console.warn('Error stopping previous call (continuing anyway):', stopError);
-          }
-          
-          // Start the call with absolutely minimal configuration
-          console.log('Starting call with assistant ID only (no config):', assistantId);
-          
-          // Based on Vapi API docs, we ONLY need to pass the assistantId to start a call
-          // This is the absolute minimum required configuration
-          console.log('Starting call with ONLY the assistantId parameter:', assistantId);
-          
-          try {
-            // Create user profile variables
-            const variableValues: Record<string, any> = {};
+            console.log('Attempting server-side assistant configuration...');
+            const configureResponse = await fetch('/api/vapi/assistant/configure', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                assistantId,
+                configuration: personalizedConfig
+              })
+            });
             
-            if (userProfile || enhancedUserProfile) {
-              const fullProfile = enhancedUserProfile || userProfile;
-              
-              // Core user information
-              variableValues.userName = fullProfile.name || 'the client';
-              variableValues.userAge = fullProfile.age || null;
-              variableValues.pronouns = fullProfile.pronouns || null;
-              
-              // Communication preferences
-              variableValues.communicationStyle = fullProfile.communicationStyle || 'balanced';
-              variableValues.sessionPreference = fullProfile.sessionPreference || 'flexible';
-              
-              // Therapy type specific data
-              if (therapyType === 'couple') {
-                variableValues.partnerName = fullProfile.partnerName || 'their partner';
-                variableValues.partnerAge = fullProfile.partnerAge || null;
-                variableValues.relationshipStatus = fullProfile.relationshipStatus || 'In a relationship';
-              }
-              
-              if (therapyType === 'family') {
-                for (let i = 1; i <= 4; i++) {
-                  const memberKey = `familyMember${i}`;
-                  const ageKey = `familyMember${i}Age`;
-                  if (fullProfile[memberKey]) {
-                    variableValues[memberKey] = fullProfile[memberKey];
-                    if (fullProfile[ageKey]) {
-                      variableValues[ageKey] = fullProfile[ageKey];
-                    }
-                  }
+            if (configureResponse.ok) {
+              console.log('✅ Assistant configured server-side successfully');
+              // Now start with just variable values since config is on server
+              const minimalOverrides = {
+                variableValues: {
+                  userName: personalizedConfig.variableValues?.userName || userProfile?.name || 'there',
+                  partnerName: personalizedConfig.variableValues?.partnerName || userProfile?.partnerName || '',
+                  therapyType: therapyType
                 }
-              }
-              
-              // Current concerns as a string
-              if (fullProfile.currentConcerns) {
-                const concernsList = Array.isArray(fullProfile.currentConcerns) 
-                  ? fullProfile.currentConcerns.join(', ') 
-                  : fullProfile.currentConcerns;
-                variableValues.currentConcerns = concernsList;
-              }
-              
-              // Additional notes  
-              if (fullProfile.additionalNotes) {
-                variableValues.additionalNotes = fullProfile.additionalNotes;
-              }
-              
-              // Session history (limit length)
-              if (fullProfile.sessionHistory) {
-                variableValues.sessionHistory = typeof fullProfile.sessionHistory === 'string' 
-                  ? fullProfile.sessionHistory.substring(0, 1000)
-                  : 'No previous sessions';
-              }
-            }
-            
-            // For all therapy types, always use inline assistant to include the custom system prompt
-            // and ensure correct assistant names (since pre-configured assistants may have wrong names)
-            if (therapyType === 'family' || therapyType === 'solo' || therapyType === 'couple') {
-              console.log(`Using inline assistant for ${therapyType} therapy to include custom system prompt`);
-              
-              let assistantName, voiceProvider, voiceId;
-              
-              switch (therapyType) {
-                case 'family':
-                  assistantName = 'Dr. Jada Pearson';
-                  voiceProvider = "11labs";
-                  voiceId = process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID;
-                  break;
-                case 'solo':
-                  assistantName = 'Dr. Elliot Mackaphy';
-                  voiceProvider = "vapi";
-                  voiceId = process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID;
-                  break;
-                case 'couple':
-                default:
-                  assistantName = 'Dr. Maya Thompson';
-                  voiceProvider = "11labs";
-                  voiceId = process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID;
-                  break;
-              }
-              
-              const inlineAssistant = {
-                name: assistantName,
-                model: {
-                  provider: "anthropic",
-                  model: "claude-3-7-sonnet-20250219",
-                  messages: [{
-                    role: "system",
-                    content: vapiInstanceRef.current?._customData?.systemPrompt || "You are a helpful therapy assistant."
-                  }]
-                },
-                voice: {
-                  provider: voiceProvider,
-                  voiceId: voiceId
-                },
-                firstMessage: vapiInstanceRef.current?._customData?.firstMessage
               };
-              
-              console.log(`System prompt for ${therapyType} therapy:`, inlineAssistant.model.messages[0].content.substring(0, 200) + '...');
-              console.log(`Starting call with inline ${therapyType} therapy assistant`);
-              await vapiInstanceRef.current.start(inlineAssistant);
-              console.log(`Successfully started ${therapyType} therapy session`);
+              await vapiInstanceRef.current.start(assistantId, minimalOverrides);
+              console.log('✅ Session started with server-configured assistant');
+              return; // Exit early on success
             }
-            // This path is no longer used since all therapy types use inline assistants
-            else if (false) {
-              const assistantOverrides = {
-                variableValues: variableValues,
-                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
-              };
-              
-              console.log('Starting call with assistant ID:', assistantId);
-              console.log('Variables being passed:', Object.keys(variableValues));
-              
-              await vapiInstanceRef.current.start(assistantId, assistantOverrides);
-              console.log('Successfully started call with assistant overrides');
-            }
-            // Fallback: Create inline assistant if no ID available
-            else {
-              console.log('No assistant ID available, using inline configuration');
-              const inlineAssistant = {
-                name: therapyType === 'solo' ? 'Dr. Elliot Mackaphy' : 'Dr. Maya Thompson',
-                model: {
-                  provider: "anthropic",
-                  model: "claude-3-7-sonnet-20250219",
-                  messages: [{
-                    role: "system",
-                    content: vapiInstanceRef.current?._customData?.systemPrompt || "You are a helpful therapy assistant."
-                  }]
-                },
-                voice: {
-                  provider: therapyType === 'solo' ? "vapi" : "11labs",
-                  voiceId: therapyType === 'solo' ? 
-                    process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID :
-                    process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID
-                },
-                firstMessage: vapiInstanceRef.current?._customData?.firstMessage,
-                variableValues: variableValues
-              };
-              
-              console.log('Starting call with inline assistant configuration');
-              await vapiInstanceRef.current.start(inlineAssistant);
-              console.log('Successfully started call with inline assistant');
-            }
-          } catch (startError: any) {
-            console.error('Error starting call:', startError);
-            
-            // Try to parse the error for more details
-            if (startError.response) {
-              console.error('Error response:', startError.response);
-            }
-            if (startError.message) {
-              console.error('Error message:', startError.message);
-            }
-            
-            // If we have an assistant ID, try with minimal overrides
-            if (assistantId) {
-              console.log('Retrying with minimal overrides...');
-              try {
-                const minimalOverrides = {
-                  variableValues: {
-                    userName: userProfile?.name || 'the client'
-                  }
-                };
-                
-                await vapiInstanceRef.current.start(assistantId, minimalOverrides);
-                console.log('Started with minimal overrides');
-              } catch (minimalError) {
-                console.error('Minimal override attempt failed:', minimalError);
-                
-                // Final attempt with just assistant ID
-                console.log('Final attempt with just assistant ID...');
-                await vapiInstanceRef.current.start(assistantId);
-              }
-            } else {
-              // No assistant ID, can't recover
-              throw new Error('No assistant ID available and inline config failed');
-            }
+          } catch (configError) {
+            console.warn('Server-side configuration failed, using client-side approach:', configError);
           }
-          console.log('✅ Successfully started call with assistant ID only')
-        } catch (err) {
-          console.error('⚠️ Error starting call with enhanced config:', err);
           
-          // Try recreating Vapi and starting again
-          console.log('🔄 Trying to recreate Vapi instance and start again');
+          // Option 2: Store config in multiple places for redundancy
+          // Store in Vapi instance
+          if (vapiInstanceRef.current) {
+            (vapiInstanceRef.current as any)._enhancedConfig = personalizedConfig;
+            console.log('Stored enhanced configuration on Vapi instance');
+          }
           
+          // Store in sessionStorage for persistence
           try {
-            // Get API key directly
-            const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
-            if (!apiKey) {
-              throw new Error('API key not available');
+            const { VapiConfigStore } = await import('@/lib/vapi-config-store');
+            VapiConfigStore.storeConfig(assistantId, {
+              model: personalizedConfig.model,
+              voice: personalizedConfig.voice,
+              transcriber: personalizedConfig.transcriber,
+              silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
+              responseDelaySeconds: personalizedConfig.responseDelaySeconds,
+              llmRequestDelaySeconds: personalizedConfig.llmRequestDelaySeconds,
+              numWordsToInterruptAssistant: personalizedConfig.numWordsToInterruptAssistant,
+              backchanneling: personalizedConfig.backchanneling,
+            });
+            console.log('Stored configuration in sessionStorage');
+          } catch (storeError) {
+            console.warn('Failed to store config in sessionStorage:', storeError);
+          }
+          
+          // Only send minimal overrides in the payload
+          const minimalOverrides = {
+            firstMessage: personalizedConfig.firstMessage,
+            variableValues: {
+              userName: personalizedConfig.variableValues?.userName || userProfile?.name || 'there',
+              partnerName: personalizedConfig.variableValues?.partnerName || userProfile?.partnerName || '',
+              therapyType: therapyType
             }
+          };
+          
+          // Start with minimal configuration
+          await vapiInstanceRef.current.start(assistantId, minimalOverrides);
+          console.log('✅ Enhanced therapy session started successfully');
+          
+        } catch (enhancedError) {
+          console.warn('⚠️ Enhanced mode failed, falling back to basic configuration:', enhancedError);
+          
+          // Fallback: try with progressively simpler configurations
+          console.warn('Enhanced mode failed, trying fallback approaches...');
+          
+          // First try: Just variable values
+          try {
+            console.log('Fallback 1: Trying with just variable values...');
+            const minimalOverrides = {
+              variableValues: {
+                userName: userProfile?.name || 'there',
+                partnerName: userProfile?.partnerName || '',
+                therapyType: therapyType
+              }
+            };
+            await vapiInstanceRef.current.start(assistantId, minimalOverrides);
+            console.log('✅ Variable values fallback successful');
+          } catch (fallback1Error) {
+            console.warn('Fallback 1 failed:', fallback1Error);
             
-            // Create new Vapi instance directly with no options
-            const newVapi = new Vapi(apiKey);
-            
-            // Update the ref
-            vapiInstanceRef.current = newVapi;
-            
-            // Start with just the ID
-            await newVapi.start(assistantId);
-            console.log('✅ Successfully started call after recreating instance');
-          } catch (finalErr) {
-            console.error('💥 Final error attempt failed:', finalErr);
-            throw new Error('Could not start Vapi call. Please check console for details.');
+            // Second try: Just assistant ID
+            try {
+              console.log('Fallback 2: Trying with just assistant ID...');
+              await vapiInstanceRef.current.start(assistantId);
+              console.log('✅ Minimal configuration successful');
+            } catch (fallback2Error) {
+              console.error('❌ All fallback approaches failed:', fallback2Error);
+              
+              // Final attempt: Use a default assistant ID if available
+              const defaultAssistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+              if (defaultAssistantId && defaultAssistantId !== assistantId) {
+                try {
+                  console.log('Final fallback: Trying with default assistant ID...');
+                  await vapiInstanceRef.current.start(defaultAssistantId);
+                  console.log('✅ Default assistant fallback successful');
+                } catch (finalError) {
+                  throw new Error('Failed to start session with any configuration or assistant');
+                }
+              } else {
+                throw new Error('Failed to start session with any configuration level');
+              }
+            }
           }
         }
         
-        // Set a status tracker for the session
-        try {
-          if (vapiInstanceRef.current && sessionId) {
-            // Store connection check interval for cleanup
-            const statusInterval = setInterval(() => {
-              if (!isCallActive || !vapiInstanceRef.current) {
-                clearInterval(statusInterval);
-                return;
-              }
-              
-              // Check connection state every 10 seconds
-              const currentState = (vapiInstanceRef.current as any)._transportState;
-              if (currentState === 'disconnected' || currentState === 'failed') {
-                console.log(`🔄 Detected disconnected state during status check: ${currentState}`);
-                setErrorMessage('Connection issue detected. Attempting to fix...');
-                
-                // Attempt to reinitialize audio for reconnection
-                setupAudioAnalyzer().catch(err => {
-                  console.error('Failed to reinitialize audio during status check:', err);
-                });
-              }
-            }, 10000);
-            
-            // Store the interval for cleanup
-            (vapiInstanceRef.current as any)._statusInterval = statusInterval;
-          }
-        } catch (statusError) {
-          console.warn('Failed to set up status tracker:', statusError);
-        }
+        console.log('✅ Therapy session initialization complete');
       } catch (err) {
-        console.error('❌ Fatal error starting call with all attempts:', err);
+        console.error('❌ Fatal error starting therapy session:', err);
         throw err;
       }
     } catch (error) {
-      console.error('Failed to start therapy session:', error)
+      console.error('❌ Failed to start therapy session:', error)
       setErrorMessage(`Start session error: ${error}`)
       
-      // Clean up all resources and styling
-      cleanupResources()
+      // Reset the session active flag since the session failed to start
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = false;
+        console.log('Resetting session active flag due to error');
+      }
+      
+      // Clean up UI and resources
+      cleanupResources();
       
       // Clean up failed session
       if (sessionId) {
@@ -1630,6 +1311,12 @@ function TherapyButton({
   // End therapy session
   const endTherapySession = useCallback(async () => {
     console.log('End therapy session called')
+    
+    // Reset the session active flag since the session is ending
+    if (typeof window !== 'undefined') {
+      (window as any).__therapySessionActive = false;
+      console.log('Resetting session active flag - session ending');
+    }
     
     // Immediately reset UI state to improve user experience and ensure UI updates
     setIsCallActive(false);
@@ -2193,7 +1880,12 @@ function TherapyButton({
   }, [isCallActive, sessionId]);
   
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-full sm:max-w-lg mx-auto px-2 overflow-visible">
+    <div className="flex flex-col items-center justify-center w-full max-w-full sm:max-w-lg mx-auto px-2" style={{ 
+      position: 'relative', 
+      zIndex: 10000, 
+      overflow: 'visible',
+      minHeight: isCallActive ? '600px' : 'auto'
+    }}>
       {/* Error messages */}
       {errorMessage && (
         <div 
@@ -2221,7 +1913,7 @@ function TherapyButton({
       
       {/* Apple Phone Call Style UI - with animations */}
       <motion.div 
-        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-visible z-50 relative mx-auto border-zinc-700 ${isCallActive ? 'mt-0' : 'mt-8'}`}
+        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-visible relative mx-auto border-zinc-700 ${isCallActive ? 'mt-0' : 'mt-8'}`}
         animate={{ 
           height: isCallActive ? 'auto' : '80px',
           y: isCallActive ? 0 : 0,
@@ -2244,10 +1936,13 @@ function TherapyButton({
           height: isCallActive ? 'auto' : '80px',
           minHeight: isCallActive ? '520px' : '80px',
           boxShadow: isCallActive ? '0 0 50px rgba(0, 0, 0, 0.5)' : 'none',
-          background: isCallActive ? 'black' : '',
-          border: isCallActive ? '2px solid rgba(255, 255, 255, 0.15)' : 'none',
+          background: isCallActive ? 'rgba(0, 0, 0, 0.95)' : 'transparent',
+          border: isCallActive ? '2px solid rgba(255, 255, 255, 0.3)' : 'none',
           borderRadius: '28px',
-          zIndex: 100 // Ensure this is higher than any background
+          zIndex: 9999, // Increase z-index to ensure visibility
+          position: 'relative', // Ensure positioning context
+          display: 'block', // Ensure it's displayed
+          visibility: 'visible' // Ensure it's visible
         }}
       >
         
@@ -2308,7 +2003,7 @@ function TherapyButton({
             </div>
             
             {/* Voice Waveform */}
-            <div className="w-full my-2 sm:my-3 opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative">
+            <div className="w-full my-2 sm:my-3 opacity-100 relative" style={{ minHeight: '80px' }}>
               <VoiceWaveform audioLevel={isMuted ? 0 : audioLevel} />
               {isMuted && (
                 <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -2396,23 +2091,48 @@ function TherapyButton({
           >
             <motion.button
               onClick={() => {
-                console.log('Start button clicked');
-                // Set UI state immediately
-                setIsCallActive(true);
-                // Set blue gradient effect right away
+                console.log('Start button clicked - initializing session');
+                
+                // IMMEDIATE UI FEEDBACK - critical for user experience
+                // 1. Set window flag FIRST to prevent cleanup
+                if (typeof window !== 'undefined') {
+                  (window as any).__therapySessionActive = true;
+                  console.log('Set window.__therapySessionActive = true');
+                }
+                
+                // 2. Set session-active class for visual feedback
                 document.body.classList.add('session-active');
-                // Add visualizing effect for better readability
+                console.log('Added session-active class to body');
+                
+                // 3. Set UI state for component
+                setIsCallActive(true);
+                console.log('Set isCallActive = true');
+                
+                // 4. Apply visual effects immediately 
                 const main = document.querySelector('main');
                 if (main) {
                   main.style.transition = 'all 0.3s ease-in-out';
-                  main.style.opacity = '0.95'; // Less dim for better visibility
-                  // Remove the blur effect that was making the page hazy
-                  document.body.style.backdropFilter = 'none';
+                  main.style.opacity = '0.95';
                 }
-                // Just update session state without stopping music
+                
+                // 5. Tell the sound context we're active
                 setSessionActive(true);
-                // Then start the actual session process
-                startTherapySession();
+                console.log('Set session active in sound context');
+                
+                // 6. Start the session initialization process
+                console.log('Starting therapy session process');
+                startTherapySession().catch(error => {
+                  console.error('Error starting session:', error);
+                  setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
+                  
+                  // Reset UI state if session fails to start
+                  document.body.classList.remove('session-active');
+                  setIsCallActive(false);
+                  if (main) {
+                    main.style.opacity = '1';
+                  }
+                  setSessionActive(false);
+                });
               }}
               disabled={isLoading}
               title={`Start a ${therapyType} therapy session with ${assistantConfig?.name}`}
@@ -2450,4 +2170,4 @@ function TherapyButton({
   )
 }
 
-export default TherapyButton
+export default React.memo(TherapyButton)

@@ -60,6 +60,7 @@ model Session {
   notificationPrefs String?           @default("email")
   smsReminderSent   Boolean?          @default(false)
   emailReminderSent Boolean?          @default(false)
+  oneHourReminderSent Boolean?        @default(false)
   assistantId       String?           // ID of the Vapi assistant used in this session
   user              User              @relation(fields: [userId], references: [id])
   transcriptEntries TranscriptEntry[]

@@ -55,30 +55,47 @@ export async function GET(request: Request) {
     
     console.log('Found/created user in database:', user.id);
     
-    // Fetch all sessions for this user with transcript entries
+    // Fetch sessions for this user without transcript entries first
+    // This prevents timeout issues with large datasets
     const sessions = await prisma.session.findMany({
       where: {
         userId: user.id
       },
-      include: {
-        transcriptEntries: {
-          // Include all transcript entries, not just final ones
-          orderBy: {
-            timestamp: 'asc'
-          }
-        }
-      },
       orderBy: {
         date: 'desc'
-      }
+      },
+      take: 50 // Limit to most recent 50 sessions
     });
+    
+    // Optionally fetch transcript count for each session
+    const sessionsWithCounts = await Promise.all(
+      sessions.map(async (session) => {
+        try {
+          const transcriptCount = await prisma.transcriptEntry.count({
+            where: { sessionId: session.id }
+          });
+          return {
+            ...session,
+            transcriptCount,
+            transcriptEntries: [] // Empty array, transcripts fetched separately
+          };
+        } catch (error) {
+          console.warn(`Failed to get transcript count for session ${session.id}:`, error);
+          return {
+            ...session,
+            transcriptCount: 0,
+            transcriptEntries: []
+          };
+        }
+      })
+    );
     
     // IMPORTANT: do not filter out or delete any sessions or transcripts automatically
     // This ensures all data created by the user is preserved
-    console.log(`Returning all ${sessions.length} sessions without filtering any data`);
+    console.log(`Returning all ${sessionsWithCounts.length} sessions without filtering any data`);
     
-    console.log(`Found ${sessions.length} sessions for user`);
-    return NextResponse.json(sessions);
+    console.log(`Found ${sessionsWithCounts.length} sessions for user`);
+    return NextResponse.json(sessionsWithCounts);
   } catch (error) {
     console.error('Error fetching sessions:', error);
     return NextResponse.json(
@@ -198,23 +215,29 @@ export async function POST(request: Request) {
       
       console.log('Session created successfully:', newSession.id);
       
-      // Send scheduling confirmation email (only when session is scheduled, not for each session start)
-      try {
-        await resend.emails.send({
-          from: `Therapy Support <${process.env.EMAIL_FROM}>`,
-          to: user.email,
-          subject: 'Your Therapy Session is Scheduled',
-          react: SessionConfirmationEmail({
-            username: user.name || 'Valued Client',
-            sessionDate: sessionDate,
-            duration: Number(duration),
-            theme: theme,
-            notes: notes,
-          }),
-        });
-        console.log('Scheduling confirmation email sent successfully');
-      } catch (emailError) {
-        console.error('Error sending scheduling confirmation email:', emailError);
+      // Send scheduling confirmation email only for future scheduled sessions
+      // Skip email for immediate/active sessions
+      const isImmediateSession = status === 'active' || 
+        (sessionDate.getTime() - new Date().getTime() < 5 * 60 * 1000); // Less than 5 minutes from now
+      
+      if (!isImmediateSession && status === 'scheduled') {
+        try {
+          await resend.emails.send({
+            from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+            to: user.email,
+            subject: 'Your Therapy Session is Scheduled',
+            react: SessionConfirmationEmail({
+              username: user.name || 'Valued Client',
+              sessionDate: sessionDate,
+              duration: Number(duration),
+              theme: theme,
+              notes: notes,
+            }),
+          });
+          console.log('Scheduling confirmation email sent successfully');
+        } catch (emailError) {
+          console.error('Error sending scheduling confirmation email:', emailError);
+        }
       }
       
       return NextResponse.json(newSession, { status: 201 });

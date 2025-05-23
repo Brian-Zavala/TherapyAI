@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { Resend } from 'resend';
+import SessionConfirmationEmail from '@/emails/SessionConfirmation';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { newDate } = await request.json();
+
+    if (!newDate) {
+      return NextResponse.json({ error: 'New date is required' }, { status: 400 });
+    }
+
+    const sessionDate = new Date(newDate);
+    if (sessionDate < new Date()) {
+      return NextResponse.json({ error: 'Cannot reschedule to a past date' }, { status: 400 });
+    }
+
+    // Find the existing session
+    const existingSession = await prisma.session.findUnique({
+      where: { 
+        id: params.id,
+        userId: session.user.id
+      },
+      include: {
+        user: true
+      }
+    });
+
+    if (!existingSession) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    if (existingSession.status !== 'scheduled' && existingSession.status !== 'missed') {
+      return NextResponse.json({ 
+        error: 'Can only reschedule scheduled or missed sessions' 
+      }, { status: 400 });
+    }
+
+    // Update the session with new date and reset reminder flags
+    const updatedSession = await prisma.session.update({
+      where: { id: params.id },
+      data: {
+        date: sessionDate,
+        status: 'scheduled',
+        emailReminderSent: false,
+        smsReminderSent: false,
+        oneHourReminderSent: false
+      }
+    });
+
+    // Send rescheduling confirmation email
+    try {
+      await resend.emails.send({
+        from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+        to: existingSession.user.email,
+        subject: 'Your Therapy Session Has Been Rescheduled',
+        react: SessionConfirmationEmail({
+          username: existingSession.user.name || 'Valued Client',
+          sessionDate: sessionDate,
+          duration: existingSession.duration,
+          theme: existingSession.theme,
+          notes: existingSession.notes,
+        }),
+      });
+    } catch (emailError) {
+      console.error('Error sending rescheduling confirmation email:', emailError);
+    }
+
+    return NextResponse.json(updatedSession);
+  } catch (error) {
+    console.error('Error rescheduling session:', error);
+    return NextResponse.json({ 
+      error: 'Failed to reschedule session',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}

@@ -13,6 +13,8 @@ type Session = {
   theme: string;
   notes?: string;
   status: string;
+  emailReminderSent?: boolean;
+  oneHourReminderSent?: boolean;
 };
 
 export default function UpcomingSessions() {
@@ -21,6 +23,7 @@ export default function UpcomingSessions() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [rescheduling, setRescheduling] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSessions();
@@ -38,9 +41,9 @@ export default function UpcomingSessions() {
       
       const data = await response.json();
       setSessions(data);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching sessions:', err);
-      setError(err.message || 'An error occurred while fetching sessions');
+      setError((err as Error).message || 'An error occurred while fetching sessions');
     } finally {
       setLoading(false);
     }
@@ -72,9 +75,9 @@ export default function UpcomingSessions() {
       // Refresh the sessions list
       fetchSessions();
       
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error cancelling session:', err);
-      alert(`Failed to cancel session: ${err.message}`);
+      alert(`Failed to cancel session: ${(err as Error).message}`);
     } finally {
       setCancelling(null);
     }
@@ -257,6 +260,33 @@ export default function UpcomingSessions() {
                         'bg-green-500 text-white'} shadow-sm`}>
                         {badgeStyles.label}
                       </span>
+                      {/* Notification status indicators */}
+                      <div className="ml-2 flex items-center space-x-1">
+                        {session.emailReminderSent && (
+                          <div className="group relative">
+                            <span className="text-green-600" title="24-hour reminder sent">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            </span>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              24-hour reminder sent
+                            </span>
+                          </div>
+                        )}
+                        {session.oneHourReminderSent && (
+                          <div className="group relative">
+                            <span className="text-amber-600" title="1-hour reminder sent">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </span>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              1-hour reminder sent
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm text-gray-700 flex items-center">
                       <svg className="w-4 h-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -302,19 +332,32 @@ export default function UpcomingSessions() {
                       )}
                       
                       <div className="flex space-x-2 justify-end mt-2">
+                        {badgeStyles.label !== 'Happening soon' && (
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Link
+                              href={`/dashboard/therapy?sessionId=${session.id}`}
+                              className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-2 rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 relative overflow-hidden"
+                            >
+                              <span className="relative z-10 flex items-center">
+                                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Start Session
+                              </span>
+                              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                              <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+                            </Link>
+                          </motion.div>
+                        )}
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <Link
-                            href={`/dashboard/therapy?sessionId=${session.id}`}
-                            className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-2 rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 relative overflow-hidden"
+                            href={`/schedule?reschedule=${session.id}`}
+                            className="flex items-center bg-white border border-blue-400 text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
                           >
-                            <span className="relative z-10 flex items-center">
-                              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                              Start Session
-                            </span>
-                            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
-                            <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Reschedule
                           </Link>
                         </motion.div>
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -336,7 +379,7 @@ export default function UpcomingSessions() {
                                 <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
-                                Cancel Session
+                                Cancel
                               </>
                             )}
                           </button>

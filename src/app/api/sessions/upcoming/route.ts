@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const authSession = await getServerSession(authOptions);
 
@@ -44,6 +44,8 @@ export async function GET(request: Request) {
         notes: true,
         status: true,
         reminderSent: true,
+        emailReminderSent: true,
+        oneHourReminderSent: true,
         assistantId: true
       },
       orderBy: {

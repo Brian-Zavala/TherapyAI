@@ -643,7 +643,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                           motion.button,
                                           {
                                             key: "quick-actions-button",
-                                            "data-quick-actions-button": "true",
+                                            'data-quick-actions-button': "true",
                                             onClick: () =>
                                               setQuickActionsOpen(
                                                 !quickActionsOpen
@@ -733,8 +733,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               motion.div,
                                               {
                                                 key: "popup-menu",
-                                                "data-quick-actions-menu":
-                                                  "true",
+                                                'data-quick-actions-menu': "true",
                                                 className:
                                                   "absolute left-0 mt-2 w-48 rounded-md shadow-xl bg-white ring-1 ring-black/5 ring-opacity-5 z-30 overflow-hidden",
                                                 initial: {
@@ -1205,69 +1204,77 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                             className: `transition-colors duration-500 ${isSessionActive ? "text-white" : "text-black"} mt-4 sm:mt-0`,
                           },
                           [
-                            // Session info - Enhanced styling
-                            isSessionActive
-                              ? React.createElement(
-                                  "div",
-                                  {
-                                    key: "active-info",
-                                    className:
-                                      "p-4 md:p-6 rounded-2xl mb-4 md:mb-8 shadow-inner bg-transparent",
-                                  },
-                                  [
-                                    // Info icon at the top with pulsing animation
-                                    React.createElement(
+                            // Always render the therapy button container
+                            React.createElement(
+                              "div",
+                              {
+                                key: "therapy-button-container",
+                                className: "w-full flex flex-col items-center",
+                              },
+                              [
+                                // Session info - Enhanced styling
+                                isSessionActive
+                                  ? React.createElement(
                                       "div",
                                       {
-                                        key: "info-header",
-                                        className: "flex justify-center mb-2",
+                                        key: "active-info",
+                                        className:
+                                          "p-4 md:p-6 rounded-2xl mb-4 md:mb-8 shadow-inner bg-transparent",
                                       },
                                       [
+                                        // Info icon at the top with pulsing animation
                                         React.createElement(
                                           "div",
                                           {
-                                            key: "info-icon-container",
-                                            className:
-                                              "w-10 h-1 rounded-full bg-transparent flex items-center justify-center mb-1 shadow-lg animate-[float_4s_ease-in-out_infinite]",
+                                            key: "info-header",
+                                            className: "flex justify-center mb-2",
                                           },
                                           [
                                             React.createElement(
-                                              "svg",
+                                              "div",
                                               {
-                                                key: "info-icon",
-                                                className: "w-5 h-5 text-white",
-                                                fill: "none",
-                                                viewBox: "0 0 24 24",
-                                                stroke: "currentColor",
+                                                key: "info-icon-container",
+                                                className:
+                                                  "w-10 h-1 rounded-full bg-transparent flex items-center justify-center mb-1 shadow-lg animate-[float_4s_ease-in-out_infinite]",
                                               },
-                                              React.createElement("path", {
-                                                strokeLinecap: "round",
-                                                strokeLinejoin: "round",
-                                                strokeWidth: 1.5,
-                                                d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-                                              })
+                                              [
+                                                React.createElement(
+                                                  "svg",
+                                                  {
+                                                    key: "info-icon",
+                                                    className: "w-5 h-5 text-white",
+                                                    fill: "none",
+                                                    viewBox: "0 0 24 24",
+                                                    stroke: "currentColor",
+                                                  },
+                                                  React.createElement("path", {
+                                                    strokeLinecap: "round",
+                                                    strokeLinejoin: "round",
+                                                    strokeWidth: 1.5,
+                                                    d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+                                                  })
+                                                ),
+                                              ]
                                             ),
                                           ]
                                         ),
+                                        // Session message with enhanced styling - hidden on mobile
+                                        React.createElement(
+                                          "p",
+                                          {
+                                            key: "active-message",
+                                            className:
+                                              "hidden sm:block text-white text-center text-xs sm:text-sm lg:text-base bg-transparent py-3 px-4 rounded-lg backdrop-blur-sm shadow-inner mt-2 z-50 relative mx-auto max-w-[95%] md:max-w-[90%] lg:max-w-[80%]",
+                                          },
+                                          sessionType === "couple"
+                                            ? "Speak naturally and I will respond to help with your relationship concerns. Everything shared is completely private and secure."
+                                            : sessionType === "solo"
+                                              ? "Speak naturally and I will respond to help with your personal concerns. Everything shared is completely private and secure."
+                                              : "Speak naturally and I will respond to help with your family concerns. Everything shared is completely private and secure."
+                                        ),
                                       ]
-                                    ),
-                                    // Session message with enhanced styling - hidden on mobile
-                                    React.createElement(
-                                      "p",
-                                      {
-                                        key: "active-message",
-                                        className:
-                                          "hidden sm:block text-white text-center text-xs sm:text-sm lg:text-base bg-transparent py-3 px-4 rounded-lg backdrop-blur-sm shadow-inner mt-2 z-50 relative mx-auto max-w-[95%] md:max-w-[90%] lg:max-w-[80%]",
-                                      },
-                                      sessionType === "couple"
-                                        ? "Speak naturally and I will respond to help with your relationship concerns. Everything shared is completely private and secure."
-                                        : sessionType === "solo"
-                                          ? "Speak naturally and I will respond to help with your personal concerns. Everything shared is completely private and secure."
-                                          : "Speak naturally and I will respond to help with your family concerns. Everything shared is completely private and secure."
-                                    ),
-                                  ]
-                                )
-                              : React.createElement(
+                                    )
+                                  : React.createElement(
                                   "div",
                                   {
                                     key: "welcome-info",
@@ -1345,28 +1352,28 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                             },
                                             "Ready to talk? Click the button below."
                                           ),
-
-                                          // Therapy button with better styling
-                                          React.createElement(
-                                            "div",
-                                            {
-                                              key: "button-wrapper",
-                                              className:
-                                                "flex justify-center items-center w-full mt-1",
-                                            },
-                                            React.createElement(TherapyButton, {
-                                              userId: userId,
-                                              assistantConfig:
-                                                selectedAssistant,
-                                              therapyType:
-                                                sessionType || "couple",
-                                            })
-                                          ),
                                         ]
                                       )
                                     ),
                                   ]
                                 ),
+                                
+                                // Always render the therapy button
+                                React.createElement(
+                                  "div",
+                                  {
+                                    key: "button-wrapper-persistent",
+                                    className: "flex justify-center items-center w-full mt-1",
+                                  },
+                                  React.createElement(TherapyButton, {
+                                    key: "therapy-button-main", // Add stable key to prevent remounting
+                                    userId: userId,
+                                    assistantConfig: selectedAssistant,
+                                    therapyType: sessionType || "couple",
+                                  })
+                                ),
+                              ]
+                            ),
                           ]
                         ),
                       ]

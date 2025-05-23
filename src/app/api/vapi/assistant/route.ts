@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: { 
+          id: true,
           assistantId: true,
           name: true,
           age: true,
@@ -69,7 +70,14 @@ export async function GET(req: NextRequest) {
           familyMember3: true,
           familyMember3Age: true,
           familyMember4: true,
-          familyMember4Age: true
+          familyMember4Age: true,
+          pronouns: true,
+          therapyType: true,
+          currentConcerns: true,
+          communicationStyle: true,
+          sessionPreference: true,
+          additionalNotes: true,
+          onboardingCompleted: true
         }
       });
       
@@ -80,32 +88,48 @@ export async function GET(req: NextRequest) {
         // Import the necessary functions
         const { getPersonalizedAssistantConfig, formatSessionHistory } = await import('@/lib/vapi');
         
-        // Fetch user's previous sessions for context
+        // Skip session history fetching for speed - use basic session count instead
         let sessionHistory = "No previous sessions found.";
+        let sessions: any[] = [];
+        
         try {
-          const sessions = await prisma.session.findMany({
+          // Just get a simple count of completed sessions - much faster
+          const sessionCount = await prisma.session.count({
             where: {
               userId: user.id,
               status: 'completed'
-            },
-            include: {
-              transcriptEntries: {
-                orderBy: {
-                  timestamp: 'asc'
-                }
-              }
-            },
-            orderBy: {
-              date: 'desc'
-            },
-            take: 3 // Get last 3 sessions
+            }
           });
           
-          if (sessions.length > 0) {
-            sessionHistory = formatSessionHistory(sessions);
+          if (sessionCount > 0) {
+            // Get just the most recent session date without transcript entries
+            const lastSession = await prisma.session.findFirst({
+              where: {
+                userId: user.id,
+                status: 'completed'
+              },
+              orderBy: {
+                date: 'desc'
+              },
+              select: {
+                date: true,
+                theme: true
+              }
+            });
+            
+            if (lastSession) {
+              const lastDate = new Date(lastSession.date).toLocaleDateString();
+              sessionHistory = `Client has ${sessionCount} previous sessions. Last session: ${lastDate}.${
+                lastSession.theme ? ` Theme: ${lastSession.theme}.` : ""
+              }`;
+            }
           }
+          
+          // Create minimal sessions array for compatibility
+          sessions = [{ length: sessionCount }];
         } catch (error) {
-          console.error('Error fetching session history:', error);
+          console.error('Error fetching session count:', error);
+          sessions = [];
         }
         
         // Create a comprehensive user profile with all available data
@@ -132,7 +156,11 @@ export async function GET(req: NextRequest) {
           communicationStyle: user.communicationStyle || 'balanced',
           sessionPreference: user.sessionPreference || 'flexible',
           additionalNotes: user.additionalNotes || '',
-          sessionHistory: sessionHistory
+          sessionHistory: sessionHistory,
+          // Additional context for enhanced personalization
+          onboardingCompleted: user.onboardingCompleted,
+          sessionsCompleted: sessions.length,
+          lastSessionDate: sessions[0]?.date || null
         };
         
         // Get the therapy type from query params or user profile
@@ -153,12 +181,34 @@ export async function GET(req: NextRequest) {
           assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
         }
         
+        // Add session-specific context if available
+        const sessionContext = searchParams.get('sessionContext');
+        if (sessionContext) {
+          try {
+            const contextData = JSON.parse(decodeURIComponent(sessionContext));
+            personalizedConfig.variableValues = {
+              ...personalizedConfig.variableValues,
+              ...contextData
+            };
+          } catch (e) {
+            console.error('Failed to parse session context:', e);
+          }
+        }
+        
         // Return the personalized config without creating an actual assistant
         return NextResponse.json({
           id: assistantId,
           ...personalizedConfig,
           personalized: true,
-          userProfile: userProfile
+          userProfile: userProfile,
+          // Include important metadata for the client
+          metadata: {
+            ...personalizedConfig.metadata,
+            assistantVersion: '2.0',
+            enhancedPersonalization: true,
+            onboardingData: userProfile.onboardingCompleted,
+            sessionCount: userProfile.sessionsCompleted
+          }
         });
       }
     }
