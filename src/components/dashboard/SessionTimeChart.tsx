@@ -956,54 +956,97 @@ export default function SessionTimeChart() {
         </p>
       </div>
 
-      {/* Insights Section */}
-      <div className="mt-6 sm:mt-4 bg-white/80 rounded-lg p-3 sm:p-4 border border-blue-100 w-auto overflow-hidden shadow-md">
-        <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-2">
-          Session Insights
+      {/* Enhanced Insights Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="mt-6 sm:mt-8 bg-gradient-to-br from-blue-900/40 to-blue-800/30 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-400/20 shadow-2xl"
+      >
+        <h3 className="text-base sm:text-lg font-bold text-white mb-4 flex items-center">
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400/30 to-blue-500/30 flex items-center justify-center mr-3"
+          >
+            <svg className="w-5 h-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </motion.div>
+          AI-Powered Session Insights
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full">
-          <div className="bg-white/90 rounded p-3 shadow-sm border border-blue-50">
-            <h4 className="text-xs sm:text-sm font-medium text-blue-700 mb-1">
-              Trends
-            </h4>
-            <p className="text-xs text-gray-600">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -2 }}
+            className="bg-white/95 backdrop-blur-sm rounded-lg p-4 shadow-lg border border-blue-200/30 hover:shadow-xl transition-all duration-300"
+          >
+            <div className="flex items-center mb-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+              <h4 className="text-sm sm:text-base font-bold text-blue-900">
+                Therapy Trends
+              </h4>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
               {sessionData.length > 0 && totalHours > 0
-                ? `You've spent ${totalHours} hours in therapy over ${
+                ? `You've invested ${totalHours} hours across ${
                     sessionData.filter((s) => s.sessionCount > 0).length
                   } active months. ${
                     sessionData.reduce(
                       (sum, month) => sum + month.sessionCount,
                       0
                     ) > 1
-                      ? `Your average session length is ${averageSessionLength} minutes.`
+                      ? `Your average session runs ${averageSessionLength} minutes, ${
+                          averageSessionLength > 45 
+                            ? "allowing for deep therapeutic work" 
+                            : "perfect for focused discussions"
+                        }.`
                       : ""
                   }`
-                : "Start booking regular sessions to see your therapy trends over time."}
+                : "Start your therapy journey to unlock personalized insights and track your progress over time."}
             </p>
-          </div>
-          <div className="bg-white/90 rounded p-3 shadow-sm border border-blue-50">
-            <h4 className="text-xs sm:text-sm font-medium text-blue-700 mb-1">
-              Consistency
-            </h4>
-            <p className="text-xs text-gray-600">
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -2 }}
+            className="bg-white/95 backdrop-blur-sm rounded-lg p-4 shadow-lg border border-emerald-200/30 hover:shadow-xl transition-all duration-300"
+          >
+            <div className="flex items-center mb-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></div>
+              <h4 className="text-sm sm:text-base font-bold text-emerald-900">
+                Consistency Score
+              </h4>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
               {sessionData.length > 0
-                ? `Your current therapy type is ${therapyType}. ${
+                ? `Currently in ${therapyType} therapy mode. ${
                     sessionData.filter((session) => session.sessionCount > 0)
                       .length > 2
-                      ? `You've been consistent with ${sessionData.filter((session) => session.sessionCount > 0).length} active months.`
-                      : "Regular sessions can lead to better outcomes."
+                      ? `You've maintained ${sessionData.filter((session) => session.sessionCount > 0).length} active months - ${
+                          sessionData.filter((session) => session.sessionCount > 0).length >= 6
+                            ? "Outstanding commitment! 🌟"
+                            : sessionData.filter((session) => session.sessionCount > 0).length >= 3
+                              ? "Great consistency! 💪"
+                              : "Building momentum! 🚀"
+                        }`
+                      : "Regular sessions build stronger therapeutic relationships."
                   }`
-                : "Consistent therapy scheduling helps build momentum toward your goals."}
+                : "Consistent therapy scheduling is key to achieving your relationship goals."}
             </p>
-          </div>
+          </motion.div>
+          
           {sessionData.length > 1 && (
-            <div className="bg-white/90 rounded p-3 shadow-sm border border-blue-50 sm:col-span-2">
-              <h4 className="text-xs sm:text-sm font-medium text-blue-700 mb-1">
-                Progress Analysis
-              </h4>
-              <p className="text-xs text-gray-600">
+            <motion.div 
+              whileHover={{ scale: 1.01, y: -2 }}
+              className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-4 shadow-lg border border-indigo-200/30 md:col-span-2 hover:shadow-xl transition-all duration-300"
+            >
+              <div className="flex items-center mb-2">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse"></div>
+                <h4 className="text-sm sm:text-base font-bold text-indigo-900">
+                  Progress Analysis
+                </h4>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
                 {(() => {
-                  // Get recent months with sessions
                   const recentMonths = sessionData
                     .slice(-3)
                     .filter((s) => s.sessionCount > 0);
@@ -1020,25 +1063,40 @@ export default function SessionTimeChart() {
                       : "beginning";
 
                   if (totalHours > 5) {
-                    return `With ${totalHours} hours across ${sessionData.reduce((sum, month) => sum + month.sessionCount, 0)} 
-                       sessions, your time investment is significant. Your recent engagement is ${
-                         trend === "increasing"
-                           ? "growing well"
-                           : trend === "consistent"
-                             ? "steadily maintained"
-                             : "just starting"
-                       }.`;
+                    return (
+                      <>
+                        With <span className="font-bold text-indigo-700">{totalHours} hours</span> across{" "}
+                        <span className="font-bold text-indigo-700">
+                          {sessionData.reduce((sum, month) => sum + month.sessionCount, 0)} sessions
+                        </span>, 
+                        your commitment is remarkable. Your recent engagement is{" "}
+                        <span className={`font-bold ${
+                          trend === "increasing" ? "text-green-700" : 
+                          trend === "consistent" ? "text-blue-700" : "text-amber-700"
+                        }`}>
+                          {trend === "increasing" ? "growing excellently" : 
+                           trend === "consistent" ? "steadily maintained" : "just beginning"}
+                        </span>. 
+                        Keep this momentum for transformative results! 🎯
+                      </>
+                    );
                   } else {
-                    return `Your therapy journey shows ${totalRecentSessions} recent sessions. 
-                       ${trend === "increasing" ? "Your growing commitment" : "Continuing this pattern"} 
-                       can lead to meaningful relationship improvements over 3-6 months.`;
+                    return (
+                      <>
+                        Your therapy journey includes{" "}
+                        <span className="font-bold text-indigo-700">{totalRecentSessions} recent sessions</span>.{" "}
+                        {trend === "increasing" ? "Your growing dedication" : "Maintaining this pattern"}{" "}
+                        can lead to <span className="font-bold text-green-700">meaningful breakthroughs</span>{" "}
+                        within 3-6 months. Every session is a step forward! 🌱
+                      </>
+                    );
                   }
                 })()}
               </p>
-            </div>
+            </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

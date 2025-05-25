@@ -453,11 +453,11 @@ export default function CommunicationMetrics() {
 
   // Create a reusable component for the therapy type selector with enhanced styling
   const TherapyTypeSelector = () => (
-    <div className="flex justify-center mb-3 sm:mb-4 mt-4 relative z-30">
-      <div className="inline-flex p-1.5 bg-white rounded-lg w-full max-w-[300px] overflow-x-auto shadow-md border border-blue-100">
+    <div className="flex justify-center mb-4 px-2 sm:px-0">
+      <div className="inline-flex p-1 bg-emerald-900/30 backdrop-blur-sm rounded-lg shadow-lg border border-emerald-400/20 w-full max-w-full sm:max-w-xs md:max-w-sm overflow-x-auto">
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => {
             setTherapyType("couple");
             if (!userInteracted) {
@@ -466,17 +466,36 @@ export default function CommunicationMetrics() {
             }
             playSound();
           }}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all flex-1 min-w-[75px] ${
+          className={`relative px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex-1 min-w-[60px] sm:min-w-[80px] ${
             therapyType === "couple"
-              ? "bg-blue-600 text-white shadow-md"
-              : "text-blue-800 hover:bg-blue-100"
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
+              : "text-emerald-300 hover:text-white hover:bg-emerald-800/30"
           }`}
+          layout
         >
-          Couple
+          {therapyType === "couple" && (
+            <motion.div
+              layoutId="activeTherapyComm"
+              className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-md"
+              initial={false}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+            </svg>
+            Couple
+          </span>
         </motion.button>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => {
             setTherapyType("solo");
             if (!userInteracted) {
@@ -485,17 +504,26 @@ export default function CommunicationMetrics() {
             }
             playSound();
           }}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all flex-1 min-w-[75px] ${
+          className={`relative px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex-1 min-w-[60px] sm:min-w-[80px] ${
             therapyType === "solo"
-              ? "bg-blue-600 text-white shadow-md"
-              : "text-blue-800 hover:bg-blue-100"
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
+              : "text-emerald-300 hover:text-white hover:bg-emerald-800/30"
           }`}
         >
-          Individual
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 sm:h-5 sm:w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+          </svg>
+          <span className="hidden sm:inline">Individual</span>
+          <span className="sm:hidden">Solo</span>
         </motion.button>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => {
             setTherapyType("family");
             if (!userInteracted) {
@@ -504,13 +532,22 @@ export default function CommunicationMetrics() {
             }
             playSound();
           }}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all flex-1 min-w-[75px] ${
+          className={`relative px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex-1 min-w-[60px] sm:min-w-[80px] ${
             therapyType === "family"
-              ? "bg-blue-600 text-white shadow-md"
-              : "text-blue-800 hover:bg-blue-100"
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
+              : "text-emerald-300 hover:text-white hover:bg-emerald-800/30"
           }`}
         >
-          Family
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 sm:h-5 sm:w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+          </svg>
+          <span className="hidden sm:inline">Family</span>
+          <span className="sm:hidden">Family</span>
         </motion.button>
       </div>
     </div>
@@ -733,7 +770,7 @@ export default function CommunicationMetrics() {
     return `M${innerStartX},${innerStartY} L${outerStartX},${outerStartY} A${outerRadius},${outerRadius} 0 ${largeArcFlag} 1 ${outerEndX},${outerEndY} L${innerEndX},${innerEndY} A${innerRadius},${innerRadius} 0 ${largeArcFlag} 0 ${innerStartX},${innerStartY} Z`;
   };
 
-  const COLORS = ["#4F46E5", "#0EA5E9", "#8B5CF6", "#EC4899"];
+  const COLORS = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E0B"];
 
   const onPieEnter = useCallback(
     (_: any, index: number) => {
@@ -1135,12 +1172,21 @@ export default function CommunicationMetrics() {
 
   if (loading) {
     content = (
-      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 h-full overflow-y-auto">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 h-full min-h-[520px] flex flex-col"
+      >
         <div className="flex items-center mb-6">
-          <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+          <motion.div 
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-600/30 flex items-center justify-center text-white mr-3 shadow-lg"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
+              className="h-7 w-7"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1152,71 +1198,141 @@ export default function CommunicationMetrics() {
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-          </div>
+          </motion.div>
           <h2 className="text-xl font-semibold text-white">
-            Communication Quality
-          </h2>
+            Communication Metrics
+          </motion.h2>
         </div>
-        <div className="h-[520px] flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-white/40 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-6 text-white font-medium text-center">
-              Loading your communication insights...
-            </p>
+        <div className="flex-grow flex items-center justify-center">
+          <div className="flex flex-col items-center px-4">
+            {/* Enhanced Spinner with pulse animation */}
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.7, 1, 0.7]
+              }}
+              transition={{ 
+                repeat: Infinity,
+                duration: 2,
+                ease: "easeInOut"
+              }}
+              className="relative"
+            >
+              <svg
+                className="animate-spin h-12 w-12 sm:h-14 sm:w-14 text-emerald-400"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <div className="absolute inset-0 rounded-full bg-emerald-400/20 blur-xl animate-pulse"></div>
+            </motion.div>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-4 text-white font-medium text-sm sm:text-base text-center"
+            >
+              Loading communication insights...
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-2 text-white/60 text-xs sm:text-sm text-center"
+            >
+              Analyzing your interaction patterns
+            </motion.div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   } else if (error) {
     content = (
-      <>
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 h-full overflow-y-auto">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-white">
-              Communication Quality
-            </h2>
-          </div>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 h-full min-h-[520px] flex flex-col"
+      >
+        <div className="flex items-center mb-6">
+          <motion.div 
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/30 to-amber-600/30 flex items-center justify-center text-white mr-3 shadow-lg"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-7 w-7"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </motion.div>
+          <h2 className="text-xl font-semibold text-white">
+            Communication Metrics
+          </h2>
+        </div>
           
-          <div className="text-center py-28">
-            <p className="text-xl font-medium text-white">
-              Your Communication Journey Awaits
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-md">
+            <motion.div
+              animate={{ 
+                y: [0, -10, 0],
+              }}
+              transition={{ 
+                repeat: Infinity,
+                duration: 3,
+                ease: "easeInOut"
+              }}
+            >
+              <svg className="w-16 h-16 mx-auto text-amber-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </motion.div>
+            <p className="text-lg sm:text-xl font-semibold text-white mb-2">
+              No Communication Data Yet
             </p>
-            <p className="text-sm mt-3 text-white/80 max-w-sm mx-auto">
-              Complete your onboarding or a therapy session to see
-              detailed analytics and personalized insights about your
-              communication patterns.
+            <p className="text-sm sm:text-base text-white/80 mb-6">
+              {error === "No data available yet" 
+                ? "Start your therapy journey to unlock communication insights and track your progress."
+                : error}
             </p>
-
-            {/* Added "What to Work On" button and removed assessment buttons */}
-            <div className="flex justify-center mt-6">
-              <button
-                className="px-5 py-2.5 bg-blue-500/80 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-blue-600/80 active:bg-blue-700/80 transition-colors duration-200 border border-blue-400/30"
-                onClick={() => {
-                  router.push("/dashboard/resources/communication-techniques");
-                  playSound();
-                }}
-              >
-                Therapy Insights
-              </button>
-            </div>
+            <motion.button
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleAssessment}
+              className="px-6 sm:px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full text-sm sm:text-base font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-lg shadow-emerald-500/30"
+            >
+              <span className="flex items-center justify-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Take Assessment
+              </span>
+            </motion.button>
           </div>
         </div>
+      </motion.div>
 
         {/* Assessment Modal */}
         {isAssessmentOpen ? (
@@ -1271,14 +1387,19 @@ export default function CommunicationMetrics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full h-full flex flex-col relative bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 overflow-y-auto"
+          className="w-full h-full flex flex-col relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 sm:p-6 overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-green-400/40 to-emerald-500/40 flex items-center justify-center text-white mr-3 shadow-lg backdrop-blur-sm"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1290,10 +1411,15 @@ export default function CommunicationMetrics() {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-white">
+            </motion.div>
+            <motion.h2 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-lg sm:text-xl font-semibold text-white"
+            >
               Communication Quality
-            </h2>
+            </motion.h2>
           </div>
 
           {/* Use the reusable therapy type selector - only show when data is available */}
@@ -1320,10 +1446,10 @@ export default function CommunicationMetrics() {
               </span>
             </div>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
               onClick={toggleExpanded}
-              className="text-sm flex items-center text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-md shadow-sm transition-all duration-200"
+              className="text-xs sm:text-sm flex items-center text-white bg-gradient-to-r from-purple-500/30 to-indigo-500/30 backdrop-blur-sm hover:from-purple-500/40 hover:to-indigo-500/40 px-3 py-1.5 rounded-lg shadow-lg border border-white/20 transition-all duration-200"
             >
               {isExpanded ? (
                 <>
@@ -1362,54 +1488,52 @@ export default function CommunicationMetrics() {
           </div>
 
           {/* Metrics summary and chart types */}
-          <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 mb-4 relative z-20">
-            <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 relative z-20">
+            <div className="flex gap-1.5 bg-white/10 backdrop-blur-sm p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   setChartType("radar");
                   setUserInteracted(true);
                   playSound();
                 }}
-                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                className={`px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all flex-1 sm:flex-initial min-w-[80px] ${
                   chartType === "radar"
-                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"
-                    : "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                    ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg scale-105"
+                    : "bg-white/20 text-white/90 hover:bg-white/30"
                 }`}
               >
-                <span className="flex items-center">
+                <span className="flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4 mr-1.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
                   >
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                    <path
-                      fillRule="evenodd"
-                      d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                      clipRule="evenodd"
-                    />
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
-                  Radar
+                  <span className="hidden sm:inline">Radar</span>
+                  <span className="sm:hidden">Radar</span>
                 </span>
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   setChartType("pie");
                   setUserInteracted(true);
                   playSound();
                 }}
-                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                className={`px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all flex-1 sm:flex-initial min-w-[80px] ${
                   chartType === "pie"
-                    ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md"
-                    : "bg-teal-100 text-teal-800 hover:bg-teal-200"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg scale-105"
+                    : "bg-white/20 text-white/90 hover:bg-white/30"
                 }`}
               >
-                <span className="flex items-center">
+                <span className="flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4 mr-1.5"
@@ -1419,73 +1543,88 @@ export default function CommunicationMetrics() {
                     <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
                     <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
                   </svg>
-                  Pie
+                  <span className="hidden sm:inline">Pie</span>
+                  <span className="sm:hidden">Pie</span>
                 </span>
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   setChartType("radial");
                   setUserInteracted(true);
                   playSound();
                 }}
-                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                className={`px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all flex-1 sm:flex-initial min-w-[80px] ${
                   chartType === "radial"
-                    ? "bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-md"
-                    : "bg-rose-100 text-rose-800 hover:bg-rose-200"
+                    ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg scale-105"
+                    : "bg-white/20 text-white/90 hover:bg-white/30"
                 }`}
               >
-                <span className="flex items-center">
+                <span className="flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4 mr-1.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
                   >
-                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="6" />
+                    <circle cx="12" cy="12" r="2" />
                   </svg>
-                  Bars
+                  <span className="hidden sm:inline">Radial</span>
+                  <span className="sm:hidden">Bars</span>
                 </span>
               </motion.button>
             </div>
 
-            <div className="flex flex-wrap gap-3 xs:gap-4 sm:gap-5 justify-start xs:justify-end w-full xs:w-auto">
+            <div className="flex flex-wrap gap-2 sm:gap-3 justify-start sm:justify-end w-full sm:w-auto">
               <motion.div
-                whileHover={{ y: -2, scale: 1.03 }}
-                // Removed onClick handler for better usability
-                className={`px-4 py-3 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg shadow-md border border-green-100 ${!highestMetric && "opacity-50"}`}
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-br from-emerald-500/20 to-green-500/20 backdrop-blur-sm rounded-xl shadow-lg border border-emerald-400/30 ${!highestMetric && "opacity-50"}`}
               >
-                <p className="text-sm text-green-600 font-medium flex items-center">
-                  <svg
+                <p className="text-xs sm:text-sm text-emerald-300 font-medium flex items-center">
+                  <motion.svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1.5"
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5"
                     viewBox="0 0 20 20"
                     fill="currentColor"
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   >
                     <path
                       fillRule="evenodd"
                       d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                       clipRule="evenodd"
                     />
-                  </svg>
+                  </motion.svg>
                   Strongest
                 </p>
-                <p className="text-sm font-bold text-green-800">
-                  {highestMetric?.name || "Not Available"}
+                <p className="text-xs sm:text-sm font-bold text-white mt-0.5">
+                  {highestMetric?.name || "Loading..."}
                 </p>
+                {highestMetric?.value && (
+                  <p className="text-[10px] sm:text-xs text-emerald-200/70 mt-0.5">
+                    {highestMetric.value}%
+                  </p>
+                )}
               </motion.div>
               <motion.div
-                whileHover={{ y: -2, scale: 1.03 }}
-                // Removed onClick handler for better usability
-                className={`px-4 py-3 bg-gradient-to-br from-amber-50 to-orange-100 rounded-lg shadow-md border border-amber-100 ${!lowestMetric && "opacity-50"}`}
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl shadow-lg border border-amber-400/30 ${!lowestMetric && "opacity-50"}`}
               >
-                <p className="text-sm text-amber-600 font-medium flex items-center">
-                  <svg
+                <p className="text-xs sm:text-sm text-amber-300 font-medium flex items-center">
+                  <motion.svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1.5"
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5"
                     viewBox="0 0 20 20"
                     fill="currentColor"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
                   >
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path
@@ -1493,12 +1632,17 @@ export default function CommunicationMetrics() {
                       d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
                       clipRule="evenodd"
                     />
-                  </svg>
+                  </motion.svg>
                   Focus Area
                 </p>
-                <p className="text-sm font-bold text-amber-800">
-                  {lowestMetric?.name || "Not Available"}
+                <p className="text-xs sm:text-sm font-bold text-white mt-0.5">
+                  {lowestMetric?.name || "Loading..."}
                 </p>
+                {lowestMetric?.value && (
+                  <p className="text-[10px] sm:text-xs text-amber-200/70 mt-0.5">
+                    {lowestMetric.value}%
+                  </p>
+                )}
               </motion.div>
             </div>
           </div>
@@ -1928,54 +2072,62 @@ export default function CommunicationMetrics() {
                             >
                               <stop
                                 offset="0%"
-                                stopColor="#4F46E5"
-                                stopOpacity="0.9"
+                                stopColor="#3B82F6"
+                                stopOpacity="0.8"
+                              />
+                              <stop
+                                offset="50%"
+                                stopColor="#60A5FA"
+                                stopOpacity="0.6"
                               />
                               <stop
                                 offset="100%"
-                                stopColor="#8B5CF6"
-                                stopOpacity="0.7"
+                                stopColor="#93C5FD"
+                                stopOpacity="0.4"
                               />
                             </linearGradient>
                           </defs>
-                          {/* Custom performance zone circles */}
-                          <circle cx="50%" cy="50%" r="80%" fill="rgba(220, 38, 38, 0.05)" stroke="rgba(220, 38, 38, 0.2)" />
-                          <circle cx="50%" cy="50%" r="60%" fill="rgba(245, 158, 11, 0.05)" stroke="rgba(245, 158, 11, 0.2)" />
-                          <circle cx="50%" cy="50%" r="40%" fill="rgba(2, 132, 199, 0.05)" stroke="rgba(2, 132, 199, 0.2)" />
-                          <circle cx="50%" cy="50%" r="20%" fill="rgba(4, 120, 87, 0.05)" stroke="rgba(4, 120, 87, 0.2)" />
+                          {/* Custom performance zone circles with enhanced visibility */}
+                          <circle cx="50%" cy="50%" r="80%" fill="rgba(239, 68, 68, 0.08)" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1.5" />
+                          <circle cx="50%" cy="50%" r="60%" fill="rgba(251, 191, 36, 0.08)" stroke="rgba(251, 191, 36, 0.3)" strokeWidth="1.5" />
+                          <circle cx="50%" cy="50%" r="40%" fill="rgba(59, 130, 246, 0.08)" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1.5" />
+                          <circle cx="50%" cy="50%" r="20%" fill="rgba(16, 185, 129, 0.08)" stroke="rgba(16, 185, 129, 0.3)" strokeWidth="1.5" />
                           
-                          {/* Standard grid lines */}
-                          <PolarGrid stroke="#374151" strokeOpacity={0.8} strokeDasharray="3 3" />
+                          {/* Enhanced grid lines */}
+                          <PolarGrid stroke="rgba(255, 255, 255, 0.2)" strokeOpacity={1} strokeDasharray="3 3" strokeWidth="1" />
                           <PolarAngleAxis
                             dataKey={isSmallScreen ? "shortName" : "name"}
                             tick={{
                               fill: "#FFFFFF",
-                              fontSize: isSmallScreen ? 10 : 12,
-                              fontWeight: 500,
-                              dy: 3,
+                              fontSize: isSmallScreen ? 11 : 13,
+                              fontWeight: 600,
+                              dy: 5,
+                              textShadow: "0 1px 2px rgba(0,0,0,0.5)"
                             }}
-                            tickSize={4}
+                            tickSize={6}
+                            className="font-medium"
                           />
                           <PolarRadiusAxis
                             angle={30}
                             domain={[0, 100]}
                             tick={{ 
-                              fill: "#FFFFFF", 
-                              fontWeight: 500, 
-                              fontSize: isSmallScreen ? 14 : 12,
+                              fill: "rgba(255, 255, 255, 0.9)", 
+                              fontWeight: 600, 
+                              fontSize: isSmallScreen ? 12 : 14,
+                              textShadow: "0 1px 2px rgba(0,0,0,0.5)"
                             }}
                             tickCount={6}
-                            stroke="#374151"
-                            axisLine={{ strokeWidth: 2, stroke: '#374151' }}
+                            stroke="rgba(255, 255, 255, 0.3)"
+                            axisLine={{ strokeWidth: 2, stroke: 'rgba(255, 255, 255, 0.3)' }}
                             tickFormatter={(value) => {
                               // Add custom formatting to score indicators
                               if (value === 0) return ""; // Hide 0 value
                               
-                              if (value === 100) return `${value} ⭐`; // Star for max value
-                              if (value >= 80) return `${value} 🟢`; // Green for excellent
-                              if (value >= 60) return `${value} 🟠`; // Orange for good
-                              if (value >= 40) return `${value} 🟡`; // Yellow for fair
-                              if (value >= 20) return `${value} 🔴`; // Red for needs work
+                              if (value === 100) return `${value}%`;
+                              if (value >= 80) return `${value}`;
+                              if (value >= 60) return `${value}`;
+                              if (value >= 40) return `${value}`;
+                              if (value >= 20) return `${value}`;
                               return `${value}`;
                             }}
                           />
@@ -2043,26 +2195,28 @@ export default function CommunicationMetrics() {
                           <Radar
                             name=""
                             dataKey="value"
-                            stroke="#4F46E5"
-                            strokeWidth={isSmallScreen ? 5 : 3}
+                            stroke="#60A5FA"
+                            strokeWidth={isSmallScreen ? 4 : 3}
                             fill="url(#radarFill)"
-                            fillOpacity={1}
+                            fillOpacity={0.8}
                             animationDuration={1500}
                             animationEasing="ease-out"
                             isAnimationActive={true}
                             style={{ filter: "url(#glow)" }}
                             dot={{
-                              stroke: "#4F46E5",
-                              strokeWidth: isSmallScreen ? 3.5 : 2.5,
-                              fill: "white",
-                              r: isSmallScreen ? 8 : 5,
+                              stroke: "#3B82F6",
+                              strokeWidth: isSmallScreen ? 3 : 2,
+                              fill: "#FFFFFF",
+                              r: isSmallScreen ? 7 : 5,
+                              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))"
                             }}
                             activeDot={{
-                              stroke: "#8B5CF6",
-                              strokeWidth: isSmallScreen ? 5 : 4,
-                              fill: "white",
-                              r: isSmallScreen ? 10 : 8,
+                              stroke: "#1E40AF",
+                              strokeWidth: isSmallScreen ? 4 : 3,
+                              fill: "#FFFFFF",
+                              r: isSmallScreen ? 9 : 7,
                               className: "animate-pulse",
+                              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.4))"
                             }}
                           />
                           <Tooltip
