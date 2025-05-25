@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { generateMetricsFromSession } from './metrics-helper'
+import { sessionCache, cacheKeys } from '@/lib/session-cache'
 
 export async function GET(
   request: Request,
@@ -50,6 +51,15 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
     
+    // Check cache first
+    const cacheKey = cacheKeys.sessionDetails(sessionId);
+    const cachedSession = sessionCache.get<{userId: string, transcriptEntries: unknown[]}>(cacheKey);
+    
+    if (cachedSession && cachedSession.userId === user.id) {
+      console.log(`Returning cached session ${sessionId}`);
+      return NextResponse.json(cachedSession);
+    }
+    
     // Include ALL transcript entries with the session data
     const therapySession = await prisma.session.findUnique({
       where: {
@@ -77,6 +87,9 @@ export async function GET(
     if (!therapySession || therapySession.userId !== user.id) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
+    
+    // Cache the session
+    sessionCache.set(cacheKey, therapySession, 5 * 60 * 1000); // Cache for 5 minutes
     
     return NextResponse.json(therapySession)
   } catch (error) {
@@ -232,6 +245,11 @@ export async function PATCH(
         }
       }
     })
+    
+    // Invalidate caches
+    sessionCache.invalidate(cacheKeys.sessionDetails(sessionId));
+    sessionCache.invalidate(cacheKeys.userSessions(user.id));
+    sessionCache.invalidate(cacheKeys.sessionTranscript(sessionId));
 
     // Generate metrics if session was completed
     if (status === 'completed') {

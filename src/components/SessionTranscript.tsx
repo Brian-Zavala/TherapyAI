@@ -121,7 +121,10 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
           return;
         }
         
-        const entries = await response.json();
+        const data = await response.json();
+        
+        // Handle both old format (array) and new format (with pagination)
+        const entries = Array.isArray(data) ? data : data.entries;
         console.log(`Fetched ${entries?.length || 0} transcript entries`);
         
         if (entries && Array.isArray(entries) && entries.length > 0) {

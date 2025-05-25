@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
 import { sendSessionConfirmation } from '@/lib/sms-service'; // Currently using mock implementation
+import { sessionCache, cacheKeys } from '@/lib/session-cache';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -55,6 +56,15 @@ export async function GET(request: Request) {
     
     console.log('Found/created user in database:', user.id);
     
+    // Check cache first
+    const cacheKey = cacheKeys.userSessions(user.id);
+    const cachedSessions = sessionCache.get<Array<{id: string, transcriptCount: number, transcriptEntries: unknown[]}>>(cacheKey);
+    
+    if (cachedSessions) {
+      console.log(`Returning ${cachedSessions.length} cached sessions for user`);
+      return NextResponse.json(cachedSessions);
+    }
+    
     // Fetch sessions for this user without transcript entries first
     // This prevents timeout issues with large datasets
     const sessions = await prisma.session.findMany({
@@ -67,28 +77,16 @@ export async function GET(request: Request) {
       take: 50 // Limit to most recent 50 sessions
     });
     
-    // Optionally fetch transcript count for each session
-    const sessionsWithCounts = await Promise.all(
-      sessions.map(async (session) => {
-        try {
-          const transcriptCount = await prisma.transcriptEntry.count({
-            where: { sessionId: session.id }
-          });
-          return {
-            ...session,
-            transcriptCount,
-            transcriptEntries: [] // Empty array, transcripts fetched separately
-          };
-        } catch (error) {
-          console.warn(`Failed to get transcript count for session ${session.id}:`, error);
-          return {
-            ...session,
-            transcriptCount: 0,
-            transcriptEntries: []
-          };
-        }
-      })
-    );
+    // For performance, return sessions without transcript counts
+    // Transcript counts can be fetched on-demand when viewing individual sessions
+    const sessionsWithCounts = sessions.map(session => ({
+      ...session,
+      transcriptCount: 0, // Will be loaded on-demand if needed
+      transcriptEntries: [] // Empty array, transcripts fetched separately
+    }));
+    
+    // Cache the results
+    sessionCache.set(cacheKey, sessionsWithCounts);
     
     // IMPORTANT: do not filter out or delete any sessions or transcripts automatically
     // This ensures all data created by the user is preserved
@@ -214,6 +212,9 @@ export async function POST(request: Request) {
       });
       
       console.log('Session created successfully:', newSession.id);
+      
+      // Invalidate cache for this user
+      sessionCache.invalidate(cacheKeys.userSessions(user.id));
       
       // Send scheduling confirmation email only for future scheduled sessions
       // Skip email for immediate/active sessions

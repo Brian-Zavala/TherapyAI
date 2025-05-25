@@ -42,6 +42,7 @@ export default function SessionTimeChart() {
   const [averageSessionLength, setAverageSessionLength] = useState(0);
   const [therapyType, setTherapyType] = useState("couple"); // 'couple', 'solo', or 'family'
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [isMediumScreen, setIsMediumScreen] = useState(false);
 
   const fetchSessionData = async (type = "couple") => {
     try {
@@ -121,6 +122,7 @@ export default function SessionTimeChart() {
   useEffect(() => {
     const checkScreenSize = () => {
       setIsSmallScreen(window.innerWidth < 640);
+      setIsMediumScreen(window.innerWidth >= 640 && window.innerWidth < 1024);
     };
 
     // Initial check
@@ -138,31 +140,45 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[520px] flex items-center justify-center"
+        className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
       >
         <div className="flex flex-col items-center px-4">
-          {/* Enhanced Spinner */}
-          <svg
-            className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-white/80"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
+          {/* Enhanced Spinner with pulse animation */}
+          <motion.div
+            animate={{ 
+              scale: [1, 1.1, 1],
+              opacity: [0.7, 1, 0.7]
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 2,
+              ease: "easeInOut"
+            }}
+            className="relative"
           >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <p className="mt-4 text-white font-medium text-xs sm:text-sm text-center">
+            <svg
+              className="animate-spin h-10 w-10 sm:h-12 sm:w-12 text-blue-400"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="3"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl animate-pulse"></div>
+          </motion.div>
+          <p className="mt-4 text-white font-medium text-sm sm:text-base text-center">
             Loading your therapy insights...
           </p>
         </div>
@@ -176,21 +192,37 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[520px] flex items-center justify-center"
+        className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
       >
         <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-md">
-          <ExclamationTriangleIcon className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-white/80 mb-4" />
+          <motion.div
+            animate={{ 
+              y: [0, -10, 0],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 3,
+              ease: "easeInOut"
+            }}
+          >
+            <ExclamationTriangleIcon className="w-14 h-14 sm:w-16 sm:h-16 mx-auto text-amber-400 mb-4" />
+          </motion.div>
           <p className="text-lg sm:text-xl font-semibold text-white mb-2">
-            Couldn&apos;t load session data
+            Couldn't load session data
           </p>
-          <p className="text-sm sm:text-base text-white/70 mb-4">{error}</p>
+          <p className="text-sm sm:text-base text-white/80 mb-6">{error}</p>
           <motion.button
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => fetchSessionData(therapyType)}
-            className="px-5 sm:px-6 py-2.5 bg-white/20 text-white rounded-full text-sm sm:text-base font-medium hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30"
+            className="px-6 sm:px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm sm:text-base font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg shadow-blue-500/30"
           >
-            Try Again
+            <span className="flex items-center justify-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Try Again
+            </span>
           </motion.button>
         </div>
       </motion.div>
@@ -199,23 +231,46 @@ export default function SessionTimeChart() {
   // --- Reusable Therapy Type Selector ---
   const TherapyTypeSelector = () => (
     <div className="flex justify-center mb-4 px-2 sm:px-0">
-      {/* Updated to blue color scheme */}
-      <div className="inline-flex p-1.5 bg-transparent rounded-lg shadow-sm w-full max-w-full sm:max-w-xs md:max-w-sm overflow-x-auto">
+      <div className="inline-flex p-1 bg-blue-900/30 backdrop-blur-sm rounded-lg shadow-lg border border-blue-400/20 w-full max-w-full sm:max-w-xs md:max-w-sm overflow-x-auto">
         {["couple", "solo", "family"].map((type) => (
           <motion.button
             key={type}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setTherapyType(type)}
-            className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ease-in-out flex-1 min-w-[60px] sm:min-w-[70px] ${
+            className={`relative px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 ease-in-out flex-1 min-w-[60px] sm:min-w-[80px] ${
               therapyType === type
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-blue-500/70 hover:bg-blue-600/10"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-blue-300 hover:text-white hover:bg-blue-800/30"
             }`}
             layout
           >
-            {/* Capitalize first letter */}
-            {type.charAt(0).toUpperCase() + type.slice(1)}
+            {therapyType === type && (
+              <motion.div
+                layoutId="activeTherapy"
+                className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-md"
+                initial={false}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center justify-center">
+              {type === "couple" && (
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                </svg>
+              )}
+              {type === "solo" && (
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              )}
+              {type === "family" && (
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                </svg>
+              )}
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </span>
           </motion.button>
         ))}
       </div>
@@ -232,35 +287,69 @@ export default function SessionTimeChart() {
         className="min-h-[520px] flex flex-col mb-6 sm:mb-0 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6" 
       >
         <div className="flex items-center mb-6">
-          <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
-            <DocumentChartBarIcon className="h-6 w-6" />
-          </div>
+          <motion.div 
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-600/30 flex items-center justify-center text-white mr-3 shadow-lg"
+          >
+            <DocumentChartBarIcon className="h-7 w-7" />
+          </motion.div>
           <h2 className="text-xl font-semibold text-white">
             Therapy Insights
           </h2>
         </div>
         <div className="flex-grow flex items-center justify-center">
-          <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-sm">
+          <div className="text-center p-6 sm:p-8 w-full max-w-[90%] sm:max-w-md">
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative"
             >
-              <h3 className="text-xl sm:text-2xl font-semibold text-white mb-3">
+              {/* Decorative elements */}
+              <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.3, 0.6, 0.3]
+                  }}
+                  transition={{ 
+                    repeat: Infinity,
+                    duration: 3,
+                    ease: "easeInOut"
+                  }}
+                  className="w-24 h-24 bg-blue-400/20 rounded-full blur-2xl"
+                />
+              </div>
+              
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              >
+                <svg className="w-16 h-16 mx-auto mb-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </motion.div>
+              
+              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3 bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
                 Welcome to Your Journey
               </h3>
-              <p className="text-sm sm:text-base text-white/80 mb-6 leading-relaxed">
+              <p className="text-sm sm:text-base text-white/90 mb-8 leading-relaxed max-w-sm mx-auto">
                 Begin tracking your therapy sessions to unlock valuable insights about your progress and growth over time.
               </p>
               <motion.button
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 sm:px-8 py-3 bg-white/20 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-white/30 active:bg-white/25 transition-colors duration-200 backdrop-blur-md border border-white/30 shadow-md"
+                className="relative px-8 sm:px-10 py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm sm:text-base font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg shadow-blue-500/30 overflow-hidden group"
                 onClick={() => (window.location.href = "/dashboard/therapy")}
               >
-                <span className="flex items-center">
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                <span className="relative flex items-center justify-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
                   Start Your First Session
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </span>
@@ -551,23 +640,26 @@ export default function SessionTimeChart() {
       </div>
       {sessionData.length > 0 && <TherapyTypeSelector />}
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+      {/* Enhanced Summary Stats with better visibility */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <motion.div
           whileHover={{
             y: -3,
-            boxShadow: "0 4px 10px rgba(59, 130, 246, 0.2)",
+            boxShadow: "0 8px 20px rgba(59, 130, 246, 0.25)",
           }}
-          className="px-3 sm:px-4 py-2 sm:py-3 bg-white/80 border border-blue-100 rounded-lg flex items-center gap-2 sm:gap-3 transition-all duration-150 ease-in-out shadow-sm"
+          className="relative px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-br from-blue-500/90 to-blue-600/90 backdrop-blur-sm rounded-xl flex items-center gap-3 sm:gap-4 transition-all duration-200 ease-out shadow-lg border border-blue-400/20 overflow-hidden group"
         >
-          <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0" />
-          <div>
-            <p className="text-[10px] sm:text-xs text-black/90 font-medium uppercase tracking-wide">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+            <ClockIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+          </div>
+          <div className="relative z-10">
+            <p className="text-xs sm:text-sm text-white/90 font-semibold uppercase tracking-wider">
               Total Time
             </p>
-            <p className="text-lg sm:text-xl font-bold text-black/90">
+            <p className="text-2xl sm:text-3xl font-bold text-white">
               {totalHours}
-              <span className="text-xs sm:text-sm font-medium text-blue-500 ml-1">
+              <span className="text-sm sm:text-base font-medium text-white/80 ml-1">
                 hours
               </span>
             </p>
@@ -576,18 +668,21 @@ export default function SessionTimeChart() {
         <motion.div
           whileHover={{
             y: -3,
-            boxShadow: "0 4px 10px rgba(20, 184, 166, 0.2)",
+            boxShadow: "0 8px 20px rgba(16, 185, 129, 0.25)",
           }}
-          className="px-3 sm:px-4 py-2 sm:py-3 bg-white/80 border border-blue-100 rounded-lg flex items-center gap-2 sm:gap-3 transition-all duration-150 ease-in-out shadow-sm"
+          className="relative px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-br from-emerald-500/90 to-emerald-600/90 backdrop-blur-sm rounded-xl flex items-center gap-3 sm:gap-4 transition-all duration-200 ease-out shadow-lg border border-emerald-400/20 overflow-hidden group"
         >
-          <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0" />
-          <div>
-            <p className="text-[10px] sm:text-xs text-black/90 font-medium uppercase tracking-wide">
-              Overall Avg. Session
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+            <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+          </div>
+          <div className="relative z-10">
+            <p className="text-xs sm:text-sm text-white/90 font-semibold uppercase tracking-wider">
+              Avg. Session
             </p>
-            <p className="text-lg sm:text-xl font-bold text-black/90">
+            <p className="text-2xl sm:text-3xl font-bold text-white">
               {averageSessionLength}
-              <span className="text-xs sm:text-sm font-medium text-black/90 ml-1">
+              <span className="text-sm sm:text-base font-medium text-white/80 ml-1">
                 mins
               </span>
             </p>
@@ -677,39 +772,75 @@ export default function SessionTimeChart() {
               <XAxis
                 dataKey="monthFormatted"
                 tick={{
-                  fill: "#FFFFFF",
-                  fontSize: isSmallScreen ? 7 : 10,
-                  fontWeight: 500,
+                  fill: "#E5E7EB",
+                  fontSize: isSmallScreen ? 9 : isMediumScreen ? 11 : 12,
+                  fontWeight: 600,
                 }}
-                axisLine={{ stroke: "#374151", strokeWidth: 1 }}
-                tickLine={false}
+                axisLine={{ stroke: "#60A5FA", strokeWidth: 2 }}
+                tickLine={{ stroke: "#60A5FA", strokeWidth: 1 }}
                 padding={{
-                  left: isSmallScreen ? 2 : 10,
-                  right: isSmallScreen ? 2 : 10,
+                  left: isSmallScreen ? 5 : 15,
+                  right: isSmallScreen ? 5 : 15,
                 }}
                 interval={isSmallScreen ? "preserveEnd" : "preserveStartEnd"}
-                height={isSmallScreen ? 20 : 30}
+                height={isSmallScreen ? 25 : 35}
               />
 
               <YAxis
                 yAxisId="left"
                 orientation="left"
-                tick={{ fill: "#FFFFFF", fontSize: isSmallScreen ? 7 : 10 }}
-                axisLine={{ stroke: "#374151" }}
-                tickLine={false}
+                tick={{ 
+                  fill: "#E5E7EB", 
+                  fontSize: isSmallScreen ? 9 : isMediumScreen ? 11 : 12,
+                  fontWeight: 600
+                }}
+                axisLine={{ stroke: "#60A5FA", strokeWidth: 2 }}
+                tickLine={{ stroke: "#60A5FA", strokeWidth: 1 }}
                 domain={[0, "dataMax + 50"]}
-                width={isSmallScreen ? 25 : 40}
+                width={isSmallScreen ? 35 : isMediumScreen ? 45 : 55}
                 label={{
                   value: isSmallScreen ? "Min" : "Minutes",
                   angle: -90,
                   position: "insideLeft",
                   style: {
-                    fill: "#FFFFFF",
-                    fontSize: isSmallScreen ? 8 : 11,
-                    fontWeight: 500,
+                    fill: "#DBEAFE",
+                    fontSize: isSmallScreen ? 10 : isMediumScreen ? 12 : 14,
+                    fontWeight: 700,
                     textAnchor: "middle",
                   },
-                  offset: isSmallScreen ? 2 : 5,
+                  offset: isSmallScreen ? 5 : 10,
+                }}
+                tickFormatter={(value) =>
+                  isSmallScreen
+                    ? Math.round(value).toString()
+                    : formatNumber(value)
+                }
+                tickCount={isSmallScreen ? 4 : 6}
+              />
+
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ 
+                  fill: "#E5E7EB", 
+                  fontSize: isSmallScreen ? 9 : isMediumScreen ? 11 : 12,
+                  fontWeight: 600
+                }}
+                axisLine={{ stroke: "#34D399", strokeWidth: 2 }}
+                tickLine={{ stroke: "#34D399", strokeWidth: 1 }}
+                domain={[0, "dataMax + 5"]}
+                width={isSmallScreen ? 35 : isMediumScreen ? 45 : 55}
+                label={{
+                  value: isSmallScreen ? "Sess" : "Sessions",
+                  angle: 90,
+                  position: "insideRight",
+                  style: {
+                    fill: "#A7F3D0",
+                    fontSize: isSmallScreen ? 10 : isMediumScreen ? 12 : 14,
+                    fontWeight: 700,
+                    textAnchor: "middle",
+                  },
+                  offset: isSmallScreen ? 5 : 10,
                 }}
                 tickFormatter={(value) =>
                   isSmallScreen
@@ -717,34 +848,6 @@ export default function SessionTimeChart() {
                     : formatNumber(value)
                 }
                 tickCount={isSmallScreen ? 3 : 5}
-              />
-
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                tick={{ fill: "#FFFFFF", fontSize: isSmallScreen ? 7 : 10 }}
-                axisLine={{ stroke: "#374151" }}
-                tickLine={false}
-                domain={[0, "dataMax + 5"]}
-                width={isSmallScreen ? 25 : 40}
-                label={{
-                  value: isSmallScreen ? "Sess" : "Sessions",
-                  angle: 90,
-                  position: "insideRight",
-                  style: {
-                    fill: "#FFFFFF",
-                    fontSize: isSmallScreen ? 8 : 11,
-                    fontWeight: 500,
-                    textAnchor: "middle",
-                  },
-                  offset: isSmallScreen ? 2 : 5,
-                }}
-                tickFormatter={(value) =>
-                  isSmallScreen
-                    ? Math.round(value).toString()
-                    : formatNumber(value)
-                }
-                tickCount={isSmallScreen ? 2 : 4}
               />
 
               <Tooltip
