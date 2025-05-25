@@ -52,6 +52,7 @@ function TherapyButton({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [audioLevel, setAudioLevel] = useState<number>(0)
   const [isMuted, setIsMuted] = useState(false)
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   
   // Get the sound context to control music playback
   const { stopMusicPlayback, setSessionActive } = useSoundContext()
@@ -90,6 +91,17 @@ function TherapyButton({
       console.error('Error checking for active session:', error)
     }
   }, [userId])
+  
+  // Effect to cycle loading messages
+  useEffect(() => {
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setLoadingMessageIndex((prev) => (prev + 1) % 6);
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isLoading]);
   
   useEffect(() => {
     checkForActiveSession()
@@ -461,6 +473,7 @@ function TherapyButton({
       vapiInstanceRef.current.on('call-start', () => {
         console.log('✅ Vapi call started - call-start event fired');
         setIsCallActive(true);
+        setIsLoading(false); // Stop loading animation when call actually starts
         setErrorMessage(null);
         
         // Ensure session-active class is present (critical for starry night visualization)
@@ -581,6 +594,7 @@ function TherapyButton({
         
         console.log('Call end reason:', reason);
         setIsCallActive(false);
+        setIsLoading(false); // Ensure loading is stopped
         
         // Show a user-friendly message about the call ending
         if (reason && reason !== "NORMAL" && reason !== "No reason provided") {
@@ -599,6 +613,7 @@ function TherapyButton({
       vapiInstanceRef.current.on('error', (error: unknown) => {
         // Log the complete error for debugging
         console.error('Vapi error (complete):', error || 'No error details available')
+        setIsLoading(false); // Stop loading on error
         
         // Create a more descriptive error message
         let errorDetail = "Unknown error";
@@ -1322,6 +1337,7 @@ function TherapyButton({
     setIsCallActive(false);
     setIsLoading(false);
     setIsMuted(false); // Reset mute state when call ends
+    setLoadingMessageIndex(0); // Reset loading message index
     
     // Update session state in the sound context
     setSessionActive(false);
@@ -1946,9 +1962,9 @@ function TherapyButton({
         }}
       >
         
-        {/* Call Header - Only visible when call is active */}
+        {/* Call Header - Only visible when call is active and not loading */}
         <div className="px-4 sm:px-6 pt-5 pb-3 flex flex-col items-center justify-center relative">
-          {isCallActive && (
+          {isCallActive && !isLoading && (
             <div className="text-white text-center bg-black px-6 py-3 rounded-t-[28px] shadow-inner w-full border-t border-x border-gray-800">
               <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
                 {assistantConfig?.name || 'AI Therapist'}
@@ -1961,8 +1977,175 @@ function TherapyButton({
           )}
         </div>
         
+        {/* Loading Animation - Show when loading but call not started */}
+        {isCallActive && isLoading && (
+          <motion.div 
+            className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-gradient-to-b from-black/90 via-black/95 to-black rounded-[28px] backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Breathing Circle Animation with Glow */}
+            <div className="relative mb-8">
+              {/* Outer glow effect */}
+              <motion.div
+                className="absolute -inset-4 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-xl"
+                animate={{
+                  scale: [0.9, 1.1, 0.9],
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              
+              <motion.div
+                className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 via-cyan-400 to-teal-400 shadow-lg"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.7, 0.4, 0.7],
+                  rotate: [0, 180, 360],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div
+                className="absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-tr from-purple-400 via-pink-400 to-rose-400"
+                animate={{
+                  scale: [1.2, 1, 1.2],
+                  opacity: [0.3, 0.6, 0.3],
+                  rotate: [360, 180, 0],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 2
+                }}
+              />
+              
+              {/* Center pulse with enhanced heart */}
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                animate={{
+                  scale: [0.8, 1, 0.8],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white via-white/95 to-white/90 shadow-inner flex items-center justify-center">
+                  <motion.svg 
+                    className="w-8 h-8" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                    animate={{
+                      fill: ["rgba(239, 68, 68, 0)", "rgba(239, 68, 68, 0.5)", "rgba(239, 68, 68, 0)"],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      stroke="rgba(239, 68, 68, 0.8)"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                    />
+                  </motion.svg>
+                </div>
+              </motion.div>
+            </div>
+            
+            {/* Loading Text with Enhanced Typography */}
+            <motion.div
+              className="text-center px-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-white text-xl font-semibold mb-3 tracking-wide">
+                Preparing Your Session
+              </h3>
+              <motion.p
+                className="text-gray-300 text-sm font-light"
+                key={loadingMessageIndex} // Force re-render for smooth transitions
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.5 }}
+              >
+                {[
+                  "Creating a safe space...",
+                  "Connecting with your therapist...",
+                  "Preparing therapeutic environment...",
+                  "Setting up secure connection...",
+                  "Initializing session protocols...",
+                  "Almost ready..."
+                ][loadingMessageIndex]}
+              </motion.p>
+            </motion.div>
+            
+            {/* Enhanced Floating Dots with Gradient */}
+            <div className="flex space-x-3 mt-8">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="relative"
+                  animate={{
+                    y: [0, -12, 0],
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    repeat: Infinity,
+                    delay: i * 0.15,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 shadow-lg" />
+                  <motion.div
+                    className="absolute inset-0 w-3 h-3 rounded-full bg-white/30"
+                    animate={{
+                      scale: [1, 1.5, 1],
+                      opacity: [0.5, 0, 0.5],
+                    }}
+                    transition={{
+                      duration: 0.8,
+                      repeat: Infinity,
+                      delay: i * 0.15,
+                      ease: "easeOut"
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </div>
+            
+            {/* Subtle tip text */}
+            <motion.p
+              className="text-gray-500 text-xs mt-8 px-6 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ delay: 1 }}
+            >
+              This may take a few moments • Your privacy is protected
+            </motion.p>
+          </motion.div>
+        )}
+        
         {/* Call Active Content */}
-        {isCallActive && (
+        {isCallActive && !isLoading && (
           <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto rounded-b-[28px] bg-black">
             {/* Timer & Status */}
             <div className="text-center py-2 text-gray-300 text-xs sm:text-sm">
