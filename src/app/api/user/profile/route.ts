@@ -78,6 +78,7 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
       
+    try {
       // Handle the case where the database schema might not have family member fields yet
       // by creating a safe response object
       const safeUser = {
@@ -136,13 +137,18 @@ export async function GET() {
     
     // Ultimate fallback for any issues
     if (error instanceof Error) {
-      return NextResponse.json({ error: `Failed to fetch profile: ${error.message}` }, { status: 500 })
+      return NextResponse.json(
+        { error: `Failed to fetch profile: ${error.message}` }, 
+        { status: 500 }
+      )
     }
-    return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch profile" }, 
+      { status: 500 }
+    )
   }
 }
 
-// PUT handler to update user profile
 // PATCH handler for partial updates (used by onboarding)
 export async function PATCH(request: Request) {
   try {
@@ -286,7 +292,7 @@ export async function PUT(request: Request) {
         
         try {
           // Create basic user with required fields
-          const createData = {
+          const createData: any = {
             email: session.user.email,
             name: data.name,
             password: 'SESSION_CREATED_USER',
@@ -296,10 +302,10 @@ export async function PUT(request: Request) {
           
           // Only include family member fields if they're in the database schema
           try {
-            if (data.familyMember1) createData['familyMember1'] = data.familyMember1
-            if (data.familyMember2) createData['familyMember2'] = data.familyMember2
-            if (data.familyMember3) createData['familyMember3'] = data.familyMember3
-            if (data.familyMember4) createData['familyMember4'] = data.familyMember4
+            if (data.familyMember1) createData.familyMember1 = data.familyMember1
+            if (data.familyMember2) createData.familyMember2 = data.familyMember2
+            if (data.familyMember3) createData.familyMember3 = data.familyMember3
+            if (data.familyMember4) createData.familyMember4 = data.familyMember4
           } catch (e) {
             console.log("Note: Family member fields might not be in schema yet:", e)
           }

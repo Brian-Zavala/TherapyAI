@@ -509,17 +509,27 @@ export default function CommunicationMetrics() {
               ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
               : "text-emerald-300 hover:text-white hover:bg-emerald-800/30"
           }`}
+          layout
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 sm:h-5 sm:w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-          </svg>
-          <span className="hidden sm:inline">Individual</span>
-          <span className="sm:hidden">Solo</span>
+          {therapyType === "solo" && (
+            <motion.div
+              layoutId="activeTherapyComm"
+              className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-md"
+              initial={false}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
+            Individual
+          </span>
         </motion.button>
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -537,17 +547,27 @@ export default function CommunicationMetrics() {
               ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
               : "text-emerald-300 hover:text-white hover:bg-emerald-800/30"
           }`}
+          layout
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 sm:h-5 sm:w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-          </svg>
-          <span className="hidden sm:inline">Family</span>
-          <span className="sm:hidden">Family</span>
+          {therapyType === "family" && (
+            <motion.div
+              layoutId="activeTherapyComm"
+              className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-md"
+              initial={false}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+            </svg>
+            Family
+          </span>
         </motion.button>
       </div>
     </div>
@@ -709,13 +729,26 @@ export default function CommunicationMetrics() {
   // Colors for different metrics - using therapy-themed colors
   const getColorForMetric = (name: string): string => {
     const colors: Record<string, string> = {
-      activeListeningScore: "#4F46E5", // Indigo-600 - Deep Mindfulness
-      expressingNeedsScore: "#0EA5E9", // Sky-500 - Growth & Communication
-      conflictResolutionScore: "#8B5CF6", // Violet-500 - Harmony & Balance
-      emotionalSupportScore: "#EC4899", // Pink-500 - Empathy & Compassion
+      // Enhanced colors for better visibility on dark backgrounds
+      activeListeningScore: "#60A5FA", // Blue-400 - Bright & Clear
+      expressingNeedsScore: "#34D399", // Emerald-400 - Vibrant Communication
+      conflictResolutionScore: "#A78BFA", // Violet-400 - Balanced Harmony
+      emotionalSupportScore: "#F472B6", // Pink-400 - Warm Empathy
+      
+      // Individual therapy metrics
+      "Self-awareness": "#FCD34D", // Amber-300 - Insight & Clarity
+      "Emotional Regulation": "#7DD3C0", // Teal-400 - Calm Control
+      "Personal Growth": "#86EFAC", // Green-300 - Flourishing
+      "Coping Skills": "#FCA5A5", // Red-300 - Resilience
+      
+      // Family therapy metrics
+      "Family Communication": "#93C5FD", // Blue-300 - Open Dialogue
+      "Role Definition": "#C084FC", // Purple-400 - Clear Structure
+      "Conflict Management": "#FDBA74", // Orange-300 - Peaceful Resolution
+      "Family Bonding": "#FDE047", // Yellow-300 - Connection
     };
 
-    return colors[name] || "#4F46E5";
+    return colors[name] || "#60A5FA";
   };
 
   // Helper function to calculate the path for a pie slice
@@ -770,7 +803,7 @@ export default function CommunicationMetrics() {
     return `M${innerStartX},${innerStartY} L${outerStartX},${outerStartY} A${outerRadius},${outerRadius} 0 ${largeArcFlag} 1 ${outerEndX},${outerEndY} L${innerEndX},${innerEndY} A${innerRadius},${innerRadius} 0 ${largeArcFlag} 0 ${innerStartX},${innerStartY} Z`;
   };
 
-  const COLORS = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E0B"];
+  const COLORS = ["#60A5FA", "#34D399", "#A78BFA", "#F472B6"];
 
   const onPieEnter = useCallback(
     (_: any, index: number) => {
@@ -901,7 +934,7 @@ export default function CommunicationMetrics() {
   }: CustomLabelProps) => {
     const RADIAN = Math.PI / 180;
     // Calculate radius based on the chart dimensions
-    const radius = outerRadius * 1.1; // Fixed radius
+    const radius = outerRadius * 1.15; // Slightly further out
 
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -909,34 +942,76 @@ export default function CommunicationMetrics() {
     // Only render the label for non-tiny slices to avoid overlapping
     if (percent < 0.05) return null;
 
+    const metric = metricsData[index];
+    const metricName = isSmallScreen ? metric?.shortName || metric?.name : metric?.name;
+
     return (
       <g>
         {/* Background for better readability */}
         <text
           x={x}
-          y={y}
+          y={y - 8}
           fill="white"
           textAnchor={x > cx ? "start" : "end"}
           dominantBaseline="central"
           className="recharts-pie-label-text bg"
           style={{
-            stroke: "white",
-            strokeWidth: 4,
+            stroke: "rgba(0,0,0,0.8)",
+            strokeWidth: 3,
             paintOrder: "stroke",
+            fontSize: isSmallScreen ? "12px" : "14px",
+            fontWeight: "bold"
           }}
         >
           {`${(percent * 100).toFixed(0)}%`}
         </text>
-        {/* Actual text */}
+        {/* Metric name */}
         <text
           x={x}
-          y={y}
+          y={y + 8}
+          fill="white"
+          textAnchor={x > cx ? "start" : "end"}
+          dominantBaseline="central"
+          className="recharts-pie-label-text bg"
+          style={{
+            stroke: "rgba(0,0,0,0.8)",
+            strokeWidth: 2,
+            paintOrder: "stroke",
+            fontSize: isSmallScreen ? "10px" : "12px",
+            fontWeight: "500"
+          }}
+        >
+          {metricName}
+        </text>
+        {/* Actual percentage text */}
+        <text
+          x={x}
+          y={y - 8}
           fill={COLORS[index % COLORS.length]}
           textAnchor={x > cx ? "start" : "end"}
           dominantBaseline="central"
           className="recharts-pie-label-text"
+          style={{
+            fontSize: isSmallScreen ? "12px" : "14px",
+            fontWeight: "bold"
+          }}
         >
           {`${(percent * 100).toFixed(0)}%`}
+        </text>
+        {/* Actual metric name text */}
+        <text
+          x={x}
+          y={y + 8}
+          fill="rgba(255,255,255,0.9)"
+          textAnchor={x > cx ? "start" : "end"}
+          dominantBaseline="central"
+          className="recharts-pie-label-text"
+          style={{
+            fontSize: isSmallScreen ? "10px" : "12px",
+            fontWeight: "500"
+          }}
+        >
+          {metricName}
         </text>
       </g>
     );
@@ -1201,7 +1276,7 @@ export default function CommunicationMetrics() {
           </motion.div>
           <h2 className="text-xl font-semibold text-white">
             Communication Metrics
-          </motion.h2>
+          </h2>
         </div>
         <div className="flex-grow flex items-center justify-center">
           <div className="flex flex-col items-center px-4">
@@ -1333,51 +1408,55 @@ export default function CommunicationMetrics() {
           </div>
         </div>
       </motion.div>
+    );
+  }
 
-        {/* Assessment Modal */}
-        {isAssessmentOpen ? (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {therapyType === "couple"
-                    ? "Relationship"
-                    : therapyType === "family"
-                      ? "Family"
-                      : "Personal"}{" "}
-                  Assessment
-                </h3>
-                <button
-                  onClick={toggleAssessment}
-                  className="text-gray-400 hover:text-gray-600"
+  // Assessment Modal
+  if (isAssessmentOpen) {
+    content = (
+      <>
+        {content}
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">
+                {therapyType === "couple"
+                  ? "Relationship"
+                  : therapyType === "family"
+                    ? "Family"
+                    : "Personal"}{" "}
+                Assessment
+              </h3>
+              <button
+                onClick={toggleAssessment}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    ></path>
-                  </svg>
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-6 text-sm text-gray-600">
+                Your assessment results will be used to personalize your
+                therapy experience and track your progress over time.
               </div>
-              <div className="p-6">
-                <div className="mb-6 text-sm text-gray-600">
-                  Your assessment results will be used to personalize your
-                  therapy experience and track your progress over time.
-                </div>
-                <div className="overflow-y-auto max-h-[60vh]">
-                  <RelationshipAssessment />
-                </div>
+              <div className="overflow-y-auto max-h-[60vh]">
+                <RelationshipAssessment />
               </div>
             </div>
           </div>
-        ) : null}
+        </div>
       </>
     );
   } else {
@@ -2047,6 +2126,7 @@ export default function CommunicationMetrics() {
                             className="overflow-visible"
                             onMouseMove={handleMouseMove}
                             onMouseLeave={() => setActiveTooltip(null)}
+                            onClick={handleMouseMove}
                           >
                           <defs>
                             <filter
@@ -2087,22 +2167,21 @@ export default function CommunicationMetrics() {
                               />
                             </linearGradient>
                           </defs>
-                          {/* Custom performance zone circles with enhanced visibility */}
-                          <circle cx="50%" cy="50%" r="80%" fill="rgba(239, 68, 68, 0.08)" stroke="rgba(239, 68, 68, 0.3)" strokeWidth="1.5" />
-                          <circle cx="50%" cy="50%" r="60%" fill="rgba(251, 191, 36, 0.08)" stroke="rgba(251, 191, 36, 0.3)" strokeWidth="1.5" />
-                          <circle cx="50%" cy="50%" r="40%" fill="rgba(59, 130, 246, 0.08)" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1.5" />
-                          <circle cx="50%" cy="50%" r="20%" fill="rgba(16, 185, 129, 0.08)" stroke="rgba(16, 185, 129, 0.3)" strokeWidth="1.5" />
+                          {/* Custom performance zone circles with subtle visibility */}
+                          <circle cx="50%" cy="50%" r="80%" fill="transparent" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1" />
+                          <circle cx="50%" cy="50%" r="60%" fill="transparent" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1" />
+                          <circle cx="50%" cy="50%" r="40%" fill="transparent" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1" />
+                          <circle cx="50%" cy="50%" r="20%" fill="transparent" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1" />
                           
                           {/* Enhanced grid lines */}
-                          <PolarGrid stroke="rgba(255, 255, 255, 0.2)" strokeOpacity={1} strokeDasharray="3 3" strokeWidth="1" />
+                          <PolarGrid stroke="rgba(255, 255, 255, 0.15)" strokeOpacity={1} strokeDasharray="2 4" strokeWidth="1" />
                           <PolarAngleAxis
                             dataKey={isSmallScreen ? "shortName" : "name"}
                             tick={{
                               fill: "#FFFFFF",
                               fontSize: isSmallScreen ? 11 : 13,
                               fontWeight: 600,
-                              dy: 5,
-                              textShadow: "0 1px 2px rgba(0,0,0,0.5)"
+                              dy: 5
                             }}
                             tickSize={6}
                             className="font-medium"
@@ -2113,8 +2192,7 @@ export default function CommunicationMetrics() {
                             tick={{ 
                               fill: "rgba(255, 255, 255, 0.9)", 
                               fontWeight: 600, 
-                              fontSize: isSmallScreen ? 12 : 14,
-                              textShadow: "0 1px 2px rgba(0,0,0,0.5)"
+                              fontSize: isSmallScreen ? 12 : 14
                             }}
                             tickCount={6}
                             stroke="rgba(255, 255, 255, 0.3)"
@@ -2197,8 +2275,8 @@ export default function CommunicationMetrics() {
                             dataKey="value"
                             stroke="#60A5FA"
                             strokeWidth={isSmallScreen ? 4 : 3}
-                            fill="url(#radarFill)"
-                            fillOpacity={0.8}
+                            fill="transparent"
+                            fillOpacity={0}
                             animationDuration={1500}
                             animationEasing="ease-out"
                             isAnimationActive={true}
@@ -2798,25 +2876,26 @@ export default function CommunicationMetrics() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div style={{ width: "100%", height: isSmallScreen ? 420 : 450, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <div style={{ width: "100%", height: isSmallScreen ? 500 : 600, display: "flex", justifyContent: "center", alignItems: "center" }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <RadialBarChart
                             cx="50%"
                             cy="50%"
-                            innerRadius={isSmallScreen ? "20%" : "35%"}
-                            outerRadius={isSmallScreen ? "95%" : "95%"}
+                            innerRadius={isSmallScreen ? "15%" : "25%"}
+                            outerRadius={isSmallScreen ? "85%" : "80%"}
                             data={metricsData}
                             startAngle={180}
                             endAngle={0}
-                            barSize={isSmallScreen ? 24 : 14}
+                            barSize={isSmallScreen ? 80 : 50}
                             margin={{ 
-                              top: isSmallScreen ? 30 : 160, 
-                              right: isSmallScreen ? 15 : 40, 
-                              bottom: isSmallScreen ? 30 : 120, 
-                              left: isSmallScreen ? 15 : 40 
+                              top: isSmallScreen ? 40 : 60, 
+                              right: isSmallScreen ? 20 : 30, 
+                              bottom: isSmallScreen ? 40 : 60, 
+                              left: isSmallScreen ? 20 : 30 
                             }}
                             onMouseMove={handleMouseMove}
                             onMouseLeave={() => setActiveTooltip(null)}
+                            onClick={handleMouseMove}
                             className="overflow-visible"
                             style={{ margin: "0 auto" }}
                           >
@@ -2844,13 +2923,82 @@ export default function CommunicationMetrics() {
                             ))}
                           </defs>
                           <RadialBar
-                            label={{
-                              fill: "#666",
-                              position: "insideStart" as const,
-                              fontSize: isSmallScreen ? 16 : 14,
-                              fontWeight: 600,
+                            label={(props: any) => {
+                              const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, value, index } = props;
+                              
+                              // Validate all required props to prevent NaN errors
+                              const isValidNumber = (num: any): num is number => 
+                                typeof num === 'number' && !isNaN(num) && isFinite(num);
+                              
+                              if (!metricsData[index] || 
+                                  !isValidNumber(value) || 
+                                  !isValidNumber(cx) || 
+                                  !isValidNumber(cy) ||
+                                  !isValidNumber(innerRadius) || 
+                                  !isValidNumber(outerRadius) ||
+                                  !isValidNumber(startAngle) || 
+                                  !isValidNumber(endAngle)) {
+                                return null;
+                              }
+                              
+                              const RADIAN = Math.PI / 180;
+                              // Calculate the middle angle of this bar segment
+                              const midAngle = (startAngle + endAngle) / 2;
+                              
+                              // Position text in the middle of the bar thickness
+                              const textRadius = (innerRadius + outerRadius) / 2;
+                              
+                              // Calculate x,y coordinates for text positioning
+                              const x = cx + textRadius * Math.cos(-midAngle * RADIAN);
+                              const y = cy + textRadius * Math.sin(-midAngle * RADIAN);
+                              
+                              // Final validation of calculated coordinates
+                              if (!isValidNumber(x) || !isValidNumber(y)) {
+                                return null;
+                              }
+                              
+                              const metric = metricsData[index];
+                              const displayName = isSmallScreen ? (metric?.shortName || metric?.name) : metric?.name;
+                              
+                              return (
+                                <g key={`radial-label-${index}`}>
+                                  {/* Background circle for better readability */}
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r={isSmallScreen ? 22 : 28} 
+                                    fill="rgba(0,0,0,0.7)" 
+                                    stroke="rgba(255,255,255,0.3)"
+                                    strokeWidth="1"
+                                  />
+                                  {/* Percentage value */}
+                                  <text 
+                                    x={x} 
+                                    y={y - (isSmallScreen ? 5 : 7)} 
+                                    fill="#fff" 
+                                    textAnchor="middle" 
+                                    dominantBaseline="middle"
+                                    fontSize={isSmallScreen ? 13 : 15}
+                                    fontWeight="bold"
+                                  >
+                                    {value}%
+                                  </text>
+                                  {/* Metric name */}
+                                  <text 
+                                    x={x} 
+                                    y={y + (isSmallScreen ? 5 : 7)} 
+                                    fill="rgba(255,255,255,0.95)" 
+                                    textAnchor="middle" 
+                                    dominantBaseline="middle"
+                                    fontSize={isSmallScreen ? 9 : 11}
+                                    fontWeight="500"
+                                  >
+                                    {displayName}
+                                  </text>
+                                </g>
+                              );
                             }}
-                            background={{ fill: "#E1E9F8" }}
+                            background={{ fill: "rgba(255,255,255,0.05)" }}
                             dataKey="value"
                             cornerRadius={12}
                             animationDuration={1500}
@@ -2928,7 +3076,7 @@ export default function CommunicationMetrics() {
                               left: "0 !important",
                               right: "0 !important",
                             }}
-                            formatter={(value: any, entry: any, index: any) => {
+                            formatter={(value: any) => {
                               return (
                                 <div
                                   className="flex flex-col items-center px-1 py-1 mx-0 sm:px-2 sm:mx-1 rounded-md"

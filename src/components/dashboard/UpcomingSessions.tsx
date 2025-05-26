@@ -24,6 +24,18 @@ export default function UpcomingSessions() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState<string | null>(null);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  // Track screen size for responsive design
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 640);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   useEffect(() => {
     fetchSessions();
@@ -120,20 +132,26 @@ export default function UpcomingSessions() {
 
   if (loading) {
     return (
-      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-6">
         <motion.div 
           animate={{ 
-            scale: [1, 1.1, 1],
-            opacity: [0.5, 1, 0.5]
+            scale: [1, 1.05, 1],
+            opacity: [0.6, 1, 0.6]
           }}
           transition={{ 
             repeat: Infinity,
-            duration: 1.5
+            duration: 2,
+            ease: "easeInOut"
           }}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center text-center"
         >
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-white font-medium">Finding your next sessions...</p>
+          <div className="relative">
+            <div className="w-14 h-14 border-4 border-blue-400/30 rounded-full"></div>
+            <div className="absolute top-0 left-0 w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="absolute top-2 left-2 w-10 h-10 border-2 border-blue-300/50 border-b-transparent rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+          </div>
+          <p className="mt-6 text-white/90 font-medium text-lg">Finding your next sessions...</p>
+          <p className="mt-2 text-white/60 text-sm">Preparing your personalized schedule</p>
         </motion.div>
       </div>
     );
@@ -141,22 +159,44 @@ export default function UpcomingSessions() {
 
   if (error) {
     return (
-      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
-        <div className="text-center p-6 bg-white/10 backdrop-blur-md rounded-lg max-w-sm shadow-md border border-white/20">
-          <svg className="w-12 h-12 mx-auto text-red-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-lg font-medium text-white">Couldn't load your sessions</p>
-          <p className="text-sm mt-2 text-red-200">{error}</p>
+      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center p-6 bg-red-900/20 backdrop-blur-md rounded-xl max-w-sm shadow-lg border border-red-400/30"
+        >
+          <motion.div
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, -5, 0]
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 3,
+              ease: "easeInOut"
+            }}
+          >
+            <svg className="w-16 h-16 mx-auto text-red-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </motion.div>
+          <h3 className="text-xl font-semibold text-white mb-2">Couldn't load your sessions</h3>
+          <p className="text-sm mt-2 text-red-200/80 mb-4">{error}</p>
           <motion.button 
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.05, y: -2, boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)" }}
             whileTap={{ scale: 0.95 }}
             onClick={fetchSessions}
-            className="mt-4 px-4 py-2 bg-white/20 backdrop-blur-md text-white rounded-lg text-sm font-medium shadow-md hover:bg-white/30 active:bg-white/25 transition-colors duration-200 border border-white/30"
+            className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium shadow-lg hover:from-red-400 hover:to-red-500 transition-all duration-300 border border-red-400/30"
           >
-            Try Again
+            <span className="flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Try Again
+            </span>
           </motion.button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -168,11 +208,14 @@ export default function UpcomingSessions() {
       transition={{ duration: 0.5 }}
       className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full overflow-y-auto"
     >
-      <div className="flex items-center mb-4">
-        <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+      <div className="flex items-center mb-6">
+        <motion.div 
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white mr-4 shadow-lg shadow-green-500/30"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
+            className="h-7 w-7"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -184,37 +227,77 @@ export default function UpcomingSessions() {
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
+        </motion.div>
+        <div className="flex-1">
+          <h2 className="text-xl md:text-2xl font-bold text-white">
+            Upcoming Sessions
+          </h2>
+          <p className="text-white/70 text-sm mt-1">Your scheduled therapy sessions</p>
         </div>
-        <h2 className="text-xl font-semibold text-white flex-1">
-          Upcoming Sessions
-        </h2>
+        {sessions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-green-500/20 backdrop-blur-sm border border-green-400/30 rounded-full px-3 py-1 text-sm font-medium text-green-300"
+          >
+            {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+          </motion.div>
+        )}
       </div>
 
 
       <div className="h-[420px] overflow-y-auto">
         {sessions.length === 0 ? (
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
           className="h-[380px] flex items-center justify-center"
         >
-          <div className="text-center p-6 max-w-sm">
-            <h3 className="text-xl font-semibold text-white mb-2">Your Calendar Awaits</h3>
-            <p className="text-sm text-white/80 mb-6">
-              Schedule your therapy sessions to begin your transformative journey towards stronger relationships.
-            </p>
+          <div className="text-center p-8 max-w-md">
             <motion.div
-              whileHover={{ scale: 1.05 }}
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="mb-6"
+            >
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </motion.div>
+            <motion.h3 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="text-2xl font-bold text-white mb-3"
+            >
+              Your Calendar Awaits
+            </motion.h3>
+            <motion.p 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-white/80 mb-8 leading-relaxed"
+            >
+              Schedule your therapy sessions to begin your transformative journey towards stronger relationships and better communication.
+            </motion.p>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
               <Link 
                 href="/schedule" 
-                className="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 active:bg-white/25 transition-colors duration-200 backdrop-blur-md border border-white/30"
+                className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-400 hover:to-blue-500 transition-all duration-300 shadow-lg shadow-blue-500/30 border border-blue-400/30"
               >
-                Schedule Your First Session
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
+                Schedule Your First Session
               </Link>
             </motion.div>
           </div>
@@ -247,19 +330,21 @@ export default function UpcomingSessions() {
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0 }
                 }}
-                className={`bg-white/80 border rounded-lg p-4 shadow-md hover:shadow-lg transition-all ${isExpanded ? 'border-blue-400' : 'border-blue-200'}`}
+                className={`bg-white/90 backdrop-blur-sm border rounded-xl p-4 sm:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${isExpanded ? 'border-blue-400 shadow-blue-500/20' : 'border-blue-200/50 hover:border-blue-300'} ${isSmallScreen ? 'mx-1' : ''}`}
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex flex-col space-y-1">
-                    <div className="flex items-center">
-                      <h3 className="font-medium text-blue-800">{session.theme}</h3>
-                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full 
-                        ${badgeStyles.label === 'Happening soon' ? 'bg-red-500 text-white' : 
-                        badgeStyles.label === 'Today' ? 'bg-amber-500 text-white' : 
-                        badgeStyles.label === 'Tomorrow' ? 'bg-blue-500 text-white' : 
-                        'bg-green-500 text-white'} shadow-sm`}>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center flex-wrap gap-2">
+                      <h3 className={`font-semibold text-blue-800 ${isSmallScreen ? 'text-sm' : 'text-base'} leading-tight`}>{session.theme}</h3>
+                      <motion.span 
+                        whileHover={{ scale: 1.05 }}
+                        className={`text-xs px-3 py-1 rounded-full font-medium shadow-md 
+                        ${badgeStyles.label === 'Happening soon' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border border-red-400/30' : 
+                        badgeStyles.label === 'Today' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/30' : 
+                        badgeStyles.label === 'Tomorrow' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400/30' : 
+                        'bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-400/30'}`}>
                         {badgeStyles.label}
-                      </span>
+                      </motion.span>
                       {/* Notification status indicators */}
                       <div className="ml-2 flex items-center space-x-1">
                         {session.emailReminderSent && (
@@ -288,27 +373,30 @@ export default function UpcomingSessions() {
                         )}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-700 flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {format(sessionDate, 'EEEE, MMMM d, yyyy')}
-                    </p>
-                    <p className="text-sm text-gray-700 flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {format(sessionDate, 'h:mm a')} ({session.duration} minutes)
-                    </p>
+                    <div className={`${isSmallScreen ? 'space-y-1' : 'space-y-1.5'}`}>
+                      <p className={`${isSmallScreen ? 'text-xs' : 'text-sm'} text-gray-700 flex items-center font-medium`}>
+                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-blue-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {format(sessionDate, isSmallScreen ? 'MMM d, yyyy' : 'EEEE, MMMM d, yyyy')}
+                      </p>
+                      <p className={`${isSmallScreen ? 'text-xs' : 'text-sm'} text-gray-700 flex items-center font-medium`}>
+                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-blue-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {format(sessionDate, 'h:mm a')} ({session.duration} min)
+                      </p>
+                    </div>
                   </div>
                   <div className="flex space-x-2 items-center">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
                       <button
                         onClick={() => setExpandedSession(isExpanded ? null : session.id)}
-                        className="p-1 rounded-full hover:bg-blue-100 transition-colors"
+                        className={`p-2 rounded-full transition-all duration-300 ${isExpanded ? 'bg-blue-100 shadow-md' : 'hover:bg-blue-50'} border border-blue-200/50`}
+                        title={isExpanded ? 'Collapse details' : 'View details'}
                       >
-                        <svg className={`w-5 h-5 text-blue-600 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isExpanded ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                        <svg className={`${isSmallScreen ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
                     </motion.div>
@@ -331,44 +419,40 @@ export default function UpcomingSessions() {
                         </div>
                       )}
                       
-                      <div className="flex space-x-2 justify-end mt-2">
+                      <div className={`flex ${isSmallScreen ? 'flex-col space-y-2' : 'flex-row space-x-2'} justify-end mt-4`}>
                         {badgeStyles.label !== 'Happening soon' && (
-                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                             <Link
                               href={`/dashboard/therapy?sessionId=${session.id}`}
-                              className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-2 rounded-full text-sm font-medium shadow-lg shadow-blue-500/30 relative overflow-hidden"
+                              className={`flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white ${isSmallScreen ? 'px-4 py-3 w-full' : 'px-4 py-2'} rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-blue-500 transition-all duration-300 border border-blue-400/30`}
                             >
-                              <span className="relative z-10 flex items-center">
-                                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Start Session
-                              </span>
-                              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
-                              <span className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 opacity-30 blur-lg"></span>
+                              <svg className={`${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                              Start Session
                             </Link>
                           </motion.div>
                         )}
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <motion.div whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }}>
                           <Link
                             href={`/schedule?reschedule=${session.id}`}
-                            className="flex items-center bg-white border border-blue-400 text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
+                            className={`flex items-center justify-center bg-white/90 backdrop-blur-sm border border-blue-400 text-blue-600 hover:bg-blue-50 ${isSmallScreen ? 'px-4 py-3 w-full' : 'px-4 py-2'} rounded-xl font-medium transition-all duration-300 shadow-md hover:shadow-lg`}
                           >
-                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className={`${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             Reschedule
                           </Link>
                         </motion.div>
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <motion.div whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }}>
                           <button
                             onClick={() => handleCancelSession(session.id)}
                             disabled={isCancelling}
-                            className="flex items-center bg-white border border-red-400 text-red-600 hover:bg-red-50 px-3 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                            className={`flex items-center justify-center bg-white/90 backdrop-blur-sm border border-red-400 text-red-600 hover:bg-red-50 ${isSmallScreen ? 'px-4 py-3 w-full' : 'px-4 py-2'} rounded-xl font-medium transition-all duration-300 disabled:opacity-50 shadow-md hover:shadow-lg`}
                           >
                             {isCancelling ? (
                               <>
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24">
+                                <svg className={`animate-spin ${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2 text-red-600`} fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -376,7 +460,7 @@ export default function UpcomingSessions() {
                               </>
                             ) : (
                               <>
-                                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className={`${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                                 Cancel

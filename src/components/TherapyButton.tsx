@@ -986,7 +986,11 @@ function TherapyButton({
       // Store in sessionStorage for recovery on browser refresh
       try {
         sessionStorage.setItem('session-start-time', sessionStartTime.toISOString());
+        sessionStorage.setItem(`session-${sessionId}-start-time`, sessionStartTime.toISOString());
         console.log('Saved session start time:', sessionStartTime.toISOString());
+        
+        // Also store session ID for recovery
+        sessionStorage.setItem('active-session-id', sessionId);
       } catch (err) {
         console.warn('Could not save session start time to sessionStorage', err);
       }
@@ -1797,7 +1801,15 @@ function TherapyButton({
       let sessionDuration = 1; // default 1 minute minimum
       try {
         const endTime = new Date();
-        const startTimeStr = sessionStorage.getItem('session-start-time');
+        let startTimeStr = sessionStorage.getItem('session-start-time');
+        
+        // Try session-specific start time as fallback
+        if (!startTimeStr && sessionId) {
+          startTimeStr = sessionStorage.getItem(`session-${sessionId}-start-time`);
+          if (startTimeStr) {
+            console.log('Using session-specific start time as fallback');
+          }
+        }
         
         if (startTimeStr) {
           const startTime = new Date(startTimeStr);
@@ -1807,16 +1819,30 @@ function TherapyButton({
           console.log(`Session duration calculated: ${sessionDuration} minutes (${Math.round(durationMs/1000)} seconds)`);
           console.log(`IMPORTANT: This duration (${sessionDuration} min) will be sent to the API for updating the session record.`);
         } else {
-          // Fallback to entry-based estimation if no start time
+          // If no start time in sessionStorage, try to use session creation time
+          console.warn('No session-start-time found in sessionStorage, using fallback calculation');
+          
+          // More accurate fallback: estimate based on transcript entries and average speaking rate
           const entryCount = dedupedEntries.length;
-          sessionDuration = Math.max(1, Math.round(entryCount / 3));
-          console.log(`Estimated session duration from ${entryCount} entries: ${sessionDuration} minutes`);
+          const totalWords = dedupedEntries.reduce((sum, entry) => sum + entry.text.split(' ').length, 0);
+          
+          // Average speaking rate is about 150 words per minute
+          // Add some buffer time for pauses and thinking
+          const estimatedMinutes = Math.ceil(totalWords / 120); // Conservative estimate
+          
+          // Also consider minimum time based on number of exchanges
+          const minTimeByExchanges = Math.ceil(entryCount / 2); // Assume at least 30 seconds per exchange
+          
+          sessionDuration = Math.max(1, Math.max(estimatedMinutes, minTimeByExchanges));
+          console.log(`Estimated session duration: ${sessionDuration} minutes (${entryCount} entries, ${totalWords} words)`);
         }
       } catch (timeError) {
         console.error('Error calculating duration:', timeError);
-        // Fallback to entry count based duration
+        // Final fallback to a reasonable estimate based on transcript length
         const entryCount = dedupedEntries.length;
-        sessionDuration = Math.max(1, Math.round(entryCount / 3));
+        // Assume an average conversation has about 2-3 exchanges per minute
+        sessionDuration = Math.max(1, Math.ceil(entryCount / 2.5));
+        console.log(`Fallback duration estimate: ${sessionDuration} minutes from ${entryCount} entries`);
       }
       
       const response = await fetch(`/api/sessions/${sessionId}`, {

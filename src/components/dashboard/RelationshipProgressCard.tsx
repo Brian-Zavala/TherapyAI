@@ -588,30 +588,30 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
         <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full">
           <button
             onClick={() => setTimeframe("week")}
-            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
+            className={`px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md flex-1 transition-colors ${
               timeframe === "week"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
           >
             Week
           </button>
           <button
             onClick={() => setTimeframe("month")}
-            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
+            className={`px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md flex-1 transition-colors ${
               timeframe === "month"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
           >
             Month
           </button>
           <button
             onClick={() => setTimeframe("all")}
-            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
+            className={`px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md flex-1 transition-colors ${
               timeframe === "all"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
           >
             All
@@ -627,33 +627,33 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
         <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full">
           <button
             onClick={() => setChartType("line")}
-            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
+            className={`px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md flex-1 transition-colors min-w-0 ${
               chartType === "line"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
           >
-            Line
+            <span className="truncate">Line</span>
           </button>
           <button
             onClick={() => setChartType("area")}
-            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
+            className={`px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md flex-1 transition-colors min-w-0 ${
               chartType === "area"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
           >
-            Area
+            <span className="truncate">Area</span>
           </button>
           <button
             onClick={() => setChartType("composed")}
-            className={`px-1 py-0.5 text-[10px] md:text-xs font-medium rounded-md flex-1 ${
+            className={`px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md flex-1 transition-colors min-w-0 ${
               chartType === "composed"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
           >
-            Combo
+            <span className="truncate">Combo</span>
           </button>
         </div>
       </div>
@@ -665,27 +665,43 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   const TherapyTypeSelector = useMemo(() => {
     return () => (
       <div className="flex justify-center mb-0">
-        <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full">
-          <button
+        <div className="inline-flex p-0.5 bg-blue-600/90 rounded-lg shadow-md backdrop-blur-sm border border-white/20 w-full min-w-0">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setTherapyType("couple")}
-            className={`px-1 py-0.5 text-[10px] md:text-sm font-medium rounded-md flex-1 ${
+            className={`relative px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md transition-all duration-300 ease-in-out flex-1 min-w-0 ${
               therapyType === "couple"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
+            layout
           >
-            Couple
-          </button>
-          <button
+            <span className="relative z-10 flex items-center justify-center min-w-0">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+              </svg>
+              <span className="truncate">Couple</span>
+            </span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setTherapyType("family")}
-            className={`px-1 py-0.5 text-[10px] md:text-sm font-medium rounded-md flex-1 ${
+            className={`relative px-2 sm:px-3 py-2 sm:py-2 text-sm sm:text-sm font-semibold rounded-md transition-all duration-300 ease-in-out flex-1 min-w-0 ${
               therapyType === "family"
-                ? "bg-blue-800 text-white"
-                : "text-white hover:bg-blue-500/80"
+                ? "bg-blue-800 text-white shadow-lg"
+                : "text-white/95 hover:bg-blue-500/80 hover:text-white"
             }`}
+            layout
           >
-            Family
-          </button>
+            <span className="relative z-10 flex items-center justify-center min-w-0">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+              </svg>
+              <span className="truncate">Family</span>
+            </span>
+          </motion.button>
         </div>
       </div>
     );
@@ -930,12 +946,14 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
     );
     const legend = <Legend 
       verticalAlign="bottom" 
-      height={isSmallScreen ? 30 : 40} 
-      iconSize={isSmallScreen ? 8 : 10} 
+      height={isSmallScreen ? 35 : 40} 
+      iconSize={isSmallScreen ? 10 : 12} 
       align="center"
       wrapperStyle={{
-        fontSize: isSmallScreen ? '10px' : '12px',
-        paddingTop: isSmallScreen ? '5px' : '10px'
+        fontSize: isSmallScreen ? '13px' : '14px',
+        paddingTop: isSmallScreen ? '8px' : '10px',
+        color: '#ffffff',
+        fontWeight: '600'
       }}
     />;
     const refLine = (
@@ -1090,12 +1108,12 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   // Now this check happens AFTER all hooks have been called
   if (loading) {
     return (
-      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full overflow-hidden">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-3">
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-3 sm:p-4 md:p-6 w-full h-full overflow-hidden">
+        <div className="flex items-center mb-3 sm:mb-4">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500/30 flex items-center justify-center text-white mr-2 sm:mr-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
+              className="h-5 w-5 sm:h-6 sm:w-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1108,11 +1126,11 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-white">
+          <h2 className="text-lg sm:text-xl font-semibold text-white">
             Relationship Progress
           </h2>
         </div>
-        <div className="min-h-[600px] flex items-center justify-center">
+        <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px] flex items-center justify-center">
           <div className="flex flex-col items-center">
             <svg
               className="animate-spin h-8 w-8 sm:h-10 sm:w-10 text-white/80"
@@ -1159,18 +1177,18 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   }) => (
     <motion.div 
       whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(0, 0, 0, 0.07)" }}
-      className={`${bgColor} p-3 rounded-lg flex-1 border border-blue-100/30 transition-all duration-200`}
+      className={`${bgColor} p-2 sm:p-3 rounded-lg flex-1 border border-blue-100/30 transition-all duration-200`}
     >
-      <div className="flex items-center mb-1.5">
-        <span className={`inline-block w-2.5 h-2.5 ${dotColor} rounded-full mr-1.5`}></span>
-        <p className={`text-xs ${textColor} font-semibold`}>{label}</p>
+      <div className="flex items-center mb-0.5 sm:mb-1.5">
+        <span className={`inline-block w-2 h-2 sm:w-2.5 sm:h-2.5 ${dotColor} rounded-full mr-1 sm:mr-1.5`}></span>
+        <p className={`text-[10px] sm:text-xs ${textColor} font-semibold`}>{label}</p>
       </div>
       <div className="flex items-baseline">
-        <p className={`text-xl md:text-2xl font-bold ${textColor}`}>
+        <p className={`text-base sm:text-xl md:text-2xl font-bold ${textColor}`}>
           {value > 0 ? `+${value}` : value}
         </p>
         <span
-          className={`ml-1.5 text-xs font-medium ${value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-500"}`}
+          className={`ml-1 sm:ml-1.5 text-[9px] sm:text-xs font-medium ${value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-500"}`}
         >
           pts change
         </span>
@@ -1295,20 +1313,20 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       {/* View toggle button removed */}
       
       {/* Always show therapy type selector to allow users to switch between types */}
-      <div className="mb-4">
-        {/* All controls in one scrollable container on mobile and grid on desktop */}
-        <div className="flex md:grid md:grid-cols-3 md:gap-2 overflow-x-auto pb-2 scrollbar-hide space-x-1 md:space-x-0">
-          <div className="flex-shrink-0 md:col-span-1 min-w-[100px] md:min-w-0">
+      <div className="mb-3 sm:mb-4">
+        {/* All controls in properly spaced layout for mobile 412px+ */}
+        <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-2">
+          <div className="w-full">
             <TherapyTypeSelector />
           </div>
           
           {/* Other controls only shown when data is available */}
           {data.length > 0 && (
             <>
-              <div className="flex-shrink-0 md:col-span-1 min-w-[110px] md:min-w-0">
+              <div className="w-full">
                 <TimeframeSelector />
               </div>
-              <div className="flex-shrink-0 md:col-span-1 min-w-[100px] md:min-w-0">
+              <div className="w-full">
                 <ChartTypeSelector />
               </div>
             </>
@@ -1329,14 +1347,14 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       {/* Chart container with responsive height and proper centering */}
       {data.length > 0 ? (
         <motion.div 
-          className="relationship-chart-container w-full mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-3 sm:p-6 min-h-[520px] hover:bg-white/25 transition-all duration-300 max-w-[900px]"
+          className="relationship-chart-container w-full mx-auto bg-white/20 backdrop-blur-md rounded-xl shadow-xl border border-white/30 p-2 sm:p-3 md:p-6 min-h-[350px] sm:min-h-[450px] md:min-h-[520px] hover:bg-white/25 transition-all duration-300"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           style={{ position: 'relative', zIndex: 5 }}
         >
           <div 
-            className={`${isSmallScreen ? 'h-[380px]' : 'h-[480px]'} w-full relative`} 
+            className="h-[280px] sm:h-[350px] md:h-[400px] lg:h-[480px] w-full relative" 
             style={{ overflow: 'visible', position: 'relative', zIndex: 1 }}
           >
             <ResponsiveContainer width="100%" height="100%" debounce={50}>
@@ -1389,72 +1407,72 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="relationship-metrics-card mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-blue-300/10" 
+          className="relationship-metrics-card mt-3 sm:mt-4 bg-gradient-to-br from-blue-700/50 to-blue-900/60 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-lg border border-blue-300/10" 
           style={{ position: 'relative', zIndex: 10 }}
         >
-          <h4 className="text-xs text-white uppercase tracking-wider mb-3 font-bold flex items-center">
-            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
+          <h4 className="text-[10px] sm:text-xs text-white uppercase tracking-wider mb-2 sm:mb-3 font-bold flex items-center">
+            <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-400 rounded-full mr-1.5 sm:mr-2 animate-pulse"></span>
             Therapy Metrics ({timeframe})
           </h4>
           
           {/* Standard metrics display */}
           <>
             {/* Upper metrics row: Averages */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
               <motion.div 
                 whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(37, 99, 235, 0.2)" }}
-                className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-blue-200/20"
+                className="bg-white/90 shadow-md p-2 sm:p-3 rounded-lg text-center border border-blue-200/20"
               >
-                <div className="flex items-center justify-center mb-1">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></span>
-                  <p className="text-xs text-blue-700 font-semibold">
+                <div className="flex items-center justify-center mb-0.5 sm:mb-1">
+                  <span className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full mr-1 sm:mr-1.5"></span>
+                  <p className="text-[10px] sm:text-xs text-blue-700 font-semibold">
                     Avg Closeness
                   </p>
                 </div>
-                <p className="text-2xl font-bold text-blue-800">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800">
                   {chartMetrics.averages.closeness}
-                  <span className="text-xs font-normal text-blue-600">/100</span>
+                  <span className="text-[9px] sm:text-xs font-normal text-blue-600">/100</span>
                 </p>
               </motion.div>
               <motion.div 
                 whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.2)" }}
-                className="bg-white/90 shadow-md p-3 rounded-lg text-center border border-emerald-200/20"
+                className="bg-white/90 shadow-md p-2 sm:p-3 rounded-lg text-center border border-emerald-200/20"
               >
-                <div className="flex items-center justify-center mb-1">
-                  <span className="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>
-                  <p className="text-xs text-emerald-700 font-semibold">
+                <div className="flex items-center justify-center mb-0.5 sm:mb-1">
+                  <span className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-500 rounded-full mr-1 sm:mr-1.5"></span>
+                  <p className="text-[10px] sm:text-xs text-emerald-700 font-semibold">
                     Avg Communication
                   </p>
                 </div>
-                <p className="text-2xl font-bold text-emerald-800">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-800">
                   {chartMetrics.averages.communication}
-                  <span className="text-xs font-normal text-emerald-600">/100</span>
+                  <span className="text-[9px] sm:text-xs font-normal text-emerald-600">/100</span>
                 </p>
               </motion.div>
               <motion.div 
                 whileHover={{ y: -2, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.2)" }}
-                className="bg-white/90 shadow-md p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
+                className="bg-white/90 shadow-md p-2 sm:p-3 rounded-lg col-span-2 md:col-span-1 mt-2 md:mt-0 text-center border border-indigo-200/20"
               >
-                <div className="flex items-center justify-center mb-1">
-                  <span className="w-3 h-3 bg-indigo-500 rounded-full mr-1.5"></span>
-                  <p className="text-xs text-indigo-700 font-semibold">
+                <div className="flex items-center justify-center mb-0.5 sm:mb-1">
+                  <span className="w-2 h-2 sm:w-3 sm:h-3 bg-indigo-500 rounded-full mr-1 sm:mr-1.5"></span>
+                  <p className="text-[10px] sm:text-xs text-indigo-700 font-semibold">
                     Avg Relationship Quality
                   </p>
                 </div>
-                <p className="text-2xl font-bold text-indigo-800">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-indigo-800">
                   {chartMetrics.averages.quality}
-                  <span className="text-xs font-normal text-indigo-600">
+                  <span className="text-[9px] sm:text-xs font-normal text-indigo-600">
                     /100
                   </span>
                 </p>
               </motion.div>
             </div>
             {/* Lower metrics row: Progress indicators */}
-            <h4 className="text-xs text-white uppercase tracking-wider mt-4 mb-2 font-bold bg-blue-800/60 p-2 rounded-lg flex items-center">
-              <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+            <h4 className="text-[10px] sm:text-xs text-white uppercase tracking-wider mt-3 sm:mt-4 mb-1.5 sm:mb-2 font-bold bg-blue-800/60 p-1.5 sm:p-2 rounded-lg flex items-center">
+              <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-400 rounded-full mr-1.5 sm:mr-2"></span>
               Overall Change ({timeframe})
             </h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <ProgressIndicator
                 value={chartMetrics.overallChange.closeness}
                 label="Closeness Change"
