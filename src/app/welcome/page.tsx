@@ -542,11 +542,11 @@ export default function WelcomePage() {
             </div>
             
             {/* Step indicators */}
-            <div className="flex items-center justify-center mb-4 px-2">
+            <div className="flex items-center justify-center mb-4 px-2 max-w-full overflow-hidden">
               {formSteps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
+                <div key={step.id} className="flex items-center min-w-0">
                   <motion.div
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-200 shrink-0 ${
+                    className={`w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-200 flex-shrink-0 ${
                       index < currentStep
                         ? 'bg-green-500 border-green-400'
                         : index === currentStep
@@ -558,13 +558,13 @@ export default function WelcomePage() {
                     transition={{ duration: 0.2, type: "tween" }}
                   >
                     {index < currentStep ? (
-                      <CheckCircleIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+                      <CheckCircleIcon className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 text-white" />
                     ) : (
-                      <span className="text-white font-medium text-sm sm:text-base">{index + 1}</span>
+                      <span className="text-white font-medium text-xs xs:text-sm sm:text-base leading-none">{index + 1}</span>
                     )}
                   </motion.div>
                   {index < formSteps.length - 1 && (
-                    <div className="w-6 sm:w-8 md:w-12 h-0.5 bg-white/20 mx-1 sm:mx-2">
+                    <div className="w-3 xs:w-4 sm:w-6 md:w-8 h-0.5 bg-white/20 mx-0.5 xs:mx-1 sm:mx-1.5 flex-shrink-0">
                       <motion.div
                         className="h-full bg-gradient-to-r from-green-500 to-blue-500"
                         initial={{ width: 0 }}

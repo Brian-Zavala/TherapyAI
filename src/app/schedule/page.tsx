@@ -249,75 +249,95 @@ export default function SchedulePage() {
         
         /* Mobile Responsive Styles */
         @media (max-width: 640px) {
+          .react-datepicker-with-time__time-box {
+            display: block !important;
+            width: 100% !important;
+          }
+          .react-datepicker--time-only .react-datepicker__time-container {
+            border-left: none !important;
+            margin-top: 10px;
+            border-top: 1px solid rgba(34, 197, 94, 0.2) !important;
+            border-radius: 12px;
+          }
           .react-datepicker {
-            font-size: 0.75rem !important;
-            width: 280px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            position: fixed !important;
-            top: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            z-index: 9999 !important;
-            max-height: 90vh;
-            overflow: hidden;
+            font-size: 0.85rem !important;
+            width: 90vw !important;
+            max-width: 320px !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          .react-datepicker__month-container {
+            width: 100% !important;
+          }
+          .react-datepicker__time-container {
+            width: 100% !important;
+            border-left: none !important;
+            border-top: 1px solid rgba(34, 197, 94, 0.2) !important;
+            margin-top: 10px;
+          }
+          .react-datepicker__time {
+            border-radius: 12px !important;
+          }
+          .react-datepicker__time-box {
+            width: 100% !important;
           }
           .react-datepicker__header {
-            padding: 8px 0;
+            padding: 10px 0;
           }
           .react-datepicker__current-month {
-            font-size: 0.875rem !important;
+            font-size: 0.9rem !important;
             margin-bottom: 6px;
           }
           .react-datepicker__day-name {
-            font-size: 0.625rem !important;
-            width: 1.75rem !important;
-            line-height: 1.75rem !important;
+            font-size: 0.7rem !important;
+            width: 2rem !important;
+            line-height: 2rem !important;
           }
           .react-datepicker__day {
-            width: 1.75rem !important;
-            line-height: 1.75rem !important;
-            font-size: 0.75rem !important;
-            margin: 1px;
+            width: 2rem !important;
+            line-height: 2rem !important;
+            font-size: 0.8rem !important;
+            margin: 2px;
           }
           .react-datepicker__month {
-            padding: 4px;
+            padding: 6px;
           }
-          .react-datepicker__time-container {
-            width: 80px;
-          }
-          .react-datepicker__time-box {
-            width: 80px;
+          .react-datepicker__time-list {
+            height: 150px !important;
           }
           .react-datepicker__time-list-item {
-            height: 1.5rem !important;
-            line-height: 1.5rem !important;
-            font-size: 0.75rem !important;
-            padding: 4px 8px;
-            color: white !important;
+            font-size: 0.8rem !important;
+            padding: 6px 10px;
           }
           .react-datepicker__navigation {
-            top: 10px;
-            width: 20px;
-            height: 20px;
+            top: 12px;
+            width: 22px;
+            height: 22px;
           }
           .react-datepicker__navigation-icon::before {
-            width: 5px;
-            height: 5px;
+            width: 6px;
+            height: 6px;
           }
         }
         
         @media (max-width: 480px) {
           .react-datepicker {
-            width: 260px !important;
-            font-size: 0.7rem !important;
+            width: 85vw !important;
+            max-width: 300px !important;
+            font-size: 0.8rem !important;
           }
           .react-datepicker__day-name {
-            width: 1.5rem !important;
-            line-height: 1.5rem !important;
+            width: 1.8rem !important;
+            line-height: 1.8rem !important;
+            font-size: 0.65rem !important;
           }
           .react-datepicker__day {
-            width: 1.5rem !important;
-            line-height: 1.5rem !important;
+            width: 1.8rem !important;
+            line-height: 1.8rem !important;
+            font-size: 0.75rem !important;
+          }
+          .react-datepicker__time-list-item {
+            font-size: 0.75rem !important;
           }
         }
         
@@ -329,11 +349,29 @@ export default function SchedulePage() {
             left: 0 !important;
             right: 0 !important;
             bottom: 0 !important;
-            background-color: rgba(0, 0, 0, 0.8) !important;
+            background-color: rgba(0, 0, 0, 0.85) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             z-index: 9999 !important;
+            padding: 20px;
+          }
+          .react-datepicker__tab-loop {
+            position: relative !important;
+            margin: 0 !important;
+          }
+        }
+        
+        /* Desktop and tablet styles */
+        @media (min-width: 641px) {
+          .react-datepicker {
+            display: flex !important;
+          }
+          .react-datepicker__month-container {
+            display: inline-block !important;
+          }
+          .react-datepicker__time-container {
+            display: inline-block !important;
           }
         }
       `}</style>
@@ -474,8 +512,11 @@ export default function SchedulePage() {
                       placeholderText="Click to select date and time"
                       required
                       id="date"
-                      popperClassName="z-50"
-                      popperPlacement="bottom-start"
+                      popperClassName="datepicker-popper"
+                      popperPlacement="bottom"
+                      withPortal
+                      showPopperArrow={false}
+                      calendarClassName="custom-calendar"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">
                       <CalendarIcon className="h-5 w-5" />

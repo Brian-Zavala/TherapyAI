@@ -77,8 +77,8 @@ export default function Navigation() {
   const linkStyles = (isActive: boolean) =>
     isActive ? "text-white font-bold" : "text-gray-100 hover:text-white";
 
-  // Don't show navbar on auth pages - moved after all hook calls
-  if (pathname?.startsWith("/auth/")) {
+  // Don't show navbar on auth pages or during onboarding - moved after all hook calls
+  if (pathname?.startsWith("/auth/") || pathname?.startsWith("/welcome")) {
     return null;
   }
 
