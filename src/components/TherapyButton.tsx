@@ -1187,8 +1187,9 @@ function TherapyButton({
             
             if (configureResponse.ok) {
               console.log('✅ Assistant configured server-side successfully');
-              // Now start with just variable values since config is on server
+              // Now start with personalized firstMessage and variable values
               const minimalOverrides = {
+                firstMessage: personalizedConfig.firstMessage, // Always include personalized intro
                 variableValues: {
                   userName: personalizedConfig.variableValues?.userName || userProfile?.name || 'there',
                   partnerName: personalizedConfig.variableValues?.partnerName || userProfile?.partnerName || '',
@@ -1196,7 +1197,7 @@ function TherapyButton({
                 }
               };
               await vapiInstanceRef.current.start(assistantId, minimalOverrides);
-              console.log('✅ Session started with server-configured assistant');
+              console.log('✅ Session started with server-configured assistant and personalized intro');
               return; // Exit early on success
             }
           } catch (configError) {

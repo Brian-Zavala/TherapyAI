@@ -657,3 +657,16 @@ body.session-active .hide-during-session {
     scroll-behavior: smooth; /* Enable smooth scrolling if user allows motion */
   }
 }
+
+/* Mobile fixes for features section visibility */
+@media (max-width: 768px) {
+  /* Force full opacity on mobile for scroll-linked sections */
+  section[style*="opacity"] {
+    opacity: 1 !important;
+  }
+  
+  /* Ensure minimum height doesn't cause issues on mobile */
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+}

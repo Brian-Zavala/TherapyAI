@@ -40,11 +40,11 @@ export default function HeroHighlightDemo() {
       >
         Discover AI-powered therapy that helps you build{" "}
         {highlightReady ? (
-          <Highlight className="text-black dark:text-white">
+          <Highlight className="text-white">
             healthier, more fulfilling relationships
           </Highlight>
         ) : (
-          <span className="bg-gradient-to-r from-blue-500 to-pink-300 px-1 pb-1 rounded-lg text-black dark:text-white">
+          <span className="bg-gradient-to-r from-blue-500 to-pink-300 px-1 pb-1 rounded-lg text-white">
             healthier, more fulfilling relationships
           </span>
         )}{" "}

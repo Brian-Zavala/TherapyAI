@@ -465,7 +465,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       {
         key: "main-container",
         className:
-          "min-h-screen w-full transition-all duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative z-10 bg-transparent overflow-x-hidden",
+          "min-h-screen w-full transition-all duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] relative z-10 bg-transparent overflow-x-hidden overflow-y-auto",
       },
       [
         // Main content wrapper
@@ -474,7 +474,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           {
             key: "main-content",
             className:
-              "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-6 md:pt-8 pb-12 relative z-10",
+              "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-6 md:pt-8 pb-32 sm:pb-24 md:pb-32 relative z-10",
           },
           [
             // Date/Time Header - reduced bottom margin
@@ -588,7 +588,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               {
                 key: "main-card",
                 className:
-                  "grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl backdrop-blur-xs bg-transparent mt-10 sm:mt-3 md:mt-4",
+                  "grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl backdrop-blur-xs bg-transparent mt-6 sm:mt-3 md:mt-4",
               },
               [
                 // Card session with enhanced styling
@@ -596,10 +596,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   "div",
                   {
                     key: "session-card",
-                    className: `md:col-span-3 relative overflow-hidden rounded-lg shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
+                    className: `md:col-span-3 relative overflow-visible rounded-lg shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
                       isSessionActive
                         ? "bg-transparent p-4 md:p-6 lg:p-8 rounded-xl"
-                        : "bg-transparent rounded-xl p-6 sm:p-8 md:p-12 lg:p-16"
+                        : "bg-transparent rounded-xl p-4 sm:p-8 md:p-12 lg:p-16"
                     }`,
                   },
                   [
@@ -1279,7 +1279,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   {
                                     key: "welcome-info",
                                     className:
-                                      "space-y-3 mb-4 mt-6 text-center max-w-xl mx-auto hide-during-session p-4 sm:p-5 rounded-xl backdrop-blur-sm bg-gradient-to-b from-white/70 to-white/50 shadow-lg border border-white/60",
+                                      "space-y-3 mb-2 mt-4 sm:mt-6 text-center max-w-xl mx-auto hide-during-session p-3 sm:p-5 rounded-xl backdrop-blur-sm bg-gradient-to-b from-white/70 to-white/50 shadow-lg border border-white/60",
                                   },
                                   [
                                     // Welcome header and therapist intro combined with better styling
@@ -1363,7 +1363,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   "div",
                                   {
                                     key: "button-wrapper-persistent",
-                                    className: "flex justify-center items-center w-full mt-1",
+                                    className: "flex justify-center items-center w-full mt-1 mb-4 pb-8",
                                   },
                                   React.createElement(TherapyButton, {
                                     key: "therapy-button-main", // Add stable key to prevent remounting

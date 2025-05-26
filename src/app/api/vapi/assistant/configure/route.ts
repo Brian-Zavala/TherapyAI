@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (configuration.hipaaEnabled !== undefined) {
       vapiConfig.hipaaEnabled = configuration.hipaaEnabled;
     }
-    if (configuration.backgroundSound) {
+    if (configuration.backgroundSound !== undefined) {
       vapiConfig.backgroundSound = configuration.backgroundSound;
     }
     if (configuration.modelOutputInMessagesEnabled !== undefined) {

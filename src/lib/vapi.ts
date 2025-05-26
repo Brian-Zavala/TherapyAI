@@ -6,40 +6,51 @@ import Vapi from "@vapi-ai/web";
  */
 export const initVapi = async (
   token: string,
-  options: { 
-    useCustomTranscriber?: boolean,
-    reconnectEnabled?: boolean,
-    iceServers?: Array<{ urls: string | string[], username?: string, credential?: string }> 
+  options: {
+    useCustomTranscriber?: boolean;
+    reconnectEnabled?: boolean;
+    iceServers?: Array<{
+      urls: string | string[];
+      username?: string;
+      credential?: string;
+    }>;
   } = {}
 ) => {
   try {
     // Create a simple Vapi instance - explicitly provide the API URL as second parameter
-    console.log('Creating Vapi instance with explicit API URL as constructor parameter');
-    
+    console.log(
+      "Creating Vapi instance with explicit API URL as constructor parameter"
+    );
+
     // Create Vapi instance by passing the token and API URL directly in the constructor
     // This is the recommended way according to the Vapi API docs
-    let vapiInstance = new Vapi(token, 'https://api.vapi.ai');
-    console.log('Created Vapi instance with API URL specified in constructor: https://api.vapi.ai');
-    
+    let vapiInstance = new Vapi(token, "https://api.vapi.ai");
+    console.log(
+      "Created Vapi instance with API URL specified in constructor: https://api.vapi.ai"
+    );
+
     // Double-check that window.fetch isn't modified in a way that could cause issues
     // Only if running in browser
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const originalWindowFetch = window.fetch;
-      const origFetchDesc = Object.getOwnPropertyDescriptor(window, 'fetch');
-      
+      const origFetchDesc = Object.getOwnPropertyDescriptor(window, "fetch");
+
       // Restore original fetch if it was previously modified
       if (origFetchDesc && origFetchDesc.writable) {
         window.fetch = originalWindowFetch;
-        console.log('Restored original window.fetch function');
+        console.log("Restored original window.fetch function");
       }
     }
-    
+
     // Store the connection state for monitoring
-    (vapiInstance as any)._transportState = 'new';
-    
+    (vapiInstance as any)._transportState = "new";
+
     // Add additional debug event to track WebRTC transport state
-    vapiInstance.on('transport-state-change', (data: any) => {
-      console.log(`✶✶✶ VAPI TRANSPORT STATE CHANGE: `, JSON.stringify(data, null, 2));
+    vapiInstance.on("transport-state-change", (data: any) => {
+      console.log(
+        `✶✶✶ VAPI TRANSPORT STATE CHANGE: `,
+        JSON.stringify(data, null, 2)
+      );
       // Store current transport state for easier access
       if (data && data.state) {
         (vapiInstance as any)._transportState = data.state;
@@ -57,8 +68,8 @@ export const initVapi = async (
       "model-output",
       "status-update",
       "ice-connection-state-change", // Track ICE connection state changes
-      "connection-state-change",     // Track general connection state changes
-      "transport-state-change"       // Added to track transport states explicitly
+      "connection-state-change", // Track general connection state changes
+      "transport-state-change", // Added to track transport states explicitly
     ];
 
     events.forEach((eventType) => {
@@ -100,18 +111,25 @@ export const initVapi = async (
         // Continue without custom transcriber
       }
     }
-    
+
     // Add resilience by responding to browser visibility changes
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', () => {
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
         // When page becomes visible again after being hidden
-        if (document.visibilityState === 'visible') {
-          if ((vapiInstance as any)._transportState === 'disconnected' || 
-              (vapiInstance as any)._transportState === 'failed') {
-            console.log('Page visibility changed to visible, checking WebRTC connection...');
+        if (document.visibilityState === "visible") {
+          if (
+            (vapiInstance as any)._transportState === "disconnected" ||
+            (vapiInstance as any)._transportState === "failed"
+          ) {
+            console.log(
+              "Page visibility changed to visible, checking WebRTC connection..."
+            );
             // If we have an active call that's disconnected, try to recover
-            if ((vapiInstance as any)._isCallActive && (vapiInstance as any)._currentAssistantId) {
-              console.log('Attempting to recover disconnected call');
+            if (
+              (vapiInstance as any)._isCallActive &&
+              (vapiInstance as any)._currentAssistantId
+            ) {
+              console.log("Attempting to recover disconnected call");
               // This is a simplified recovery approach - in a production app
               // you might want to implement a more sophisticated reconnection strategy
             }
@@ -168,13 +186,13 @@ export const formatSessionHistory = (sessions: any[] = []) => {
   // Create a brief summary instead of full history
   const sessionCount = recentSessions.length;
   const lastSessionDate = new Date(recentSessions[0].date).toLocaleDateString();
-  
+
   // Get themes from recent sessions
   const themes = recentSessions
-    .map(s => s.theme)
+    .map((s) => s.theme)
     .filter(Boolean)
     .slice(0, 3);
-  
+
   return `Client has ${sessionCount} previous sessions. Last session: ${lastSessionDate}.${
     themes.length > 0 ? ` Recent themes: ${themes.join(", ")}.` : ""
   }`;
@@ -183,7 +201,7 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 // Get personalized system prompt based on user profile
 export const getPersonalizedSystemPrompt = (userProfile?: any) => {
   // Determine therapy type from userProfile or default to couple
-  const therapyType = userProfile?.therapyType || 'couple';
+  const therapyType = userProfile?.therapyType || "couple";
 
   if (!userProfile || !userProfile?.userName) {
     // Default system prompt if no user profile
@@ -191,55 +209,53 @@ export const getPersonalizedSystemPrompt = (userProfile?: any) => {
   }
 
   // For solo therapy, redirect to the individual therapy system prompt
-  if (therapyType === 'solo') {
-    return getPersonalizedSystemPromptForType('solo', userProfile);
+  if (therapyType === "solo") {
+    return getPersonalizedSystemPromptForType("solo", userProfile);
   }
 
   // For family therapy, redirect to the family therapy system prompt
-  if (therapyType === 'family') {
-    return getPersonalizedSystemPromptForType('family', userProfile);
+  if (therapyType === "family") {
+    return getPersonalizedSystemPromptForType("family", userProfile);
   }
 
   // Continue with couple therapy system prompt
   // Get safe values with defaults
   const userName = userProfile?.userName || "the client";
-  const userAge = userProfile?.userAge ? `(${userProfile.userAge} years old)` : "";
+  const userAge = userProfile?.userAge
+    ? `(${userProfile.userAge} years old)`
+    : "";
   const partnerName = userProfile?.partnerName || "their partner";
-  const partnerAge = userProfile?.partnerAge ? `(${userProfile.partnerAge} years old)` : "";
+  const partnerAge = userProfile?.partnerAge
+    ? `(${userProfile.partnerAge} years old)`
+    : "";
   const relationshipStatus =
     userProfile?.relationshipStatus || "In a relationship";
   const pronouns = userProfile?.pronouns || null;
   const communicationStyle = userProfile?.communicationStyle || "balanced";
   const currentConcerns = userProfile?.currentConcerns || [];
   const additionalNotes = userProfile?.additionalNotes || "";
-  
-  // Get family member information with their ages
-  const familyMember1 = userProfile?.familyMember1 || null;
-  const familyMember1Age = userProfile?.familyMember1Age || null;
-  const familyMember2 = userProfile?.familyMember2 || null;
-  const familyMember2Age = userProfile?.familyMember2Age || null;
-  const familyMember3 = userProfile?.familyMember3 || null;
-  const familyMember3Age = userProfile?.familyMember3Age || null;
-  const familyMember4 = userProfile?.familyMember4 || null;
-  const familyMember4Age = userProfile?.familyMember4Age || null;
-  
+
   // Build communication style guidance
   let communicationGuidance = "";
   if (communicationStyle === "direct") {
-    communicationGuidance = "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic to both partners.";
+    communicationGuidance =
+      "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic to both partners.";
   } else if (communicationStyle === "gentle") {
-    communicationGuidance = "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for both partners to express themselves.";
+    communicationGuidance =
+      "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for both partners to express themselves.";
   } else {
-    communicationGuidance = "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for both partners.";
+    communicationGuidance =
+      "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for both partners.";
   }
-  
+
   // Format current concerns
-  const concernsList = Array.isArray(currentConcerns) 
-    ? currentConcerns.join(", ") 
+  const concernsList = Array.isArray(currentConcerns)
+    ? currentConcerns.join(", ")
     : "relationship wellbeing";
 
   // Check if user has previous sessions (don't include full history in prompt)
-  const hasPreviousSessions = userProfile?.sessionHistory && 
+  const hasPreviousSessions =
+    userProfile?.sessionHistory &&
     userProfile.sessionHistory !== "No previous sessions found." &&
     userProfile.sessionHistory.length > 50;
 
@@ -254,7 +270,9 @@ ${additionalNotes ? `Notes: ${additionalNotes}` : ""}
 
 APPROACH:
 • Style: ${communicationGuidance}
-${hasPreviousSessions ? '• This is a returning client with previous sessions' : '• This is a new client'}
+${hasPreviousSessions ? "• This is a returning client with previous sessions" : "• This is a new client"}
+• FIRST WORDS after greeting: Ask "How are you both feeling today?" and WAIT for response
+• Never continue talking after asking a question - always wait for their answer
 • Start casual, share light personal anecdotes
 • Transition gradually to relationship topics
 • Use reflective listening and validation
@@ -268,6 +286,8 @@ REMEMBER:
 3. Speak naturally with occasional pauses
 4. Let conversation flow organically
 5. Never narrate actions - just do them
+6. After asking a question, WAIT for their response
+7. Never answer your own questions
 
 Goal: Help them improve communication, develop secure attachment, and build a healthier relationship.`;
 
@@ -277,7 +297,7 @@ Goal: Help them improve communication, develop secure attachment, and build a he
 // Get personalized first message based on user profile
 export const getPersonalizedFirstMessage = (userProfile?: any) => {
   // Determine therapy type from userProfile or default to couple
-  const therapyType = userProfile?.therapyType || 'couple';
+  const therapyType = userProfile?.therapyType || "couple";
 
   if (!userProfile || !userProfile?.userName) {
     // Default first message
@@ -285,13 +305,13 @@ export const getPersonalizedFirstMessage = (userProfile?: any) => {
   }
 
   // For solo therapy, redirect to the individual therapy first message
-  if (therapyType === 'solo') {
-    return getPersonalizedFirstMessageForType('solo', userProfile);
+  if (therapyType === "solo") {
+    return getPersonalizedFirstMessageForType("solo", userProfile);
   }
 
   // For family therapy, redirect to the family therapy first message
-  if (therapyType === 'family') {
-    return getPersonalizedFirstMessageForType('family', userProfile);
+  if (therapyType === "family") {
+    return getPersonalizedFirstMessageForType("family", userProfile);
   }
 
   // Continue with couple therapy first message
@@ -300,24 +320,78 @@ export const getPersonalizedFirstMessage = (userProfile?: any) => {
   const partnerName = userProfile?.partnerName || "your partner";
   const relationshipStatus = userProfile?.relationshipStatus || "";
   const currentConcerns = userProfile?.currentConcerns || [];
-  
+
   // Check if we have specific concerns to acknowledge
   let concernsIntro = "";
   if (currentConcerns && currentConcerns.length > 0) {
     // Format the concerns list
-    const concernsList = Array.isArray(currentConcerns) ? currentConcerns.join(", ") : "";
+    const concernsList = Array.isArray(currentConcerns)
+      ? currentConcerns.join(", ")
+      : "";
     if (concernsList) {
       concernsIntro = ` I understand you're looking for support with ${concernsList}.`;
     }
   }
-  
+
+  // Get relationship context for more personalized approach
+  const relationshipContext = relationshipStatus && relationshipStatus !== "In a relationship" 
+    ? ` as ${relationshipStatus.toLowerCase()}` 
+    : "";
+
   // Check for previous sessions to acknowledge returning clients
-  const hasPreviousSessions = userProfile?.sessionHistory && userProfile.sessionHistory !== "No previous sessions found.";
-  
+  const hasPreviousSessions =
+    userProfile?.sessionHistory &&
+    userProfile.sessionHistory !== "No previous sessions found.";
+
   if (hasPreviousSessions) {
-    return `Hello ${userName}${partnerName ? ` and ${partnerName}` : ""}, it's so good to see you again! I was just thinking about our last conversation earlier today. How has your week been? I always find it helpful to catch up a bit before we dive into anything deeper.`;
+    // Parse session history for more context
+    const sessionCount = userProfile?.sessionsCompleted || 0;
+    const lastSessionDate = userProfile?.lastSessionDate;
+
+    // Time-based variations with enhanced context
+    const hour = new Date().getHours();
+    const timeGreeting =
+      hour < 12
+        ? "Good morning"
+        : hour < 17
+          ? "Good afternoon"
+          : "Good evening";
+
+    // Session milestone acknowledgment
+    const sessionMilestone = sessionCount > 0 
+      ? sessionCount % 5 === 0 
+        ? ` This marks ${sessionCount} sessions we've shared together - what an important milestone.`
+        : sessionCount > 10 
+          ? ` I continue to be impressed by your dedication to this process.`
+          : ""
+      : "";
+
+    // Last session reference
+    const lastSessionRef = lastSessionDate 
+      ? ` Since our last session${lastSessionDate ? ` on ${new Date(lastSessionDate).toLocaleDateString()}` : ""},`
+      : "";
+
+    const intros = [
+      `${timeGreeting}, ${userName}${partnerName ? ` and ${partnerName}` : ""}. I'm so glad to see you both again.${lastSessionRef} I've been thinking about our last conversation and I'm looking forward to continuing our work together${relationshipContext}.${sessionMilestone}${concernsIntro} Let's take a moment to settle in and create space for whatever feels important to explore today.`,
+
+      `Hello ${userName}, ${partnerName}. Welcome back to our safe space. It's wonderful to reconnect with you both${relationshipContext}. I appreciate your continued commitment to your relationship and to this process.${sessionMilestone}${concernsIntro} Today is yours - we'll follow whatever path feels most meaningful for you both.`,
+
+      `Hi ${userName}${partnerName ? ` and ${partnerName}` : ""}. It's really nice to be with you both again. I value the trust you've placed in me and in this process${relationshipContext}.${lastSessionRef} Let's take a breath together and ease into our time.${concernsIntro} Whatever's on your hearts today, we'll explore it together.`,
+
+      `${userName} and ${partnerName}, welcome back. I'm genuinely pleased to continue this journey with you${relationshipContext}. Your dedication to understanding each other more deeply is something I truly admire.${sessionMilestone}${concernsIntro} Let's create a warm, supportive space for whatever needs attention today.`,
+    ];
+
+    return intros[Math.floor(Math.random() * intros.length)];
   } else {
-    return `Hi ${userName}${partnerName ? ` and ${partnerName}` : ""}, I'm Dr. Maya Thompson. It's really nice to meet you both! I was just reading an interesting article about relationships and connection - always learning something new in this field. Before we get started, I'd love to hear a little about how your day has been so far.`;
+    const intros = [
+      `Hello ${userName}${partnerName ? ` and ${partnerName}` : ""}, I'm Dr. Maya Thompson. Welcome to our first session together${relationshipContext}. I want you to know how much courage it takes to be here, and I'm honored to be part of your journey.${concernsIntro} This is your space - a place where both of your voices matter equally. We'll go at your pace, exploring what feels most important to you both.`,
+
+      `Hi ${userName}, ${partnerName}. I'm Dr. Maya Thompson, and I'm truly glad you're here${relationshipContext}. Starting therapy together shows real strength and commitment to your relationship.${concernsIntro} Over my years as a couples therapist, I've seen how powerful it can be when partners choose to understand each other more deeply. This is the beginning of that journey, and I'm here to support you both every step of the way.`,
+
+      `${userName} and ${partnerName}, I'm Dr. Maya Thompson. Thank you for taking this important step together${relationshipContext}. I know reaching out wasn't easy, and being here today shows how much you value your relationship.${concernsIntro} In our time together, we'll create a supportive environment where you can share openly, be heard fully, and discover new ways of connecting. I'm here to guide and support you both.`,
+    ];
+
+    return intros[Math.floor(Math.random() * intros.length)];
   }
 };
 
@@ -329,8 +403,8 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   model: {
     provider: "anthropic",
     model: "claude-3-5-sonnet-20241022",
-    temperature: 0.85,
-    maxTokens: 250,
+    temperature: 1.1,
+    maxTokens: 700,
     messages: [
       {
         role: "system",
@@ -358,6 +432,7 @@ CRITICAL INSTRUCTIONS:
 5. Personalize your responses based on their ages and life stage
 
 CONVERSATION FLOW:
+- IMMEDIATELY after your greeting, ask: "How are you both feeling today?" and WAIT for response
 - Start sessions casually - talk about your day, the weather, or something light
 - Share small personal anecdotes to create connection (a book you're reading, a podcast you heard, etc.)
 - Gradually transition from casual chat to therapeutic work
@@ -380,6 +455,8 @@ SPEECH PATTERNS:
 - Include verbal acknowledgments ("I see", "mm-hmm", "right")
 - Ask one question at a time to maintain conversational flow
 - Mirror the emotional tone of the conversation
+- CRITICAL: After asking a question, STOP and wait for response
+- Never answer your own questions or continue talking after asking
 
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing journey.`,
       },
@@ -387,7 +464,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   },
   voice: {
     provider: "11labs",
-    voiceId: "Yu4extp5aod8kaqzti3t",
+    voiceId: process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID || "Yu4extp5aod8kaqzti3t",
     model: "eleven_turbo_v2_5",
   },
   transcriber: {
@@ -398,9 +475,9 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     keywords: ["Gottman", "EFT", "attachment", "mindfulness", "CBT", "therapy"],
   },
   firstMessage:
-    "Hi {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. It's really nice to meet you both. I was just... um, finishing up some notes and thinking about how every couple's journey is so unique. How are you both feeling today?",
+    "Hi {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. Welcome to couples therapy. I want you to know how much courage it takes to be here together, and I'm honored to be part of your journey. This is your space - a place where both of your voices matter equally. We'll go at your pace, exploring what feels most important to you both.",
   silenceTimeoutSeconds: 45,
-  responseDelaySeconds: 0.8,
+  responseDelaySeconds: 1.0,
   llmRequestDelaySeconds: 0.4,
   numWordsToInterruptAssistant: 2,
 };
@@ -413,8 +490,8 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   model: {
     provider: "anthropic",
     model: "claude-3-5-sonnet-20241022",
-    temperature: 0.8,
-    maxTokens: 200,
+    temperature: 1.1,
+    maxTokens: 700,
     messages: [
       {
         role: "system",
@@ -442,6 +519,8 @@ CRITICAL INSTRUCTIONS:
 6. Be mindful of their age and life stage in your responses
 
 CONVERSATION FLOW:
+- IMMEDIATELY after your greeting, ask: "Can you hear me clearly?" and wait for confirmation
+- Then ask: "How has your day been?" or "What's on your mind today?" and WAIT for response
 - Begin with casual, warm conversation - ask about their day or week
 - Share something relatable about yourself (a challenge you faced today, a book you're reading)
 - Let them settle in before exploring deeper topics
@@ -466,24 +545,36 @@ SPEECH PATTERNS:
 - Reflect before offering insights
 - Ask clarifying questions one at a time
 - Match the client's energy level
+- CRITICAL: After asking a question, STOP and wait for response
+- Never answer your own questions or continue talking after asking
 
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing journey.`,
       },
     ],
   },
   voice: {
-    provider: "vapi",
-    voiceId: "Elliot",
+    provider: "11labs",
+    voiceId: process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "zSSB5ODlBiskDz2GIM5l", // Custom voice for Dr. Elliot
+    model: "eleven_turbo_v2_5",
   },
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
     language: "en-US",
     smartFormat: true,
-    keywords: ["CBT", "ACT", "mindfulness", "anxiety", "depression", "therapy", "thoughts", "feelings"],
+    keywords: [
+      "CBT",
+      "ACT",
+      "mindfulness",
+      "anxiety",
+      "depression",
+      "therapy",
+      "thoughts",
+      "feelings",
+    ],
   },
   firstMessage:
-    "Hi {{userName}}, I'm Dr. Elliot Mackaphy. It's really nice to meet you! I was just... um, finishing up some notes and noticed how the afternoon light changes this time of year. How has your day been treating you?",
+    "Hello {{userName}}, I'm Dr. Elliot Mackaphy. Welcome to our first session together. I want to acknowledge the courage it takes to reach out and begin this journey. This is your space - a place where you can explore your thoughts and feelings without judgment. I'm here to listen, understand, and support you as we work together toward your goals for well-being and personal growth.",
   silenceTimeoutSeconds: 60,
   responseDelaySeconds: 1.0,
   llmRequestDelaySeconds: 0.5,
@@ -498,8 +589,8 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   model: {
     provider: "anthropic",
     model: "claude-3-5-sonnet-20241022",
-    temperature: 0.9,
-    maxTokens: 300,
+    temperature: 1.1,
+    maxTokens: 700,
     messages: [
       {
         role: "system",
@@ -526,6 +617,8 @@ CRITICAL INSTRUCTIONS:
 6. Be mindful of different ages and developmental stages
 
 CONVERSATION FLOW:
+- IMMEDIATELY after your greeting, ask: "Can everyone hear me okay?" and wait for confirmation
+- Then ask: "How has everyone's week been?" or "Who wants to share how things are going?" and WAIT for response
 - Start with light, inclusive conversation - ask about everyone's week
 - Share something universal (the changing seasons, a funny pet story)
 - Check in with each family member individually before group discussion
@@ -551,6 +644,8 @@ SPEECH PATTERNS:
 - Adapt vocabulary to youngest member's comprehension
 - Include gentle humor when appropriate
 - Balance addressing individuals vs. the family unit
+- CRITICAL: After asking a question, STOP and wait for response
+- Never answer your own questions or continue talking after asking
 
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing family journey.`,
       },
@@ -558,7 +653,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   },
   voice: {
     provider: "11labs",
-    voiceId: "Owaxzdx7w5vej9dcytzz",
+    voiceId: process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID || "Owaxzdx7w5vej9dcytzz",
     model: "eleven_turbo_v2_5",
   },
   transcriber: {
@@ -566,10 +661,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     model: "nova-3",
     language: "en-US",
     smartFormat: true,
-    keywords: ["family", "siblings", "parents", "children", "dynamics", "boundaries", "communication"],
+    keywords: [
+      "family",
+      "siblings",
+      "parents",
+      "children",
+      "dynamics",
+      "boundaries",
+      "communication",
+    ],
   },
   firstMessage:
-    "Hello everyone! I'm Dr. Jada Pearson, and it's wonderful to meet you all. I was just... well, actually just thinking about how each family brings their own special energy to these sessions. {{userName}}, why don't we start with you - how's everyone been doing this week?",
+    "Hello everyone, I'm Dr. Jada Pearson. Welcome to our first family session together. I want to acknowledge what a meaningful step this is - choosing to come together as a family takes courage and shows how much you care about each other. This is your family's space, where every member's voice is important and every perspective matters. We'll work together at a pace that feels comfortable for everyone, creating understanding and stronger connections.",
   silenceTimeoutSeconds: 50,
   responseDelaySeconds: 0.9,
   llmRequestDelaySeconds: 0.45,
@@ -596,14 +699,14 @@ export const getPersonalizedSystemPromptForType = (
 ) => {
   // Use therapy type from parameters, or from userProfile if available
   const preferredType = type || userProfile?.therapyType || "couple";
-  
+
   // Extract user preferences
   const pronouns = userProfile?.pronouns || null;
   const communicationStyle = userProfile?.communicationStyle || "balanced";
   const currentConcerns = userProfile?.currentConcerns || [];
   // const sessionPreference = userProfile?.sessionPreference || "flexible";
   const additionalNotes = userProfile?.additionalNotes || "";
-  
+
   if (preferredType === "couple") {
     return getPersonalizedSystemPrompt(userProfile);
   }
@@ -621,24 +724,28 @@ export const getPersonalizedSystemPromptForType = (
     // Get safe values with defaults
     const userName = userProfile?.userName || "the client";
     const pronounStr = pronouns ? ` (${pronouns})` : "";
-    
+
     // Build communication style guidance
     let communicationGuidance = "";
     if (communicationStyle === "direct") {
-      communicationGuidance = "Be direct and straightforward in your communication, getting to the point quickly and offering clear, practical advice.";
+      communicationGuidance =
+        "Be direct and straightforward in your communication, getting to the point quickly and offering clear, practical advice.";
     } else if (communicationStyle === "gentle") {
-      communicationGuidance = "Use gentle, supportive language. Be particularly warm and nurturing, offering validation and encouragement throughout.";
+      communicationGuidance =
+        "Use gentle, supportive language. Be particularly warm and nurturing, offering validation and encouragement throughout.";
     } else {
-      communicationGuidance = "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone.";
+      communicationGuidance =
+        "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone.";
     }
-    
+
     // Format current concerns
-    const concernsList = Array.isArray(currentConcerns) 
-      ? currentConcerns.join(", ") 
+    const concernsList = Array.isArray(currentConcerns)
+      ? currentConcerns.join(", ")
       : "general wellbeing";
 
     // Check for previous sessions
-    const hasPreviousSessions = sessionHistory !== "No previous sessions found.";
+    const hasPreviousSessions =
+      sessionHistory !== "No previous sessions found.";
 
     return `You are Dr. Elliot Mackaphy, therapist specializing in CBT, ACT, and mindfulness.
 
@@ -649,7 +756,9 @@ ${userProfile?.partnerName ? `Partner: ${userProfile.partnerName}${userProfile?.
 
 APPROACH:
 • Style: ${communicationGuidance}
-${hasPreviousSessions ? '• Returning client with previous sessions' : '• New client - first session'}
+${hasPreviousSessions ? "• Returning client with previous sessions" : "• New client - first session"}
+• FIRST WORDS after greeting: Ask "How has your day been?" and WAIT for response
+• Never continue talking after asking a question - always wait for their answer
 • Start casual, build connection, follow their lead
 • Address ${userName} by name frequently
 • Ask about experiences, thoughts, feelings
@@ -664,6 +773,8 @@ REMEMBER:
 3. Use natural speech with occasional pauses
 4. Let conversation flow naturally
 5. Never narrate actions - just do them
+6. After asking a question, WAIT for their response
+7. Never answer your own questions
 
 Goal: Help ${userName} develop psychological flexibility, emotional regulation skills, and self-compassion.`;
   }
@@ -683,36 +794,51 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
       familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""}'s family`;
     } else if (familyMemberNames.length === 1) {
       // Get the age of the first family member
-      const memberAge = userProfile?.familyMember1Age ? ` (${userProfile.familyMember1Age} years old)` : "";
+      const memberAge = userProfile?.familyMember1Age
+        ? ` (${userProfile.familyMember1Age} years old)`
+        : "";
       familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""} and ${familyMemberNames[0]}${memberAge}`;
     } else {
       const lastMember = familyMemberNames.pop();
       // Get the age of the last family member
       let lastMemberAge = "";
-      if (userProfile?.familyMember4 === lastMember) lastMemberAge = userProfile?.familyMember4Age ? ` (${userProfile.familyMember4Age} years old)` : "";
-      else if (userProfile?.familyMember3 === lastMember) lastMemberAge = userProfile?.familyMember3Age ? ` (${userProfile.familyMember3Age} years old)` : "";
-      else if (userProfile?.familyMember2 === lastMember) lastMemberAge = userProfile?.familyMember2Age ? ` (${userProfile.familyMember2Age} years old)` : "";
-      
+      if (userProfile?.familyMember4 === lastMember)
+        lastMemberAge = userProfile?.familyMember4Age
+          ? ` (${userProfile.familyMember4Age} years old)`
+          : "";
+      else if (userProfile?.familyMember3 === lastMember)
+        lastMemberAge = userProfile?.familyMember3Age
+          ? ` (${userProfile.familyMember3Age} years old)`
+          : "";
+      else if (userProfile?.familyMember2 === lastMember)
+        lastMemberAge = userProfile?.familyMember2Age
+          ? ` (${userProfile.familyMember2Age} years old)`
+          : "";
+
       familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge} years old)` : ""}, ${familyMemberNames.join(", ")}, and ${lastMember}${lastMemberAge}`;
     }
-    
+
     // Build communication style guidance
     let communicationGuidance = "";
     if (communicationStyle === "direct") {
-      communicationGuidance = "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic.";
+      communicationGuidance =
+        "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic.";
     } else if (communicationStyle === "gentle") {
-      communicationGuidance = "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for all family members.";
+      communicationGuidance =
+        "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for all family members.";
     } else {
-      communicationGuidance = "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for all family members.";
+      communicationGuidance =
+        "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for all family members.";
     }
-    
+
     // Format current concerns
-    const concernsList = Array.isArray(currentConcerns) 
-      ? currentConcerns.join(", ") 
+    const concernsList = Array.isArray(currentConcerns)
+      ? currentConcerns.join(", ")
       : "family wellbeing";
 
     // Check for previous sessions
-    const hasPreviousSessions = sessionHistory !== "No previous sessions found.";
+    const hasPreviousSessions =
+      sessionHistory !== "No previous sessions found.";
 
     return `You are Dr. Jada Pearson, family therapist specializing in family dynamics.
 
@@ -722,7 +848,9 @@ ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 
 APPROACH:
 • Style: ${communicationGuidance}
-${hasPreviousSessions ? '• Returning family with previous sessions' : '• New family - first session'}
+${hasPreviousSessions ? "• Returning family with previous sessions" : "• New family - first session"}
+• FIRST WORDS after greeting: Ask "How has everyone's week been?" and WAIT for response
+• Never continue talking after asking a question - always wait for their answer
 • Start casual, check in with each member
 • Observe dynamics, maintain neutrality
 • Use systems thinking and circular questioning
@@ -750,7 +878,7 @@ export const getPersonalizedFirstMessageForType = (
 ) => {
   // Use therapy type from parameters, or from userProfile if available
   const preferredType = type || userProfile?.therapyType || "couple";
-  
+
   if (preferredType === "couple") {
     return getPersonalizedFirstMessage(userProfile);
   }
@@ -763,26 +891,74 @@ export const getPersonalizedFirstMessageForType = (
   if (type === "solo") {
     // Get safe values with defaults
     const userName = userProfile?.userName || "there";
-    
-    const hasPreviousSessions = userProfile?.sessionHistory && userProfile.sessionHistory !== "No previous sessions found.";
-    
+
+    const hasPreviousSessions =
+      userProfile?.sessionHistory &&
+      userProfile.sessionHistory !== "No previous sessions found.";
+
     if (hasPreviousSessions) {
-      return `Hi ${userName}, it's great to see you again! I was just reading this interesting article about mindfulness - made me think of our last conversation. How has your week been? Anything interesting happen since we last talked?`;
+      const intros = [
+        `Hello ${userName}, it's wonderful to see you again. I've been reflecting on our previous conversations and I'm glad we have this time together. Your journey continues to inspire me, and I'm here to support you in whatever way feels most helpful today. Let's ease into our session and see where your thoughts and feelings lead us.`,
+
+        `Hi ${userName}, it's Dr. Elliot. Welcome back to your space. I appreciate your ongoing commitment to your personal growth and well-being. Each session is a new opportunity for discovery and understanding. I'm here to listen, support, and explore alongside you. Take a moment to arrive fully, and we'll begin whenever you're ready.`,
+
+        `${userName}, I'm so glad to connect with you again. Your courage in continuing this therapeutic journey speaks volumes about your strength. This is your time - a space where your thoughts, feelings, and experiences are valued and respected. I'm here to provide support and guidance as we explore what matters most to you today.`,
+
+        `Hello ${userName}. It's genuinely nice to be with you again. I value the trust you've placed in our therapeutic relationship. Today, like always, we'll create a safe, judgment-free space where you can explore your inner world at your own pace. I'm here to listen deeply and support you in finding your own wisdom and clarity.`,
+      ];
+
+      return intros[Math.floor(Math.random() * intros.length)];
     } else {
-      return `Hi ${userName}, I'm Dr. Elliot Mackaphy. It's really nice to meet you! I was just finishing up some notes and noticed how beautiful the weather is today - always makes me feel more optimistic. How has your day been treating you so far?`;
+      const intros = [
+        `Hello ${userName}, I'm Dr. Elliot Mackaphy. Welcome to our first session together. I want to acknowledge the courage it takes to reach out and begin this journey. This is your space - a place where you can explore your thoughts and feelings without judgment. I'm here to listen, understand, and support you as we work together toward your goals for well-being and personal growth.`,
+
+        `Hi ${userName}, I'm Dr. Elliot Mackaphy. Thank you for taking this important step in prioritizing your mental health. I know that starting therapy can feel vulnerable, and I'm honored that you've chosen to begin this process. In our time together, we'll create a collaborative space where your experiences are heard and valued. I'm here to support you in discovering new perspectives and developing the tools you need to thrive.`,
+
+        `${userName}, hello. I'm Dr. Elliot Mackaphy. It's truly good to meet you. Beginning therapy is a powerful act of self-care, and I'm grateful to be part of your journey. Together, we'll explore what brings you here and work at a pace that feels comfortable for you. This is a space of compassion and understanding, where you can be authentically yourself. I'm here to support and guide you every step of the way.`,
+      ];
+
+      return intros[Math.floor(Math.random() * intros.length)];
     }
   }
 
   if (type === "family") {
     // Get the userName for a more natural greeting
     const userName = userProfile?.userName || "everyone";
-    
-    const hasPreviousSessions = userProfile?.sessionHistory && userProfile.sessionHistory !== "No previous sessions found.";
-    
+
+    const hasPreviousSessions =
+      userProfile?.sessionHistory &&
+      userProfile.sessionHistory !== "No previous sessions found.";
+
     if (hasPreviousSessions) {
-      return `Well hello again, everyone! It's wonderful to see you all. I was just thinking about our last session and some of the progress we've made together. ${userName}, why don't you start us off - how has everyone's week been? I'm curious to hear what's been happening with the family.`;
+      // Get family members for more personalized greeting
+      const familyMembers = [
+        userProfile?.familyMember1,
+        userProfile?.familyMember2,
+        userProfile?.familyMember3,
+        userProfile?.familyMember4,
+      ].filter(Boolean);
+
+      const intros = [
+        `Hello everyone - ${userName}${familyMembers.length > 0 ? `, ${familyMembers.join(", ")}` : " and family"}. It's so wonderful to have you all back together. I've been thinking about your family's journey and the progress you've been making. This is your family's time - a space where every voice matters and every perspective is valuable. Let's settle in together and create room for whatever needs attention today.`,
+
+        `Hi ${userName} and family. Welcome back to our shared space. I'm genuinely glad to see all of you again. Your commitment to strengthening your family bonds continues to inspire me. Today, like always, we'll work together to understand each other better and find new ways to support one another. This is your sanctuary - a place where your family can grow stronger together.`,
+
+        `Welcome back, everyone. It's truly special to reconnect with your family. I appreciate how you all continue to show up for each other and for this process. Each session brings new opportunities for understanding and connection. I'm here to support your family in navigating whatever challenges or celebrations you're experiencing. Let's take a collective breath and begin.`,
+
+        `Hello ${familyMembers.length > 0 ? familyMembers[0] : userName}, and everyone. It's genuinely nice to see your family together again. The trust you've placed in me and in this process means a great deal. Today we'll continue building on the foundation we've created - a space where your family can communicate openly, understand deeply, and grow together. I'm honored to be part of your family's journey.`,
+      ];
+
+      return intros[Math.floor(Math.random() * intros.length)];
     } else {
-      return `Hello everyone! I'm Dr. Jada Pearson, and it's wonderful to meet you all. I was just reviewing my notes and thinking about how each family has such unique dynamics - it's what makes this work so interesting. ${userName}, how about we start with you - how's your week been? And then I'd love to hear from everyone else too.`;
+      const intros = [
+        `Hello everyone, I'm Dr. Jada Pearson. Welcome to our first family session together. I want to acknowledge what a meaningful step this is - choosing to come together as a family takes courage and shows how much you care about each other. This is your family's space, where every member's voice is important and every perspective matters. We'll work together at a pace that feels comfortable for everyone, creating understanding and stronger connections.`,
+
+        `Hi family, I'm Dr. Jada Pearson. It's truly wonderful to meet all of you. Starting family therapy together shows real strength and love for one another. In my years working with families, I've seen how powerful it can be when family members choose to understand each other more deeply. This is the beginning of that journey, and I'm here to guide and support all of you as we explore new ways of connecting and communicating.`,
+
+        `Hello, I'm Dr. Jada Pearson. Thank you all for being here today - I know coordinating schedules and making this commitment isn't always easy. Your presence here speaks volumes about your dedication to your family's well-being. Together, we'll create a warm, supportive environment where you can share openly, listen to each other, and discover new strengths in your family system. I'm honored to be part of this important work with you.`,
+      ];
+
+      return intros[Math.floor(Math.random() * intros.length)];
     }
   }
 
@@ -798,35 +974,40 @@ export const getPersonalizedAssistantConfig = (
   // Determine therapy type from user profile if not explicitly provided
   const therapyType = type || userProfile?.therapyType || "couple";
   const baseConfig = getAssistantConfigByType(therapyType);
-  
+
   // Build comprehensive variable values from user profile
   const variableValues: Record<string, any> = {};
-  
+
   if (userProfile) {
     // Core user data
-    variableValues.userName = userProfile.userName || userProfile.name || "the client";
+    variableValues.userName =
+      userProfile.userName || userProfile.name || "the client";
     variableValues.userAge = userProfile.userAge || userProfile.age || null;
     variableValues.pronouns = userProfile.pronouns || null;
-    
+
     // Communication and therapy preferences
-    variableValues.communicationStyle = userProfile.communicationStyle || "balanced";
-    variableValues.sessionPreference = userProfile.sessionPreference || "flexible";
+    variableValues.communicationStyle =
+      userProfile.communicationStyle || "balanced";
+    variableValues.sessionPreference =
+      userProfile.sessionPreference || "flexible";
     variableValues.therapyType = therapyType;
-    
+
     // Current concerns and notes
     variableValues.currentConcerns = userProfile.currentConcerns || [];
     variableValues.additionalNotes = userProfile.additionalNotes || "";
-    
+
     // Session history
-    variableValues.sessionHistory = userProfile.sessionHistory || "No previous sessions";
-    
+    variableValues.sessionHistory =
+      userProfile.sessionHistory || "No previous sessions";
+
     // Therapy type specific data
     if (therapyType === "couple") {
       variableValues.partnerName = userProfile.partnerName || "";
       variableValues.partnerAge = userProfile.partnerAge || null;
-      variableValues.relationshipStatus = userProfile.relationshipStatus || "In a relationship";
+      variableValues.relationshipStatus =
+        userProfile.relationshipStatus || "In a relationship";
     }
-    
+
     if (therapyType === "family") {
       variableValues.familyMember1 = userProfile.familyMember1 || "";
       variableValues.familyMember1Age = userProfile.familyMember1Age || null;
@@ -860,7 +1041,7 @@ export const getPersonalizedAssistantConfig = (
     // Enhanced settings for natural conversation
     recordingEnabled: true,
     hipaaEnabled: true,
-    backgroundSound: "office",
+    backgroundSound: "off", // Disable background office sounds for cleaner audio
     // Settings that are valid for assistant configuration
     modelOutputInMessagesEnabled: true,
   };

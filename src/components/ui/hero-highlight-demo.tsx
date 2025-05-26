@@ -21,7 +21,7 @@ export default function HeroHighlightDemo() {
         className="text-sm px-4 md:text-4xl lg:text-5xl font-bold text-stone-50 max-w-4xl leading-relaxed lg:leading-snug text-center mx-auto"
       >
         Discover AI-powered therapy that helps you build{" "}
-        <Highlight className="text-black dark:text-white">
+        <Highlight className="text-white">
           healthier, more fulfilling relationships
         </Highlight>{" "}
         with those who matter most.

@@ -405,7 +405,7 @@ export default function Home() {
           </div>
 
           {/* Scroll Down Arrow (Original Structure) */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 optimize-gpu">
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 optimize-gpu">
             {" "}
             {/* Keep original class if needed */}
             <ScrollDownArrow
@@ -964,7 +964,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full h-[220px] lg:h-[320px] object-cover z-0"
+                          className="absolute w-full h-[246px] lg:h-[320px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1013,7 +1013,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full lg:h-[350px] object-cover z-0"
+                          className="absolute w-full h-[246px] lg:h-[350px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1062,7 +1062,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full lg:h-[380px] object-cover z-0"
+                          className="absolute w-full h-[246px] lg:h-[380px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1111,7 +1111,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full lg:h-[320px] object-cover z-0"
+                          className="absolute w-full h-[246px] lg:h-[320px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1197,10 +1197,15 @@ export default function Home() {
       {/* Apply scroll-linked opacity directly */}
       <motion.section
         ref={featuresRef} // Assign ref
-        className="w-full py-16 sm:py-20"
-        // Apply opacity driven by useTransform hook
-        style={{ opacity: featuresOpacity }}
-        // Removed initial/animate/transition from section as opacity handles visibility
+        className="w-full py-16 sm:py-20 min-h-screen"
+        // Apply opacity driven by useTransform hook with mobile fallback
+        style={{
+          opacity: featuresOpacity,
+        }}
+        // Add fallback animation for mobile
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {" "}
