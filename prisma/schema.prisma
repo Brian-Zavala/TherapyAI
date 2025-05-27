@@ -51,6 +51,7 @@ model Session {
   id                String            @id @default(uuid())
   userId            String
   date              DateTime
+  startTime         DateTime?         // Actual start time of the session
   duration          Int
   theme             String            @default("AI Therapy Session")
   notes             String?           @default("")

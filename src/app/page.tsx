@@ -318,7 +318,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center w-full overflow-x-hidden">
       {/* Critical CSS for immediate overlay display */}
-      <style jsx priority>{`
+      <style jsx>{`
         .hero-overlay {
           position: absolute;
           inset: 0;
@@ -422,7 +422,7 @@ export default function Home() {
       {/* Use simple whileInView for section fade-in */}
       <motion.section
         ref={statsRef} // Assign ref
-        className="w-full py-20"
+        className="w-full py-20 pb-8 sm:pb-12 md:pb-16"
         initial="hidden" // Use variants for section fade-in
         whileInView="visible"
         viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Animate once
@@ -1165,7 +1165,7 @@ export default function Home() {
               viewport={{ once: true, amount: getOptimizedThreshold(0.2) }}
               transition={{ duration: getOptimizedDuration(0.7), delay: 0.3 }}
               variants={fadeInUp}
-              className="text-center mt-4 sm:mt-10 md:mt-24 lg:mt-36 relative z-10"
+              className="text-center mt-8 sm:mt-12 md:mt-16 lg:mt-20 mb-12 sm:mb-16 md:mb-20 lg:mb-24 relative z-10"
             >
               <motion.div
                 variants={floatingButtonVariants}

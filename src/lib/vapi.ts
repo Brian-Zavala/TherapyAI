@@ -46,7 +46,8 @@ export const initVapi = async (
     (vapiInstance as any)._transportState = "new";
 
     // Add additional debug event to track WebRTC transport state
-    vapiInstance.on("transport-state-change", (data: any) => {
+    // Cast to any since transport-state-change isn't in the official type definitions
+    (vapiInstance as any).on("transport-state-change", (data: any) => {
       console.log(
         `✶✶✶ VAPI TRANSPORT STATE CHANGE: `,
         JSON.stringify(data, null, 2)
@@ -73,7 +74,8 @@ export const initVapi = async (
     ];
 
     events.forEach((eventType) => {
-      vapiInstance.on(eventType, (data: any) => {
+      // Cast to any for events not in the official type definitions
+      (vapiInstance as any).on(eventType, (data: any) => {
         console.log(
           `✶✶✶ VAPI EVENT [${eventType}]: `,
           JSON.stringify(data, null, 2)
@@ -199,7 +201,7 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 };
 
 // Get personalized system prompt based on user profile
-export const getPersonalizedSystemPrompt = (userProfile?: any) => {
+export const getPersonalizedSystemPrompt = (userProfile?: any): string => {
   // Determine therapy type from userProfile or default to couple
   const therapyType = userProfile?.therapyType || "couple";
 
@@ -312,7 +314,7 @@ Goal: Help them improve communication, develop secure attachment, and build a he
 };
 
 // Get personalized first message based on user profile
-export const getPersonalizedFirstMessage = (userProfile?: any) => {
+export const getPersonalizedFirstMessage = (userProfile?: any): string => {
   // Determine therapy type from userProfile or default to couple
   const therapyType = userProfile?.therapyType || "couple";
 
@@ -711,7 +713,7 @@ export const getAssistantConfigByType = (type: string = "couple") => {
 export const getPersonalizedSystemPromptForType = (
   type: string = "couple",
   userProfile?: any
-) => {
+): string => {
   // Use therapy type from parameters, or from userProfile if available
   const preferredType = type || userProfile?.therapyType || "couple";
 
@@ -905,7 +907,7 @@ Goal: Help improve family communication, strengthen bonds, and develop healthier
 export const getPersonalizedFirstMessageForType = (
   type: string = "couple",
   userProfile?: any
-) => {
+): string => {
   // Use therapy type from parameters, or from userProfile if available
   const preferredType = type || userProfile?.therapyType || "couple";
 

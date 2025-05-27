@@ -429,7 +429,7 @@ export default function SchedulePage() {
             </div>
             <div>
               <h3 className="font-medium text-white">Multiple Duration Options</h3>
-              <p className="text-sm text-white/60">Select from 30, 60, or 90-minute sessions</p>
+              <p className="text-sm text-white/60">Choose between 30 or 60-minute sessions</p>
             </div>
           </motion.div>
           

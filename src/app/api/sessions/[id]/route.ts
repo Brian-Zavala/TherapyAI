@@ -167,6 +167,10 @@ export async function PATCH(
     // Update status if provided
     if (status) {
       updateData.status = status
+      // Set startTime when session becomes active
+      if (status === 'active' && !existingSession.startTime) {
+        updateData.startTime = new Date()
+      }
     }
     
     // Update notes if provided

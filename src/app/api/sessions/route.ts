@@ -202,6 +202,7 @@ export async function POST(request: Request) {
         data: {
           userId: user.id,
           date: sessionDate,
+          startTime: status === 'active' ? sessionDate : null, // Set startTime only for active sessions
           duration: Number(duration),
           theme,
           notes,

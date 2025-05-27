@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
+import TherapeuticBokehBackground from '@/components/ui/therapeutic-bokeh-background'
+import GlassCard from '@/components/ui/glass-card'
 
 // Resource type definition
 type Resource = {
@@ -269,6 +271,13 @@ export default function Resources() {
     
     return matchesCategory && matchesSearch
   })
+  
+  // Change to results tab when search is performed on mobile
+  useEffect(() => {
+    if (isMobile && searchQuery && filteredResources.length > 0) {
+      setActiveTab('results');
+    }
+  }, [searchQuery, filteredResources.length, isMobile]);
 
   // Type icon mapping
   const getTypeIcon = (type: Resource['type']) => {
@@ -294,9 +303,17 @@ export default function Resources() {
   }
 
   // Define animation variants
-  const fadeIn = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 20
+      }
+    }
   };
   
   const staggerContainer = {
@@ -304,7 +321,34 @@ export default function Resources() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.08,
+        delayChildren: 0.1
+      }
+    }
+  };
+  
+  const scaleIn = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: { 
+      scale: 1, 
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 30
+      }
+    }
+  };
+  
+  const slideIn = {
+    hidden: { x: -50, opacity: 0 },
+    visible: { 
+      x: 0, 
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 150,
+        damping: 25
       }
     }
   };
@@ -329,25 +373,33 @@ export default function Resources() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
-  // Change to results tab when search is performed on mobile
-  useEffect(() => {
-    if (isMobile && searchQuery && filteredResources.length > 0) {
-      setActiveTab('results');
-    }
-  }, [searchQuery, filteredResources.length, isMobile]);
+  // Parallax scroll effects
+  const { scrollY } = useScroll();
+  const backgroundY = useTransform(scrollY, [0, 1000], [0, -200]);
+  const textY = useTransform(scrollY, [0, 300], [0, -50]);
   
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
-      {/* Mobile tabs */}
-      {isMobile && (
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 mb-6 -mx-4 px-4 py-3">
-          <div className="flex rounded-lg bg-gray-100 p-1 shadow-sm">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+      {/* Therapeutic Background with parallax */}
+      <motion.div style={{ y: backgroundY }}>
+        <TherapeuticBokehBackground />
+      </motion.div>
+      
+      {/* Animated gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-pink-900/20 animate-gradient-xy" />
+      
+      {/* Main overlay for content readability */}
+      <div className="relative z-10 min-h-screen backdrop-blur-lg bg-gradient-to-b from-slate-900/60 via-slate-900/70 to-slate-900/80 py-12 px-4 sm:px-6 lg:px-8">
+        {/* Mobile tabs */}
+        {isMobile && (
+        <div className="sticky top-0 z-20 bg-black/30 backdrop-blur-xl border-b border-white/20 mb-6 -mx-4 px-4 py-3 rounded-b-xl">
+          <div className="flex rounded-lg bg-black/40 backdrop-blur-md p-1 shadow-xl border border-white/20">
             <button
               onClick={() => setActiveTab('search')}
-              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-300 ${
                 activeTab === 'search'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <span className="flex items-center justify-center">
@@ -359,10 +411,10 @@ export default function Resources() {
             </button>
             <button
               onClick={() => setActiveTab('results')}
-              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-300 ${
                 activeTab === 'results'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <span className="flex items-center justify-center">
@@ -377,43 +429,70 @@ export default function Resources() {
       )}
       
       {/* Header with supportive message */}
-      <div className={`max-w-7xl mx-auto text-center mb-8 ${isMobile && activeTab === 'results' ? 'hidden' : ''}`}>
+      <div className={`max-w-7xl mx-auto text-center mb-16 ${isMobile && activeTab === 'results' ? 'hidden' : ''}`}>
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
+          className="relative"
         >
-          <motion.h1 
-            variants={fadeIn}
-            transition={{ duration: 0.5 }}
-            className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent"
-          >
-            Relationship Resources
-          </motion.h1>
-          <motion.p 
-            variants={fadeIn}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-6"
-          >
-            Every relationship faces challenges. You're not alone, and reaching out for support
-            is a sign of strength.
-          </motion.p>
+          {/* Animated background blur effect */}
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.3 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className="absolute inset-0 -top-20 -bottom-20 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-3xl"
+          />
+          
+          <motion.div style={{ y: textY }} className="relative">
+            <motion.h1 
+              variants={fadeInUp}
+              className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold mb-8 relative"
+            >
+              <span className="bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(147,197,253,0.5)]">Relationship</span>
+              <br />
+              <span className="bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(244,114,182,0.5)]">Resources</span>
+            </motion.h1>
+            <motion.p 
+              variants={fadeInUp}
+              className="text-xl sm:text-2xl lg:text-3xl text-blue-100/90 max-w-4xl mx-auto mb-10 leading-relaxed font-light"
+            >
+              Every relationship faces challenges. You're not alone, and reaching out for support
+              is a <span className="text-purple-300 font-semibold">sign of strength</span> and courage.
+            </motion.p>
+          </motion.div>
           
           {/* Emergency Support Button */}
           <motion.div 
-            variants={fadeIn}
-            transition={{ duration: 0.3, delay: 0.4 }}
-            className="mt-6"
+            variants={scaleIn}
+            className="mt-8 inline-block"
           >
-            <button
+            <motion.button
+              whileHover={{ 
+                scale: 1.05, 
+                boxShadow: "0 20px 40px rgba(239, 68, 68, 0.4)",
+              }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setShowEmergencySupport(!showEmergencySupport)}
-              className="inline-flex items-center px-4 py-2 sm:px-6 sm:py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+              className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 text-base font-semibold rounded-full text-white overflow-hidden transition-all duration-300"
             >
-              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              {showEmergencySupport ? 'Hide Emergency Help' : 'Need Immediate Help?'}
-            </button>
+              {/* Animated gradient background */}
+              <span className="absolute inset-0 bg-gradient-to-r from-red-600 via-red-500 to-red-600 animate-gradient-x" />
+              
+              {/* Glass overlay */}
+              <span className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+              
+              {/* Border gradient */}
+              <span className="absolute inset-0 rounded-full bg-gradient-to-r from-red-400 via-pink-400 to-red-400 opacity-50 blur-md animate-pulse" />
+              
+              {/* Content */}
+              <span className="relative flex items-center">
+                <svg className="h-5 w-5 mr-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {showEmergencySupport ? 'Hide Emergency Help' : 'Need Immediate Help?'}
+              </span>
+            </motion.button>
           </motion.div>
         </motion.div>
         
@@ -424,104 +503,274 @@ export default function Resources() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mt-6 bg-red-50 border border-red-200 rounded-xl p-6 max-w-4xl mx-auto overflow-hidden"
+              transition={{ duration: 0.4, type: "spring", stiffness: 100 }}
+              className="mt-8 max-w-5xl mx-auto overflow-hidden"
             >
-              <h2 className="text-xl sm:text-2xl font-bold text-red-700 mb-4 flex items-center justify-center sm:justify-start">
-                <svg className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                Immediate Support Resources
-              </h2>
-              <p className="text-red-600 mb-6 text-sm sm:text-base">If you're in danger or experiencing a crisis, please use these resources for immediate help:</p>
-              
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {emergencyResources.map((resource, index) => (
+              <div className="relative bg-gradient-to-r from-red-500/20 to-pink-500/20 backdrop-blur-xl rounded-3xl p-1 border border-red-400/30">
+                <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl p-6 sm:p-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 flex items-center justify-center sm:justify-start">
+                    <div className="relative mr-3">
+                      <div className="absolute inset-0 bg-red-500 rounded-full animate-ping" />
+                      <svg className="relative h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    </div>
+                    Immediate Support Resources
+                  </h2>
+                  <p className="text-red-200 mb-8 text-base sm:text-lg">If you're in danger or experiencing a crisis, please use these resources for immediate help:</p>
+                  
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {emergencyResources.map((resource, index) => (
+                      <motion.div 
+                        key={index} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        className="relative bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20 hover:border-red-400/50 transition-all duration-300"
+                      >
+                        <div className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                        <h3 className="font-bold text-lg text-white mb-2">{resource.title}</h3>
+                        <p className="font-mono text-red-300 text-lg my-3">{resource.phone}</p>
+                        <motion.a 
+                          href={resource.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          whileHover={{ x: 2 }}
+                          className="inline-flex items-center text-blue-300 hover:text-blue-200 font-medium mb-3 transition-colors"
+                        >
+                          Visit Website
+                          <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </motion.a>
+                        <p className="text-sm text-white/70">{resource.description}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
                   <motion.div 
-                    key={index} 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white p-4 rounded-lg shadow-sm border border-red-100"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="mt-8 p-5 bg-red-500/20 backdrop-blur-sm rounded-xl border border-red-400/30"
                   >
-                    <h3 className="font-bold text-lg text-red-700">{resource.title}</h3>
-                    <p className="font-mono text-red-600 my-2">{resource.phone}</p>
-                    <a 
-                      href={resource.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-red-600 hover:text-red-800 underline block mb-2"
-                    >
-                      Visit Website
-                    </a>
-                    <p className="text-sm text-gray-600">{resource.description}</p>
+                    <p className="text-white flex items-start">
+                      <svg className="h-6 w-6 mr-3 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>
+                        <strong className="text-red-300">In case of immediate danger:</strong> 
+                        <span className="text-white/90"> Call emergency services (911 in the US) if you or someone you know is in immediate danger.</span>
+                      </span>
+                    </p>
                   </motion.div>
-                ))}
-              </div>
-              
-              <div className="mt-6 p-4 bg-white rounded-lg border border-red-100">
-                <p className="text-gray-700 flex items-start">
-                  <svg className="h-5 w-5 mr-2 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>
-                    <strong className="text-red-700">In case of immediate danger:</strong> Call emergency services (911 in the US) if you or someone you know is in immediate danger.
-                  </span>
-                </p>
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
       
+      {/* Featured Video Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8, type: "spring", stiffness: 80 }}
+        className="max-w-6xl mx-auto mb-16"
+      >
+        <motion.div 
+          className="relative group"
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          {/* Glass card container */}
+          <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-1 border border-white/20 shadow-2xl overflow-hidden">
+            {/* Animated gradient border */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 animate-gradient-x" />
+            
+            {/* Inner container */}
+            <div className="relative bg-slate-900/80 backdrop-blur-md rounded-2xl p-6 sm:p-8">
+              {/* Header */}
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="mb-6"
+              >
+                <div className="flex items-center mb-4">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center mr-4 shadow-lg shadow-red-500/30">
+                    <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23 7l-7 5 7 5V7z"/>
+                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white">Featured Resource</h2>
+                    <p className="text-blue-200/80">Essential viewing for couples</p>
+                  </div>
+                </div>
+                <p className="text-lg text-white/90 leading-relaxed">
+                  Discover powerful insights on building lasting relationships through this transformative talk that has helped millions of couples worldwide.
+                </p>
+              </motion.div>
+              
+              {/* Video container */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
+                className="relative rounded-xl overflow-hidden shadow-2xl"
+              >
+                {/* Video glow effect */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-30 blur-xl group-hover:opacity-50 transition-opacity duration-500" />
+                
+                {/* YouTube iframe */}
+                <div className="relative aspect-video">
+                  <iframe
+                    src="https://www.youtube.com/embed/uPh4-DU6MDU"
+                    title="Transformative Relationship Insights"
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+              
+              {/* Video details */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6 }}
+                className="mt-6 grid sm:grid-cols-2 gap-4"
+              >
+                <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+                  <h3 className="font-semibold text-purple-300 mb-1">Key Topics</h3>
+                  <ul className="text-sm text-white/70 space-y-1">
+                    <li className="flex items-center"><span className="text-green-400 mr-2">✓</span>Communication strategies</li>
+                    <li className="flex items-center"><span className="text-green-400 mr-2">✓</span>Building trust & intimacy</li>
+                    <li className="flex items-center"><span className="text-green-400 mr-2">✓</span>Conflict resolution</li>
+                  </ul>
+                </div>
+                <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+                  <h3 className="font-semibold text-purple-300 mb-1">Perfect For</h3>
+                  <ul className="text-sm text-white/70 space-y-1">
+                    <li className="flex items-center"><span className="text-blue-400 mr-2">•</span>Couples at any stage</li>
+                    <li className="flex items-center"><span className="text-blue-400 mr-2">•</span>Relationship counselors</li>
+                    <li className="flex items-center"><span className="text-blue-400 mr-2">•</span>Anyone seeking growth</li>
+                  </ul>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+      
       <div className="max-w-7xl mx-auto">
         <div className={`${isMobile ? (activeTab === 'search' ? 'block' : 'hidden') : 'block'}`}>
           {/* Category navigation */}
-          <div className="mb-8">
-            <h2 className="text-lg font-medium text-gray-800 mb-3 pl-1">Filter by category:</h2>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {categories.map(category => (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
+            className="mb-12"
+          >
+            <h2 className="text-xl font-semibold text-white mb-6 pl-1">Filter by category:</h2>
+            <div className="flex flex-wrap gap-3 sm:gap-4">
+              {categories.map((category, index) => (
                 <motion.button
                   key={category.id}
-                  whileHover={{ scale: 1.05 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05, type: "spring", stiffness: 200 }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    boxShadow: activeCategory === category.id 
+                      ? "0 10px 30px rgba(99, 102, 241, 0.4)" 
+                      : "0 5px 20px rgba(255, 255, 255, 0.1)"
+                  }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveCategory(category.id)}
-                  className={`px-3 sm:px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  className={`relative px-4 sm:px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 overflow-hidden group ${
                     activeCategory === category.id 
-                      ? `${category.color.split(' ')[0].replace('100', '500')} text-white shadow-md`
-                      : `${category.color} hover:bg-opacity-80`
+                      ? 'text-white shadow-lg' 
+                      : 'text-white/80 hover:text-white'
                   }`}
                 >
-                  <span className="mr-2">{category.icon}</span>
-                  <span className="hidden sm:inline">{category.title}</span>
-                  <span className="inline sm:hidden">{category.id === 'all' ? 'All' : category.title.split(' ')[0]}</span>
+                  {/* Background gradient */}
+                  <span className={`absolute inset-0 transition-opacity duration-300 ${
+                    activeCategory === category.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}>
+                    <span className={`absolute inset-0 bg-gradient-to-r ${
+                      category.id === 'communication' ? 'from-blue-500 to-blue-600' :
+                      category.id === 'conflict' ? 'from-amber-500 to-amber-600' :
+                      category.id === 'intimacy' ? 'from-rose-500 to-rose-600' :
+                      category.id === 'growth' ? 'from-green-500 to-green-600' :
+                      category.id === 'crisis' ? 'from-red-500 to-red-600' :
+                      'from-purple-500 to-purple-600'
+                    }`} />
+                  </span>
+                  
+                  {/* Glass effect background */}
+                  <span className={`absolute inset-0 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full transition-opacity duration-300 ${
+                    activeCategory === category.id ? 'opacity-0' : 'opacity-100'
+                  }`} />
+                  
+                  {/* Content */}
+                  <span className="relative flex items-center">
+                    <span className="mr-2 text-lg">{category.icon}</span>
+                    <span className="hidden sm:inline">{category.title}</span>
+                    <span className="inline sm:hidden">{category.id === 'all' ? 'All' : category.title.split(' ')[0]}</span>
+                    {activeCategory === category.id && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="ml-2 h-2 w-2 bg-white rounded-full"
+                      />
+                    )}
+                  </span>
                 </motion.button>
               ))}
             </div>
-          </div>
+          </motion.div>
           
           {/* Search bar */}
-          <div className="mb-8">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search resources by keyword, topic, or source..."
-                className="w-full px-5 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-              />
-              <button 
-                className="absolute right-3 top-2 p-1 text-gray-400 hover:text-indigo-500"
-                onClick={() => {
-                  if (isMobile && filteredResources.length > 0) {
-                    setActiveTab('results');
-                  }
-                }}
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1, type: "spring", stiffness: 100 }}
+            className="mb-8"
+          >
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl opacity-20 group-hover:opacity-30 blur-xl transition-opacity duration-300" />
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-1 border border-white/20">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search resources by keyword, topic, or source..."
+                  className="w-full px-6 py-4 bg-slate-900/60 backdrop-blur-md rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-300"
+                />
+                <button 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200"
+                  onClick={() => {
+                    if (isMobile && filteredResources.length > 0) {
+                      setActiveTab('results');
+                    }
+                  }}
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </div>
             </div>
             {filteredResources.length > 0 && isMobile && (
               <div className="mt-3">
@@ -536,7 +785,7 @@ export default function Resources() {
                 </button>
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
         
         {/* Resource grid */}
@@ -568,99 +817,134 @@ export default function Resources() {
               {filteredResources.map((resource, index) => (
                 <motion.div
                   key={resource.id}
-                  variants={fadeIn}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-100 cursor-pointer"
+                  variants={fadeInUp}
+                  whileHover={{ 
+                    y: -5,
+                    transition: { type: "spring", stiffness: 300 }
+                  }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  className="group relative"
                 >
-                  <div className={`h-2 ${
-                    resource.tags?.includes('communication') ? 'bg-blue-500' :
-                    resource.tags?.includes('conflict') ? 'bg-amber-500' :
-                    resource.tags?.includes('intimacy') ? 'bg-rose-500' :
-                    resource.tags?.includes('growth') ? 'bg-green-500' :
-                    resource.tags?.includes('crisis') ? 'bg-red-500' :
-                    'bg-purple-500'
-                  }`}></div>
+                  {/* Glow effect on hover */}
+                  <div className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg bg-gradient-to-r ${
+                    resource.tags?.includes('communication') ? 'from-blue-500 to-blue-600' :
+                    resource.tags?.includes('conflict') ? 'from-amber-500 to-amber-600' :
+                    resource.tags?.includes('intimacy') ? 'from-rose-500 to-rose-600' :
+                    resource.tags?.includes('growth') ? 'from-green-500 to-green-600' :
+                    resource.tags?.includes('crisis') ? 'from-red-500 to-red-600' :
+                    'from-purple-500 to-purple-600'
+                  }`} />
                   
-                  <div className="p-4 sm:p-5">
-                    <div className="flex items-start mb-3">
-                      <div className={`rounded-full w-10 h-10 flex items-center justify-center mr-3 ${
-                        resource.type === 'article' ? 'bg-blue-100 text-blue-600' :
-                        resource.type === 'video' ? 'bg-red-100 text-red-600' :
-                        resource.type === 'exercise' ? 'bg-green-100 text-green-600' :
-                        resource.type === 'book' ? 'bg-purple-100 text-purple-600' :
-                        resource.type === 'podcast' ? 'bg-amber-100 text-amber-600' :
-                        'bg-indigo-100 text-indigo-600'
-                      }`}>
-                        <span className="text-lg">{getTypeIcon(resource.type)}</span>
+                  {/* Card container */}
+                  <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/20 hover:border-white/30 transition-all duration-300">
+                    {/* Top accent bar */}
+                    <div className={`h-1 bg-gradient-to-r ${
+                      resource.tags?.includes('communication') ? 'from-blue-400 to-blue-600' :
+                      resource.tags?.includes('conflict') ? 'from-amber-400 to-amber-600' :
+                      resource.tags?.includes('intimacy') ? 'from-rose-400 to-rose-600' :
+                      resource.tags?.includes('growth') ? 'from-green-400 to-green-600' :
+                      resource.tags?.includes('crisis') ? 'from-red-400 to-red-600' :
+                      'from-purple-400 to-purple-600'
+                    }`} />
+                    
+                    <div className="p-5 sm:p-6">
+                      <div className="flex items-start mb-4">
+                        <div className={`rounded-xl w-12 h-12 flex items-center justify-center mr-4 bg-gradient-to-br shadow-lg ${
+                          resource.type === 'article' ? 'from-blue-500 to-blue-600 shadow-blue-500/30' :
+                          resource.type === 'video' ? 'from-red-500 to-red-600 shadow-red-500/30' :
+                          resource.type === 'exercise' ? 'from-green-500 to-green-600 shadow-green-500/30' :
+                          resource.type === 'book' ? 'from-purple-500 to-purple-600 shadow-purple-500/30' :
+                          resource.type === 'podcast' ? 'from-amber-500 to-amber-600 shadow-amber-500/30' :
+                          'from-indigo-500 to-indigo-600 shadow-indigo-500/30'
+                        }`}>
+                          <span className="text-xl text-white">{getTypeIcon(resource.type)}</span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-base sm:text-lg font-semibold text-white leading-tight mb-1">{resource.title}</h3>
+                          {resource.source && (
+                            <p className="text-xs sm:text-sm text-blue-300/70">Source: {resource.source}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">{resource.title}</h3>
-                        {resource.source && (
-                          <p className="text-xs sm:text-sm text-gray-500">Source: {resource.source}</p>
+                      
+                      <p className="text-sm text-white/80 mb-4 line-clamp-3">{resource.description}</p>
+                      
+                      <div className="mt-3 mb-4 flex flex-wrap gap-2">
+                        {resource.tags?.map(tag => (
+                          <span 
+                            key={tag}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border ${
+                              tag === 'communication' ? 'border-blue-400/50 text-blue-300' :
+                              tag === 'conflict' ? 'border-amber-400/50 text-amber-300' :
+                              tag === 'intimacy' ? 'border-rose-400/50 text-rose-300' :
+                              tag === 'growth' ? 'border-green-400/50 text-green-300' :
+                              tag === 'crisis' ? 'border-red-400/50 text-red-300' :
+                              'border-gray-400/50 text-gray-300'
+                            }`}
+                          >
+                            {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                          </span>
+                        ))}
+                        
+                        {resource.difficulty && (
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border ${
+                            resource.difficulty === 'beginner' ? 'border-green-400/50 text-green-300' :
+                            resource.difficulty === 'intermediate' ? 'border-blue-400/50 text-blue-300' :
+                            'border-purple-400/50 text-purple-300'
+                          }`}>
+                            {getDifficultyLabel(resource.difficulty).label}
+                          </span>
                         )}
                       </div>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 mb-4">{resource.description}</p>
-                    
-                    <div className="mt-1 mb-4 flex flex-wrap gap-2">
-                      {resource.tags?.map(tag => (
-                        <span 
-                          key={tag}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            tag === 'communication' ? 'bg-blue-100 text-blue-800' :
-                            tag === 'conflict' ? 'bg-amber-100 text-amber-800' :
-                            tag === 'intimacy' ? 'bg-rose-100 text-rose-800' :
-                            tag === 'growth' ? 'bg-green-100 text-green-800' :
-                            tag === 'crisis' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                        </span>
-                      ))}
                       
-                      {resource.difficulty && (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyLabel(resource.difficulty).color}`}>
-                          {getDifficultyLabel(resource.difficulty).label}
-                        </span>
-                      )}
+                      <motion.a 
+                        href={resource.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        whileHover={{ x: 5 }}
+                        className="inline-flex items-center text-purple-300 hover:text-purple-200 font-medium transition-colors group/link"
+                      >
+                        <span className="mr-1">Access Resource</span>
+                        <svg className="w-4 h-4 transition-transform group-hover/link:translate-x-1 group-hover/link:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </motion.a>
                     </div>
-                    
-                    <a 
-                      href={resource.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
-                    >
-                      Access Resource
-                      <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
                   </div>
                 </motion.div>
               ))}
             </motion.div>
           ) : (
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-8 bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 100 }}
+              className="text-center py-12 bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20"
             >
-              <div className="text-4xl mb-4">🔍</div>
-              <h3 className="text-xl font-medium text-gray-900 mb-2">No resources found</h3>
-              <p className="text-gray-600">Try adjusting your search or category filter.</p>
-              <button 
+              <motion.div 
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
+                className="text-5xl mb-6"
+              >
+                🔍
+              </motion.div>
+              <h3 className="text-2xl font-semibold text-white mb-3">No resources found</h3>
+              <p className="text-white/70 mb-6">Try adjusting your search or category filter to find what you're looking for.</p>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   setSearchQuery('');
                   setActiveCategory('all');
                   if (isMobile) setActiveTab('search');
                 }}
-                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
               >
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
                 Reset Search
-              </button>
+              </motion.button>
             </motion.div>
           )}
         </div>
@@ -778,6 +1062,8 @@ export default function Resources() {
             <p className="text-xs text-indigo-100 mt-2 text-center sm:text-left">We respect your privacy. Unsubscribe anytime.</p>
           </div>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   )

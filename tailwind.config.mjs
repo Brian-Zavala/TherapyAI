@@ -94,6 +94,16 @@ const config = {
             "background-position": "100% 50%",
             "background-image": "linear-gradient(to right, rgba(255, 105, 180, 0.2), rgba(255, 0, 0, 0.2))",
           },
+        },
+        "gradient-x": {
+          "0%, 100%": {
+            "background-size": "200% 200%",
+            "background-position": "left center"
+          },
+          "50%": {
+            "background-size": "200% 200%",
+            "background-position": "right center"
+          }
         }
       },
       animation: {
@@ -105,7 +115,8 @@ const config = {
         "pulse-slow": "pulse-slow 4s ease-in-out infinite",
         "pulse-slower": "pulse-slow 6s ease-in-out infinite",
         "pulse-slowest": "pulse-slow 8s ease-in-out infinite",
-        "gradient-slow": "gradient-colors 30s ease infinite"
+        "gradient-slow": "gradient-colors 30s ease infinite",
+        "gradient-x": "gradient-x 4s ease infinite"
       },
     },
   },

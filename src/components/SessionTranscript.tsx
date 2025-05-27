@@ -68,23 +68,31 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
       };
       
       fetchSessionStartTime();
-      
-      // Set up timer to calculate elapsed time
-      const durationTimer = setInterval(() => {
-        if (sessionStartTime) {
-          const now = new Date();
-          const elapsedMinutes = Math.ceil((now.getTime() - sessionStartTime.getTime()) / (1000 * 60));
-          // Update the duration
-          setSessionDuration(Math.max(1, elapsedMinutes));
-        }
-      }, 10000); // Update every 10 seconds
-      
-      return () => clearInterval(durationTimer);
     } else {
       // For completed sessions, just use the stored duration
       setSessionDuration(session?.duration || 0);
     }
-  }, [session?.status, sessionId, sessionStartTime]);
+  }, [session?.status, sessionId]);
+
+  // Separate effect for updating duration every 10 seconds
+  useEffect(() => {
+    if (session?.status === 'active' && sessionStartTime) {
+      // Calculate initial duration
+      const now = new Date();
+      const elapsedMinutes = Math.floor((now.getTime() - sessionStartTime.getTime()) / (1000 * 60));
+      setSessionDuration(Math.max(1, elapsedMinutes));
+
+      // Set up timer to calculate elapsed time
+      const durationTimer = setInterval(() => {
+        const currentTime = new Date();
+        const elapsedMins = Math.floor((currentTime.getTime() - sessionStartTime.getTime()) / (1000 * 60));
+        // Update the duration
+        setSessionDuration(Math.max(1, elapsedMins));
+      }, 10000); // Update every 10 seconds
+      
+      return () => clearInterval(durationTimer);
+    }
+  }, [session?.status, sessionStartTime]);
   
   // Load session data and transcript entries with real-time updates
   useEffect(() => {
@@ -558,10 +566,17 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
         continue;
       }
       
-      // Filter out entries that start with "I've reviewed my notes from previous sessions"
-      if (entry.text.includes("I've reviewed my notes from our previous sessions")) {
-        console.log('Found summary entry - excluding');
-        // Skip entries with the summary text completely
+      // Filter out entries that are session summaries or artifacts
+      if (entry.text.includes("I've reviewed my notes from our previous sessions") ||
+          entry.text.includes("From our session on") ||
+          entry.text.includes("Key client concerns discussed:") ||
+          entry.text.includes("Guidance I provided:") ||
+          entry.text.includes("Full conversation transcript:") ||
+          entry.text.includes("I don't have detailed notes from this session") ||
+          entry.text.includes("-----") ||
+          (entry.speaker === 'assistant' && entry.text.match(/^\s*-\s+/))) {
+        console.log('Found summary/artifact entry - excluding');
+        // Skip entries with summary text or list items
         continue;
       }
       // Regular conversation entry - include as is
