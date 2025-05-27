@@ -43,7 +43,7 @@ const SpiralTextAnimation: React.FC<Props> = memo(({ className = "" }) => {
               custom={index}
               className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600 overflow-visible inline-block"
               style={{
-                will-change: "opacity, transform"
+                willChange: "opacity, transform"
               }}
             >
               {letter === " " ? <span>&nbsp;</span> : letter}

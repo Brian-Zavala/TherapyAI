@@ -34,6 +34,9 @@ export default function Resources() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   // State for emergency support visibility
   const [showEmergencySupport, setShowEmergencySupport] = useState<boolean>(false)
+  // State for mobile tab management
+  const [activeTab, setActiveTab] = useState<'search' | 'results'>('search')
+  const [isMobile, setIsMobile] = useState(false)
 
   // Categories for relationship resources
   const categories: Category[] = [
@@ -352,10 +355,6 @@ export default function Resources() {
       }
     }
   };
-  
-  // Mobile view handling
-  const [activeTab, setActiveTab] = useState<'search' | 'results'>('search');
-  const [isMobile, setIsMobile] = useState(false);
   
   // Check if it's mobile view on mount and window resize
   useEffect(() => {
@@ -1062,7 +1061,6 @@ export default function Resources() {
             <p className="text-xs text-indigo-100 mt-2 text-center sm:text-left">We respect your privacy. Unsubscribe anytime.</p>
           </div>
         </div>
-      </div>
       </div>
       </div>
     </div>

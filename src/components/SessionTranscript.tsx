@@ -125,7 +125,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             return;
           }
         } catch (fetchError) {
-          console.error(`Network error fetching transcript: ${fetchError.message}`);
+          console.error(`Network error fetching transcript: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
           return;
         }
         
@@ -232,8 +232,8 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             throw new Error(`Failed to fetch session: ${response.status}`);
           }
         } catch (fetchError) {
-          console.error(`Network error fetching session: ${fetchError.message}`);
-          throw new Error(`Network error: ${fetchError.message}`);
+          console.error(`Network error fetching session: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
+          throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
         }
         
         const sessionData = await response.json();
@@ -608,22 +608,22 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   })
   
   // Enhanced deduplication to handle partial/progressive text with improved similarity detection
-  let filteredEntriesArray = [];
-  const speakerTexts = new Map();
+  let filteredEntriesArray: TranscriptEntry[] = [];
+  const speakerTexts = new Map<string, Array<{id: string, text: string}>>();
   
   // Helper functions for text normalization and comparison
-  const normalizeText = (text) => {
+  const normalizeText = (text: string): string => {
     if (!text) return '';
     return text.toLowerCase().trim().replace(/\s+/g, ' ');
   };
   
-  const isSignificantlyDifferent = (text1, text2) => {
+  const isSignificantlyDifferent = (text1: string, text2: string): boolean => {
     // Normalized versions for comparison
     const norm1 = normalizeText(text1);
     const norm2 = normalizeText(text2);
     
     // Check if one string contains most of the other
-    const containsSignificantPart = (a, b) => {
+    const containsSignificantPart = (a: string, b: string): boolean => {
       // If a is a very short fragment, it's probably just the beginning of b
       if (a.split(' ').length <= 3 && b.includes(a)) {
         return true;
@@ -632,7 +632,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
       // If a contains more than 80% of b's words, consider them similar
       const aWords = new Set(a.split(' '));
       const bWords = b.split(' ');
-      const commonWords = bWords.filter(word => aWords.has(word));
+      const commonWords = bWords.filter((word: string) => aWords.has(word));
       
       return commonWords.length >= bWords.length * 0.8;
     };
@@ -752,8 +752,8 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   })
   
   // Final pass - group messages by conversation position to catch any remaining redundancies
-  const finalEntries = [];
-  const conversationGroups = new Map();
+  const finalEntries: TranscriptEntry[] = [];
+  const conversationGroups = new Map<string, TranscriptEntry[]>();
   
   // Group messages by approximate position in conversation
   filteredEntriesArray.forEach((entry, idx) => {
@@ -764,7 +764,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
     if (!conversationGroups.has(key)) {
       conversationGroups.set(key, []);
     }
-    conversationGroups.get(key).push(entry);
+    conversationGroups.get(key)!.push(entry);
   });
   
   // For each group, keep only the most complete message
@@ -775,12 +775,12 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
     }
     
     // Prefer longer messages as they're typically more complete
-    group.sort((a, b) => b.text.length - a.text.length);
+    group.sort((a: TranscriptEntry, b: TranscriptEntry) => b.text.length - a.text.length);
     finalEntries.push(group[0]);
   });
   
   // Sort by timestamp to maintain conversation flow
-  finalEntries.sort((a, b) => {
+  finalEntries.sort((a: TranscriptEntry, b: TranscriptEntry) => {
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   });
   
