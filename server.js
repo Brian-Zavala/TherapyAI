@@ -10,13 +10,13 @@ const next = require('next');
 const path = require('path');
 const fs = require('fs');
 
-// Set up environment variables from .env.local file
-require('dotenv').config({ path: '.env.local' });
+// Set up environment variables from .env file
+require('dotenv').config({ path: '.env' });
 
 const port = parseInt(process.env.PORT, 10) || 3000;
 const dev = process.env.NODE_ENV !== 'production';
 const useHttps = process.env.USE_HTTPS === 'true';
-const app = next({ dev });
+const app = next({ dev, quiet: false });
 const handle = app.getRequestHandler();
 
 // Create a logs directory if it doesn't exist
@@ -48,8 +48,8 @@ app.prepare().then(() => {
   if (useHttps && dev) {
     try {
       const httpsOptions = {
-        key: fs.readFileSync('./localhost+2-key.pem'),
-        cert: fs.readFileSync('./localhost+2.pem'),
+        key: fs.readFileSync('./localhost+3-key.pem'),
+        cert: fs.readFileSync('./localhost+3.pem'),
       };
       server = createHttpsServer(httpsOptions, requestHandler);
       console.log('Using HTTPS with local certificates');

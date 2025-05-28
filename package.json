@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --hostname 0.0.0.0 -p 3000",
-    "dev:https": "USE_HTTPS=true node server.js",
+    "dev:https": "NODE_ENV=development USE_HTTPS=true node server.js",
     "dev:server": "node server.js",
     "dev:turbo": "next dev --turbo",
     "build": "next build",
