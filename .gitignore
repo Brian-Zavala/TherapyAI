@@ -64,6 +64,11 @@ create-test-user.js
 test-transcript.js
 migrate-transcripts.js
 update_env.sh
+setup-https.sh
+setup-https-remote.sh
+setup-wsl2-remote-access.sh
+generate-remote-certs.sh
+setup-port-forward.ps1
 
 # IDE files
 .idea/
