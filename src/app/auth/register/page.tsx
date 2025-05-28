@@ -55,6 +55,10 @@ export default function Register() {
       const data = await res.json()
 
       if (!res.ok) {
+        // Handle duplicate email specifically
+        if (res.status === 409) {
+          throw new Error('An account with this email already exists. Please use a different email or sign in to your existing account.')
+        }
         throw new Error(data.message || 'Registration failed')
       }
       
@@ -103,7 +107,21 @@ export default function Register() {
                 animate={{ opacity: 1, x: 0 }}
                 className="mb-6 bg-red-500/20 backdrop-blur-sm border border-red-500/50 text-red-100 px-4 py-3 rounded-xl text-sm"
               >
-                {error}
+                <div className="flex items-start">
+                  <svg className="flex-shrink-0 h-5 w-5 text-red-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <div className="ml-3">
+                    <p>{error}</p>
+                    {error.includes('already exists') && (
+                      <p className="mt-2">
+                        <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 underline">
+                          Sign in to your existing account →
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
 
