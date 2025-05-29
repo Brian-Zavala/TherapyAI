@@ -77,8 +77,8 @@ export default function Navigation() {
   const linkStyles = (isActive: boolean) =>
     isActive ? "text-white font-bold" : "text-gray-100 hover:text-white";
 
-  // Don't show navbar on auth pages or during onboarding - moved after all hook calls
-  if (pathname?.startsWith("/auth/") || pathname?.startsWith("/welcome")) {
+  // Don't show navbar on auth pages, intro, or during onboarding - moved after all hook calls
+  if (pathname?.startsWith("/auth/") || pathname?.startsWith("/welcome") || pathname === "/intro") {
     return null;
   }
 
@@ -276,10 +276,10 @@ export default function Navigation() {
                     <b>
                       <a
                         href="#"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault();
                           setIsMenuOpen(false);
-                          logout();
+                          await logout();
                         }}
                         tabIndex={isMenuOpen ? 0 : -1}
                         className="text-red-400 hover:text-red-300"
@@ -537,8 +537,8 @@ export default function Navigation() {
 
                 <div className="pt-8 mt-4 border-t border-stone-600/50 w-full flex justify-center">
                   <button
-                    onClick={() => {
-                      logout();
+                    onClick={async () => {
+                      await logout();
                       setIsMenuOpen(false);
                     }}
                     className="text-2xl text-indigo-100 hover:cursor-pointer hover:text-white py-4 px-6 text-center hover:bg-red-600/30 rounded-lg transition-colors flex items-center justify-center"

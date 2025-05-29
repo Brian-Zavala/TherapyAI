@@ -444,7 +444,7 @@ export default function IntroWelcomeScreen() {
                     whileTap={{ scale: 0.95 }}
                     onClick={handlePrevious}
                     disabled={currentStep === 0}
-                    className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                    className={`px-6 py-3 rounded-xl font-medium transition-all min-w-[120px] ${
                       currentStep === 0
                         ? "bg-white/5 text-white/30 cursor-not-allowed"
                         : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20"
@@ -459,7 +459,7 @@ export default function IntroWelcomeScreen() {
                       whileTap={{ scale: 0.95 }}
                       onClick={handleGetStarted}
                       disabled={isLoading}
-                      className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg"
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all min-w-[120px]"
                     >
                       {isLoading ? (
                         <span className="flex items-center">
@@ -494,7 +494,7 @@ export default function IntroWelcomeScreen() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleNext}
-                      className="px-6 py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all"
+                      className="px-6 py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all min-w-[120px]"
                     >
                       Next
                     </motion.button>

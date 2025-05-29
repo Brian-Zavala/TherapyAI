@@ -7,13 +7,6 @@ export async function middleware(request: NextRequest) {
   // Get the pathname of the request
   const path = request.nextUrl.pathname
   
-  // Handle webmanifest file with proper content type
-  if (path === '/site.webmanifest') {
-    const response = NextResponse.next()
-    response.headers.set('Content-Type', 'application/manifest+json')
-    return response
-  }
-  
   // Public paths that don't require authentication
   const isPublicPath = path === '/auth/login' || 
                         path === '/auth/register' || 
@@ -35,7 +28,7 @@ export async function middleware(request: NextRequest) {
   
   // Redirect authenticated users away from auth pages
   if (token && (path === '/auth/login' || path === '/auth/register')) {
-    return NextResponse.redirect(new URL('/welcome', request.url))
+    return NextResponse.redirect(new URL('/intro', request.url))
   }
   
   return NextResponse.next()
@@ -46,14 +39,11 @@ export const config = {
     '/',
     '/dashboard/:path*',
     '/auth/:path*',
+    '/intro',
     '/welcome',
     '/schedule/:path*',
     '/support/:path*',
-    // Separate matcher for public paths that we still want middleware to run on
-    // but don't want to enforce authentication for
     '/terms',
     '/privacy',
-    // Exclude public static assets from middleware
-    '/((?!api|_next/static|_next/image|favicon.ico|images|sounds|fonts|videos|terms|privacy).*)',
   ]
 }

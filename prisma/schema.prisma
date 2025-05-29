@@ -24,6 +24,7 @@ model User {
   emailVerified        DateTime?
   onboardingCompleted  Boolean                @default(false)
   onboardingData       Json?
+  hasSeenIntro         Boolean                @default(false)
   pronouns             String?
   therapyType          String?
   currentConcerns      Json?

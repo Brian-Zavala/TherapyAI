@@ -67,7 +67,8 @@ export async function GET() {
           familyMember3Age: null,
           familyMember4Age: null,
           onboardingCompleted: false,
-          onboardingData: null
+          onboardingData: null,
+          hasSeenIntro: false
         }
         console.log("Returning fallback profile due to database error")
         return NextResponse.json(fallbackProfile)
@@ -108,7 +109,8 @@ export async function GET() {
         onboardingCompleted: user.onboardingCompleted || false,
         onboardingData: user.onboardingData || null,
         phone: user.phone || "",
-        notificationPrefs: user.notificationPrefs || "email"
+        notificationPrefs: user.notificationPrefs || "email",
+        hasSeenIntro: user.hasSeenIntro || false
       }
       
       return NextResponse.json(safeUser)
