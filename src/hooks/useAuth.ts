@@ -10,12 +10,21 @@ export function useAuth() {
   const isAuthenticated = status === 'authenticated'
   const isLoading = status === 'loading'
   
-  const logout = () => {
-    // Use redirect: true to ensure proper redirect to login page after signout
-    signOut({ 
-      callbackUrl: '/auth/login',
-      redirect: true
-    })
+  const logout = async () => {
+    try {
+      // Use absolute URL to ensure proper redirect on all environments (local, remote, production)
+      await signOut({ 
+        callbackUrl: `${window.location.origin}/auth/login`,
+        redirect: true
+      })
+    } catch (error) {
+      // Production-ready error handling
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Logout failed:', error)
+      }
+      // Fallback: manually redirect if signOut fails
+      router.push('/auth/login')
+    }
   }
   
   return {
