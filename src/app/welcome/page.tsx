@@ -99,7 +99,30 @@ const formSteps: FormStep[] = [
         name: 'familyMember1',
         label: 'Family member 1',
         type: 'text',
-        placeholder: 'Name (e.g., John - Son)',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember1Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
         required: false
       },
       {
@@ -113,7 +136,30 @@ const formSteps: FormStep[] = [
         name: 'familyMember2',
         label: 'Family member 2',
         type: 'text',
-        placeholder: 'Name (e.g., Sarah - Daughter)',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember2Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
         required: false
       },
       {
@@ -127,7 +173,30 @@ const formSteps: FormStep[] = [
         name: 'familyMember3',
         label: 'Family member 3',
         type: 'text',
-        placeholder: 'Name (e.g., Michael - Father)',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember3Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
         required: false
       },
       {
@@ -141,7 +210,30 @@ const formSteps: FormStep[] = [
         name: 'familyMember4',
         label: 'Family member 4',
         type: 'text',
-        placeholder: 'Name (e.g., Linda - Mother)',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember4Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
         required: false
       },
       {

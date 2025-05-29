@@ -637,6 +637,7 @@ IMPORTANT FAMILY CONTEXT:
 You will receive information about the family through variables:
 - userName: The primary client's name
 - familyMember1, familyMember2, familyMember3, familyMember4: Names of family members
+- familyMember1Relation, familyMember2Relation, etc.: Relationships to the primary client (child, parent, sibling, etc.)
 - familyMember1Age, familyMember2Age, etc.: Ages of family members
 - currentConcerns: What the family is seeking help with
 - sessionHistory: Previous session information
@@ -834,26 +835,42 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
   }
 
   if (preferredType === "family") {
-    // Get family member information with their ages
+    // Get family member information with their ages and relationships
     const familyMember1 = userProfile?.familyMember1 || null;
     const familyMember1Age = userProfile?.familyMember1Age || null;
+    const familyMember1Relation = userProfile?.familyMember1Relation || null;
     const familyMember2 = userProfile?.familyMember2 || null;
     const familyMember2Age = userProfile?.familyMember2Age || null;
+    const familyMember2Relation = userProfile?.familyMember2Relation || null;
     const familyMember3 = userProfile?.familyMember3 || null;
     const familyMember3Age = userProfile?.familyMember3Age || null;
+    const familyMember3Relation = userProfile?.familyMember3Relation || null;
     const familyMember4 = userProfile?.familyMember4 || null;
     const familyMember4Age = userProfile?.familyMember4Age || null;
+    const familyMember4Relation = userProfile?.familyMember4Relation || null;
 
     // Get session context
     const sessionCount = userProfile?.sessionsCompleted || 0;
     const lastSessionDate = userProfile?.lastSessionDate;
 
-    // Create detailed family member list with ages for system prompt
+    // Create detailed family member list with ages and relationships for system prompt
     const familyMembersWithAges = [];
-    if (familyMember1) familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}`);
-    if (familyMember2) familyMembersWithAges.push(`${familyMember2}${familyMember2Age ? ` (${familyMember2Age})` : ""}`);
-    if (familyMember3) familyMembersWithAges.push(`${familyMember3}${familyMember3Age ? ` (${familyMember3Age})` : ""}`);
-    if (familyMember4) familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}`);
+    if (familyMember1) {
+      const relationText = familyMember1Relation ? ` - ${familyMember1Relation}` : "";
+      familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}${relationText}`);
+    }
+    if (familyMember2) {
+      const relationText = familyMember2Relation ? ` - ${familyMember2Relation}` : "";
+      familyMembersWithAges.push(`${familyMember2}${familyMember2Age ? ` (${familyMember2Age})` : ""}${relationText}`);
+    }
+    if (familyMember3) {
+      const relationText = familyMember3Relation ? ` - ${familyMember3Relation}` : "";
+      familyMembersWithAges.push(`${familyMember3}${familyMember3Age ? ` (${familyMember3Age})` : ""}${relationText}`);
+    }
+    if (familyMember4) {
+      const relationText = familyMember4Relation ? ` - ${familyMember4Relation}` : "";
+      familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}${relationText}`);
+    }
 
     // Format the family members string
     let familyMembersString;
@@ -1030,22 +1047,38 @@ export const getPersonalizedFirstMessageForType = (
     // Get the userName for a more natural greeting
     const userName = userProfile?.userName || "everyone";
 
-    // Get family member information with their ages
+    // Get family member information with their ages and relationships
     const familyMember1 = userProfile?.familyMember1 || null;
     const familyMember1Age = userProfile?.familyMember1Age || null;
+    const familyMember1Relation = userProfile?.familyMember1Relation || null;
     const familyMember2 = userProfile?.familyMember2 || null;
     const familyMember2Age = userProfile?.familyMember2Age || null;
+    const familyMember2Relation = userProfile?.familyMember2Relation || null;
     const familyMember3 = userProfile?.familyMember3 || null;
     const familyMember3Age = userProfile?.familyMember3Age || null;
+    const familyMember3Relation = userProfile?.familyMember3Relation || null;
     const familyMember4 = userProfile?.familyMember4 || null;
     const familyMember4Age = userProfile?.familyMember4Age || null;
+    const familyMember4Relation = userProfile?.familyMember4Relation || null;
 
-    // Create detailed family member list with ages
+    // Create detailed family member list with ages and relationships
     const familyMembersWithAges = [];
-    if (familyMember1) familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}`);
-    if (familyMember2) familyMembersWithAges.push(`${familyMember2}${familyMember2Age ? ` (${familyMember2Age})` : ""}`);
-    if (familyMember3) familyMembersWithAges.push(`${familyMember3}${familyMember3Age ? ` (${familyMember3Age})` : ""}`);
-    if (familyMember4) familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}`);
+    if (familyMember1) {
+      const relationText = familyMember1Relation ? ` - ${familyMember1Relation}` : "";
+      familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}${relationText}`);
+    }
+    if (familyMember2) {
+      const relationText = familyMember2Relation ? ` - ${familyMember2Relation}` : "";
+      familyMembersWithAges.push(`${familyMember2}${familyMember2Age ? ` (${familyMember2Age})` : ""}${relationText}`);
+    }
+    if (familyMember3) {
+      const relationText = familyMember3Relation ? ` - ${familyMember3Relation}` : "";
+      familyMembersWithAges.push(`${familyMember3}${familyMember3Age ? ` (${familyMember3Age})` : ""}${relationText}`);
+    }
+    if (familyMember4) {
+      const relationText = familyMember4Relation ? ` - ${familyMember4Relation}` : "";
+      familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}${relationText}`);
+    }
 
     // Get basic family member names for casual greetings
     const familyMembers = [familyMember1, familyMember2, familyMember3, familyMember4].filter(Boolean);
@@ -1187,12 +1220,16 @@ export const getPersonalizedAssistantConfig = (
     if (therapyType === "family") {
       variableValues.familyMember1 = userProfile.familyMember1 || "";
       variableValues.familyMember1Age = userProfile.familyMember1Age || null;
+      variableValues.familyMember1Relation = userProfile.familyMember1Relation || "";
       variableValues.familyMember2 = userProfile.familyMember2 || "";
       variableValues.familyMember2Age = userProfile.familyMember2Age || null;
+      variableValues.familyMember2Relation = userProfile.familyMember2Relation || "";
       variableValues.familyMember3 = userProfile.familyMember3 || "";
       variableValues.familyMember3Age = userProfile.familyMember3Age || null;
+      variableValues.familyMember3Relation = userProfile.familyMember3Relation || "";
       variableValues.familyMember4 = userProfile.familyMember4 || "";
       variableValues.familyMember4Age = userProfile.familyMember4Age || null;
+      variableValues.familyMember4Relation = userProfile.familyMember4Relation || "";
     }
   }
 

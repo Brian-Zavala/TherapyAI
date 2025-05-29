@@ -17,9 +17,13 @@ model User {
   relationshipStatus   String?                @default("Married")
   assistantId          String?
   familyMember1        String?
+  familyMember1Relation String?
   familyMember2        String?
+  familyMember2Relation String?
   familyMember3        String?
+  familyMember3Relation String?
   familyMember4        String?
+  familyMember4Relation String?
   image                String?
   emailVerified        DateTime?
   onboardingCompleted  Boolean                @default(false)
