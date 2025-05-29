@@ -7,6 +7,7 @@ import Vapi from '@vapi-ai/web'
 import dynamic from 'next/dynamic'
 import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
 import { useSoundContext } from './SoundProvider'
+import SessionDurationModal from './SessionDurationModal'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -42,10 +43,12 @@ type TherapyButtonProps = {
 function TherapyButton({ 
   userId, 
   assistantConfig = COUPLE_THERAPY_ASSISTANT_CONFIG as AssistantConfigType, 
-  therapyType = 'couple' 
+  therapyType = 'couple'
 }: TherapyButtonProps) {
   // State management
   const [isLoading, setIsLoading] = useState(false)
+  const [showDurationModal, setShowDurationModal] = useState(false)
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<30 | 60>(60)
   const [isCallActive, setIsCallActive] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [transcriptChunks, setTranscriptChunks] = useState<string[]>([])
@@ -960,6 +963,64 @@ function TherapyButton({
     }
   }, []);
 
+  // Handle modal actions
+  const handleStartButtonClick = () => {
+    console.log('Start button clicked - showing duration selection modal');
+    setShowDurationModal(true);
+  };
+
+  const handleDurationSelect = async (duration: 30 | 60) => {
+    console.log('Duration selected:', duration);
+    setSelectedSessionDuration(duration);
+    setShowDurationModal(false);
+    
+    // IMMEDIATE UI FEEDBACK - critical for user experience
+    // 1. Set window flag FIRST to prevent cleanup
+    if (typeof window !== 'undefined') {
+      (window as any).__therapySessionActive = true;
+      console.log('Set window.__therapySessionActive = true');
+    }
+    
+    // 2. Set session-active class for visual feedback
+    document.body.classList.add('session-active');
+    console.log('Added session-active class to body');
+    
+    // 3. Set UI state for component
+    setIsCallActive(true);
+    console.log('Set isCallActive = true');
+    
+    // 4. Apply visual effects immediately 
+    const main = document.querySelector('main');
+    if (main) {
+      main.style.transition = 'all 0.3s ease-in-out';
+      main.style.opacity = '0.95';
+    }
+    
+    // 5. Tell the sound context we're active
+    setSessionActive(true);
+    console.log('Set session active in sound context');
+    
+    // 6. Start the session initialization process
+    console.log(`Starting therapy session process with ${duration} minute duration`);
+    startTherapySession().catch(error => {
+      console.error('Error starting session:', error);
+      setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
+      
+      // Reset UI state if session fails to start
+      document.body.classList.remove('session-active');
+      setIsCallActive(false);
+      if (main) {
+        main.style.opacity = '1';
+      }
+      setSessionActive(false);
+    });
+  };
+
+  const handleModalClose = () => {
+    console.log('Duration selection modal closed');
+    setShowDurationModal(false);
+  };
+
   // Start therapy session
   const startTherapySession = useCallback(async () => {
     console.log('⚙️ Starting therapy session initialization...');
@@ -1031,12 +1092,12 @@ function TherapyButton({
           startTime: sessionStartTime.toISOString(),
           date: sessionStartTime.toISOString(),
           status: 'active',
-          duration: 60,
-          theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy`,
-          notes: `Session started`,
+          duration: selectedSessionDuration,
+          theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy (${selectedSessionDuration} min)`,
+          notes: `Session started - ${selectedSessionDuration} minute session`,
           assistantId: assistantConfig.id || '',
           // Minimal context to avoid bloated payloads
-          context: userProfile?.name ? { userName: userProfile.name, therapyType } : { therapyType }
+          context: userProfile?.name ? { userName: userProfile.name, therapyType, sessionDuration: selectedSessionDuration } : { therapyType, sessionDuration: selectedSessionDuration }
         }),
       })
       
@@ -1162,16 +1223,22 @@ function TherapyButton({
         }
         
         try {
-          // Fetch personalized assistant configuration from API
-          console.log('Fetching personalized assistant configuration...');
-          const configResponse = await fetch(`/api/vapi/assistant?personalized=true&therapyType=${therapyType}`);
+          // Fetch personalized assistant configuration from API with session timing
+          console.log('Fetching personalized assistant configuration with session timing...');
+          const sessionDuration = selectedSessionDuration; // Use selected duration from modal
+          const startTimeISO = sessionStartTime.toISOString();
+          
+          const configResponse = await fetch(`/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${sessionDuration}&startTime=${encodeURIComponent(startTimeISO)}`);
           
           if (!configResponse.ok) {
             throw new Error('Failed to fetch personalized configuration');
           }
           
           const personalizedConfig = await configResponse.json();
-          console.log('✅ Received personalized configuration with enhanced settings');
+          console.log('✅ Received personalized configuration with enhanced settings and session timing:', {
+            duration: sessionDuration,
+            maxDurationSeconds: personalizedConfig.maxDurationSeconds
+          });
           
           // Option 1: Try to configure assistant server-side first
           try {
@@ -1187,13 +1254,15 @@ function TherapyButton({
             
             if (configureResponse.ok) {
               console.log('✅ Assistant configured server-side successfully');
-              // Now start with personalized firstMessage and variable values
+              // Now start with personalized firstMessage, variable values, and session timing
               const minimalOverrides = {
                 firstMessage: personalizedConfig.firstMessage, // Always include personalized intro
+                maxDurationSeconds: personalizedConfig.maxDurationSeconds, // Session timeout
                 variableValues: {
                   userName: personalizedConfig.variableValues?.userName || userProfile?.name || 'there',
                   partnerName: personalizedConfig.variableValues?.partnerName || userProfile?.partnerName || '',
-                  therapyType: therapyType
+                  therapyType: therapyType,
+                  ...personalizedConfig.variableValues // Include all session timing variables
                 }
               };
               await vapiInstanceRef.current.start(assistantId, minimalOverrides);
@@ -1219,6 +1288,7 @@ function TherapyButton({
               voice: personalizedConfig.voice,
               transcriber: personalizedConfig.transcriber,
               silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
+              maxDurationSeconds: personalizedConfig.maxDurationSeconds,
               responseDelaySeconds: personalizedConfig.responseDelaySeconds,
               llmRequestDelaySeconds: personalizedConfig.llmRequestDelaySeconds,
               numWordsToInterruptAssistant: personalizedConfig.numWordsToInterruptAssistant,
@@ -1232,10 +1302,12 @@ function TherapyButton({
           // Only send minimal overrides in the payload
           const minimalOverrides = {
             firstMessage: personalizedConfig.firstMessage,
+            maxDurationSeconds: personalizedConfig.maxDurationSeconds, // Session timeout
             variableValues: {
               userName: personalizedConfig.variableValues?.userName || userProfile?.name || 'there',
               partnerName: personalizedConfig.variableValues?.partnerName || userProfile?.partnerName || '',
-              therapyType: therapyType
+              therapyType: therapyType,
+              ...personalizedConfig.variableValues // Include all session timing variables
             }
           };
           
@@ -1249,14 +1321,16 @@ function TherapyButton({
           // Fallback: try with progressively simpler configurations
           console.warn('Enhanced mode failed, trying fallback approaches...');
           
-          // First try: Just variable values
+          // First try: Just variable values with basic session timeout
           try {
-            console.log('Fallback 1: Trying with just variable values...');
+            console.log('Fallback 1: Trying with just variable values and session timeout...');
             const minimalOverrides = {
+              maxDurationSeconds: sessionDuration * 60, // Convert minutes to seconds
               variableValues: {
                 userName: userProfile?.name || 'there',
                 partnerName: userProfile?.partnerName || '',
-                therapyType: therapyType
+                therapyType: therapyType,
+                sessionDurationMinutes: sessionDuration
               }
             };
             await vapiInstanceRef.current.start(assistantId, minimalOverrides);
@@ -1326,7 +1400,7 @@ function TherapyButton({
     } finally {
       setIsLoading(false)
     }
-  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive])
+  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive, selectedSessionDuration])
   
   // End therapy session
   const endTherapySession = useCallback(async () => {
@@ -2300,50 +2374,7 @@ function TherapyButton({
             }}
           >
             <motion.button
-              onClick={() => {
-                console.log('Start button clicked - initializing session');
-                
-                // IMMEDIATE UI FEEDBACK - critical for user experience
-                // 1. Set window flag FIRST to prevent cleanup
-                if (typeof window !== 'undefined') {
-                  (window as any).__therapySessionActive = true;
-                  console.log('Set window.__therapySessionActive = true');
-                }
-                
-                // 2. Set session-active class for visual feedback
-                document.body.classList.add('session-active');
-                console.log('Added session-active class to body');
-                
-                // 3. Set UI state for component
-                setIsCallActive(true);
-                console.log('Set isCallActive = true');
-                
-                // 4. Apply visual effects immediately 
-                const main = document.querySelector('main');
-                if (main) {
-                  main.style.transition = 'all 0.3s ease-in-out';
-                  main.style.opacity = '0.95';
-                }
-                
-                // 5. Tell the sound context we're active
-                setSessionActive(true);
-                console.log('Set session active in sound context');
-                
-                // 6. Start the session initialization process
-                console.log('Starting therapy session process');
-                startTherapySession().catch(error => {
-                  console.error('Error starting session:', error);
-                  setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
-                  
-                  // Reset UI state if session fails to start
-                  document.body.classList.remove('session-active');
-                  setIsCallActive(false);
-                  if (main) {
-                    main.style.opacity = '1';
-                  }
-                  setSessionActive(false);
-                });
-              }}
+              onClick={handleStartButtonClick}
               disabled={isLoading}
               title={`Start a ${therapyType} therapy session with ${assistantConfig?.name}`}
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center shadow-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 cursor-pointer"
@@ -2376,6 +2407,15 @@ function TherapyButton({
           Session active - speak with our AI therapist
         </p>
       )}
+
+      {/* Session Duration Modal */}
+      <SessionDurationModal
+        isOpen={showDurationModal}
+        onClose={handleModalClose}
+        onSelectDuration={handleDurationSelect}
+        therapyType={therapyType}
+        isLoading={isLoading}
+      />
     </div>
   )
 }

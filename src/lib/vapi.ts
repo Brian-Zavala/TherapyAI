@@ -201,7 +201,7 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 };
 
 // Get personalized system prompt based on user profile
-export const getPersonalizedSystemPrompt = (userProfile?: any): string => {
+export const getPersonalizedSystemPrompt = (userProfile?: any, sessionOptions?: { duration?: number; startTime?: string }): string => {
   // Determine therapy type from userProfile or default to couple
   const therapyType = userProfile?.therapyType || "couple";
 
@@ -274,6 +274,21 @@ export const getPersonalizedSystemPrompt = (userProfile?: any): string => {
     ? `• MILESTONE: This is a significant ${sessionCount}th session - acknowledge their commitment and progress`
     : "";
 
+  // Session timing instructions
+  const sessionDurationMinutes = sessionOptions?.duration || 60;
+  const warningTimeMinutes = 5;
+  
+  const sessionTimingInstructions = `
+SESSION TIMING MANAGEMENT:
+• This is a ${sessionDurationMinutes}-minute session that will automatically end when time expires
+• At ${sessionDurationMinutes - warningTimeMinutes} minutes (${warningTimeMinutes} minutes remaining), naturally begin winding down the session
+• Provide a gentle transition: "I notice we have about ${warningTimeMinutes} minutes left in our session today..."
+• In the final ${warningTimeMinutes} minutes, offer brief summarization and closure
+• In the final 1-2 minutes, prepare them for the session ending: "Our time together is coming to a close..."
+• End gracefully and naturally without abrupt cutoffs
+• Never mention exact timing or technical details about call duration limits
+• Integrate time awareness naturally into therapeutic conversation flow`;
+
   // Personalized system prompt with names and relationship status
   const systemPrompt = `You are Dr. Maya Thompson, couple therapist specializing in Gottman Method and EFT.
 
@@ -287,6 +302,8 @@ SESSION CONTEXT:
 ${sessionContext}
 ${milestoneNote}
 ${hasPreviousSessions ? "• Returning clients with established therapeutic relationship" : "• New clients - building initial rapport and trust"}
+
+${sessionTimingInstructions}
 
 APPROACH:
 • Communication style: ${communicationGuidance}
@@ -712,7 +729,11 @@ export const getAssistantConfigByType = (type: string = "couple") => {
 // Get personalized system prompt based on assistant type and user profile
 export const getPersonalizedSystemPromptForType = (
   type: string = "couple",
-  userProfile?: any
+  userProfile?: any,
+  sessionOptions?: {
+    duration?: number;
+    startTime?: string;
+  }
 ): string => {
   // Use therapy type from parameters, or from userProfile if available
   const preferredType = type || userProfile?.therapyType || "couple";
@@ -724,8 +745,23 @@ export const getPersonalizedSystemPromptForType = (
   // const sessionPreference = userProfile?.sessionPreference || "flexible";
   const additionalNotes = userProfile?.additionalNotes || "";
 
+  // Session timing instructions for all therapy types
+  const sessionDurationMinutes = sessionOptions?.duration || 60;
+  const warningTimeMinutes = 5; // Warn 5 minutes before end
+  
+  const sessionTimingInstructions = `
+SESSION TIMING MANAGEMENT:
+• This is a ${sessionDurationMinutes}-minute session that will automatically end when time expires
+• At ${sessionDurationMinutes - warningTimeMinutes} minutes (${warningTimeMinutes} minutes remaining), naturally begin winding down the session
+• Provide a gentle transition: "I notice we have about ${warningTimeMinutes} minutes left in our session today..."
+• In the final ${warningTimeMinutes} minutes, offer brief summarization and closure
+• In the final 1-2 minutes, prepare them for the session ending: "Our time together is coming to a close..."
+• End gracefully and naturally without abrupt cutoffs
+• Never mention exact timing or technical details about call duration limits
+• Integrate time awareness naturally into therapeutic conversation flow`;
+
   if (preferredType === "couple") {
-    return getPersonalizedSystemPrompt(userProfile);
+    return getPersonalizedSystemPrompt(userProfile, sessionOptions);
   }
 
   const config = getAssistantConfigByType(preferredType);
@@ -770,6 +806,8 @@ CLIENT INFO: ${userName}${pronounStr}${userProfile?.userAge ? ` (${userProfile.u
 ${currentConcerns.length > 0 ? `Concerns: ${concernsList}` : ""}
 ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 ${userProfile?.partnerName ? `Partner: ${userProfile.partnerName}${userProfile?.partnerAge ? ` (${userProfile.partnerAge})` : ""}` : ""}
+
+${sessionTimingInstructions}
 
 APPROACH:
 • Communication style: ${communicationGuidance}
@@ -875,6 +913,8 @@ SESSION CONTEXT:
 ${sessionContext}
 ${milestoneNote}
 ${hasPreviousSessions ? "• Returning family with established therapeutic relationship" : "• New family - building initial rapport and trust"}
+
+${sessionTimingInstructions}
 
 APPROACH:
 • Communication style: ${communicationGuidance}
@@ -1086,14 +1126,33 @@ export const getPersonalizedFirstMessageForType = (
 // Get personalized assistant configuration based on type and user profile
 export const getPersonalizedAssistantConfig = (
   userProfile?: any,
-  type?: string
+  type?: string,
+  sessionOptions?: {
+    duration?: number; // Session duration in minutes (30 or 60)
+    startTime?: string; // ISO string of session start time
+  }
 ) => {
   // Determine therapy type from user profile if not explicitly provided
   const therapyType = type || userProfile?.therapyType || "couple";
   const baseConfig = getAssistantConfigByType(therapyType);
 
+  // Session duration handling - default to 60 minutes if not specified
+  const sessionDurationMinutes = sessionOptions?.duration || 60;
+  const sessionDurationSeconds = sessionDurationMinutes * 60;
+  
+  // Calculate session timing thresholds
+  const warningTimeSeconds = sessionDurationSeconds - (5 * 60); // 5 minutes before end
+  const finalWarningTimeSeconds = sessionDurationSeconds - (1 * 60); // 1 minute before end
+
   // Build comprehensive variable values from user profile
-  const variableValues: Record<string, any> = {};
+  const variableValues: Record<string, any> = {
+    // Session timing variables
+    sessionDurationMinutes,
+    sessionDurationSeconds,
+    warningTimeMinutes: Math.floor(warningTimeSeconds / 60),
+    finalWarningTimeMinutes: 1,
+    sessionStartTime: sessionOptions?.startTime || new Date().toISOString(),
+  };
 
   if (userProfile) {
     // Core user data
@@ -1144,7 +1203,7 @@ export const getPersonalizedAssistantConfig = (
       messages: [
         {
           role: "system",
-          content: getPersonalizedSystemPromptForType(therapyType, userProfile),
+          content: getPersonalizedSystemPromptForType(therapyType, userProfile, sessionOptions),
         },
       ],
     },
@@ -1154,7 +1213,12 @@ export const getPersonalizedAssistantConfig = (
       therapyType,
       hasUserProfile: !!userProfile,
       userId: userProfile?.id,
+      sessionDuration: sessionDurationMinutes,
     },
+    // Session timing configuration for VAPI
+    maxDurationSeconds: sessionDurationSeconds, // VAPI will automatically end the call after this duration
+    silenceTimeoutSeconds: Math.min(baseConfig.silenceTimeoutSeconds || 45, 60), // Keep existing silence timeout
+    
     // Enhanced settings for natural conversation
     recordingEnabled: true,
     hipaaEnabled: true,

@@ -166,8 +166,18 @@ export async function GET(req: NextRequest) {
         // Get the therapy type from query params or user profile
         const therapyType = searchParams.get('therapyType') || user.therapyType || 'couple';
         
-        // Create a personalized assistant config based on user profile
-        const personalizedConfig = getPersonalizedAssistantConfig(userProfile, therapyType);
+        // Get session duration and start time if provided
+        const sessionDuration = searchParams.get('duration') ? parseInt(searchParams.get('duration')!) : 60;
+        const sessionStartTime = searchParams.get('startTime') || new Date().toISOString();
+        
+        // Session options for timing configuration
+        const sessionOptions = {
+          duration: sessionDuration,
+          startTime: sessionStartTime
+        };
+        
+        // Create a personalized assistant config based on user profile with session timing
+        const personalizedConfig = getPersonalizedAssistantConfig(userProfile, therapyType, sessionOptions);
         
         // Determine the appropriate assistant ID based on therapy type
         let assistantId;
