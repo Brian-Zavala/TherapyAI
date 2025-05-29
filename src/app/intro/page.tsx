@@ -26,15 +26,18 @@ export default function IntroPage() {
         const response = await fetch('/api/user/profile')
         if (response.ok) {
           const data = await response.json()
-          if (data.hasSeenIntro) {
+          // Only redirect if explicitly true, not undefined or null
+          if (data.hasSeenIntro === true) {
             setHasSeenIntro(true)
             router.push('/welcome')
             return
           }
         }
+        // If profile fetch fails or hasSeenIntro is false/undefined, show intro
+        setLoading(false)
       } catch (error) {
         console.error('Error checking intro status:', error)
-      } finally {
+        // On error, assume they haven't seen intro and show it
         setLoading(false)
       }
     }

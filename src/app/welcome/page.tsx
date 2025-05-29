@@ -281,6 +281,11 @@ export default function WelcomePage() {
         fetch('/api/user/profile')
           .then(res => res.json())
           .then(data => {
+            // Check if user hasn't seen intro yet
+            if (!data.hasSeenIntro) {
+              router.replace('/intro')
+              return
+            }
             if (data.onboardingCompleted || data.onboardingData) {
               router.replace('/')
             } else {
@@ -304,6 +309,11 @@ export default function WelcomePage() {
             return res.json()
           })
           .then(data => {
+            // Check if user hasn't seen intro yet
+            if (!data.hasSeenIntro) {
+              router.replace('/intro')
+              return
+            }
             if (data.onboardingCompleted) {
               // Update local storage
               localStorage.setItem(localOnboardingKey, 'true')

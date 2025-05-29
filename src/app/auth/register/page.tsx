@@ -73,8 +73,11 @@ export default function Register() {
         throw new Error(signInResult.error)
       }
       
-      // Redirect to welcome page after registration
-      router.push('/welcome')
+      // Small delay to ensure session is established
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Redirect to intro page after registration
+      router.push('/intro')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred')
@@ -130,7 +133,7 @@ export default function Register() {
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => signIn('google', { callbackUrl: '/welcome' })}
+                onClick={() => signIn('google', { callbackUrl: '/intro' })}
                 type="button"
                 className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20"
               >
@@ -145,7 +148,7 @@ export default function Register() {
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => signIn('facebook', { callbackUrl: '/welcome' })}
+                onClick={() => signIn('facebook', { callbackUrl: '/intro' })}
                 type="button"
                 className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20"
               >
