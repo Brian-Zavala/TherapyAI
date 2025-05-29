@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  Suspense,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
 import { useRouter } from "next/navigation";
@@ -11,48 +18,54 @@ const animationCache = new Map<string, any>();
 // Preload animations to improve performance
 const preloadAnimations = async () => {
   const urls = [
-    '/animations/solo-therapy.json',
-    '/animations/couples-therapy.json',
-    '/animations/family-therapy.json'
+    "/animations/solo-therapy.json",
+    "/animations/couples-therapy.json",
+    "/animations/family-therapy.json",
   ];
-  
-  await Promise.allSettled(urls.map(async (url) => {
-    if (!animationCache.has(url)) {
-      try {
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          animationCache.set(url, data);
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      if (!animationCache.has(url)) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            animationCache.set(url, data);
+          }
+        } catch (error) {
+          console.warn(`Failed to preload animation: ${url}`, error);
         }
-      } catch (error) {
-        console.warn(`Failed to preload animation: ${url}`, error);
       }
-    }
-  }));
+    })
+  );
 };
 
 // Custom hook for reduced motion preference
 const useReducedMotion = () => {
   const [prefersReduced, setPrefersReduced] = useState(false);
-  
+
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setPrefersReduced(mediaQuery.matches);
-    
+
     const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
   }, []);
-  
+
   return prefersReduced;
 };
 
 // Custom hook for device capabilities
 const useDeviceCapabilities = () => {
   return useMemo(() => {
-    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-    const isLowEnd = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency <= 4 : false;
-    
+    const isMobile =
+      typeof window !== "undefined" ? window.innerWidth < 768 : false;
+    const isLowEnd =
+      typeof navigator !== "undefined"
+        ? navigator.hardwareConcurrency <= 4
+        : false;
+
     return { isMobile, isLowEnd };
   }, []);
 };
@@ -98,13 +111,13 @@ const LottieAnimation = React.memo(({ url, title }: LottieAnimationProps) => {
           setIsLoading(false);
           return;
         }
-        
+
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to load animation: ${response.status}`);
         }
         const data = await response.json();
-        
+
         // Cache the loaded animation
         animationCache.set(url, data);
         setAnimationData(data);
@@ -193,10 +206,10 @@ const LottieAnimation = React.memo(({ url, title }: LottieAnimationProps) => {
           onComplete={handleComplete}
           className={`w-full h-full ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
           rendererSettings={{
-            preserveAspectRatio: 'xMidYMid meet',
+            preserveAspectRatio: "xMidYMid meet",
             clearCanvas: false,
             progressiveLoad: true,
-            hideOnTransparent: true
+            hideOnTransparent: true,
           }}
         />
       )}
@@ -273,65 +286,73 @@ const therapySteps: TherapyStep[] = [
 ];
 
 // Optimized particle component with therapy-specific colors
-const ParticleField = React.memo(({ particleCount, gradientConfig }: { 
-  particleCount: number; 
-  gradientConfig: { primary: string[]; animated: string[] } 
-}) => {
-  const particleConfigs = useMemo(() => generateParticleConfigs(particleCount), [particleCount]);
-  const prefersReduced = useReducedMotion();
-  
-  if (prefersReduced || particleCount === 0) {
-    return null;
+const ParticleField = React.memo(
+  ({
+    particleCount,
+    gradientConfig,
+  }: {
+    particleCount: number;
+    gradientConfig: { primary: string[]; animated: string[] };
+  }) => {
+    const particleConfigs = useMemo(
+      () => generateParticleConfigs(particleCount),
+      [particleCount]
+    );
+    const prefersReduced = useReducedMotion();
+
+    if (prefersReduced || particleCount === 0) {
+      return null;
+    }
+
+    return (
+      <div className="absolute inset-0 pointer-events-none">
+        {particleConfigs.map((config) => (
+          <motion.div
+            key={config.id}
+            className="absolute w-1 h-1 rounded-full"
+            style={{
+              transform: "translate3d(0, 0, 0)", // Enable hardware acceleration
+              backgroundColor: gradientConfig.primary[config.id % 2], // Alternate between primary colors
+            }}
+            initial={{
+              x: `${config.initialX}%`,
+              y: `${config.initialY}%`,
+              opacity: 0.1,
+            }}
+            animate={{
+              x: `${config.targetX}%`,
+              y: `${config.targetY}%`,
+              opacity: [0.1, 0.3, 0.1],
+            }}
+            transition={{
+              x: {
+                duration: config.duration,
+                repeat: Infinity,
+                repeatType: "reverse",
+                delay: config.delay,
+                ease: "easeInOut",
+              },
+              y: {
+                duration: config.duration,
+                repeat: Infinity,
+                repeatType: "reverse",
+                delay: config.delay,
+                ease: "easeInOut",
+              },
+              opacity: {
+                duration: config.duration * 0.5,
+                repeat: Infinity,
+                repeatType: "reverse",
+                delay: config.delay * 0.5,
+                ease: "easeInOut",
+              },
+            }}
+          />
+        ))}
+      </div>
+    );
   }
-  
-  return (
-    <div className="absolute inset-0 pointer-events-none">
-      {particleConfigs.map((config) => (
-        <motion.div
-          key={config.id}
-          className="absolute w-1 h-1 rounded-full"
-          style={{
-            transform: 'translate3d(0, 0, 0)', // Enable hardware acceleration
-            backgroundColor: gradientConfig.primary[config.id % 2] // Alternate between primary colors
-          }}
-          initial={{
-            x: `${config.initialX}%`,
-            y: `${config.initialY}%`,
-            opacity: 0.1
-          }}
-          animate={{
-            x: `${config.targetX}%`,
-            y: `${config.targetY}%`,
-            opacity: [0.1, 0.3, 0.1]
-          }}
-          transition={{
-            x: {
-              duration: config.duration,
-              repeat: Infinity,
-              repeatType: "reverse",
-              delay: config.delay,
-              ease: "easeInOut",
-            },
-            y: {
-              duration: config.duration,
-              repeat: Infinity,
-              repeatType: "reverse",
-              delay: config.delay,
-              ease: "easeInOut",
-            },
-            opacity: {
-              duration: config.duration * 0.5,
-              repeat: Infinity,
-              repeatType: "reverse",
-              delay: config.delay * 0.5,
-              ease: "easeInOut",
-            }
-          }}
-        />
-      ))}
-    </div>
-  );
-});
+);
 
 export default function IntroWelcomeScreen() {
   const router = useRouter();
@@ -339,11 +360,11 @@ export default function IntroWelcomeScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Performance optimizations
   const { isMobile, isLowEnd } = useDeviceCapabilities();
   const prefersReduced = useReducedMotion();
-  
+
   // Calculate optimal particle count based on device capabilities
   const particleCount = useMemo(() => {
     if (prefersReduced) return 0;
@@ -352,7 +373,7 @@ export default function IntroWelcomeScreen() {
     if (isLowEnd) return 15;
     return 30;
   }, [prefersReduced, isLowEnd, isMobile]);
-  
+
   // Preload animations on component mount
   useEffect(() => {
     preloadAnimations();
@@ -402,127 +423,144 @@ export default function IntroWelcomeScreen() {
   }, [router]);
 
   const currentTherapy = therapySteps[currentStep];
-  
+
   // Enhanced gradient mapping for smooth background transitions
-  const gradientMap = useMemo(() => ({
-    'from-purple-600 to-pink-600': {
-      primary: ['#9333ea', '#ec4899'], // purple-600 to pink-600
-      animated: [
-        'linear-gradient(135deg, #9333ea 0%, #ec4899 100%)',
-        'linear-gradient(135deg, #a855f7 0%, #f472b6 100%)', // purple-500 to pink-500
-        'linear-gradient(135deg, #8b5cf6 0%, #e879f9 100%)', // purple-400 to fuchsia-400
-        'linear-gradient(135deg, #7c3aed 0%, #d946ef 100%)', // violet-600 to fuchsia-600
-        'linear-gradient(135deg, #9333ea 0%, #ec4899 100%)'  // back to original
-      ]
-    },
-    'from-blue-600 to-cyan-600': {
-      primary: ['#2563eb', '#0891b2'], // blue-600 to cyan-600
-      animated: [
-        'linear-gradient(135deg, #2563eb 0%, #0891b2 100%)',
-        'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', // blue-500 to cyan-500
-        'linear-gradient(135deg, #1d4ed8 0%, #0e7490 100%)', // blue-700 to cyan-700
-        'linear-gradient(135deg, #1e40af 0%, #164e63 100%)', // blue-800 to cyan-800
-        'linear-gradient(135deg, #2563eb 0%, #0891b2 100%)'  // back to original
-      ]
-    },
-    'from-green-600 to-teal-600': {
-      primary: ['#16a34a', '#0d9488'], // green-600 to teal-600
-      animated: [
-        'linear-gradient(135deg, #16a34a 0%, #0d9488 100%)',
-        'linear-gradient(135deg, #22c55e 0%, #14b8a6 100%)', // green-500 to teal-500
-        'linear-gradient(135deg, #15803d 0%, #0f766e 100%)', // green-700 to teal-700
-        'linear-gradient(135deg, #166534 0%, #134e4a 100%)', // green-800 to teal-800
-        'linear-gradient(135deg, #16a34a 0%, #0d9488 100%)'  // back to original
-      ]
-    }
-  }), []);
-  
+  const gradientMap = useMemo(
+    () => ({
+      "from-purple-600 to-pink-600": {
+        primary: ["#9333ea", "#ec4899"], // purple-600 to pink-600
+        animated: [
+          "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)",
+          "linear-gradient(135deg, #a855f7 0%, #f472b6 100%)", // purple-500 to pink-500
+          "linear-gradient(135deg, #8b5cf6 0%, #e879f9 100%)", // purple-400 to fuchsia-400
+          "linear-gradient(135deg, #7c3aed 0%, #d946ef 100%)", // violet-600 to fuchsia-600
+          "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)", // back to original
+        ],
+      },
+      "from-blue-600 to-cyan-600": {
+        primary: ["#2563eb", "#0891b2"], // blue-600 to cyan-600
+        animated: [
+          "linear-gradient(135deg, #2563eb 0%, #0891b2 100%)",
+          "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", // blue-500 to cyan-500
+          "linear-gradient(135deg, #1d4ed8 0%, #0e7490 100%)", // blue-700 to cyan-700
+          "linear-gradient(135deg, #1e40af 0%, #164e63 100%)", // blue-800 to cyan-800
+          "linear-gradient(135deg, #2563eb 0%, #0891b2 100%)", // back to original
+        ],
+      },
+      "from-green-600 to-teal-600": {
+        primary: ["#16a34a", "#0d9488"], // green-600 to teal-600
+        animated: [
+          "linear-gradient(135deg, #16a34a 0%, #0d9488 100%)",
+          "linear-gradient(135deg, #22c55e 0%, #14b8a6 100%)", // green-500 to teal-500
+          "linear-gradient(135deg, #15803d 0%, #0f766e 100%)", // green-700 to teal-700
+          "linear-gradient(135deg, #166534 0%, #134e4a 100%)", // green-800 to teal-800
+          "linear-gradient(135deg, #16a34a 0%, #0d9488 100%)", // back to original
+        ],
+      },
+    }),
+    []
+  );
+
   // Get current therapy gradient configuration
-  const currentGradientConfig = useMemo(() => 
-    gradientMap[currentTherapy.gradient as keyof typeof gradientMap] || gradientMap['from-blue-600 to-cyan-600'], 
+  const currentGradientConfig = useMemo(
+    () =>
+      gradientMap[currentTherapy.gradient as keyof typeof gradientMap] ||
+      gradientMap["from-blue-600 to-cyan-600"],
     [currentTherapy.gradient, gradientMap]
   );
-  
+
   // Optimized motion variants with hardware acceleration
-  const contentVariants = useMemo(() => ({
-    initial: { 
-      opacity: 0, 
-      x: 100
-    },
-    animate: { 
-      opacity: 1, 
-      x: 0
-    },
-    exit: { 
-      opacity: 0, 
-      x: -100
-    }
-  }), []);
-  
-  const fadeInUpVariants = useMemo(() => ({
-    initial: { 
-      opacity: 0, 
-      y: 20
-    },
-    animate: { 
-      opacity: 1, 
-      y: 0
-    }
-  }), []);
-  
-  const scaleVariants = useMemo(() => ({
-    initial: { 
-      opacity: 0, 
-      scale: 0.8
-    },
-    animate: { 
-      opacity: 1, 
-      scale: 1
-    }
-  }), []);
+  const contentVariants = useMemo(
+    () => ({
+      initial: {
+        opacity: 0,
+        x: 100,
+      },
+      animate: {
+        opacity: 1,
+        x: 0,
+      },
+      exit: {
+        opacity: 0,
+        x: -100,
+      },
+    }),
+    []
+  );
+
+  const fadeInUpVariants = useMemo(
+    () => ({
+      initial: {
+        opacity: 0,
+        y: 20,
+      },
+      animate: {
+        opacity: 1,
+        y: 0,
+      },
+    }),
+    []
+  );
+
+  const scaleVariants = useMemo(
+    () => ({
+      initial: {
+        opacity: 0,
+        scale: 0.8,
+      },
+      animate: {
+        opacity: 1,
+        scale: 1,
+      },
+    }),
+    []
+  );
 
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
       {/* Enhanced animated background gradient */}
       <motion.div
         className="absolute inset-0 opacity-30"
-        style={{ transform: 'translate3d(0, 0, 0)' }} // Hardware acceleration
+        style={{ transform: "translate3d(0, 0, 0)" }} // Hardware acceleration
         animate={{
-          background: currentGradientConfig.animated
+          background: currentGradientConfig.animated,
         }}
         transition={{
           background: {
             duration: 16,
             repeat: Infinity,
-            ease: [0.25, 0.46, 0.45, 0.94]
-          }
+            ease: [0.25, 0.46, 0.45, 0.94],
+          },
         }}
         key={currentStep} // Force re-animation when slide changes
       />
-      
+
       {/* Smooth transition overlay for slide changes */}
       <motion.div
         className="absolute inset-0 opacity-20"
-        style={{ 
+        style={{
           background: currentGradientConfig.primary[0],
-          transform: 'translate3d(0, 0, 0)'
+          transform: "translate3d(0, 0, 0)",
         }}
         animate={{
           background: [
             currentGradientConfig.primary[0],
             currentGradientConfig.primary[1],
-            currentGradientConfig.primary[0]
-          ]
+            currentGradientConfig.primary[0],
+          ],
         }}
         transition={{
           duration: 24,
           repeat: Infinity,
-          ease: [0.4, 0.0, 0.2, 1]
+          ease: [0.4, 0.0, 0.2, 1],
         }}
       />
 
       {/* Optimized particle system with therapy-specific colors */}
-      <ParticleField particleCount={particleCount} gradientConfig={currentGradientConfig} />
+      <ParticleField
+        particleCount={particleCount}
+        gradientConfig={currentGradientConfig}
+      />
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-5xl">
@@ -533,7 +571,7 @@ export default function IntroWelcomeScreen() {
             animate="animate"
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="hidden md:block text-center mb-8"
-            style={{ transform: 'translate3d(0, 0, 0)' }}
+            style={{ transform: "translate3d(0, 0, 0)" }}
           >
             <h1 className="text-5xl font-bold text-white mb-4">
               Welcome to TherapyAI
@@ -563,7 +601,7 @@ export default function IntroWelcomeScreen() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              style={{ transform: 'translate3d(0, 0, 0)' }}
+              style={{ transform: "translate3d(0, 0, 0)" }}
             >
               <GlassCard className="p-8 md:p-12">
                 <div className="grid md:grid-cols-2 gap-8 items-start">
@@ -571,10 +609,10 @@ export default function IntroWelcomeScreen() {
                   <div className="order-1 space-y-6">
                     {/* Title and Subtitle */}
                     <div className="text-center md:text-left">
-                      <h2 className="text-3xl font-bold text-white mb-2">
+                      <h2 className="text-3xl font-bold text-sky-100 mb-2">
                         {currentTherapy.title}
                       </h2>
-                      <p className="text-lg text-blue-400">
+                      <p className="text-lg text-yellow-300">
                         {currentTherapy.subtitle}
                       </p>
                     </div>
@@ -585,9 +623,13 @@ export default function IntroWelcomeScreen() {
                         variants={scaleVariants}
                         initial="initial"
                         animate="animate"
-                        transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
+                        transition={{
+                          delay: 0.2,
+                          duration: 0.5,
+                          ease: "easeOut",
+                        }}
                         className="w-full h-64 max-w-sm mx-auto flex items-center justify-center overflow-visible"
-                        style={{ transform: 'translate3d(0, 0, 0)' }}
+                        style={{ transform: "translate3d(0, 0, 0)" }}
                       >
                         <div className="w-full h-full max-w-full">
                           <Suspense fallback={<AnimationSkeleton />}>
@@ -611,13 +653,14 @@ export default function IntroWelcomeScreen() {
                             key={index}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            whileHover={{ 
+                            whileHover={{
                               scale: 1.05,
-                              background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3))'
+                              background:
+                                "linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3))",
                             }}
-                            transition={{ 
+                            transition={{
                               delay: 0.5 + index * 0.05,
-                              hover: { duration: 0.2 }
+                              hover: { duration: 0.2 },
                             }}
                             className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/80 border border-white/20 cursor-default"
                           >
@@ -637,38 +680,31 @@ export default function IntroWelcomeScreen() {
                           transition={{ delay: 0.3 + index * 0.1 }}
                           className="flex items-start space-x-3"
                         >
-                          <motion.div 
-                            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 relative overflow-hidden"
-                            animate={{
-                              background: [
-                                'linear-gradient(45deg, #3b82f6, #8b5cf6)',
-                                'linear-gradient(60deg, #6366f1, #a855f7)',
-                                'linear-gradient(75deg, #8b5cf6, #06b6d4)', 
-                                'linear-gradient(90deg, #0ea5e9, #14b8a6)',
-                                'linear-gradient(105deg, #06b6d4, #10b981)',
-                                'linear-gradient(120deg, #059669, #0d9488)',
-                                'linear-gradient(135deg, #10b981, #3b82f6)',
-                                'linear-gradient(150deg, #0891b2, #3b82f6)'
-                              ]
-                            }}
-                            transition={{
-                              duration: 8,
-                              repeat: Infinity,
-                              ease: [0.4, 0.0, 0.2, 1]
-                            }}
-                          >
-                            <svg
-                              className="w-4 h-4 text-white"
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-300 flex items-center justify-center mt-0.5">
+                            <motion.svg
+                              className="w-4 h-4"
                               fill="currentColor"
                               viewBox="0 0 20 20"
+                              animate={{
+                                color: [
+                                  currentGradientConfig.primary[0],
+                                  currentGradientConfig.primary[1],
+                                  currentGradientConfig.primary[0],
+                                ],
+                              }}
+                              transition={{
+                                duration: 4,
+                                repeat: Infinity,
+                                ease: [0.4, 0.0, 0.2, 1],
+                              }}
                             >
                               <path
                                 fillRule="evenodd"
                                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                 clipRule="evenodd"
                               />
-                            </svg>
-                          </motion.div>
+                            </motion.svg>
+                          </div>
                           <p className="text-white/90">{point}</p>
                         </motion.div>
                       ))}
@@ -681,9 +717,13 @@ export default function IntroWelcomeScreen() {
                       variants={scaleVariants}
                       initial="initial"
                       animate="animate"
-                      transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
+                      transition={{
+                        delay: 0.2,
+                        duration: 0.5,
+                        ease: "easeOut",
+                      }}
                       className="w-full h-[28rem] flex items-center justify-center overflow-visible"
-                      style={{ transform: 'translate3d(0, 0, 0)' }}
+                      style={{ transform: "translate3d(0, 0, 0)" }}
                     >
                       <div className="w-full h-full max-w-full">
                         <Suspense fallback={<AnimationSkeleton />}>
@@ -704,11 +744,11 @@ export default function IntroWelcomeScreen() {
                     whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
                     onClick={handlePrevious}
                     disabled={currentStep === 0}
-                    style={{ transform: 'translate3d(0, 0, 0)' }}
+                    style={{ transform: "translate3d(0, 0, 0)" }}
                     className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-all text-sm sm:text-base ${
                       currentStep === 0
                         ? "bg-white/5 text-white/30 cursor-not-allowed"
-                        : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20"
+                        : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 cursor-pointer"
                     }`}
                   >
                     Previous
@@ -716,102 +756,102 @@ export default function IntroWelcomeScreen() {
 
                   {currentStep === therapySteps.length - 1 ? (
                     <motion.button
-                      whileHover={{ 
+                      whileHover={{
                         scale: 1.08,
                         boxShadow: [
-                          '0 0 20px rgba(59, 130, 246, 0.3)',
-                          '0 0 30px rgba(139, 92, 246, 0.4)',
-                          '0 0 40px rgba(6, 182, 212, 0.3)'
+                          "0 0 20px rgba(59, 130, 246, 0.3)",
+                          "0 0 30px rgba(139, 92, 246, 0.4)",
+                          "0 0 40px rgba(6, 182, 212, 0.3)",
                         ],
-                        transition: { 
+                        transition: {
                           duration: 0.3,
-                          ease: [0.4, 0.0, 0.2, 1]
-                        }
+                          ease: [0.4, 0.0, 0.2, 1],
+                        },
                       }}
-                      whileTap={{ 
-                        scale: 0.96, 
-                        transition: { duration: 0.1 } 
+                      whileTap={{
+                        scale: 0.96,
+                        transition: { duration: 0.1 },
                       }}
                       onClick={handleGetStarted}
                       disabled={isLoading}
-                      className="px-4 sm:px-6 py-2.5 sm:py-3 text-white rounded-xl font-medium transition-all text-sm sm:text-base relative overflow-hidden group shadow-lg"
-                      style={{ transform: 'translate3d(0, 0, 0)' }}
+                      className="px-4 sm:px-6 py-2.5 sm:py-3 text-white rounded-xl font-medium transition-all text-sm sm:text-base relative overflow-hidden group shadow-lg cursor-pointer"
+                      style={{ transform: "translate3d(0, 0, 0)" }}
                       animate={{
                         background: [
-                          'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%)',
-                          'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #6366f1 100%)',
-                          'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #8b5cf6 100%)', 
-                          'linear-gradient(135deg, #0ea5e9 0%, #14b8a6 50%, #0ea5e9 100%)',
-                          'linear-gradient(135deg, #06b6d4 0%, #10b981 50%, #06b6d4 100%)',
-                          'linear-gradient(135deg, #059669 0%, #0d9488 50%, #059669 100%)',
-                          'linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #10b981 100%)',
-                          'linear-gradient(135deg, #0891b2 0%, #3b82f6 50%, #0891b2 100%)'
+                          "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%)",
+                          "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #6366f1 100%)",
+                          "linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #8b5cf6 100%)",
+                          "linear-gradient(135deg, #0ea5e9 0%, #14b8a6 50%, #0ea5e9 100%)",
+                          "linear-gradient(135deg, #06b6d4 0%, #10b981 50%, #06b6d4 100%)",
+                          "linear-gradient(135deg, #059669 0%, #0d9488 50%, #059669 100%)",
+                          "linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #10b981 100%)",
+                          "linear-gradient(135deg, #0891b2 0%, #3b82f6 50%, #0891b2 100%)",
                         ],
-                        backgroundSize: ['200% 200%', '200% 200%'],
-                        backgroundPosition: ['0% 50%', '100% 50%']
+                        backgroundSize: ["200% 200%", "200% 200%"],
+                        backgroundPosition: ["0% 50%", "100% 50%"],
                       }}
                       transition={{
                         background: {
                           duration: 8,
                           repeat: Infinity,
-                          ease: [0.4, 0.0, 0.2, 1]
+                          ease: [0.4, 0.0, 0.2, 1],
                         },
                         backgroundPosition: {
                           duration: 4,
                           repeat: Infinity,
-                          ease: [0.4, 0.0, 0.2, 1]
-                        }
+                          ease: [0.4, 0.0, 0.2, 1],
+                        },
                       }}
                     >
                       {/* Enhanced shimmer overlay */}
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100"
-                        initial={{ x: '-100%' }}
+                        initial={{ x: "-100%" }}
                         whileHover={{
-                          x: '100%',
+                          x: "100%",
                           transition: {
                             duration: 0.6,
-                            ease: [0.4, 0.0, 0.2, 1]
-                          }
+                            ease: [0.4, 0.0, 0.2, 1],
+                          },
                         }}
                       />
-                      
+
                       {/* Continuous subtle shimmer */}
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
                         animate={{
-                          x: ['-100%', '200%']
+                          x: ["-100%", "200%"],
                         }}
                         transition={{
                           duration: 3,
                           repeat: Infinity,
-                          ease: [0.25, 0.46, 0.45, 0.94]
+                          ease: [0.25, 0.46, 0.45, 0.94],
                         }}
                       />
-                      
+
                       <span className="relative z-10">
                         {isLoading ? (
                           <span className="flex items-center">
                             <svg
                               className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
                             Getting Started...
                           </span>
                         ) : (
@@ -821,11 +861,14 @@ export default function IntroWelcomeScreen() {
                     </motion.button>
                   ) : (
                     <motion.button
-                      whileHover={{ scale: 1.05, transition: { duration: 0.1 } }}
+                      whileHover={{
+                        scale: 1.05,
+                        transition: { duration: 0.1 },
+                      }}
                       whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
                       onClick={handleNext}
-                      style={{ transform: 'translate3d(0, 0, 0)' }}
-                      className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all text-sm sm:text-base"
+                      style={{ transform: "translate3d(0, 0, 0)" }}
+                      className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all text-sm sm:text-base cursor-pointer"
                     >
                       Next
                     </motion.button>
@@ -842,11 +885,11 @@ export default function IntroWelcomeScreen() {
             animate="animate"
             transition={{ delay: 1, duration: 0.5 }}
             className="text-center mt-6"
-            style={{ transform: 'translate3d(0, 0, 0)' }}
+            style={{ transform: "translate3d(0, 0, 0)" }}
           >
             <button
               onClick={handleGetStarted}
-              className="text-white/50 hover:text-white/70 text-sm transition-colors"
+              className="text-white/50 hover:text-white/70 text-sm transition-colors cursor-pointer"
             >
               Skip Introduction →
             </button>
