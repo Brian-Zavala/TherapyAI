@@ -159,6 +159,7 @@ export default function MusicPlayer() {
     '/auth/login',               // Hide on login page
     '/auth/register',            // Hide on register page
     '/welcome',                  // Hide on onboarding page
+    '/intro',                    // Hide on intro page
     '/api/sessions'              // Hide on session API routes
   ]
   

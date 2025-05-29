@@ -438,13 +438,13 @@ export default function IntroWelcomeScreen() {
                 </div>
 
                 {/* Navigation buttons */}
-                <div className="flex justify-between items-center mt-8">
+                <div className="flex justify-between items-center mt-8 gap-3">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handlePrevious}
                     disabled={currentStep === 0}
-                    className={`px-6 py-3 rounded-xl font-medium transition-all min-w-[120px] ${
+                    className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-all text-sm sm:text-base ${
                       currentStep === 0
                         ? "bg-white/5 text-white/30 cursor-not-allowed"
                         : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20"
@@ -459,7 +459,7 @@ export default function IntroWelcomeScreen() {
                       whileTap={{ scale: 0.95 }}
                       onClick={handleGetStarted}
                       disabled={isLoading}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all min-w-[120px]"
+                      className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all text-sm sm:text-base"
                     >
                       {isLoading ? (
                         <span className="flex items-center">
@@ -494,7 +494,7 @@ export default function IntroWelcomeScreen() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleNext}
-                      className="px-6 py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all min-w-[120px]"
+                      className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all text-sm sm:text-base"
                     >
                       Next
                     </motion.button>
