@@ -47,21 +47,69 @@ export default function IntroPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
+      <div className="fixed inset-0 bg-gray-900 z-50">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="text-center w-full max-w-sm">
           <motion.div
-            className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+            className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 rounded-full relative overflow-hidden"
             animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.7, 1, 0.7],
+              scale: [1, 1.1, 1],
+              opacity: [0.8, 1, 0.8],
+              background: [
+                'linear-gradient(135deg, #9333ea 0%, #ec4899 100%)', // purple-pink
+                'linear-gradient(135deg, #8b5cf6 0%, #f472b6 100%)', // purple-500 to pink-500
+                'linear-gradient(135deg, #2563eb 0%, #0891b2 100%)', // blue-cyan
+                'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', // blue-500 to cyan-500
+                'linear-gradient(135deg, #16a34a 0%, #0d9488 100%)', // green-teal
+                'linear-gradient(135deg, #22c55e 0%, #14b8a6 100%)', // green-500 to teal-500
+                'linear-gradient(135deg, #9333ea 0%, #ec4899 100%)'  // back to start
+              ]
             }}
             transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
+              scale: {
+                duration: 2,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.2, 1]
+              },
+              opacity: {
+                duration: 2,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.2, 1]
+              },
+              background: {
+                duration: 8,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.2, 1]
+              }
             }}
-          />
-          <p className="text-white/70">Loading your introduction...</p>
+          >
+            {/* Inner spinning element for extra visual interest */}
+            <motion.div
+              className="absolute inset-2 rounded-full bg-gradient-to-r from-white/20 to-white/5"
+              animate={{
+                rotate: [0, 360]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            />
+          </motion.div>
+          <motion.p 
+            className="text-white/80 text-base sm:text-lg font-medium"
+            animate={{
+              opacity: [0.6, 1, 0.6]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: [0.4, 0.0, 0.2, 1]
+            }}
+          >
+            Loading your introduction...
+          </motion.p>
+          </div>
         </div>
       </div>
     )
