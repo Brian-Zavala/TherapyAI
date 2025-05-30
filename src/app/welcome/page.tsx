@@ -840,7 +840,7 @@ export default function WelcomePage() {
       <Spotlight />
       <ConfettiAnimation trigger={showConfetti} />
       
-      <div className="relative z-10 px-4 py-8">
+      <div className="relative z-10 px-4 flex justify-center" style={{paddingTop: 'max(2rem, calc(50vh - 400px))', paddingBottom: 'max(2rem, calc(50vh - 400px))'}}>
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div 
