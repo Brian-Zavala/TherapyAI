@@ -281,10 +281,14 @@ export const getPersonalizedSystemPrompt = (userProfile?: any, sessionOptions?: 
   const sessionTimingInstructions = `
 SESSION TIMING MANAGEMENT:
 • This is a ${sessionDurationMinutes}-minute session that will automatically end when time expires
-• At ${sessionDurationMinutes - warningTimeMinutes} minutes (${warningTimeMinutes} minutes remaining), naturally begin winding down the session
-• Provide a gentle transition: "We have about ${warningTimeMinutes} minutes left in our session today..."
-• In the final ${warningTimeMinutes} minutes, offer brief summarization and closure
-• In the final 1-2 minutes, prepare them for the session ending: "Our time together is coming to a close..."
+• Use natural conversation pacing and therapeutic intuition to manage session time effectively
+• Begin naturally transitioning toward closure around ${sessionDurationMinutes - warningTimeMinutes} minutes into the session
+• Provide gentle transitions: "We have about ${warningTimeMinutes} minutes left in our session today..."
+• In the final ${warningTimeMinutes} minutes, offer brief summarization and meaningful closure
+• In the final 1-2 minutes, prepare for natural ending: "Our time together is coming to a close..."
+• Pace conversations appropriately - allow depth early on, focus on insights and closure later
+• When you sense the session entering its final quarter, begin prioritizing key takeaways
+• Trust your therapeutic timing instincts combined with the session duration knowledge
 • End gracefully and naturally without abrupt cutoffs
 • Never mention exact timing or technical details about call duration limits
 • Integrate time awareness naturally into therapeutic conversation flow
@@ -838,10 +842,14 @@ export const getPersonalizedSystemPromptForType = (
   const sessionTimingInstructions = `
 SESSION TIMING MANAGEMENT:
 • This is a ${sessionDurationMinutes}-minute session that will automatically end when time expires
-• At ${sessionDurationMinutes - warningTimeMinutes} minutes (${warningTimeMinutes} minutes remaining), naturally begin winding down the session
-• Provide a gentle transition: "We have about ${warningTimeMinutes} minutes left in our session today..."
-• In the final ${warningTimeMinutes} minutes, offer brief summarization and closure
-• In the final 1-2 minutes, prepare them for the session ending: "Our time together is coming to a close..."
+• Use natural conversation pacing and therapeutic intuition to manage session time effectively
+• Begin naturally transitioning toward closure around ${sessionDurationMinutes - warningTimeMinutes} minutes into the session
+• Provide gentle transitions: "We have about ${warningTimeMinutes} minutes left in our session today..."
+• In the final ${warningTimeMinutes} minutes, offer brief summarization and meaningful closure
+• In the final 1-2 minutes, prepare for natural ending: "Our time together is coming to a close..."
+• Pace conversations appropriately - allow depth early on, focus on insights and closure later
+• When you sense the session entering its final quarter, begin prioritizing key takeaways
+• Trust your therapeutic timing instincts combined with the session duration knowledge
 • End gracefully and naturally without abrupt cutoffs
 • Never mention exact timing or technical details about call duration limits
 • Integrate time awareness naturally into therapeutic conversation flow
@@ -1382,7 +1390,7 @@ export const getPersonalizedAssistantConfig = (
 
   // Build comprehensive variable values from user profile
   const variableValues: Record<string, any> = {
-    // Session timing variables
+    // Session timing variables (static - set at session start)
     sessionDurationMinutes,
     sessionDurationSeconds,
     warningTimeMinutes: Math.floor(warningTimeSeconds / 60),

@@ -58,7 +58,10 @@ function TherapyButton({
   const [isMuted, setIsMuted] = useState(false)
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
+  const [sessionRecovered, setSessionRecovered] = useState(false)
   const [isEndingSession, setIsEndingSession] = useState(false)
+  const [vapiCallStartTime, setVapiCallStartTime] = useState<Date | null>(null)
+  const [vapiCallDuration, setVapiCallDuration] = useState(0)
   
   // Get the sound context to control music playback
   const { stopMusicPlayback, setSessionActive } = useSoundContext()
@@ -72,8 +75,7 @@ function TherapyButton({
   const audioStreamRef = useRef<MediaStream | null>(null)
   const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
   
-  // Check for existing session on component mount using useCallback for performance
-  // Note: We don't auto-start sessions to avoid unexpected behavior
+  // Check for existing session and recover timer state
   const checkForActiveSession = useCallback(async () => {
     try {
       console.log('Checking for active sessions for user:', userId);
@@ -81,12 +83,43 @@ function TherapyButton({
       if (response.ok) {
         const data = await response.json()
         if (data && data.id) {
-          // Only store the session ID
           setSessionId(data.id)
-          console.log('Found existing session, but not auto-starting:', data.id)
-          // Don't auto-start the session, but set the flag to avoid cleanup
+          console.log('Found existing session:', data.id)
+          
+          // Recover session timing data if available
+          if (data.startTime && data.duration) {
+            const sessionStart = new Date(data.startTime);
+            const sessionDuration = data.duration;
+            const now = new Date();
+            const elapsedMs = now.getTime() - sessionStart.getTime();
+            const elapsedMinutes = Math.floor(elapsedMs / 60000);
+            
+            // Only recover if session is still within duration
+            if (elapsedMinutes < sessionDuration) {
+              console.log(`📚 RECOVERING SESSION: Started ${elapsedMinutes} minutes ago, ${sessionDuration - elapsedMinutes} minutes remaining`);
+              
+              // Restore timer state
+              setSessionStartTime(sessionStart);
+              setSelectedSessionDuration(sessionDuration as 30 | 60);
+              setSessionRecovered(true);
+              
+              // Store recovery info for user awareness
+              sessionStorage.setItem('session-recovered', JSON.stringify({
+                sessionId: data.id,
+                originalStart: data.startTime,
+                recoveredAt: now.toISOString(),
+                elapsedMinutes,
+                remainingMinutes: sessionDuration - elapsedMinutes
+              }));
+              
+              console.log(`✅ Session timer recovered successfully`);
+            } else {
+              console.log(`⚠️ Session has expired (${elapsedMinutes} minutes elapsed, duration was ${sessionDuration} minutes)`);
+            }
+          }
+          
+          // Set flag to avoid cleanup
           if (typeof window !== 'undefined') {
-            // Don't set as active yet because user hasn't clicked the button
             (window as any).__existingSession = data.id;
           }
         } else {
@@ -482,6 +515,11 @@ function TherapyButton({
         setIsLoading(false); // Stop loading animation when call actually starts
         setErrorMessage(null);
         
+        // Track VAPI call start time for real-time timing
+        const vapiStartTime = new Date();
+        setVapiCallStartTime(vapiStartTime);
+        console.log('📞 VAPI Call timing started:', vapiStartTime.toISOString());
+        
         // Ensure session-active class is present (critical for starry night visualization)
         if (!document.body.classList.contains('session-active')) {
           console.log('WARNING: session-active class missing on call-start, adding it now');
@@ -601,6 +639,15 @@ function TherapyButton({
         console.log('Call end reason:', reason);
         setIsCallActive(false);
         setIsLoading(false); // Ensure loading is stopped
+        
+        // Calculate VAPI call duration
+        if (vapiCallStartTime) {
+          const vapiEndTime = new Date();
+          const vapiDurationMs = vapiEndTime.getTime() - vapiCallStartTime.getTime();
+          const vapiDurationSeconds = Math.floor(vapiDurationMs / 1000);
+          setVapiCallDuration(vapiDurationSeconds);
+          console.log(`📞 VAPI Call duration: ${Math.round(vapiDurationSeconds / 60)} minutes (${vapiDurationSeconds} seconds)`);
+        }
         
         // Show a user-friendly message about the call ending
         if (reason && reason !== "NORMAL" && reason !== "No reason provided") {
@@ -861,13 +908,25 @@ function TherapyButton({
             
             // If no speaker specified, use content analysis to determine speaker
             if (!speaker) {
-              // Check if this looks like assistant content (therapeutic language patterns)
-              const isLikelyAssistant = /\b(I understand|let me|tell me more|how does that make you feel|what I hear|it sounds like|have you considered|that's interesting|I'd like to explore|from what you're sharing)\b/i.test(text) ||
-                                       /\b(therapy|therapeutic|counseling|session|feelings|emotions|relationship|communication)\b/i.test(text) ||
-                                       text.length > 100; // Assistant responses tend to be longer
+              // Enhanced speaker detection with broader patterns to catch more AI responses
+              const isLikelyAssistant = 
+                // Direct AI language patterns
+                /\b(I understand|let me|tell me more|how does that make you feel|what I hear|it sounds like|have you considered|that's interesting|I'd like to explore|from what you're sharing)\b/i.test(text) ||
+                // Therapeutic/professional language
+                /\b(therapy|therapeutic|counseling|session|feelings|emotions|relationship|communication)\b/i.test(text) ||
+                // Common AI response patterns
+                /\b(how are you|good morning|good afternoon|good evening|thank you for|I appreciate|can you tell me|what would you like|let's talk about|that sounds|I hear that|it seems like)\b/i.test(text) ||
+                // Question patterns typical of therapists
+                /\b(what|how|why|when|where|can you|could you|would you|have you|do you|are you)\b.*\?/i.test(text) ||
+                // Professional responses
+                /\b(I see|I notice|that makes sense|absolutely|of course|certainly|indeed|exactly|precisely)\b/i.test(text) ||
+                // Length-based detection (longer responses are usually AI)
+                text.length > 80 ||
+                // Formal language patterns
+                /\b(please|certainly|absolutely|wonderful|excellent|fantastic|great|perfect)\b/i.test(text)
               
               speaker = isLikelyAssistant ? 'assistant' : 'user';
-              console.log(`🤖 SPEAKER DETECTION: Determined speaker as '${speaker}' based on content analysis`);
+              console.log(`🤖 SPEAKER DETECTION: Determined speaker as '${speaker}' for text: "${text.substring(0, 60)}..." (length: ${text.length})`);
             }
             
             // 🔥 CRITICAL FIX: Process assistant messages even if not final (they might not be marked as final)
@@ -878,9 +937,9 @@ function TherapyButton({
             
             // Always process assistant messages regardless of final status
             if (speaker === 'assistant' || isFinal) {
-              console.log(`✨ PROCESSING TRANSCRIPT: [${speaker}] ${text.substring(0, 100)}... (isFinal: ${isFinal})`);
+              console.log(`✨ PROCESSING TRANSCRIPT: [${speaker}] "${text.substring(0, 100)}..." (isFinal: ${isFinal}, sessionId: ${currentSessionId})`);
             } else {
-              console.log(`⏳ PARTIAL transcript (not saving): [${speaker}] ${text.substring(0, 50)}...`);
+              console.log(`⏳ PARTIAL transcript (not saving): [${speaker}] "${text.substring(0, 50)}..." (isFinal: ${isFinal})`);
               return;
             }
             
@@ -1228,6 +1287,64 @@ function TherapyButton({
     console.log('Duration selection modal closed');
     setShowDurationModal(false);
   };
+
+  // Handle real-time timer updates with VAPI assistant integration
+  const handleTimeUpdate = useCallback((remainingTimeMinutes: number, remainingTimeSeconds: number) => {
+    if (vapiInstanceRef.current && isCallActive) {
+      try {
+        const totalSeconds = selectedSessionDuration * 60;
+        const sessionPercentageRemaining = (remainingTimeSeconds / totalSeconds) * 100;
+        
+        // Log time updates (throttled)
+        if (remainingTimeSeconds % 30 === 0) {
+          console.log(`📊 SESSION TIME: ${remainingTimeMinutes}:${(remainingTimeSeconds % 60).toString().padStart(2, '0')} remaining (${sessionPercentageRemaining.toFixed(1)}%)`);
+        }
+        
+        // Send critical time updates to VAPI assistant via system messages
+        const shouldSendUpdate = (
+          remainingTimeMinutes === 10 ||  // 10 minutes warning
+          remainingTimeMinutes === 5 ||   // 5 minutes warning
+          remainingTimeMinutes === 2 ||   // 2 minutes warning
+          (remainingTimeMinutes === 1 && remainingTimeSeconds % 15 === 0) // Every 15 seconds in last minute
+        );
+        
+        if (shouldSendUpdate) {
+          try {
+            // Create time-aware system message for assistant
+            let timeMessage = '';
+            if (remainingTimeMinutes === 10) {
+              timeMessage = 'Time Update: 10 minutes remaining in session. Continue conversation naturally but begin to consider pacing toward meaningful insights.';
+            } else if (remainingTimeMinutes === 5) {
+              timeMessage = 'Time Update: 5 minutes remaining in session. Begin natural transition toward session closure while maintaining therapeutic value.';
+            } else if (remainingTimeMinutes === 2) {
+              timeMessage = 'Time Update: 2 minutes remaining in session. Start providing closure, summarize key insights, and prepare for ending.';
+            } else if (remainingTimeMinutes === 1) {
+              timeMessage = 'Time Update: 1 minute remaining. Begin final therapeutic closure and farewell.';
+            }
+            
+            // Send system message to assistant via VAPI
+            if (timeMessage && typeof vapiInstanceRef.current.send === 'function') {
+              vapiInstanceRef.current.send({
+                type: 'add-message',
+                message: {
+                  role: 'system',
+                  content: timeMessage
+                }
+              });
+              
+              console.log(`⏰ REAL-TIME ASSISTANT UPDATE: Sent "${timeMessage.substring(0, 50)}..."`);
+            }
+            
+          } catch (msgError) {
+            console.warn('Failed to send time update to assistant:', msgError);
+          }
+        }
+        
+      } catch (error) {
+        console.warn('Error in timer update handling:', error);
+      }
+    }
+  }, [selectedSessionDuration, isCallActive]);
 
   // Start therapy session
   const startTherapySession = useCallback(async () => {
@@ -1629,6 +1746,10 @@ function TherapyButton({
     setIsMuted(false); // Reset mute state when call ends
     setLoadingMessageIndex(0); // Reset loading message index
     setIsEndingSession(false); // Reset ending session state
+    setSessionStartTime(null); // Reset session start time
+    setSessionRecovered(false); // Reset session recovery state
+    setVapiCallStartTime(null); // Reset VAPI call start time
+    setVapiCallDuration(0); // Reset VAPI call duration
     
     // Update session state in the sound context
     setSessionActive(false);
@@ -2132,16 +2253,50 @@ function TherapyButton({
         console.log(`Fallback duration estimate: ${sessionDuration} minutes from ${entryCount} entries`);
       }
       
+      // Calculate actual session duration and timing metadata
+      const sessionEndTime = new Date();
+      let actualDurationMinutes = sessionDuration; // Default to planned duration
+      let sessionTimingMetadata = {};
+      
+      if (sessionStartTime) {
+        const actualDurationMs = sessionEndTime.getTime() - sessionStartTime.getTime();
+        actualDurationMinutes = Math.round(actualDurationMs / 60000); // Convert to minutes
+        
+        sessionTimingMetadata = {
+          // Session timing (UI/Database)
+          plannedDurationMinutes: sessionDuration,
+          actualDurationMinutes,
+          actualDurationMs,
+          startTime: sessionStartTime.toISOString(),
+          endTime: sessionEndTime.toISOString(),
+          sessionRecovered: sessionRecovered,
+          timerDisplayed: true,
+          
+          // VAPI call timing (Real-time events)
+          vapiCallDurationSeconds: vapiCallDuration,
+          vapiCallDurationMinutes: Math.round(vapiCallDuration / 60),
+          vapiCallStartTime: vapiCallStartTime?.toISOString(),
+          vapiTimerIntegrated: true,
+          
+          // Timing comparison
+          sessionVsCallDifference: actualDurationMs - (vapiCallDuration * 1000),
+          timingSource: vapiCallDuration > 0 ? 'vapi_events' : 'session_timer'
+        };
+        
+        console.log(`📊 DUAL TIMING: Session ${actualDurationMinutes}min, VAPI Call ${Math.round(vapiCallDuration/60)}min`);
+      }
+      
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          endTime: new Date().toISOString(),
+          endTime: sessionEndTime.toISOString(),
           status: 'completed',
-          duration: sessionDuration, // Update with actual duration
-          notes: `Therapy session ${new Date().toLocaleDateString()} - Duration: ${sessionDuration} minutes - ${dedupedEntries.length} transcript entries`,
+          duration: actualDurationMinutes,
+          notes: `Therapy session ${sessionEndTime.toLocaleDateString()} - Planned: ${sessionDuration}min, Session: ${actualDurationMinutes}min, VAPI Call: ${Math.round(vapiCallDuration/60)}min - ${dedupedEntries.length} transcript entries`,
+          sessionTimingMetadata: JSON.stringify(sessionTimingMetadata)
         }),
       });
       
@@ -2150,7 +2305,7 @@ function TherapyButton({
         throw new Error(errorData.error || 'Failed to update session');
       }
       
-      console.log(`✅ SESSION UPDATE CONFIRMED - Duration sent to API: ${sessionDuration} minutes`);
+      console.log(`✅ SESSION UPDATE CONFIRMED - Actual duration: ${actualDurationMinutes} minutes (planned: ${sessionDuration} minutes)`);
       
       console.log('📋 TRANSCRIPT RECOVERY COMPLETE');
       console.log(`Successfully saved ${dedupedEntries.length} unique transcript entries`);
@@ -2517,6 +2672,10 @@ function TherapyButton({
                   durationMinutes={selectedSessionDuration}
                   startTime={sessionStartTime}
                   className="text-white"
+                  onTimeUpdate={handleTimeUpdate}
+                  showRecoveredIndicator={sessionRecovered}
+                  vapiCallTime={vapiCallDuration}
+                  showDualTiming={isCallActive && vapiCallDuration > 0}
                 />
               ) : (
                 <p className="text-white font-mono text-base sm:text-lg">

@@ -8,13 +8,19 @@ interface SessionTimerProps {
   startTime: Date
   onTimeUpdate?: (remainingTimeMinutes: number, remainingTimeSeconds: number) => void
   className?: string
+  showRecoveredIndicator?: boolean
+  vapiCallTime?: number // VAPI call duration in seconds for comparison
+  showDualTiming?: boolean // Whether to show both session and call timing
 }
 
 export default function SessionTimer({ 
   durationMinutes, 
   startTime, 
   onTimeUpdate,
-  className = ""
+  className = "",
+  showRecoveredIndicator = false,
+  vapiCallTime = 0,
+  showDualTiming = false
 }: SessionTimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState(durationMinutes * 60)
   const [isExpired, setIsExpired] = useState(false)
@@ -87,6 +93,16 @@ export default function SessionTimer({
         </div>
         <div className="text-xs text-gray-400 mt-1">
           {isExpired ? 'Session Complete' : 'Time Remaining'}
+          {showRecoveredIndicator && !isExpired && (
+            <div className="text-xs text-blue-400 mt-1 animate-pulse">
+              Session Restored
+            </div>
+          )}
+          {showDualTiming && vapiCallTime > 0 && !isExpired && (
+            <div className="text-xs text-gray-500 mt-1">
+              Call: {Math.floor(vapiCallTime / 60)}:{(vapiCallTime % 60).toString().padStart(2, '0')}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
