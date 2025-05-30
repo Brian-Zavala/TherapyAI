@@ -20,10 +20,12 @@ export default function SpotlightManager() {
   console.log('Current pathname:', pathname);
   
   // Only show spotlight on login, register, and onboarding pages
+  // Explicitly disable on intro page to avoid performance issues
   const enableSpotlight = 
-    pathname?.startsWith('/auth/login') || 
-    pathname?.startsWith('/auth/register') || 
-    pathname?.startsWith('/welcome');
+    (pathname?.startsWith('/auth/login') || 
+     pathname?.startsWith('/auth/register') || 
+     pathname?.startsWith('/welcome')) &&
+    pathname !== '/intro';
   
   console.log('Spotlight enabled?', enableSpotlight);
   

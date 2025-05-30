@@ -19,11 +19,12 @@ export default function RadialGradientManager() {
   // Debug log
   console.log('RadialGradient - Current pathname:', pathname);
   
-  // Disable radial gradient effect for login, register, welcome, and support pages
+  // Disable radial gradient effect for login, register, welcome, intro, and support pages
   const disableEffect = 
     pathname?.startsWith('/auth') || 
     pathname?.includes('support') ||
-    pathname === '/welcome';
+    pathname === '/welcome' ||
+    pathname === '/intro';
   
   console.log('RadialGradient disabled?', disableEffect);
   

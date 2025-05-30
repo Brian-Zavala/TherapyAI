@@ -423,6 +423,16 @@ export default function WelcomePage() {
     }
   }, [status, router, session])
 
+  // Handle scroll to top when step changes (coordinated with animation timing)
+  useEffect(() => {
+    // Small delay to let exit animation start, then scroll during transition
+    const scrollTimer = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100); // 100ms delay allows exit animation to start, scroll completes during transition
+
+    return () => clearTimeout(scrollTimer);
+  }, [currentStep]);
+
   const handleInputChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value })
   }
