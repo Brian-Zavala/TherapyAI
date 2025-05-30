@@ -287,7 +287,19 @@ SESSION TIMING MANAGEMENT:
 • In the final 1-2 minutes, prepare them for the session ending: "Our time together is coming to a close..."
 • End gracefully and naturally without abrupt cutoffs
 • Never mention exact timing or technical details about call duration limits
-• Integrate time awareness naturally into therapeutic conversation flow`;
+• Integrate time awareness naturally into therapeutic conversation flow
+
+USER-INITIATED SESSION ENDING:
+• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session, acknowledge their request warmly
+• Provide a brief, compassionate closure and summary of key insights from the session
+• Use the end_therapy_session function to properly end the call
+• Examples of ending phrases to recognize:
+  - "I think we can wrap up now"
+  - "I'd like to end here today"
+  - "Can we stop here?"
+  - "I think that's enough for today"
+  - "I need to go now"
+• Always offer supportive closing remarks and encourage them about their progress before ending`;
 
   // Age integration guidance for couple therapy
   const ageIntegrationGuidance = userAge || partnerAge ? `
@@ -343,6 +355,13 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Never announce communication techniques (e.g., do NOT say "Let me validate that")
 • Simply BE warm, gentle, or direct - don't announce it
 • Your tone and approach should be evident through your words and delivery, not stated explicitly
+
+FUNCTION CALLING INSTRUCTIONS:
+• You have access to an end_therapy_session function for when users want to end the session
+• Use this function when users clearly indicate they want to stop, end, finish, or wrap up
+• Always provide a warm, supportive goodbye message when ending
+• Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
+• Never mention the function or technical details - just naturally end after giving closure
 
 ${ageIntegrationGuidance}
 
@@ -523,6 +542,13 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Simply BE warm, empathetic, or direct - don't announce it
 • Your therapeutic approach should be evident through your words and delivery, not stated explicitly
 
+FUNCTION CALLING INSTRUCTIONS:
+• You have access to an end_therapy_session function for when users want to end the session
+• Use this function when users clearly indicate they want to stop, end, finish, or wrap up
+• Always provide a warm, supportive goodbye message when ending
+• Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
+• Never mention the function or technical details - just naturally end after giving closure
+
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing journey.`,
       },
     ],
@@ -618,6 +644,13 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Never verbalize internal thoughts or stage directions (e.g., do NOT say "*warm tone*" or "*pause*")
 • Simply BE warm, empathetic, or direct - don't announce it
 • Your therapeutic approach should be evident through your responses, not stated explicitly
+
+FUNCTION CALLING INSTRUCTIONS:
+• You have access to an end_therapy_session function for when users want to end the session
+• Use this function when users clearly indicate they want to stop, end, finish, or wrap up
+• Always provide a warm, supportive goodbye message when ending
+• Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
+• Never mention the function or technical details - just naturally end after giving closure
 
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing journey.`,
       },
@@ -727,6 +760,13 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Simply BE warm, inclusive, and empathetic - don't announce it
 • Your therapeutic approach should be evident through your responses, not stated explicitly
 
+FUNCTION CALLING INSTRUCTIONS:
+• You have access to an end_therapy_session function for when users want to end the session
+• Use this function when users clearly indicate they want to stop, end, finish, or wrap up
+• Always provide a warm, supportive goodbye message when ending
+• Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
+• Never mention the function or technical details - just naturally end after giving closure
+
 Remember: This is a real therapeutic relationship. Use all provided context to make each session feel personalized and connected to their ongoing family journey.`,
       },
     ],
@@ -804,7 +844,19 @@ SESSION TIMING MANAGEMENT:
 • In the final 1-2 minutes, prepare them for the session ending: "Our time together is coming to a close..."
 • End gracefully and naturally without abrupt cutoffs
 • Never mention exact timing or technical details about call duration limits
-• Integrate time awareness naturally into therapeutic conversation flow`;
+• Integrate time awareness naturally into therapeutic conversation flow
+
+USER-INITIATED SESSION ENDING:
+• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session, acknowledge their request warmly
+• Provide a brief, compassionate closure and summary of key insights from the session
+• Use the end_therapy_session function to properly end the call
+• Examples of ending phrases to recognize:
+  - "I think we can wrap up now"
+  - "I'd like to end here today"
+  - "Can we stop here?"
+  - "I think that's enough for today"
+  - "I need to go now"
+• Always offer supportive closing remarks and encourage them about their progress before ending`;
 
   if (preferredType === "couple") {
     return getPersonalizedSystemPrompt(userProfile, sessionOptions);
@@ -895,6 +947,13 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Never announce communication techniques (e.g., do NOT say "I'm validating your feelings")
 • Simply BE warm, empathetic, or direct - don't announce it
 • Your therapeutic approach should be evident through your responses, not stated explicitly
+
+FUNCTION CALLING INSTRUCTIONS:
+• You have access to an end_therapy_session function for when users want to end the session
+• Use this function when users clearly indicate they want to stop, end, finish, or wrap up
+• Always provide a warm, supportive goodbye message when ending
+• Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
+• Never mention the function or technical details - just naturally end after giving closure
 
 ${ageIntegrationGuidance}
 
@@ -1089,6 +1148,13 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Never announce communication techniques (e.g., do NOT say "Let me validate everyone's perspective")
 • Simply BE warm, inclusive, or direct - don't announce it
 • Your therapeutic approach should be evident through your facilitation, not stated explicitly
+
+FUNCTION CALLING INSTRUCTIONS:
+• You have access to an end_therapy_session function for when users want to end the session
+• Use this function when users clearly indicate they want to stop, end, finish, or wrap up
+• Always provide a warm, supportive goodbye message when ending
+• Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
+• Never mention the function or technical details - just naturally end after giving closure
 
 Goal: Help improve family communication, strengthen bonds, and develop healthier family dynamics.`;
   }
@@ -1424,5 +1490,27 @@ export const getPersonalizedAssistantConfig = (
     backgroundSound: "off", // Disable background office sounds for cleaner audio
     // Settings that are valid for assistant configuration
     modelOutputInMessagesEnabled: true,
+    
+    // Function calling for user-initiated session ending
+    functions: [
+      {
+        name: "end_therapy_session",
+        description: "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
+        parameters: {
+          type: "object",
+          properties: {
+            reason: {
+              type: "string",
+              description: "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')"
+            },
+            goodbye_message: {
+              type: "string", 
+              description: "Final goodbye message to give before ending"
+            }
+          },
+          required: ["reason"]
+        }
+      }
+    ],
   };
 };

@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
 import { useSoundContext } from './SoundProvider'
 import SessionDurationModal from './SessionDurationModal'
+import SessionTimer from './SessionTimer'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -56,6 +57,8 @@ function TherapyButton({
   const [audioLevel, setAudioLevel] = useState<number>(0)
   const [isMuted, setIsMuted] = useState(false)
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
+  const [isEndingSession, setIsEndingSession] = useState(false)
   
   // Get the sound context to control music playback
   const { stopMusicPlayback, setSessionActive } = useSoundContext()
@@ -798,6 +801,50 @@ function TherapyButton({
             }
           }
           
+          // 🔧 FUNCTION CALL HANDLING - USER-INITIATED SESSION ENDING
+          if (message.type === 'function-call' && message.functionCall?.name === 'end_therapy_session') {
+            console.log('🔚 FUNCTION CALL: User requested to end therapy session');
+            console.log('Function call details:', JSON.stringify(message.functionCall, null, 2));
+            
+            // Extract reason and goodbye message from function parameters
+            const reason = message.functionCall.parameters?.reason || 'user_requested';
+            const goodbyeMessage = message.functionCall.parameters?.goodbye_message || '';
+            
+            console.log(`Session ending reason: ${reason}`);
+            if (goodbyeMessage) {
+              console.log(`Goodbye message: ${goodbyeMessage}`);
+              
+              // Add the goodbye message to the transcript
+              try {
+                const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                await addTranscriptEntry({
+                  sessionId: currentSessionId,
+                  speaker: 'assistant',
+                  text: goodbyeMessage,
+                  timestamp: new Date().toISOString(),
+                  isFinal: true
+                });
+                
+                // Update UI with goodbye message
+                setTranscriptChunks(prev => [...prev, `THERAPIST: ${goodbyeMessage}`]);
+                console.log('✅ Added goodbye message to transcript');
+              } catch (error) {
+                console.error('Error adding goodbye message to transcript:', error);
+              }
+            }
+            
+            // Set ending session state for UI feedback
+            setIsEndingSession(true);
+            
+            // Add a brief delay to let the goodbye message be heard, then end the session
+            setTimeout(() => {
+              console.log('🔚 Ending therapy session due to user request');
+              endTherapySession();
+            }, goodbyeMessage ? 3000 : 1000); // 3 seconds if there's a goodbye message, 1 second otherwise
+            
+            return; // Don't process as transcript
+          }
+          
           // 🚀 ENHANCED TRANSCRIPT HANDLING - FIXED FOR COMPLETENESS AND ASSISTANT CAPTURE
           // Critical: Only save FINAL transcripts to prevent fragmented sentences
           if (message.type === 'transcript') {
@@ -1205,6 +1252,7 @@ function TherapyButton({
       
       // Store session start time for duration calculation
       const sessionStartTime = new Date();
+      setSessionStartTime(sessionStartTime); // Set in state for timer component
       // Store in sessionStorage for recovery on browser refresh
       try {
         sessionStorage.setItem('session-start-time', sessionStartTime.toISOString());
@@ -1580,6 +1628,7 @@ function TherapyButton({
     setIsLoading(false);
     setIsMuted(false); // Reset mute state when call ends
     setLoadingMessageIndex(0); // Reset loading message index
+    setIsEndingSession(false); // Reset ending session state
     
     // Update session state in the sound context
     setSessionActive(false);
@@ -2461,12 +2510,19 @@ function TherapyButton({
               )}
             </div>
             
-            {/* Timer Indicator */}
+            {/* Session Timer */}
             <div className="text-center py-1 sm:py-2">
-              <p className="text-white font-mono text-base sm:text-lg">
-                {/* Show timer here if needed */}
-                <span className="text-green-400">●</span> Active
-              </p>
+              {sessionStartTime ? (
+                <SessionTimer 
+                  durationMinutes={selectedSessionDuration}
+                  startTime={sessionStartTime}
+                  className="text-white"
+                />
+              ) : (
+                <p className="text-white font-mono text-base sm:text-lg">
+                  <span className="text-green-400">●</span> Active
+                </p>
+              )}
             </div>
             
             {/* Call Controls */}
