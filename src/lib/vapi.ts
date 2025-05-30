@@ -930,6 +930,17 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
 
     // Create detailed family member list with ages and relationships for system prompt
     const familyMembersWithAges = [];
+    
+    // Include partner information in family therapy when present
+    const partnerName = userProfile?.partnerName || null;
+    const partnerAge = userProfile?.partnerAge || null;
+    const relationshipStatus = userProfile?.relationshipStatus || null;
+    
+    if (partnerName) {
+      const partnerRelation = relationshipStatus === "married" ? "spouse" : "partner";
+      familyMembersWithAges.push(`${partnerName}${partnerAge ? ` (${partnerAge})` : ""} - ${partnerRelation}`);
+    }
+    
     if (familyMember1) {
       const relationText = familyMember1Relation ? ` - ${familyMember1Relation}` : "";
       familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}${relationText}`);
@@ -1007,7 +1018,7 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
       ? `• Individual attention: Make sure to check in with each family member (${familyMembersWithAges.join(", ")}) and validate their unique perspectives`
       : "";
 
-    // Natural age integration guidance
+    // Natural age integration guidance (including partner context)
     const ageIntegrationGuidance = familyMembersWithAges.length > 0 ? `
 AGE INTEGRATION INSTRUCTIONS:
 • NEVER say ages immediately after names (do NOT say "Julie 11" or "John four")
@@ -1016,9 +1027,11 @@ AGE INTEGRATION INSTRUCTIONS:
   - "And Charles, at 9 years old..."
   - "Julie, as an 11-year-old, you might..."
   - "At 8 years old, Sarah, you're at an age where..."
+  ${partnerName ? `- "And ${partnerName}, at ${partnerAge || 'your age'}, you might be experiencing..."` : ""}
 • Use age-appropriate language and examples for each family member
-• Reference developmental stages naturally when relevant
+• Reference developmental stages and life transitions naturally when relevant
 • Group similar-aged children when appropriate: "Both Julie and Charles, being close in age..."
+${partnerName ? `• Include partner in family dynamics: "As parents/partners, you and ${partnerName} may have different perspectives..."` : ""}
 • Avoid listing ages mechanically - weave them into natural conversation` : "";
 
     return `You are Dr. Jada Pearson, family therapist specializing in Structural Family Therapy and systems approaches.
@@ -1327,6 +1340,15 @@ export const getPersonalizedAssistantConfig = (
         userProfile.relationshipStatus || "In a relationship";
     }
 
+    if (therapyType === "individual") {
+      // Include partner information for individual therapy context
+      if (userProfile.partnerName) {
+        variableValues.partnerName = userProfile.partnerName;
+        variableValues.partnerAge = userProfile.partnerAge || null;
+        variableValues.relationshipStatus = userProfile.relationshipStatus || "In a relationship";
+      }
+    }
+
     if (therapyType === "family") {
       variableValues.familyMember1 = userProfile.familyMember1 || "";
       variableValues.familyMember1Age = userProfile.familyMember1Age || null;
@@ -1349,6 +1371,13 @@ export const getPersonalizedAssistantConfig = (
       variableValues.familyMember7 = userProfile.familyMember7 || "";
       variableValues.familyMember7Age = userProfile.familyMember7Age || null;
       variableValues.familyMember7Relation = userProfile.familyMember7Relation || "";
+      
+      // Include partner information in family therapy for comprehensive context
+      if (userProfile.partnerName) {
+        variableValues.partnerName = userProfile.partnerName;
+        variableValues.partnerAge = userProfile.partnerAge || null;
+        variableValues.relationshipStatus = userProfile.relationshipStatus || "In a relationship";
+      }
     }
   }
 
