@@ -382,13 +382,22 @@ export default function IntroWelcomeScreen() {
 
   // Handle scroll to top when step changes (coordinated with animation timing)
   useEffect(() => {
-    // Small delay to let exit animation start, then scroll during transition
-    const scrollTimer = setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100); // 100ms delay allows exit animation to start, scroll completes during transition
+    // Only scroll if we're not on the initial step (avoid double scroll on mount)
+    if (currentStep > 0) {
+      // Small delay to let exit animation start, then scroll during transition
+      const scrollTimer = setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100); // 100ms delay allows exit animation to start, scroll completes during transition
 
-    return () => clearTimeout(scrollTimer);
+      return () => clearTimeout(scrollTimer);
+    }
   }, [currentStep]);
+
+  // Scroll to top when component mounts (user navigated to this page)
+  useEffect(() => {
+    // Use instant scroll to avoid conflicts with step animations
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   const handleNext = useCallback(() => {
     if (currentStep < therapySteps.length - 1) {
@@ -419,7 +428,7 @@ export default function IntroWelcomeScreen() {
         setError("Continuing to onboarding...");
       }
 
-      // Navigate to onboarding
+      // Navigate immediately - welcome page will handle scroll on mount
       router.push("/welcome");
     } catch (error) {
       console.error("Error updating intro status:", error);

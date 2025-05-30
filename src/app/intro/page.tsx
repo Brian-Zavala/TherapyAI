@@ -55,6 +55,12 @@ export default function IntroPage() {
     }
   }, [session, status, router, hasChecked])
 
+  // Scroll to top when component mounts (user navigated to this page)
+  useEffect(() => {
+    // Use instant scroll to avoid conflicts with loading states
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
   // Fallback timeout to prevent infinite loading
   useEffect(() => {
     const timeout = setTimeout(() => {

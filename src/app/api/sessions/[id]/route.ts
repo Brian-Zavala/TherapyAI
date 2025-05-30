@@ -160,7 +160,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const { status, endTime, notes, transcript, transcriptEntry, duration } = await request.json()
+    const { status, notes, transcript, transcriptEntry, duration } = await request.json()
     
     const updateData: Record<string, unknown> = {}
     
@@ -262,6 +262,8 @@ export async function PATCH(
         let therapyType = 'couple';
         if (existingSession.theme && existingSession.theme.toLowerCase().includes('family')) {
           therapyType = 'family';
+        } else if (existingSession.theme && (existingSession.theme.toLowerCase().includes('individual') || existingSession.theme.toLowerCase().includes('solo'))) {
+          therapyType = 'solo';
         }
         
         // Create or update metrics - first, check if metrics already exist for this session
@@ -289,7 +291,8 @@ export async function PATCH(
             updatedSession.duration, 
             sessionId, 
             transcriptText, 
-            therapyType
+            therapyType,
+            existingSession.assistantId || undefined
           );
           
           console.log(`Generated ${therapyType} metrics for session ${sessionId}`);

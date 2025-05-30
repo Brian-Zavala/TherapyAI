@@ -21,7 +21,7 @@ export async function POST(
   try {
     const { id: sessionId } = await params;
     
-    const therapySession = await prisma.therapySession.findUnique({
+    const therapySession = await prisma.session.findUnique({
       where: { id: sessionId },
       include: { user: true },
     });
@@ -36,7 +36,7 @@ export async function POST(
     }
     
     // Mark session as completed
-    await prisma.therapySession.update({
+    await prisma.session.update({
       where: { id: sessionId },
       data: { status: 'completed' },
     });
@@ -45,30 +45,23 @@ export async function POST(
     try {
       // Determine therapy type from session theme
       let therapyType = 'couple';
-      if (therapySession.notes && therapySession.notes.toLowerCase().includes('family')) {
+      if (therapySession.theme && therapySession.theme.toLowerCase().includes('family')) {
         therapyType = 'family';
+      } else if (therapySession.theme && therapySession.theme.toLowerCase().includes('individual')) {
+        therapyType = 'solo';
       }
       
-      // Get session transcript if available from the session table
-      const sessionData = await prisma.session.findFirst({
-        where: { 
-          userId: therapySession.userId,
-          date: therapySession.sessionDate
-        }
-      });
+      const duration = therapySession.duration || 30;
+      await generateMetricsFromSession(
+        therapySession.userId,
+        duration,
+        sessionId,
+        therapySession.transcript,
+        therapyType,
+        therapySession.assistantId
+      );
       
-      if (sessionData) {
-        const duration = therapySession.duration || 30;
-        await generateMetricsFromSession(
-          therapySession.userId,
-          duration,
-          sessionId,
-          sessionData.transcript,
-          therapyType
-        );
-        
-        console.log(`Generated ${therapyType} metrics for therapySession ${sessionId}`);
-      }
+      console.log(`Generated ${therapyType} metrics for session ${sessionId}`);
     } catch (metricsError) {
       console.error('Error generating metrics, but continuing:', metricsError);
     }
@@ -79,16 +72,16 @@ export async function POST(
       const durationInSeconds = therapySession.duration ? therapySession.duration * 60 : 1800; // Default to 30 minutes
       
       // Find the next scheduled session for this user
-      const nextSession = await prisma.therapySession.findFirst({
+      const nextSession = await prisma.session.findFirst({
         where: {
           userId: therapySession.userId,
           status: 'scheduled',
-          sessionDate: {
+          date: {
             gt: new Date()
           }
         },
         orderBy: {
-          sessionDate: 'asc'
+          date: 'asc'
         }
       });
       
@@ -98,13 +91,13 @@ export async function POST(
         subject: 'Therapy Session Completed',
         react: SessionCompletedEmail({
           userName: therapySession.user.name || 'Valued Client',
-          sessionDate: therapySession.sessionDate.toLocaleDateString(),
-          sessionTime: therapySession.sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          sessionDate: therapySession.date.toLocaleDateString(),
+          sessionTime: therapySession.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
           sessionDuration: durationInSeconds,
           sessionNotes: therapySession.notes || undefined,
-          nextSessionDate: nextSession ? nextSession.sessionDate.toLocaleDateString() : undefined,
-          nextSessionTime: nextSession ? nextSession.sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+          nextSessionDate: nextSession ? nextSession.date.toLocaleDateString() : undefined,
+          nextSessionTime: nextSession ? nextSession.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
         }),
       });
       console.log('Session completion email sent successfully');

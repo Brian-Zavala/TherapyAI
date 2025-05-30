@@ -695,11 +695,12 @@ function TherapyButton({
       })
       
       
-      // Enhanced transcript handling with structured entries
+      // 🎯 COMPREHENSIVE MESSAGE HANDLER - CATCHES ALL VAPI MESSAGE TYPES
       vapiInstanceRef.current.on('message', async (message: any) => {
         try {
-          // Enhanced logging for debugging transcript issues
-          console.log('VAPI MESSAGE EVENT:', JSON.stringify(message, null, 2));
+          // 🔍 ENHANCED DEBUG LOGGING - Shows all VAPI message details
+          console.log('🔔 VAPI MESSAGE EVENT:', JSON.stringify(message, null, 2));
+          console.log(`📋 Message Summary: type="${message.type}", role="${message.role}", speaker="${message.speaker}", hasContent=${!!message.content}, hasTranscript=${!!message.transcript}`);
           
           // Try to get session ID from multiple sources with better fallbacks
           let currentSessionId = null;
@@ -797,20 +798,27 @@ function TherapyButton({
             }
           }
           
-          // IMPROVED TRANSCRIPT HANDLING
-          // Now handling both transcript types the same way regardless of partial or final
+          // 🚀 ENHANCED TRANSCRIPT HANDLING - FIXED FOR COMPLETENESS AND ASSISTANT CAPTURE
+          // Critical: Only save FINAL transcripts to prevent fragmented sentences
           if (message.type === 'transcript') {
             const text = message.transcript;
-            const speaker = message.role || 'user'; // Default to user if no role
+            const speaker = message.role || 'user';
+            const isFinal = message.transcriptType === 'final' || message.isFinal === true;
             
             if (!text || text.trim() === '') {
-              console.log('Skipping empty transcript message');
+              console.log('⏭️ Skipping empty transcript message');
               return;
             }
             
-            console.log(`✨ TRANSCRIPT: [${speaker}] ${text.substring(0, 100)}...`);
+            // 🔥 CRITICAL FIX: Only save FINAL transcripts to prevent fragmentation
+            if (!isFinal) {
+              console.log(`⏳ PARTIAL transcript (not saving): [${speaker}] ${text.substring(0, 50)}...`);
+              return; // Skip partial transcripts entirely
+            }
             
-            // Simple direct storage to sessionStorage for reliability
+            console.log(`✨ FINAL TRANSCRIPT: [${speaker}] ${text.substring(0, 100)}... (isFinal: ${isFinal})`);
+            
+            // Enhanced storage for final transcripts only
             try {
               // 1. Store in main transcript array
               const storageKey = `transcript-${currentSessionId}`;
@@ -824,69 +832,82 @@ function TherapyButton({
                 existingTranscripts = [];
               }
               
-              // Add new entry
-              existingTranscripts.push({
+              // Add new FINAL entry with enhanced metadata
+              const finalEntry = {
                 speaker: speaker === 'assistant' ? 'assistant' : 'user',
-                text: text,
-                timestamp: new Date().toISOString()
-              });
+                text: text.trim(),
+                timestamp: new Date().toISOString(),
+                isFinal: true,
+                messageType: message.type
+              };
+              
+              existingTranscripts.push(finalEntry);
               
               // Save back to storage
               sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
-              console.log(`✓ Saved to main transcript storage (${existingTranscripts.length} total entries)`);
+              console.log(`✅ Saved FINAL transcript to storage (${existingTranscripts.length} total entries)`);
               
-              // 2. Also save as individual backup with unique timestamp
-              const backupKey = `backup-${speaker}-${currentSessionId}-${Date.now()}`;
-              sessionStorage.setItem(backupKey, text);
-              console.log(`✓ Saved backup with key: ${backupKey}`);
+              // 2. Enhanced backup with finality marker
+              const backupKey = `final-${speaker}-${currentSessionId}-${Date.now()}`;
+              sessionStorage.setItem(backupKey, JSON.stringify(finalEntry));
+              console.log(`✅ Saved final transcript backup: ${backupKey}`);
               
-              // 3. Update UI state
+              // 3. Update UI state with final content only
               const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
               setTranscriptChunks(prev => {
-                const newChunks = [...prev, `${displaySpeaker}: ${text}`];
-                console.log(`Updated UI with transcript chunks (${newChunks.length} total)`);
+                const newChunks = [...prev, `${displaySpeaker}: ${text.trim()}`];
+                console.log(`✅ Updated UI with FINAL transcript (${newChunks.length} total)`);
                 return newChunks;
               });
               
-              // 4. Also try to save to database via transcript service
-              // Import inside try/catch to avoid blocking main functionality
+              // 4. Save FINAL transcript to database (critical for session history)
               try {
                 const { addTranscriptEntry } = await import('@/lib/transcript-service');
                 const normalizedSpeaker = speaker === 'assistant' ? 'assistant' : 'user';
                 
+                console.log(`🔄 Saving FINAL ${normalizedSpeaker} transcript to database...`);
                 const result = await addTranscriptEntry({
                   sessionId: currentSessionId,
                   speaker: normalizedSpeaker,
-                  text,
+                  text: text.trim(),
                   timestamp: new Date().toISOString(),
-                  isFinal: message.transcriptType !== 'partial'
+                  isFinal: true // Always true since we only save final transcripts
                 });
                 
-                console.log(`✓ DB SAVE: Successfully saved to database with ID: ${result?.id || 'unknown'}`);
+                console.log(`✅ DB SAVE SUCCESS: ${normalizedSpeaker} transcript saved with ID: ${result?.id || 'unknown'}`);
               } catch (dbError) {
-                console.warn('Failed to save to database, but transcript is in sessionStorage:', dbError);
-                // We still have the transcript in sessionStorage, so we're good
+                console.error(`❌ DB SAVE FAILED for ${speaker}:`, dbError);
+                console.warn('Transcript preserved in sessionStorage despite DB failure');
               }
             } catch (storageError: unknown) {
               console.error('💥 ERROR STORING TRANSCRIPT:', (storageError instanceof Error) ? storageError.message : String(storageError));
             }
           }
-          // Also handle assistant messages (usually contain assistant responses)
+          // 🤖 ENHANCED ASSISTANT MESSAGE CAPTURE - FIXED FOR ALL VAPI RESPONSE TYPES
           else if (
-            (message.type === 'transcript-response') || 
-            (message.type === 'assistant-response') ||
-            (message.type === 'model-output' && message.content) ||
-            (message.role === 'assistant' && message.content)
+            // Comprehensive assistant message type detection
+            message.type === 'transcript-response' || 
+            message.type === 'assistant-response' ||
+            message.type === 'model-output' ||
+            message.type === 'speech-update' ||
+            message.type === 'function-call' ||
+            (message.role === 'assistant' && (message.content || message.transcript)) ||
+            (message.speaker === 'assistant') ||
+            (message.from === 'assistant') ||
+            // Common VAPI assistant message patterns
+            (message.type === 'message' && message.role === 'assistant') ||
+            (message.type === 'conversation-update' && message.role === 'assistant')
           ) {
-            const text = message.transcript || message.content || message.text || '';
+            const text = message.transcript || message.content || message.text || message.message || '';
             
             if (!text || text.trim() === '') {
+              console.log('⏭️ Skipping empty assistant message');
               return;
             }
             
-            console.log(`✨ ASSISTANT MESSAGE: ${text.substring(0, 100)}...`);
+            console.log(`🤖 ASSISTANT RESPONSE CAPTURED: ${text.substring(0, 100)}... (type: ${message.type})`);
             
-            // Store in the same way as regular transcripts
+            // Enhanced assistant message storage
             try {
               // 1. Store in main transcript array
               const storageKey = `transcript-${currentSessionId}`;
@@ -900,49 +921,121 @@ function TherapyButton({
                 existingTranscripts = [];
               }
               
-              // Add new entry
-              existingTranscripts.push({
+              // Create enhanced assistant entry
+              const assistantEntry = {
                 speaker: 'assistant',
-                text: text,
-                timestamp: new Date().toISOString()
-              });
+                text: text.trim(),
+                timestamp: new Date().toISOString(),
+                isFinal: true,
+                messageType: message.type
+              };
+              
+              existingTranscripts.push(assistantEntry);
               
               // Save back to storage
               sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
-              console.log(`✓ Saved assistant message to storage (${existingTranscripts.length} total entries)`);
+              console.log(`✅ Saved assistant response to storage (${existingTranscripts.length} total entries)`);
               
-              // 2. Also save as individual backup with unique timestamp
-              const backupKey = `backup-assistant-${currentSessionId}-${Date.now()}`;
-              sessionStorage.setItem(backupKey, text);
+              // 2. Enhanced backup for assistant messages
+              const backupKey = `assistant-${currentSessionId}-${Date.now()}`;
+              sessionStorage.setItem(backupKey, JSON.stringify(assistantEntry));
+              console.log(`✅ Saved assistant backup: ${backupKey}`);
               
               // 3. Update UI state
               setTranscriptChunks(prev => {
-                const newChunks = [...prev, `THERAPIST: ${text}`];
+                const newChunks = [...prev, `THERAPIST: ${text.trim()}`];
+                console.log(`✅ Updated UI with assistant response (${newChunks.length} total)`);
                 return newChunks;
               });
               
-              // 4. Try to save to database
+              // 4. CRITICAL: Save assistant message to database
               try {
                 const { addTranscriptEntry } = await import('@/lib/transcript-service');
                 
+                console.log(`🔄 Saving assistant response to database...`);
                 const result = await addTranscriptEntry({
                   sessionId: currentSessionId,
                   speaker: 'assistant',
-                  text,
+                  text: text.trim(),
                   timestamp: new Date().toISOString(),
                   isFinal: true
                 });
                 
-                console.log(`✓ DB SAVE: Successfully saved assistant message to database`);
+                console.log(`✅ ASSISTANT DB SAVE SUCCESS: Saved with ID: ${result?.id || 'unknown'}`);
               } catch (dbError) {
-                console.warn('Failed to save assistant message to database:', dbError);
+                console.error(`❌ ASSISTANT DB SAVE FAILED:`, dbError);
+                console.warn('Assistant response preserved in sessionStorage despite DB failure');
               }
             } catch (storageError: unknown) {
-              console.error('💥 ERROR STORING ASSISTANT MESSAGE:', (storageError instanceof Error) ? storageError.message : String(storageError));
+              console.error('💥 ERROR STORING ASSISTANT RESPONSE:', (storageError instanceof Error) ? storageError.message : String(storageError));
+            }
+          }
+          // 🚨 CATCH-ALL HANDLER - Captures any messages we might have missed
+          else {
+            // Check if this message contains text content that might be an assistant response
+            const potentialText = message.transcript || message.content || message.text || message.message || '';
+            
+            if (potentialText && potentialText.trim() !== '' && potentialText.length > 10) {
+              console.log(`🔍 UNKNOWN MESSAGE TYPE with content: type="${message.type}", role="${message.role}", content="${potentialText.substring(0, 100)}..."`);
+              
+              // If this looks like it could be an assistant message, log it for analysis
+              if (message.role === 'assistant' || 
+                  message.speaker === 'assistant' || 
+                  message.from === 'assistant' ||
+                  message.type?.includes('assistant') ||
+                  message.type?.includes('response') ||
+                  message.type?.includes('model')) {
+                console.log(`🚨 POTENTIAL MISSED ASSISTANT MESSAGE: ${JSON.stringify(message, null, 2)}`);
+                
+                // Try to save it as an assistant message
+                try {
+                  const storageKey = `transcript-${currentSessionId}`;
+                  let existingTranscripts = [];
+                  
+                  try {
+                    const stored = sessionStorage.getItem(storageKey);
+                    existingTranscripts = stored ? JSON.parse(stored) : [];
+                  } catch (parseError) {
+                    existingTranscripts = [];
+                  }
+                  
+                  const catchAllEntry = {
+                    speaker: 'assistant',
+                    text: potentialText.trim(),
+                    timestamp: new Date().toISOString(),
+                    isFinal: true,
+                    messageType: `CATCH_ALL_${message.type}`
+                  };
+                  
+                  existingTranscripts.push(catchAllEntry);
+                  sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
+                  
+                  console.log(`🆘 CATCH-ALL SAVE: Saved potential assistant message to storage`);
+                  
+                  // Update UI
+                  setTranscriptChunks(prev => [...prev, `THERAPIST: ${potentialText.trim()}`]);
+                  
+                  // Try to save to database
+                  const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                  await addTranscriptEntry({
+                    sessionId: currentSessionId,
+                    speaker: 'assistant',
+                    text: potentialText.trim(),
+                    timestamp: new Date().toISOString(),
+                    isFinal: true
+                  });
+                  
+                  console.log(`🆘 CATCH-ALL DB SAVE: Saved unknown assistant message to database`);
+                } catch (catchAllError) {
+                  console.error('Error in catch-all handler:', catchAllError);
+                }
+              }
+            } else {
+              console.log(`📤 Ignoring message type "${message.type}" - no relevant content`);
             }
           }
         } catch (error) {
-          console.error('Error handling transcript message:', error);
+          console.error('💥 Error handling transcript message:', error);
           // Continue with the session despite transcript storage errors
         }
       })
@@ -1131,7 +1224,8 @@ function TherapyButton({
       });
       
       // ULTRA-FAST MODE: Create minimal session record
-      console.log('⚡ Creating minimal session record for faster startup');
+      console.log(`⚡ Creating minimal session record for faster startup - Duration: ${selectedSessionDuration} minutes`);
+      console.log(`📊 SESSION DURATION TRACKING: selectedSessionDuration = ${selectedSessionDuration}`);
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
@@ -1165,7 +1259,8 @@ function TherapyButton({
       let session;
       try {
         session = await response.json()
-        console.log('Session created successfully:', session)
+        console.log('✅ Session created successfully:', session)
+        console.log(`📊 SESSION DURATION VERIFICATION: Created session has duration = ${session.duration} minutes (expected: ${selectedSessionDuration})`)
         
         if (!session.id) {
           throw new Error('Session created but no ID returned')

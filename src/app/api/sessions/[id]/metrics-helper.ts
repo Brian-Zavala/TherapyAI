@@ -26,6 +26,8 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
         if (!therapyType) {
           if (session.theme.toLowerCase().includes('family')) {
             therapyType = 'family';
+          } else if (session.theme.toLowerCase().includes('individual') || session.theme.toLowerCase().includes('solo')) {
+            therapyType = 'solo';
           } else if (session.theme.toLowerCase().includes('relationship') || session.theme.toLowerCase().includes('couple')) {
             therapyType = 'couple';
           }
