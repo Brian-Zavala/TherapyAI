@@ -24,8 +24,37 @@
   }
 }
 
+/* --- CSS Layers for Better Cascade Control --- */
+@layer base, theme, utilities, animations, overrides;
+
+/* Base resets and defaults */
+@layer base {
+  /* Font imports and base styles will be here */
+}
+
+/* Theme-specific styles */
+@layer theme {
+  /* Component themes and color schemes */
+}
+
+/* Utility classes */
+@layer utilities {
+  /* Performance utilities, layout helpers */
+}
+
+/* Animation definitions */
+@layer animations {
+  /* All keyframes and animation classes */
+}
+
+/* High-specificity overrides */
+@layer overrides {
+  /* !important rules and session-active states */
+}
+
 /* --- CSS Variables --- */
 :root {
+  /* Colors */
   --color-bg-light: #e5e5f7;
   --color-bg-dark: #1e293b; /* Default dark background if needed */
   --color-text-light: #f8fafc; /* Text color for dark/session backgrounds */
@@ -33,8 +62,29 @@
   --color-accent-radial-bg: rgba(218, 218, 218, 0.1);
   --color-session-glow: rgba(99, 102, 241, 0.1); /* Initial body background */
 
+  /* Typography */
   --font-body: "Work Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: "Fraunces", serif;
+
+  /* Z-index scale for better layer management */
+  --z-background: -2;
+  --z-stars: -1;
+  --z-base: 0;
+  --z-overlay: 1;
+  --z-modal: 10;
+  --z-popover: 20;
+  --z-tooltip: 30;
+  --z-notification: 40;
+  --z-maximum: 50;
+
+  /* Animation durations for consistency */
+  --animation-fast: 0.2s;
+  --animation-normal: 0.3s;
+  --animation-slow: 0.6s;
+  --animation-slower: 1s;
+  
+  /* Animation play state for global control */
+  --animation-play-state: running;
 }
 
 /* --- Base HTML & Body Styles --- */
@@ -99,6 +149,42 @@ body.session-active {
   /* z-index: 0; /* Body acts as a base stacking layer (already relative) */
 }
 
+/* --- Welcome Page Specific Styles --- */
+.welcome-page {
+  height: 100vh;
+  background-color: #111827; /* Consistent gray-900 background */
+  position: relative;
+  overflow: hidden; /* Prevent page from scrolling */
+}
+
+/* Ensure background gradient overlay is properly positioned */
+.welcome-page > div:first-child {
+  z-index: 1; /* Ensure overlay is above background but below content */
+}
+
+/* Ensure the scrollable container inside welcome page works properly */
+.welcome-page .overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.welcome-page .overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.welcome-page .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.welcome-page .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.welcome-page .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
 /* Ensure main content area extends to fill the screen during sessions */
 body.session-active main {
   min-height: 100vh; /* Make main content area fill the screen */
@@ -115,6 +201,33 @@ body.session-active .hide-during-session {
   display: none !important; /* Use !important cautiously, ensure it's necessary */
   opacity: 0;
   visibility: hidden;
+}
+
+/* --- Performance Optimizations --- */
+/* Apply to elements that will animate for better performance */
+.will-animate-transform {
+  will-change: transform;
+}
+
+.will-animate-opacity {
+  will-change: opacity;
+}
+
+.will-animate-filter {
+  will-change: filter;
+}
+
+/* Containment for performance-critical animated sections */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-strict {
+  contain: strict;
 }
 
 /* --- Animations --- */
@@ -328,6 +441,8 @@ body.session-active .hide-during-session {
 .begin-text {
   font-family: var(--font-heading);
   letter-spacing: 0.1em; /* Using 0.1em from breath/begin, adjust if needed */
+  will-change: transform, opacity; /* Optimize for animation */
+  contain: paint; /* Prevent paint overflow */
 }
 
 .countdown-number {
@@ -354,8 +469,9 @@ body.session-active .hide-during-session {
   inset: 0;
   height: 100vh; /* Use vh for full viewport height */
   width: 100vw; /* Use vw for full viewport width */
-  z-index: -2; /* Ensure it's behind everything, including default body background */
+  z-index: var(--z-background); /* Use CSS variable for consistency */
   overflow: hidden;
+  contain: strict; /* Optimize rendering performance */
 }
 
 .gradient-container {
@@ -379,6 +495,8 @@ body.session-active .hide-during-session {
   animation: circle-small-scale 3s ease-in-out infinite alternate;
   animation-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
   transform: translate(-50%, -50%); /* Initial centering */
+  will-change: transform; /* Optimize animation */
+  contain: paint; /* Improve rendering performance */
 }
 
 /* Individual circle styles */
@@ -414,7 +532,7 @@ body.session-active .hide-during-session {
 }
 
 /* Starry Night Background (visible during active session) */
-/* Base star layer */
+/* Base star layer - Optimized for performance */
 .stars {
   /* These dimensions are tiny, the box-shadow creates the stars */
   width: 3px;
@@ -425,55 +543,43 @@ body.session-active .hide-during-session {
   right: 0;
   bottom: 0; /* Cover viewport */
   background: transparent; /* Container is invisible */
-  box-shadow: /* Star definitions... */
-    2vw 5vh 2px white,
+  /* Reduced box-shadow count for better performance while maintaining visual effect */
+  box-shadow: /* Primary stars - larger and brighter */
     10vw 8vh 2px white,
-    15vw 15vh 1px white,
     22vw 22vh 1px white,
-    28vw 12vh 2px white,
     32vw 32vh 1px white,
-    38vw 18vh 2px white,
     42vw 35vh 1px white,
-    48vw 25vh 2px white,
     53vw 42vh 1px white,
-    58vw 15vh 2px white,
     63vw 38vh 1px white,
-    68vw 28vh 2px white,
     73vw 45vh 1px white,
-    78vw 32vh 2px white,
     83vw 48vh 1px white,
-    88vw 20vh 2px white,
     93vw 52vh 1px white,
-    98vw 35vh 2px white,
-    5vw 60vh 1px white,
     12vw 65vh 2px white,
-    18vw 72vh 1px white,
     25vw 78vh 2px white,
-    30vw 85vh 1px white,
     35vw 68vh 2px white,
-    40vw 82vh 1px white,
     45vw 92vh 2px white,
-    50vw 75vh 1px white,
     55vw 88vh 2px white,
-    60vw 95vh 1px white,
     65vw 72vh 2px white,
-    70vw 85vh 1px white,
     75vw 78vh 2px white,
-    80vw 92vh 1px white,
     85vw 82vh 2px white,
-    90vw 88vh 1px white,
     95vw 75vh 2px white,
-    50vw 98vh 2px white,
-    60vw 99vh 2px white,
-    75vw 100vh 2px white,
-    90vw 99vh 2px white,
-    30vw 100vh 1px white;
+    /* Secondary stars - smaller for depth */
+    15vw 15vh 1px rgba(255, 255, 255, 0.8),
+    28vw 12vh 1px rgba(255, 255, 255, 0.8),
+    38vw 18vh 1px rgba(255, 255, 255, 0.8),
+    48vw 25vh 1px rgba(255, 255, 255, 0.8),
+    58vw 15vh 1px rgba(255, 255, 255, 0.8),
+    68vw 28vh 1px rgba(255, 255, 255, 0.8),
+    78vw 32vh 1px rgba(255, 255, 255, 0.8),
+    88vw 20vh 1px rgba(255, 255, 255, 0.8);
   pointer-events: none; /* Allow clicks through the star layer */
   animation: twinkle 8s infinite linear;
-  z-index: -1; /* Position behind content, but potentially above gradient-bg if it exists */
+  z-index: var(--z-stars); /* Use CSS variable */
+  will-change: opacity; /* Optimize twinkle animation */
+  contain: paint; /* Improve rendering */
 }
 
-/* Additional star layer using pseudo-element */
+/* Additional star layer using pseudo-element - Optimized */
 .stars::after {
   content: "";
   position: absolute; /* Position relative to .stars */
@@ -482,27 +588,23 @@ body.session-active .hide-during-session {
   width: 1px;
   height: 1px; /* Base size for pseudo-element */
   background: white; /* Needed for box-shadow to render */
-  box-shadow: /* More star definitions... */
+  /* Reduced count with varied sizes for depth */
+  box-shadow:
     8vw 12vh 2px white,
-    16vw 18vh 1px white,
     24vw 25vh 2px white,
-    33vw 15vh 1px white,
     41vw 28vh 2px white,
-    49vw 35vh 1px white,
     57vw 22vh 2px white,
-    65vw 42vh 1px white,
     73vw 28vh 2px white,
-    81vw 48vh 1px white,
     89vw 32vh 2px white,
-    97vw 45vh 1px white,
-    3vw 68vh 2px white,
     11vw 75vh 1px white,
-    19vw 82vh 2px white,
     27vw 88vh 1px white,
-    35vw 72vh 2px white,
     43vw 85vh 1px white,
-    51vw 92vh 2px white,
-    59vw 78vh 1px white;
+    59vw 78vh 1px white,
+    /* Fainter distant stars */
+    16vw 18vh 1px rgba(255, 255, 255, 0.6),
+    33vw 15vh 1px rgba(255, 255, 255, 0.6),
+    49vw 35vh 1px rgba(255, 255, 255, 0.6),
+    65vw 42vh 1px rgba(255, 255, 255, 0.6);
   animation: twinkle 6s infinite linear reverse; /* Different timing */
   /* Inherits pointer-events: none from .stars */
 }
@@ -589,20 +691,28 @@ body.session-active .hide-during-session {
 
 /* --- Utilities & Optimizations --- */
 
-/* * Universal Scrollbar Hiding 
- * WARNING: This applies to *all* elements using `*`. 
- * It forcefully hides scrollbars using `!important`. 
- * This might be too broad if specific elements need scrollbars.
- * Consider targeting `html, body` instead if global hiding isn't strictly required.
- */
-* {
-  scrollbar-width: none !important; /* Firefox */
+/* Targeted scrollbar hiding for main containers */
+html,
+body,
+main {
+  scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
-*::-webkit-scrollbar {
-  /* WebKit */
-  display: none;
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+main::-webkit-scrollbar {
+  display: none; /* WebKit */
 }
+
+/* Optional: Global scrollbar hiding - uncomment if needed */
+/* * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+} */
 
 /* Optimize browser rendering for animations */
 .optimize-gpu {
@@ -653,8 +763,99 @@ body.session-active .hide-during-session {
 
 /* Control scrolling experience */
 @media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-behavior: smooth; /* Enable smooth scrolling if user allows motion */
+  /* Only apply smooth scrolling to elements that explicitly request it */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Enhanced accessibility for reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all animations and transitions */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Remove will-change to prevent unnecessary GPU usage */
+  .will-animate-transform,
+  .will-animate-opacity,
+  .will-animate-filter,
+  .stars,
+  .circle-small,
+  .circle-medium,
+  .circle-large,
+  .circle-xlarge,
+  .circle-xxlarge {
+    will-change: auto !important;
+  }
+  
+  /* Disable specific animations that might cause discomfort */
+  .countdown-number,
+  .breath-text,
+  .begin-text {
+    animation: none !important;
+  }
+  
+  /* Keep stars visible but static */
+  .stars,
+  .stars::after {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  
+  /* Disable neon flicker effect */
+  .neon-text {
+    animation: none !important;
+  }
+  
+  /* Disable gradient circle animations */
+  .circle-small,
+  .circle-medium,
+  .circle-large,
+  .circle-xlarge,
+  .circle-xxlarge {
+    animation: none !important;
+  }
+}
+
+/* Force instant scroll for specific operations - higher specificity */
+html.instant-scroll,
+html.instant-scroll body,
+body.instant-scroll,
+.instant-scroll {
+  scroll-behavior: auto !important;
+}
+
+/* Remove the inherit rule that was overriding instant scroll attempts */
+/* html, body {
+  scroll-behavior: inherit;
+} */
+
+/* For intro and welcome pages, force instant scrolling */
+html:has(.intro-page),
+html:has(.welcome-page),
+body:has(.intro-page),
+body:has(.welcome-page) {
+  scroll-behavior: auto !important;
+}
+
+/* Legacy animation kept for backward compatibility but marked as deprecated */
+/* @deprecated Use JavaScript scroll methods instead */
+.scroll-to-top-forced {
+  animation: forceScrollTop 0.1s ease-out;
+}
+
+@keyframes forceScrollTop {
+  0% {
+    scroll-behavior: auto;
+  }
+  100% {
+    scroll-behavior: auto;
   }
 }
 
