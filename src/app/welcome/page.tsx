@@ -11,6 +11,7 @@ import ConfettiAnimation from '@/components/ui/confetti-animation'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 import RelationshipAssessment from '@/components/RelationshipAssessment'
 import OnboardingSuccessSplash from '@/components/OnboardingSuccessSplash'
+// Removed scroll-utils import - using direct container scrolling instead
 
 interface FormStep {
   id: number
@@ -534,22 +535,29 @@ export default function WelcomePage() {
     }
   }, [status, router, session])
 
-  // Handle scroll to top when step changes (coordinated with animation timing)
+  // Handle scroll to top when step changes - immediate and reliable
   useEffect(() => {
-    // Only scroll if we're not on the initial step (avoid double scroll on mount)
-    if (currentStep > 0) {
-      // Small delay to let exit animation start, then scroll during transition
-      const scrollTimer = setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100); // 100ms delay allows exit animation to start, scroll completes during transition
-
-      return () => clearTimeout(scrollTimer);
+    console.log('WelcomePage: Step changed to', currentStep);
+    
+    // Find the scrollable container and scroll it to top
+    const scrollContainer = document.querySelector('.welcome-page .overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
     }
+    
+    // Also try to scroll the window as fallback
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentStep]);
 
   // Scroll to top when component mounts (user navigated to this page)
   useEffect(() => {
-    // Use instant scroll to avoid conflicts with step animations
+    // Find the scrollable container and scroll it to top
+    const scrollContainer = document.querySelector('.welcome-page .overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
+    
+    // Also try to scroll the window as fallback
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
@@ -590,7 +598,7 @@ export default function WelcomePage() {
     return true; // Other steps don't have validation yet
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isCurrentStepValid()) {
       // Show tooltip if step 1 is not valid
       setShowTooltip(true);
@@ -603,6 +611,12 @@ export default function WelcomePage() {
       return;
     }
 
+    // Scroll the container to top
+    const scrollContainer = document.querySelector('.welcome-page .overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
+    
     if (currentStep < formSteps.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
@@ -610,8 +624,13 @@ export default function WelcomePage() {
     }
   }
 
-  const handleBack = () => {
+  const handleBack = async () => {
     if (currentStep > 0) {
+      // Scroll the container to top
+      const scrollContainer = document.querySelector('.welcome-page .overflow-y-auto');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0;
+      }
       setCurrentStep(currentStep - 1)
     }
   }
@@ -815,13 +834,13 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
-      {/* Light overlay to make background less dark */}
+    <div className="bg-gray-900 relative welcome-page">
+      {/* Light overlay to make background less dark - fixed positioning to cover entire page */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
       <Spotlight />
       <ConfettiAnimation trigger={showConfetti} />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+      <div className="relative z-10 flex items-center justify-center px-4 py-8 min-h-screen">
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div 

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Behavior Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* Simulating the old behavior */
+        .old-container {
+            min-height: 100vh;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+        
+        /* Simulating the new behavior */
+        .new-container {
+            background: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+            min-height: 100vh;
+        }
+        
+        .card {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            padding: 32px;
+            color: white;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        h2 {
+            color: #60a5fa;
+            margin-bottom: 20px;
+        }
+        
+        .debug-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <h2>OLD BEHAVIOR (min-height on outer container)</h2>
+        <div class="old-container">
+            <div class="card">
+                <h3>Onboarding Card</h3>
+                <p>This simulates the old welcome page behavior where min-height: 100vh was applied to the outer container.</p>
+                <p>Even though this card is small, the container forces 100vh height, creating scrollable empty space below.</p>
+                <div class="debug-info">
+                    Container: min-height: 100vh (OUTER)<br>
+                    Flex container: default height<br>
+                    Result: Empty space below card
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>NEW BEHAVIOR (min-height on flex container)</h2>
+        <div class="new-container">
+            <div class="card">
+                <h3>Onboarding Card</h3>
+                <p>This simulates the new welcome page behavior where min-height: 100vh is applied to the flex container.</p>
+                <p>The flex container centers the card and only takes the space it needs. No extra scrollable space!</p>
+                <div class="debug-info">
+                    Container: no min-height<br>
+                    Flex container: min-height: 100vh (INNER)<br>
+                    Result: No empty space, perfect centering
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Add scroll behavior indicators
+        document.addEventListener('scroll', () => {
+            console.log('Page scrolled to:', window.pageYOffset);
+        });
+        
+        // Test scrolling to specific sections
+        function scrollToSection(section) {
+            document.querySelector(`.${section}-container`).scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
