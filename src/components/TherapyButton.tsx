@@ -401,7 +401,7 @@ function TherapyButton({
             .reduce((obj, key) => {
               obj[key] = process.env[key] ? '✅ Set' : '❌ Not set';
               return obj;
-            }, {})
+            }, {} as Record<string, string>)
         );
         
         throw new Error('Vapi API key not configured - check environment variables');
@@ -802,7 +802,6 @@ function TherapyButton({
           // Critical: Only save FINAL transcripts to prevent fragmented sentences
           if (message.type === 'transcript') {
             const text = message.transcript;
-            const speaker = message.role || 'user';
             const isFinal = message.transcriptType === 'final' || message.isFinal === true;
             
             if (!text || text.trim() === '') {
@@ -810,15 +809,35 @@ function TherapyButton({
               return;
             }
             
-            // 🔥 CRITICAL FIX: Only save FINAL transcripts to prevent fragmentation
-            if (!isFinal) {
-              console.log(`⏳ PARTIAL transcript (not saving): [${speaker}] ${text.substring(0, 50)}...`);
-              return; // Skip partial transcripts entirely
+            // 🔥 CRITICAL FIX: Intelligent speaker detection instead of defaulting to 'user'
+            let speaker = message.role || message.speaker || null;
+            
+            // If no speaker specified, use content analysis to determine speaker
+            if (!speaker) {
+              // Check if this looks like assistant content (therapeutic language patterns)
+              const isLikelyAssistant = /\b(I understand|let me|tell me more|how does that make you feel|what I hear|it sounds like|have you considered|that's interesting|I'd like to explore|from what you're sharing)\b/i.test(text) ||
+                                       /\b(therapy|therapeutic|counseling|session|feelings|emotions|relationship|communication)\b/i.test(text) ||
+                                       text.length > 100; // Assistant responses tend to be longer
+              
+              speaker = isLikelyAssistant ? 'assistant' : 'user';
+              console.log(`🤖 SPEAKER DETECTION: Determined speaker as '${speaker}' based on content analysis`);
             }
             
-            console.log(`✨ FINAL TRANSCRIPT: [${speaker}] ${text.substring(0, 100)}... (isFinal: ${isFinal})`);
+            // 🔥 CRITICAL FIX: Process assistant messages even if not final (they might not be marked as final)
+            if (!isFinal && speaker === 'user') {
+              console.log(`⏳ PARTIAL user transcript (not saving): [${speaker}] ${text.substring(0, 50)}...`);
+              return; // Only skip partial user transcripts
+            }
             
-            // Enhanced storage for final transcripts only
+            // Always process assistant messages regardless of final status
+            if (speaker === 'assistant' || isFinal) {
+              console.log(`✨ PROCESSING TRANSCRIPT: [${speaker}] ${text.substring(0, 100)}... (isFinal: ${isFinal})`);
+            } else {
+              console.log(`⏳ PARTIAL transcript (not saving): [${speaker}] ${text.substring(0, 50)}...`);
+              return;
+            }
+            
+            // Enhanced storage for processed transcripts
             try {
               // 1. Store in main transcript array
               const storageKey = `transcript-${currentSessionId}`;
@@ -832,46 +851,46 @@ function TherapyButton({
                 existingTranscripts = [];
               }
               
-              // Add new FINAL entry with enhanced metadata
-              const finalEntry = {
+              // Add new entry with enhanced metadata
+              const transcriptEntry = {
                 speaker: speaker === 'assistant' ? 'assistant' : 'user',
                 text: text.trim(),
                 timestamp: new Date().toISOString(),
-                isFinal: true,
+                isFinal: isFinal,
                 messageType: message.type
               };
               
-              existingTranscripts.push(finalEntry);
+              existingTranscripts.push(transcriptEntry);
               
               // Save back to storage
               sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
-              console.log(`✅ Saved FINAL transcript to storage (${existingTranscripts.length} total entries)`);
+              console.log(`✅ Saved ${speaker} transcript to storage (${existingTranscripts.length} total entries)`);
               
-              // 2. Enhanced backup with finality marker
-              const backupKey = `final-${speaker}-${currentSessionId}-${Date.now()}`;
-              sessionStorage.setItem(backupKey, JSON.stringify(finalEntry));
-              console.log(`✅ Saved final transcript backup: ${backupKey}`);
+              // 2. Enhanced backup 
+              const backupKey = `transcript-${speaker}-${currentSessionId}-${Date.now()}`;
+              sessionStorage.setItem(backupKey, JSON.stringify(transcriptEntry));
+              console.log(`✅ Saved transcript backup: ${backupKey}`);
               
-              // 3. Update UI state with final content only
+              // 3. Update UI state with transcript content
               const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
               setTranscriptChunks(prev => {
                 const newChunks = [...prev, `${displaySpeaker}: ${text.trim()}`];
-                console.log(`✅ Updated UI with FINAL transcript (${newChunks.length} total)`);
+                console.log(`✅ Updated UI with ${speaker} transcript (${newChunks.length} total)`);
                 return newChunks;
               });
               
-              // 4. Save FINAL transcript to database (critical for session history)
+              // 4. Save transcript to database (critical for session history)
               try {
                 const { addTranscriptEntry } = await import('@/lib/transcript-service');
                 const normalizedSpeaker = speaker === 'assistant' ? 'assistant' : 'user';
                 
-                console.log(`🔄 Saving FINAL ${normalizedSpeaker} transcript to database...`);
+                console.log(`🔄 Saving ${normalizedSpeaker} transcript to database...`);
                 const result = await addTranscriptEntry({
                   sessionId: currentSessionId,
                   speaker: normalizedSpeaker,
                   text: text.trim(),
                   timestamp: new Date().toISOString(),
-                  isFinal: true // Always true since we only save final transcripts
+                  isFinal: isFinal
                 });
                 
                 console.log(`✅ DB SAVE SUCCESS: ${normalizedSpeaker} transcript saved with ID: ${result?.id || 'unknown'}`);
