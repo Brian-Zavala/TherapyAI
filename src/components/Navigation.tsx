@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useCallback, useRef } from "react";
 import useButtonSound from "@/hooks/useButtonSound";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -12,64 +13,73 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const playSound = useButtonSound();
 
-  // Check if mobile on first render and whenever window resizes
+  // Optimize menu opening/closing with RAF
+  const optimizedSetMenuOpen = useCallback((open: boolean) => {
+    if (mobileMenuRef.current) {
+      // Pre-optimize for animation
+      mobileMenuRef.current.style.willChange = open ? 'opacity, visibility, transform' : 'auto';
+    }
+    requestAnimationFrame(() => {
+      setIsMenuOpen(open);
+    });
+  }, []);
+
+  // Optimized mobile detection with throttling
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768); // Tailwind's md breakpoint
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768); // Tailwind's md breakpoint
+      }, 100); // Throttle resize events
     };
 
     // Initial check
     checkIfMobile();
 
-    // Ensure radio buttons reflect the correct initial state
-    // Menu is hidden by default, so toggleClose should be checked
-    const openButton = document.getElementById(
-      "toggleOpen"
-    ) as HTMLInputElement;
-    const closeButton = document.getElementById(
-      "toggleClose"
-    ) as HTMLInputElement;
-
-    if (openButton && closeButton) {
-      openButton.checked = false;
-      closeButton.checked = true; // Initially checked to hide the menu
-    }
-
     // Add event listener for resize
-    window.addEventListener("resize", checkIfMobile);
+    window.addEventListener("resize", checkIfMobile, { passive: true });
 
     // Cleanup
-    return () => window.removeEventListener("resize", checkIfMobile);
+    return () => {
+      window.removeEventListener("resize", checkIfMobile);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
-      const key = event.which || event.keyCode;
-
-      if (key === 27 && isMenuOpen) {
-        event.stopPropagation();
-        setIsMenuOpen(false);
+      if (event.key === 'Escape' && isMenuOpen) {
+        event.preventDefault();
+        optimizedSetMenuOpen(false);
       }
     },
-    [isMenuOpen]
+    [isMenuOpen, optimizedSetMenuOpen]
   );
 
-  const toggleMenu = () => {
+  const toggleMenu = useCallback(() => {
     playSound();
-    setIsMenuOpen(!isMenuOpen);
-  };
+    optimizedSetMenuOpen(!isMenuOpen);
+  }, [playSound, optimizedSetMenuOpen, isMenuOpen]);
 
   useEffect(() => {
     if (isMenuOpen) {
-      document.addEventListener("keyup", handleEscape);
+      document.addEventListener("keydown", handleEscape, { passive: false });
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = 'hidden';
     } else {
-      document.removeEventListener("keyup", handleEscape);
+      document.removeEventListener("keydown", handleEscape);
+      // Restore body scroll
+      document.body.style.overflow = 'unset';
     }
 
     return () => {
-      document.removeEventListener("keyup", handleEscape);
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = 'unset';
     };
   }, [isMenuOpen, handleEscape]);
 
@@ -110,7 +120,7 @@ export default function Navigation() {
             id="toggleOpen"
             className="hidden"
             checked={isMenuOpen}
-            readOnly
+            onChange={() => {}} // Controlled by React state
           />
           <input
             type="radio"
@@ -118,7 +128,7 @@ export default function Navigation() {
             id="toggleClose"
             className="hidden"
             checked={!isMenuOpen}
-            readOnly
+            onChange={() => {}} // Controlled by React state
           />
 
           <figure id="welcomeMessage">
@@ -303,20 +313,29 @@ export default function Navigation() {
           onClick={toggleMenu}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMenuOpen}
+          style={{ willChange: 'transform', transform: 'translateZ(0)' }}
         >
-          <div className="bg-black w-10 h-10 flex items-center justify-center border-1 border-white rounded-sm">
-            <div className="w-6 h-5 relative flex items-center justify-center">
+          <div 
+            className="bg-black w-10 h-10 flex items-center justify-center border-1 border-white rounded-sm"
+            style={{ willChange: 'background-color', transform: 'translateZ(0)' }}
+          >
+            <div 
+              className="w-6 h-5 relative flex items-center justify-center"
+              style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+            >
               <span
                 className={`absolute h-0.5 bg-white transition-all duration-300 transform ${
                   isMenuOpen
                     ? "w-6 rotate-45 translate-y-0"
                     : "w-6 -translate-y-2"
                 }`}
+                style={{ willChange: 'transform', transform: 'translateZ(0)' }}
               ></span>
               <span
                 className={`absolute h-0.5 w-6 bg-white transition-all duration-300 ${
                   isMenuOpen ? "opacity-0 scale-0" : "opacity-100 scale-100"
                 }`}
+                style={{ willChange: 'opacity, transform', transform: 'translateZ(0)' }}
               ></span>
               <span
                 className={`absolute h-0.5 bg-white transition-all duration-300 transform ${
@@ -324,22 +343,37 @@ export default function Navigation() {
                     ? "w-6 -rotate-45 translate-y-0"
                     : "w-6 translate-y-2"
                 }`}
+                style={{ willChange: 'transform', transform: 'translateZ(0)' }}
               ></span>
             </div>
           </div>
         </button>
       </div>
 
-      {/* Mobile Menu - covers entire screen (only for mobile) */}
-      <div
-        className={`md:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto transition-all duration-300 ease-in-out ${
-          isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
-      >
+      {/* Mobile Menu - covers entire screen (only for mobile) - Framer Motion Optimized */}
+      <AnimatePresence mode="wait">
+        {isMenuOpen && (
+          <motion.div
+            ref={mobileMenuRef}
+            className="md:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{
+              duration: 0.25,
+              ease: [0.23, 1, 0.32, 1], // Custom easing for smooth animation
+              layout: { duration: 0.2 }
+            }}
+            style={{
+              willChange: 'transform, opacity',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
+            }}
+          >
         <div className="container mx-auto max-w-4xl px-4 h-full flex flex-col">
           <div className="pt-4 px-4 flex justify-end items-center pb-4">
             <button
-              onClick={toggleMenu}
+              onClick={() => optimizedSetMenuOpen(false)}
               className="p-2 text-white hover:bg-white/35 rounded-full transition-colors cursor-pointer"
             >
               <svg
@@ -359,12 +393,25 @@ export default function Navigation() {
             </button>
           </div>
 
-          <div className="flex-1 flex flex-col justify-center items-center py-10 space-y-6">
-            <Link
-              href="/"
-              className={`menu-item js-cdpn-mobile-menu__link text-2xl text-center w-full ${linkStyles(pathname === "/")} py-4 px-6 rounded-lg hover:bg-black transition-colors flex items-center justify-center`}
-              onClick={() => setIsMenuOpen(false)}
+          <motion.div 
+            className="flex-1 flex flex-col justify-center items-center py-10 space-y-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
+              <Link
+                href="/"
+                className={`menu-item js-cdpn-mobile-menu__link text-2xl text-center w-full ${linkStyles(pathname === "/")} py-4 px-6 rounded-lg hover:bg-black transition-colors flex items-center justify-center`}
+                onClick={() => optimizedSetMenuOpen(false)}
+                style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
+              >
               <svg
                 className="w-7 h-7 mr-4"
                 fill="none"
@@ -381,6 +428,7 @@ export default function Navigation() {
               </svg>
               Home
             </Link>
+            </motion.div>
 
             {isLoading ? (
               <div className="text-indigo-100 py-4 px-6 text-2xl flex items-center justify-center">
@@ -412,6 +460,7 @@ export default function Navigation() {
                   href="/dashboard/therapy"
                   className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/therapy")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
                   onClick={() => setIsMenuOpen(false)}
+                  style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
                 >
                   <svg
                     className="w-7 h-7 mr-4"
@@ -607,9 +656,11 @@ export default function Navigation() {
                 </Link>
               </>
             )}
-          </div>
+          </motion.div>
         </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* SVG gradient definition */}
       <svg className="absolute w-0 h-0">
