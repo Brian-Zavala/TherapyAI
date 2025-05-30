@@ -242,6 +242,117 @@ const formSteps: FormStep[] = [
         type: 'number',
         placeholder: 'Age',
         required: false
+      },
+      {
+        name: 'familyMember5',
+        label: 'Family member 5',
+        type: 'text',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember5Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
+        required: false
+      },
+      {
+        name: 'familyMember5Age',
+        label: 'Age of family member 5',
+        type: 'number',
+        placeholder: 'Age',
+        required: false
+      },
+      {
+        name: 'familyMember6',
+        label: 'Family member 6',
+        type: 'text',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember6Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
+        required: false
+      },
+      {
+        name: 'familyMember6Age',
+        label: 'Age of family member 6',
+        type: 'number',
+        placeholder: 'Age',
+        required: false
+      },
+      {
+        name: 'familyMember7',
+        label: 'Family member 7',
+        type: 'text',
+        placeholder: 'Name',
+        required: false
+      },
+      {
+        name: 'familyMember7Relation',
+        label: 'Relationship to you',
+        type: 'select',
+        options: [
+          { value: 'child', label: 'Child' },
+          { value: 'parent', label: 'Parent' },
+          { value: 'sibling', label: 'Sibling' },
+          { value: 'grandparent', label: 'Grandparent' },
+          { value: 'grandchild', label: 'Grandchild' },
+          { value: 'aunt', label: 'Aunt' },
+          { value: 'uncle', label: 'Uncle' },
+          { value: 'cousin', label: 'Cousin' },
+          { value: 'niece', label: 'Niece' },
+          { value: 'nephew', label: 'Nephew' },
+          { value: 'stepchild', label: 'Stepchild' },
+          { value: 'stepparent', label: 'Stepparent' },
+          { value: 'stepsibling', label: 'Step-sibling' },
+          { value: 'friend', label: 'Close Friend' },
+          { value: 'other', label: 'Other' }
+        ],
+        required: false
+      },
+      {
+        name: 'familyMember7Age',
+        label: 'Age of family member 7',
+        type: 'number',
+        placeholder: 'Age',
+        required: false
       }
     ]
   },
@@ -454,12 +565,16 @@ export default function WelcomePage() {
   // Check if the current step has all required fields filled
   const isCurrentStepValid = () => {
     if (currentStep === 0) { // Step 1 (index 0)
-      // Check if nickname and age are filled
-      const isValid = !!formData.nickname && !!formData.age;
+      // Check if nickname and age are filled (trim whitespace and check for meaningful values)
+      const nickname = formData.nickname?.trim();
+      const age = formData.age?.toString().trim();
+      const isValid = !!(nickname && nickname.length > 0) && !!(age && parseInt(age) > 0);
       console.log("Step 1 validation:", { 
         isValid, 
-        nickname: formData.nickname, 
-        age: formData.age 
+        nickname: nickname, 
+        age: age,
+        rawNickname: formData.nickname,
+        rawAge: formData.age
       });
       return isValid;
     }
@@ -613,9 +728,73 @@ export default function WelcomePage() {
 
   // Show loading state while checking authentication or onboarding status
   if (status === 'loading' || checkingOnboarding) {
-    return <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-    </div>
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="text-center w-full max-w-sm">
+          <motion.div
+            className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 rounded-full relative overflow-hidden"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.8, 1, 0.8],
+              background: [
+                'linear-gradient(135deg, #9333ea 0%, #ec4899 100%)', // purple-pink
+                'linear-gradient(135deg, #8b5cf6 0%, #f472b6 100%)', // purple-500 to pink-500
+                'linear-gradient(135deg, #2563eb 0%, #0891b2 100%)', // blue-cyan
+                'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', // blue-500 to cyan-500
+                'linear-gradient(135deg, #16a34a 0%, #0d9488 100%)', // green-teal
+                'linear-gradient(135deg, #22c55e 0%, #14b8a6 100%)', // green-500 to teal-500
+                'linear-gradient(135deg, #9333ea 0%, #ec4899 100%)'  // back to start
+              ]
+            }}
+            transition={{
+              scale: {
+                duration: 2,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.2, 1]
+              },
+              opacity: {
+                duration: 2,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.2, 1]
+              },
+              background: {
+                duration: 8,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.2, 1]
+              }
+            }}
+          >
+            {/* Inner spinning element for extra visual interest */}
+            <motion.div
+              className="absolute inset-2 rounded-full bg-gradient-to-r from-white/20 to-white/5"
+              animate={{
+                rotate: [0, 360]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            />
+          </motion.div>
+          <motion.p 
+            className="text-white/80 text-base sm:text-lg font-medium"
+            animate={{
+              opacity: [0.6, 1, 0.6]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: [0.4, 0.0, 0.2, 1]
+            }}
+          >
+            Onboarding...
+          </motion.p>
+          </div>
+        </div>
+      </div>
+    )
   }
   
   // Show splash screen after form submission
@@ -637,11 +816,15 @@ export default function WelcomePage() {
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed z-50 top-10 left-1/2 transform -translate-x-1/2 px-5 py-4 bg-red-500 text-white text-center text-sm sm:text-base font-medium rounded-lg shadow-xl max-w-[95vw] sm:max-w-max mx-auto"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed z-50 top-10 left-1/2 transform -translate-x-1/2 px-6 py-4 bg-red-600 border-2 border-red-400 text-white text-center text-sm sm:text-base font-bold rounded-lg shadow-2xl shadow-red-600/30 max-w-[95vw] sm:max-w-max mx-auto backdrop-blur-sm"
           >
-            ⚠️ Please fill out your name and age to continue
+            <div className="flex items-center justify-center">
+              <span className="text-lg mr-2">⚠️</span>
+              <span>Please fill out your name and age to continue</span>
+            </div>
           </motion.div>
         )}
         
@@ -729,12 +912,37 @@ export default function WelcomePage() {
                       <label className="block text-white mb-2">
                         {field.label}
                         {field.required && (
-                          <span className={`ml-1 ${showTooltip && 
-                            ((field.name === 'nickname' && !formData.nickname) || 
-                             (field.name === 'age' && !formData.age)) 
-                            ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>*</span>
+                          <span className={`ml-1 text-lg font-bold ${showTooltip && 
+                            ((field.name === 'nickname' && !formData.nickname?.trim()) || 
+                             (field.name === 'age' && (!formData.age || parseInt(formData.age.toString()) <= 0))) 
+                            ? 'text-red-400 animate-bounce' : 'text-blue-400'}`}>*</span>
                         )}
                       </label>
+                      {/* Field-specific validation messages */}
+                      {showTooltip && field.required && (
+                        (field.name === 'nickname' && !formData.nickname?.trim()) && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="mb-2 text-red-400 text-sm font-medium flex items-center"
+                          >
+                            <span className="mr-1">⚠️</span>
+                            <span>Name is required</span>
+                          </motion.div>
+                        )
+                      )}
+                      {showTooltip && field.required && (
+                        (field.name === 'age' && (!formData.age || parseInt(formData.age.toString()) <= 0)) && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="mb-2 text-red-400 text-sm font-medium flex items-center"
+                          >
+                            <span className="mr-1">⚠️</span>
+                            <span>Valid age is required</span>
+                          </motion.div>
+                        )
+                      )}
                       
                       {field.type === 'text' && (
                         <motion.input
@@ -743,9 +951,19 @@ export default function WelcomePage() {
                           placeholder={field.placeholder}
                           value={formData[field.name] || ''}
                           onChange={(e) => handleInputChange(field.name, e.target.value)}
-                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
-                            field.name === 'nickname' && showTooltip && !formData.nickname
-                              ? 'border-red-500 focus:border-red-400'
+                          animate={{
+                            borderColor: field.name === 'nickname' && showTooltip && !formData.nickname?.trim()
+                              ? ['#ef4444', '#dc2626', '#ef4444'] // Red pulsing animation
+                              : undefined
+                          }}
+                          transition={{
+                            duration: 1,
+                            repeat: field.name === 'nickname' && showTooltip && !formData.nickname?.trim() ? Infinity : 0,
+                            ease: 'easeInOut'
+                          }}
+                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
+                            field.name === 'nickname' && showTooltip && !formData.nickname?.trim()
+                              ? 'border-red-500 focus:border-red-400 shadow-lg shadow-red-500/25'
                               : 'border-white/20 focus:border-blue-400'
                           }`}
                         />
@@ -769,9 +987,19 @@ export default function WelcomePage() {
                           placeholder={field.placeholder}
                           value={formData[field.name] || ''}
                           onChange={(e) => handleInputChange(field.name, e.target.value)}
-                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
-                            field.name === 'age' && showTooltip && !formData.age
-                              ? 'border-red-500 focus:border-red-400'
+                          animate={{
+                            borderColor: field.name === 'age' && showTooltip && (!formData.age || parseInt(formData.age.toString()) <= 0)
+                              ? ['#ef4444', '#dc2626', '#ef4444'] // Red pulsing animation
+                              : undefined
+                          }}
+                          transition={{
+                            duration: 1,
+                            repeat: field.name === 'age' && showTooltip && (!formData.age || parseInt(formData.age.toString()) <= 0) ? Infinity : 0,
+                            ease: 'easeInOut'
+                          }}
+                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
+                            field.name === 'age' && showTooltip && (!formData.age || parseInt(formData.age.toString()) <= 0)
+                              ? 'border-red-500 focus:border-red-400 shadow-lg shadow-red-500/25'
                               : 'border-white/20 focus:border-blue-400'
                           }`}
                           min="1"
@@ -880,9 +1108,11 @@ export default function WelcomePage() {
                       disabled={loading || (currentStep === 0 && !isCurrentStepValid())}
                       className={`px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base ${
                         currentStep === 0 && !isCurrentStepValid()
-                          ? 'bg-blue-500/70 hover:bg-blue-600/70 cursor-not-allowed'
+                          ? 'bg-gray-600 hover:bg-gray-600 cursor-not-allowed border-2 border-red-500/50 shadow-red-500/20 shadow-lg'
                           : 'bg-blue-500 hover:bg-blue-600'
-                      } text-white rounded-xl font-medium transition-all transform hover:scale-105 ${
+                      } text-white rounded-xl font-medium transition-all ${
+                        currentStep === 0 && !isCurrentStepValid() ? '' : 'transform hover:scale-105'
+                      } ${
                         currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? 'w-full sm:w-auto' : ''
                       }`}
                     >
