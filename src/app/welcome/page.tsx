@@ -839,7 +839,7 @@ export default function WelcomePage() {
       <div className="fixed inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20 pointer-events-none" />
       <ConfettiAnimation trigger={showConfetti} />
       
-      <div className="relative z-10 px-4 pt-8">
+      <div className="relative z-10 px-4 pt-8 pb-8">
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div 
