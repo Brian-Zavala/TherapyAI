@@ -380,33 +380,80 @@ export default function IntroWelcomeScreen() {
     preloadAnimations();
   }, []);
 
-  // Handle scroll to top when step changes (coordinated with animation timing)
+  // Handle scroll to top when step changes - immediate and reliable
   useEffect(() => {
-    // Only scroll if we're not on the initial step (avoid double scroll on mount)
-    if (currentStep > 0) {
-      // Small delay to let exit animation start, then scroll during transition
-      const scrollTimer = setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100); // 100ms delay allows exit animation to start, scroll completes during transition
+    console.log('IntroWelcomeScreen: Step changed to', currentStep, '- scrolling to top');
+    console.log('Current scroll position before step change:', window.scrollY);
+    
+    // Scroll immediately on any step change, including the very first one
+    const scrollTimer = setTimeout(() => {
+      // Multiple methods for reliable scrolling
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Verify scroll worked
+      requestAnimationFrame(() => {
+        console.log('IntroWelcomeScreen: Scroll position after step change:', window.scrollY);
+      });
+    }, 50); // Small delay to ensure DOM updates, then instant scroll
 
-      return () => clearTimeout(scrollTimer);
-    }
+    return () => clearTimeout(scrollTimer);
   }, [currentStep]);
 
   // Scroll to top when component mounts (user navigated to this page)
   useEffect(() => {
-    // Use instant scroll to avoid conflicts with step animations
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    console.log('IntroWelcomeScreen: Attempting scroll to top on mount');
+    console.log('Current scroll position before:', window.scrollY);
+    
+    // Multiple fallback approaches for reliable scroll-to-top
+    const scrollToTop = () => {
+      // Method 1: Try with instant behavior
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      
+      // Method 2: Direct property setting as fallback
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Method 3: Force scroll on next frame if still not at top
+      requestAnimationFrame(() => {
+        if (window.scrollY > 0) {
+          console.log('IntroWelcomeScreen: First scroll attempt failed, trying again');
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }
+        console.log('IntroWelcomeScreen: Final scroll position:', window.scrollY);
+      });
+    };
+    
+    // Execute immediately
+    scrollToTop();
+    
+    // Also try after a small delay in case DOM is still updating
+    const timeoutId = setTimeout(scrollToTop, 10);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const handleNext = useCallback(() => {
     if (currentStep < therapySteps.length - 1) {
+      // Immediate scroll to top when navigating
+      console.log('IntroWelcomeScreen: handleNext - scrolling to top');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       setCurrentStep(currentStep + 1);
     }
   }, [currentStep]);
 
   const handlePrevious = useCallback(() => {
     if (currentStep > 0) {
+      // Immediate scroll to top when navigating
+      console.log('IntroWelcomeScreen: handlePrevious - scrolling to top');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       setCurrentStep(currentStep - 1);
     }
   }, [currentStep]);
@@ -674,16 +721,13 @@ export default function IntroWelcomeScreen() {
             initial="initial"
             animate="animate"
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="hidden md:block text-center mb-8"
+            className="hidden md:block text-center mb-4"
             style={{ transform: "translate3d(0, 0, 0)" }}
           >
-            <h1 className="text-5xl font-bold text-white mb-4">
+            <h1 className="text-5xl font-bold text-white">
               Welcome to TherapyAI
             </h1>
           </motion.div>
-
-          {/* Spacer to maintain layout balance */}
-          <div className="hidden md:block mb-8 h-6"></div>
 
           {/* Error message */}
           {error && (

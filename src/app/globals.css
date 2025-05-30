@@ -151,7 +151,10 @@ body.session-active {
 .welcome-page {
   background-color: #111827; /* Consistent gray-900 background */
   position: relative;
-  overflow-y: visible; /* Let content determine scrolling naturally */
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Ensure background gradient overlay is properly positioned */

@@ -98,6 +98,14 @@ function useViewportAnimation(
 export default function Home() {
   // --- Basic State and Hooks ---
   const prefersReducedMotion = useReducedMotion();
+  
+  // Enable smooth scrolling for this page
+  useEffect(() => {
+    document.documentElement.classList.add('smooth-scroll');
+    return () => {
+      document.documentElement.classList.remove('smooth-scroll');
+    };
+  }, []);
   // Initialize with window check if available, otherwise default to mobile
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window !== "undefined") {

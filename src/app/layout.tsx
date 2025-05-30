@@ -82,9 +82,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth bg-gray-900">
-      <body className="min-h-screen w-full overflow-x-hidden overflow-y-auto bg-gray-900">
+      <body className="w-full overflow-x-hidden bg-gray-900">
         <ClientProviders>
-          <main className="overflow-x-hidden w-full min-h-screen">
+          <main className="overflow-x-hidden w-full">
             {children}
           </main>
         </ClientProviders>

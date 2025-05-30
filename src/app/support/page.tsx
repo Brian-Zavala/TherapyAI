@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import TherapeuticBokehBackground from '@/components/ui/therapeutic-bokeh-background';
@@ -8,6 +8,13 @@ import GlassCard from '@/components/ui/glass-card';
 import { useRouter } from 'next/navigation';
 
 export default function SupportPage() {
+  // Enable smooth scrolling for this page
+  useEffect(() => {
+    document.documentElement.classList.add('smooth-scroll');
+    return () => {
+      document.documentElement.classList.remove('smooth-scroll');
+    };
+  }, []);
   const { data: session } = useSession();
   const router = useRouter();
   const [formData, setFormData] = useState({

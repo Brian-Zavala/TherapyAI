@@ -16,6 +16,14 @@ export default function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  
+  // Enable smooth scrolling for this page
+  useEffect(() => {
+    document.documentElement.classList.add('smooth-scroll');
+    return () => {
+      document.documentElement.classList.remove('smooth-scroll');
+    };
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {

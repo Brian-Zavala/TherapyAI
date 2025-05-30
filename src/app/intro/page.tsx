@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import IntroWelcomeScreen from '@/components/IntroWelcomeScreen'
 import { motion } from 'framer-motion'
+import { enhancedScrollToTop } from '@/lib/scroll-utils'
 
 export default function IntroPage() {
   const router = useRouter()
@@ -57,8 +58,7 @@ export default function IntroPage() {
 
   // Scroll to top when component mounts (user navigated to this page)
   useEffect(() => {
-    // Use instant scroll to avoid conflicts with loading states
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    enhancedScrollToTop('IntroPage-Mount');
   }, []);
 
   // Fallback timeout to prevent infinite loading
@@ -147,5 +147,9 @@ export default function IntroPage() {
     return null // Will redirect
   }
 
-  return <IntroWelcomeScreen />
+  return (
+    <div className="intro-page">
+      <IntroWelcomeScreen />
+    </div>
+  )
 }

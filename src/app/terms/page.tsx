@@ -2,10 +2,18 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useEffect } from 'react'
 import BokehBackground from '@/components/ui/bokeh-background'
 import GlassCard from '@/components/ui/glass-card'
 
 export default function TermsAndConditions() {
+  // Enable smooth scrolling for this page
+  useEffect(() => {
+    document.documentElement.classList.add('smooth-scroll');
+    return () => {
+      document.documentElement.classList.remove('smooth-scroll');
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />

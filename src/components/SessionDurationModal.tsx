@@ -73,7 +73,7 @@ export default function SessionDurationModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-black/70 via-purple-900/30 to-black/70 backdrop-blur-lg"
+          className="fixed inset-0 z-[10001] flex items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-black/70 via-purple-900/30 to-black/70 backdrop-blur-lg"
           onClick={onClose}
         >
           <motion.div
@@ -226,7 +226,7 @@ export default function SessionDurationModal({
                   whileTap={{ scale: 0.98 }}
                   onClick={handleContinue}
                   disabled={isLoading}
-                  className="w-full sm:flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-purple-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base shadow-lg shadow-blue-500/20"
+                  className="w-full sm:flex-1 px-4 sm:px-6 py-3 bg-blue-500 text-white rounded-xl sm:rounded-2xl hover:bg-blue-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base shadow-lg shadow-blue-500/20"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-2">

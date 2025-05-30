@@ -37,6 +37,14 @@ export default function SessionsPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'list' | 'details'>('list')
   
+  // Enable smooth scrolling for this page
+  useEffect(() => {
+    document.documentElement.classList.add('smooth-scroll');
+    return () => {
+      document.documentElement.classList.remove('smooth-scroll');
+    };
+  }, []);
+  
   useEffect(() => {
     // Redirect if not logged in
     if (status === 'unauthenticated') {

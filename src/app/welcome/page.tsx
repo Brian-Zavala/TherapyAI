@@ -834,13 +834,13 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="bg-gray-900 relative welcome-page">
+    <div className="bg-gray-900 welcome-page">
       {/* Light overlay to make background less dark - fixed positioning to cover entire page */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20 pointer-events-none" />
       <Spotlight />
       <ConfettiAnimation trigger={showConfetti} />
       
-      <div className="relative z-10 flex items-center justify-center px-4 py-8 min-h-screen">
+      <div className="relative z-10 px-4 py-8">
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div 
