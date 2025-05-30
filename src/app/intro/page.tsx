@@ -11,10 +11,17 @@ export default function IntroPage() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(true)
   const [hasSeenIntro, setHasSeenIntro] = useState(false)
+  const [hasChecked, setHasChecked] = useState(false)
 
   useEffect(() => {
     async function checkIntroStatus() {
-      if (status === 'loading') return
+      // Wait for session to be loaded before proceeding
+      if (status === 'loading') {
+        return
+      }
+      
+      // Mark that we've performed the check
+      setHasChecked(true)
       
       if (status === 'unauthenticated' || !session?.user) {
         router.push('/auth/login')
@@ -42,8 +49,23 @@ export default function IntroPage() {
       }
     }
 
-    checkIntroStatus()
-  }, [session, status, router])
+    // Only run if we haven't checked yet
+    if (!hasChecked) {
+      checkIntroStatus()
+    }
+  }, [session, status, router, hasChecked])
+
+  // Fallback timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading && status !== 'loading') {
+        console.warn('Intro page loading timeout - forcing load completion')
+        setLoading(false)
+      }
+    }, 3000) // 3 second timeout
+
+    return () => clearTimeout(timeout)
+  }, [loading, status])
 
   if (status === 'loading' || loading) {
     return (

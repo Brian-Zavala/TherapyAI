@@ -74,11 +74,10 @@ export default function Register() {
       }
       
       // Small delay to ensure session is established
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
       // Redirect to intro page after registration
       router.push('/intro')
-      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred')
     } finally {
