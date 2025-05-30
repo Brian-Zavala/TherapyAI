@@ -29,6 +29,12 @@ export default function ProfileSettings() {
     familyMember3Age: "",
     familyMember4: "",
     familyMember4Age: "",
+    familyMember5: "",
+    familyMember5Age: "",
+    familyMember6: "",
+    familyMember6Age: "",
+    familyMember7: "",
+    familyMember7Age: "",
     therapyType: "",
     currentConcerns: null,
     emergencyContact: "",
@@ -90,6 +96,12 @@ export default function ProfileSettings() {
           familyMember3Age: userData.familyMember3Age?.toString() || "",
           familyMember4: userData.familyMember4 || "",
           familyMember4Age: userData.familyMember4Age?.toString() || "",
+          familyMember5: userData.familyMember5 || "",
+          familyMember5Age: userData.familyMember5Age?.toString() || "",
+          familyMember6: userData.familyMember6 || "",
+          familyMember6Age: userData.familyMember6Age?.toString() || "",
+          familyMember7: userData.familyMember7 || "",
+          familyMember7Age: userData.familyMember7Age?.toString() || "",
           therapyType: userData.therapyType || "",
           currentConcerns: userData.currentConcerns || null,
           emergencyContact: userData.emergencyContact || "",
@@ -342,7 +354,7 @@ export default function ProfileSettings() {
                 </h3>
                 
                 <p className="text-sm text-purple-700 mb-4">
-                  Add up to 4 family members who may participate in family therapy sessions. This information will help personalize your family therapy experience.
+                  Add up to 7 family members who may participate in family therapy sessions. This information will help personalize your family therapy experience.
                 </p>
                 
                 <div className="space-y-4">
@@ -457,6 +469,96 @@ export default function ProfileSettings() {
                         id="familyMember4Age"
                         name="familyMember4Age"
                         value={formData.familyMember4Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label htmlFor="familyMember5" className="block text-sm font-medium text-gray-700 mb-1">Family Member 5</label>
+                      <input
+                        type="text"
+                        id="familyMember5"
+                        name="familyMember5"
+                        value={formData.familyMember5}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember5Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 5</label>
+                      <input
+                        type="number"
+                        id="familyMember5Age"
+                        name="familyMember5Age"
+                        value={formData.familyMember5Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label htmlFor="familyMember6" className="block text-sm font-medium text-gray-700 mb-1">Family Member 6</label>
+                      <input
+                        type="text"
+                        id="familyMember6"
+                        name="familyMember6"
+                        value={formData.familyMember6}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember6Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 6</label>
+                      <input
+                        type="number"
+                        id="familyMember6Age"
+                        name="familyMember6Age"
+                        value={formData.familyMember6Age}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Age"
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label htmlFor="familyMember7" className="block text-sm font-medium text-gray-700 mb-1">Family Member 7</label>
+                      <input
+                        type="text"
+                        id="familyMember7"
+                        name="familyMember7"
+                        value={formData.familyMember7}
+                        onChange={handleChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                        placeholder="Name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="familyMember7Age" className="block text-sm font-medium text-gray-700 mb-1">Age of Member 7</label>
+                      <input
+                        type="number"
+                        id="familyMember7Age"
+                        name="familyMember7Age"
+                        value={formData.familyMember7Age}
                         onChange={handleChange}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                         placeholder="Age"

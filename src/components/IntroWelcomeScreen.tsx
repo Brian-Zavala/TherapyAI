@@ -207,7 +207,6 @@ const LottieAnimation = React.memo(({ url, title }: LottieAnimationProps) => {
           className={`w-full h-full ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
           rendererSettings={{
             preserveAspectRatio: "xMidYMid meet",
-            clearCanvas: false,
             progressiveLoad: true,
             hideOnTransparent: true,
           }}
@@ -292,7 +291,7 @@ const ParticleField = React.memo(
     gradientConfig,
   }: {
     particleCount: number;
-    gradientConfig: { primary: string[]; animated: string[] };
+    gradientConfig: { primary: string[]; secondary?: string[]; tertiary?: string[] };
   }) => {
     const particleConfigs = useMemo(
       () => generateParticleConfigs(particleCount),
@@ -309,20 +308,23 @@ const ParticleField = React.memo(
         {particleConfigs.map((config) => (
           <motion.div
             key={config.id}
-            className="absolute w-1 h-1 rounded-full"
+            className="absolute rounded-full"
             style={{
               transform: "translate3d(0, 0, 0)", // Enable hardware acceleration
               backgroundColor: gradientConfig.primary[config.id % 2], // Alternate between primary colors
+              filter: "blur(1px)", // Soft particle edges
+              width: "2px",
+              height: "2px",
             }}
             initial={{
               x: `${config.initialX}%`,
               y: `${config.initialY}%`,
-              opacity: 0.1,
+              opacity: 0,
             }}
             animate={{
               x: `${config.targetX}%`,
               y: `${config.targetY}%`,
-              opacity: [0.1, 0.3, 0.1],
+              opacity: [0, 0.2, 0.3, 0.2, 0],
             }}
             transition={{
               x: {
@@ -340,10 +342,9 @@ const ParticleField = React.memo(
                 ease: "easeInOut",
               },
               opacity: {
-                duration: config.duration * 0.5,
+                duration: config.duration * 0.8,
                 repeat: Infinity,
-                repeatType: "reverse",
-                delay: config.delay * 0.5,
+                delay: config.delay,
                 ease: "easeInOut",
               },
             }}
@@ -439,33 +440,18 @@ export default function IntroWelcomeScreen() {
     () => ({
       "from-purple-600 to-pink-600": {
         primary: ["#9333ea", "#ec4899"], // purple-600 to pink-600
-        animated: [
-          "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)",
-          "linear-gradient(135deg, #a855f7 0%, #f472b6 100%)", // purple-500 to pink-500
-          "linear-gradient(135deg, #8b5cf6 0%, #e879f9 100%)", // purple-400 to fuchsia-400
-          "linear-gradient(135deg, #7c3aed 0%, #d946ef 100%)", // violet-600 to fuchsia-600
-          "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)", // back to original
-        ],
+        secondary: ["#a855f7", "#f472b6"], // lighter shades for variation
+        tertiary: ["#7c3aed", "#d946ef"], // darker shades for depth
       },
       "from-blue-600 to-cyan-600": {
         primary: ["#2563eb", "#0891b2"], // blue-600 to cyan-600
-        animated: [
-          "linear-gradient(135deg, #2563eb 0%, #0891b2 100%)",
-          "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)", // blue-500 to cyan-500
-          "linear-gradient(135deg, #1d4ed8 0%, #0e7490 100%)", // blue-700 to cyan-700
-          "linear-gradient(135deg, #1e40af 0%, #164e63 100%)", // blue-800 to cyan-800
-          "linear-gradient(135deg, #2563eb 0%, #0891b2 100%)", // back to original
-        ],
+        secondary: ["#3b82f6", "#06b6d4"], // lighter shades for variation
+        tertiary: ["#1d4ed8", "#0e7490"], // darker shades for depth
       },
       "from-green-600 to-teal-600": {
         primary: ["#16a34a", "#0d9488"], // green-600 to teal-600
-        animated: [
-          "linear-gradient(135deg, #16a34a 0%, #0d9488 100%)",
-          "linear-gradient(135deg, #22c55e 0%, #14b8a6 100%)", // green-500 to teal-500
-          "linear-gradient(135deg, #15803d 0%, #0f766e 100%)", // green-700 to teal-700
-          "linear-gradient(135deg, #166534 0%, #134e4a 100%)", // green-800 to teal-800
-          "linear-gradient(135deg, #16a34a 0%, #0d9488 100%)", // back to original
-        ],
+        secondary: ["#22c55e", "#14b8a6"], // lighter shades for variation
+        tertiary: ["#15803d", "#0f766e"], // darker shades for depth
       },
     }),
     []
@@ -528,43 +514,142 @@ export default function IntroWelcomeScreen() {
 
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
-      {/* Enhanced animated background gradient */}
+      {/* Enhanced animated background gradient with smooth transitions */}
       <motion.div
-        className="absolute inset-0 opacity-30"
-        style={{ transform: "translate3d(0, 0, 0)" }} // Hardware acceleration
-        animate={{
-          background: currentGradientConfig.animated,
-        }}
-        transition={{
-          background: {
-            duration: 16,
+        className="absolute inset-0 transition-all duration-1000 ease-in-out"
+        style={{ 
+          transform: "translate3d(0, 0, 0)", // Hardware acceleration
+          background: `linear-gradient(135deg, ${currentGradientConfig.primary[0]} 0%, ${currentGradientConfig.primary[1]} 100%)`,
+          opacity: 0.25,
+          '--color-primary-1': currentGradientConfig.primary[0],
+          '--color-primary-2': currentGradientConfig.primary[1],
+          '--color-secondary-1': currentGradientConfig.secondary?.[0] || currentGradientConfig.primary[0],
+          '--color-secondary-2': currentGradientConfig.secondary?.[1] || currentGradientConfig.primary[1],
+        } as React.CSSProperties}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.25 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Primary gradient layer with smooth color interpolation */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at 50% 50%, ${currentGradientConfig.primary[0]}40 0%, transparent 70%)`,
+            transform: "translate3d(0, 0, 0)",
+          }}
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 8,
             repeat: Infinity,
-            ease: [0.25, 0.46, 0.45, 0.94],
-          },
-        }}
-        key={currentStep} // Force re-animation when slide changes
-      />
-
-      {/* Smooth transition overlay for slide changes */}
-      <motion.div
-        className="absolute inset-0 opacity-20"
-        style={{
-          background: currentGradientConfig.primary[0],
-          transform: "translate3d(0, 0, 0)",
-        }}
-        animate={{
-          background: [
-            currentGradientConfig.primary[0],
-            currentGradientConfig.primary[1],
-            currentGradientConfig.primary[0],
-          ],
-        }}
-        transition={{
-          duration: 24,
-          repeat: Infinity,
-          ease: [0.4, 0.0, 0.2, 1],
-        }}
-      />
+            ease: "easeInOut",
+          }}
+        />
+        
+        {/* Secondary gradient layer for depth */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(circle at 30% 70%, ${currentGradientConfig.primary[1]}30 0%, transparent 60%)`,
+            transform: "translate3d(0, 0, 0)",
+          }}
+          animate={{
+            scale: [1.2, 0.8, 1.2],
+            opacity: [0.4, 0.2, 0.4],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+        />
+        
+        {/* Tertiary gradient layer for movement */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(circle at 70% 30%, ${currentGradientConfig.primary[0]}25 0%, transparent 50%)`,
+            transform: "translate3d(0, 0, 0)",
+          }}
+          animate={{
+            scale: [0.9, 1.3, 0.9],
+            opacity: [0.3, 0.5, 0.3],
+            x: ["0%", "10%", "0%"],
+            y: ["0%", "-10%", "0%"],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+        />
+        
+        {/* Noise overlay to smooth gradients */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            transform: "translate3d(0, 0, 0)",
+          }}
+        />
+        
+        {/* Subtle blur overlay to smooth any hard edges */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backdropFilter: "blur(1px)",
+            transform: "translate3d(0, 0, 0)",
+          }}
+        />
+        
+        {/* CSS-based gradient animation layer for ultra-smooth transitions */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(
+                circle at 20% 80%,
+                ${currentGradientConfig.primary[0]}15 0%,
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 80% 20%,
+                ${currentGradientConfig.primary[1]}15 0%,
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 40% 40%,
+                ${currentGradientConfig.secondary?.[0] || currentGradientConfig.primary[0]}10 0%,
+                transparent 50%
+              )
+            `,
+            transform: "translate3d(0, 0, 0)",
+            animation: "gradientShift 20s ease-in-out infinite",
+          }}
+        />
+      </motion.div>
+      
+      {/* CSS Keyframes for smooth gradient animation */}
+      <style jsx>{`
+        @keyframes gradientShift {
+          0%, 100% {
+            transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+          }
+          25% {
+            transform: translate3d(-5%, 5%, 0) scale(1.1) rotate(90deg);
+          }
+          50% {
+            transform: translate3d(5%, -5%, 0) scale(0.9) rotate(180deg);
+          }
+          75% {
+            transform: translate3d(-5%, -5%, 0) scale(1.05) rotate(270deg);
+          }
+        }
+      `}</style>
 
       {/* Optimized particle system with therapy-specific colors */}
       <ParticleField
@@ -748,14 +833,14 @@ export default function IntroWelcomeScreen() {
                 </div>
 
                 {/* Navigation buttons */}
-                <div className="flex justify-between items-center mt-8 gap-3">
+                <div className="flex justify-between items-center mt-6 xs:mt-8 gap-1 xs:gap-2 sm:gap-3">
                   <motion.button
                     whileHover={{ scale: 1.05, transition: { duration: 0.1 } }}
                     whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
                     onClick={handlePrevious}
                     disabled={currentStep === 0}
                     style={{ transform: "translate3d(0, 0, 0)" }}
-                    className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-all text-sm sm:text-base ${
+                    className={`px-2 xs:px-3 sm:px-4 md:px-6 py-1.5 xs:py-2 sm:py-2.5 md:py-3 rounded-lg xs:rounded-xl font-medium transition-all text-xs xs:text-sm sm:text-base ${
                       currentStep === 0
                         ? "bg-white/5 text-white/30 cursor-not-allowed"
                         : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 cursor-pointer"
@@ -784,7 +869,7 @@ export default function IntroWelcomeScreen() {
                       }}
                       onClick={handleGetStarted}
                       disabled={isLoading}
-                      className="px-4 sm:px-6 py-2.5 sm:py-3 text-white rounded-xl font-medium transition-all text-sm sm:text-base relative overflow-hidden group shadow-lg cursor-pointer"
+                      className="px-2 xs:px-3 sm:px-4 md:px-6 py-1.5 xs:py-2 sm:py-2.5 md:py-3 text-white rounded-lg xs:rounded-xl font-medium transition-all text-xs xs:text-sm sm:text-base relative overflow-hidden group shadow-lg cursor-pointer"
                       style={{ transform: "translate3d(0, 0, 0)" }}
                       animate={{
                         background: [
@@ -878,7 +963,7 @@ export default function IntroWelcomeScreen() {
                       whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
                       onClick={handleNext}
                       style={{ transform: "translate3d(0, 0, 0)" }}
-                      className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all text-sm sm:text-base cursor-pointer"
+                      className="px-2 xs:px-3 sm:px-4 md:px-6 py-1.5 xs:py-2 sm:py-2.5 md:py-3 bg-white/10 text-white rounded-lg xs:rounded-xl font-medium hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all text-xs xs:text-sm sm:text-base cursor-pointer"
                     >
                       Next
                     </motion.button>

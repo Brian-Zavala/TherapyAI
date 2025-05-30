@@ -34,9 +34,26 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     name?: string;
     partnerName?: string;
     familyMember1?: string;
+    familyMember1Age?: number;
+    familyMember1Relation?: string;
     familyMember2?: string;
+    familyMember2Age?: number;
+    familyMember2Relation?: string;
     familyMember3?: string;
+    familyMember3Age?: number;
+    familyMember3Relation?: string;
     familyMember4?: string;
+    familyMember4Age?: number;
+    familyMember4Relation?: string;
+    familyMember5?: string;
+    familyMember5Age?: number;
+    familyMember5Relation?: string;
+    familyMember6?: string;
+    familyMember6Age?: number;
+    familyMember6Relation?: string;
+    familyMember7?: string;
+    familyMember7Age?: number;
+    familyMember7Relation?: string;
   }>({});
 
   // Digital clock state

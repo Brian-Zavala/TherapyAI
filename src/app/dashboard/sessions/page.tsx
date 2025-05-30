@@ -119,39 +119,41 @@ export default function SessionsPage() {
   // Mobile tab view is handled above with the other state hooks
   
   return (
-    <div className="min-h-screen bg-gray-900 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-900 relative overflow-hidden py-6 px-4 sm:px-6 lg:px-8">
+      {/* Background gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/20" />
+      <div className="max-w-7xl mx-auto relative z-10">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
-          <span className="text-black/90">Your Sessions</span>
-          <span className="ml-2 text-xs bg-indigo-100 text-blue-600/90 py-1 px-2 rounded-full">
+        <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center">
+          <span className="text-white">Your Sessions</span>
+          <span className="ml-2 text-xs bg-blue-500/30 backdrop-blur-sm text-white py-1 px-2 rounded-full border border-blue-400/30">
             {sessions.length} Total
           </span>
         </h1>
         
         {/* Mobile Tabs */}
         <div className="mt-4 md:hidden w-full">
-          <div className="flex rounded-md bg-gray-100 p-1">
+          <div className="flex rounded-md bg-white/10 backdrop-blur-sm p-1 border border-white/20">
             <button
               onClick={() => setActiveTab('list')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md ${
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 activeTab === 'list'
-                  ? 'bg-white text-blue-500 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               History
             </button>
             <button
               onClick={() => setActiveTab('details')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md ${
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 activeTab === 'details'
-                  ? 'bg-white text-blue-500 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               } ${!selectedSessionId ? 'opacity-50' : ''}`}
               disabled={!selectedSessionId}
             >
@@ -165,9 +167,9 @@ export default function SessionsPage() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-100 flex items-center"
+          className="mb-6 p-4 bg-red-500/20 backdrop-blur-md text-red-300 rounded-xl border border-red-400/30 flex items-center"
         >
-          <svg className="h-5 w-5 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-5 w-5 mr-2 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {error}
@@ -181,7 +183,7 @@ export default function SessionsPage() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100"
+            className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20"
           >
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
               <h2 className="text-xl font-semibold text-white flex items-center">
@@ -193,10 +195,10 @@ export default function SessionsPage() {
               </h2>
             </div>
             
-            <div className="divide-y divide-gray-100 max-h-[60vh] overflow-y-auto">
+            <div className="divide-y divide-white/10 max-h-[60vh] overflow-y-auto">
               {loading ? (
-                <div className="p-6 text-center text-gray-500 flex flex-col items-center">
-                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                <div className="p-6 text-center text-white/70 flex flex-col items-center">
+                  <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-2"></div>
                   Loading sessions...
                 </div>
               ) : sessions.length === 0 ? (
@@ -204,9 +206,9 @@ export default function SessionsPage() {
                   variants={itemVariants}
                   className="p-6 text-center"
                 >
-                  <div className="bg-indigo-50 rounded-lg p-4 text-blue-500">
+                  <div className="bg-blue-500/20 backdrop-blur-sm rounded-lg p-4 text-white border border-blue-400/30">
                     <p className="font-medium mb-2">No sessions found</p>
-                    <p className="text-sm text-blue-500">Start your first therapy session from the dashboard.</p>
+                    <p className="text-sm text-white/80">Start your first therapy session from the dashboard.</p>
                   </div>
                 </motion.div>
               ) : (
@@ -217,11 +219,11 @@ export default function SessionsPage() {
                     <motion.div
                       key={session.id}
                       variants={itemVariants}
-                      whileHover={{ backgroundColor: '#F9FAFB' }}
+                      whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
                       className={`p-4 cursor-pointer transition-all duration-200 ${
                         selectedSessionId === session.id 
-                          ? 'bg-indigo-50 border-l-4 border-blue-600' 
-                          : 'border-l-4 border-transparent'
+                          ? 'bg-blue-500/20 border-l-4 border-blue-400' 
+                          : 'border-l-4 border-transparent hover:border-white/20'
                       }`}
                       onClick={() => {
                         viewSessionTranscript(session.id);
@@ -230,18 +232,18 @@ export default function SessionsPage() {
                         }
                       }}
                     >
-                      <div className="text-sm font-semibold text-black">
+                      <div className="text-sm font-semibold text-white">
                         {format(new Date(session.date), 'PPP')}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 flex items-center">
-                        <svg className="h-3 w-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="text-xs text-white/70 mt-1 flex items-center">
+                        <svg className="h-3 w-3 mr-1 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {session.duration} minutes
                         <span className="mx-1">•</span>
                         <span className="capitalize">{session.theme}</span>
                       </div>
-                      <div className="mt-2 text-xs text-blue-500 font-medium flex items-center">
+                      <div className="mt-2 text-xs text-blue-400 font-medium flex items-center">
                         <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -254,10 +256,10 @@ export default function SessionsPage() {
             
             {/* Mobile-only back button */}
             {selectedSessionId && activeTab === 'details' && (
-              <div className="p-3 bg-indigo-50 border-t border-indigo-100 md:hidden">
+              <div className="p-3 bg-blue-500/20 backdrop-blur-sm border-t border-blue-400/30 md:hidden">
                 <button 
                   onClick={() => setActiveTab('list')}
-                  className="w-full flex items-center justify-center text-blue-500 text-sm font-medium py-2"
+                  className="w-full flex items-center justify-center text-blue-400 text-sm font-medium py-2 hover:text-blue-300 transition-colors"
                 >
                   <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -288,12 +290,12 @@ export default function SessionsPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="bg-white rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center h-full border border-gray-100"
+              className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center h-full border border-white/20"
             >
-              <div className="bg-indigo-50 rounded-full p-4 mb-6">
+              <div className="bg-blue-500/20 backdrop-blur-sm rounded-full p-4 mb-6 border border-blue-400/30">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
-                  className="h-12 w-12 text-blue-500" 
+                  className="h-12 w-12 text-blue-400" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   stroke="currentColor"
@@ -306,14 +308,14 @@ export default function SessionsPage() {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">No Session Selected</h3>
-              <p className="text-gray-500 max-w-md mb-6">
+              <h3 className="text-xl font-medium text-white mb-3">No Session Selected</h3>
+              <p className="text-white/70 max-w-md mb-6">
                 Select a session from the list to view its transcript and detailed conversation.
               </p>
-              <div className="mt-2 text-sm text-blue-600">
+              <div className="mt-2 text-sm text-blue-400">
                 <button 
                   onClick={() => router.push('/dashboard')}
-                  className="inline-flex items-center font-medium hover:underline"
+                  className="inline-flex items-center font-medium hover:text-blue-300 transition-colors"
                 >
                   <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

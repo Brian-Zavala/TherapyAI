@@ -289,6 +289,18 @@ SESSION TIMING MANAGEMENT:
 • Never mention exact timing or technical details about call duration limits
 • Integrate time awareness naturally into therapeutic conversation flow`;
 
+  // Age integration guidance for couple therapy
+  const ageIntegrationGuidance = userAge || partnerAge ? `
+AGE INTEGRATION INSTRUCTIONS:
+• NEVER say ages immediately after names (do NOT say "John thirty-five" or "Sarah thirty-two")
+• Instead, integrate ages naturally into conversation:
+  - "I understand that at thirty-five, John, you might be experiencing..."
+  - "Sarah, being thirty-two years old, you may have different perspectives..."
+  - "As a couple in your thirties, you're navigating important life transitions..."
+• Reference life stages and developmental phases naturally when relevant
+• Avoid mechanically stating ages - weave them into therapeutic insights
+• NEVER use age variables directly after names in conversation` : "";
+
   // Personalized system prompt with names and relationship status
   const systemPrompt = `You are Dr. Maya Thompson, couple therapist specializing in Gottman Method and EFT.
 
@@ -324,6 +336,15 @@ CONVERSATION PRINCIPLES:
 5. Ask one question at a time and listen fully to responses
 6. Respond authentically to what they share
 ${sessionCount > 3 ? `7. Build naturally on insights from previous sessions` : ""}
+
+CRITICAL - NEVER VERBALIZE META-COMMENTARY:
+• Never describe your tone or manner of speaking (e.g., do NOT say "I'm speaking warmly" or "in a gentle tone")
+• Never narrate your therapeutic approach (e.g., do NOT say "I'm using reflective listening")
+• Never announce communication techniques (e.g., do NOT say "Let me validate that")
+• Simply BE warm, gentle, or direct - don't announce it
+• Your tone and approach should be evident through your words and delivery, not stated explicitly
+
+${ageIntegrationGuidance}
 
 Goal: Help them improve communication, develop secure attachment, and build a healthier relationship.`;
 
@@ -801,6 +822,18 @@ SESSION TIMING MANAGEMENT:
     const hasPreviousSessions =
       sessionHistory !== "No previous sessions found.";
 
+    // Age integration guidance for individual therapy
+    const ageIntegrationGuidance = userProfile?.userAge ? `
+AGE INTEGRATION INSTRUCTIONS:
+• NEVER say age immediately after name (do NOT say "John twenty-eight" or "Sarah thirty-five")
+• Instead, integrate age naturally into therapeutic insights:
+  - "At your age, you're at a stage where..."
+  - "Being twenty-eight years old can bring unique challenges..."
+  - "I find that many people in their twenties experience..."
+• Reference life stages and developmental milestones naturally
+• Connect age to relevant life transitions when appropriate
+• NEVER mechanically state age - always weave it into therapeutic context and understanding` : "";
+
     return `You are Dr. Elliot Mackaphy, therapist specializing in CBT, ACT, and mindfulness.
 
 CLIENT INFO: ${userName}${pronounStr}${userProfile?.userAge ? ` (${userProfile.userAge})` : ""}
@@ -831,6 +864,15 @@ THERAPEUTIC PRINCIPLES:
 6. Listen fully to their responses before offering insights
 7. Focus on their experiences rather than providing unsolicited advice
 
+CRITICAL - NEVER VERBALIZE META-COMMENTARY:
+• Never describe your tone or manner of speaking (e.g., do NOT say "I'm speaking warmly" or "in a gentle tone")
+• Never narrate your therapeutic approach (e.g., do NOT say "I'm using CBT techniques" or "Let me apply mindfulness")
+• Never announce communication techniques (e.g., do NOT say "I'm validating your feelings")
+• Simply BE warm, empathetic, or direct - don't announce it
+• Your therapeutic approach should be evident through your responses, not stated explicitly
+
+${ageIntegrationGuidance}
+
 Goal: Help ${userName} develop psychological flexibility, emotional regulation skills, and self-compassion.`;
   }
 
@@ -848,6 +890,15 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     const familyMember4 = userProfile?.familyMember4 || null;
     const familyMember4Age = userProfile?.familyMember4Age || null;
     const familyMember4Relation = userProfile?.familyMember4Relation || null;
+    const familyMember5 = userProfile?.familyMember5 || null;
+    const familyMember5Age = userProfile?.familyMember5Age || null;
+    const familyMember5Relation = userProfile?.familyMember5Relation || null;
+    const familyMember6 = userProfile?.familyMember6 || null;
+    const familyMember6Age = userProfile?.familyMember6Age || null;
+    const familyMember6Relation = userProfile?.familyMember6Relation || null;
+    const familyMember7 = userProfile?.familyMember7 || null;
+    const familyMember7Age = userProfile?.familyMember7Age || null;
+    const familyMember7Relation = userProfile?.familyMember7Relation || null;
 
     // Get session context
     const sessionCount = userProfile?.sessionsCompleted || 0;
@@ -870,6 +921,18 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     if (familyMember4) {
       const relationText = familyMember4Relation ? ` - ${familyMember4Relation}` : "";
       familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}${relationText}`);
+    }
+    if (familyMember5) {
+      const relationText = familyMember5Relation ? ` - ${familyMember5Relation}` : "";
+      familyMembersWithAges.push(`${familyMember5}${familyMember5Age ? ` (${familyMember5Age})` : ""}${relationText}`);
+    }
+    if (familyMember6) {
+      const relationText = familyMember6Relation ? ` - ${familyMember6Relation}` : "";
+      familyMembersWithAges.push(`${familyMember6}${familyMember6Age ? ` (${familyMember6Age})` : ""}${relationText}`);
+    }
+    if (familyMember7) {
+      const relationText = familyMember7Relation ? ` - ${familyMember7Relation}` : "";
+      familyMembersWithAges.push(`${familyMember7}${familyMember7Age ? ` (${familyMember7Age})` : ""}${relationText}`);
     }
 
     // Format the family members string
@@ -920,6 +983,20 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
       ? `• Individual attention: Make sure to check in with each family member (${familyMembersWithAges.join(", ")}) and validate their unique perspectives`
       : "";
 
+    // Natural age integration guidance
+    const ageIntegrationGuidance = familyMembersWithAges.length > 0 ? `
+AGE INTEGRATION INSTRUCTIONS:
+• NEVER say ages immediately after names (do NOT say "Julie 11" or "John four")
+• Instead, integrate ages naturally in conversation:
+  - "I see we have Julie who is 11 years old..."
+  - "And Charles, at 9 years old..."
+  - "Julie, as an 11-year-old, you might..."
+  - "At 8 years old, Sarah, you're at an age where..."
+• Use age-appropriate language and examples for each family member
+• Reference developmental stages naturally when relevant
+• Group similar-aged children when appropriate: "Both Julie and Charles, being close in age..."
+• Avoid listing ages mechanically - weave them into natural conversation` : "";
+
     return `You are Dr. Jada Pearson, family therapist specializing in Structural Family Therapy and systems approaches.
 
 FAMILY INFO: Working with ${familyMembersString}.
@@ -952,6 +1029,15 @@ FAMILY THERAPY PRINCIPLES:
 5. Allow natural processing time for family members to think and respond
 6. Let conversation flow organically while maintaining therapeutic structure
 ${sessionCount > 2 ? `7. Build naturally on insights and breakthroughs from previous family sessions` : ""}
+
+${ageIntegrationGuidance}
+
+CRITICAL - NEVER VERBALIZE META-COMMENTARY:
+• Never describe your tone or manner of speaking (e.g., do NOT say "I'm speaking warmly" or "in a gentle tone")
+• Never narrate your therapeutic approach (e.g., do NOT say "I'm using systems thinking" or "applying circular questioning")
+• Never announce communication techniques (e.g., do NOT say "Let me validate everyone's perspective")
+• Simply BE warm, inclusive, or direct - don't announce it
+• Your therapeutic approach should be evident through your facilitation, not stated explicitly
 
 Goal: Help improve family communication, strengthen bonds, and develop healthier family dynamics.`;
   }
@@ -1230,6 +1316,15 @@ export const getPersonalizedAssistantConfig = (
       variableValues.familyMember4 = userProfile.familyMember4 || "";
       variableValues.familyMember4Age = userProfile.familyMember4Age || null;
       variableValues.familyMember4Relation = userProfile.familyMember4Relation || "";
+      variableValues.familyMember5 = userProfile.familyMember5 || "";
+      variableValues.familyMember5Age = userProfile.familyMember5Age || null;
+      variableValues.familyMember5Relation = userProfile.familyMember5Relation || "";
+      variableValues.familyMember6 = userProfile.familyMember6 || "";
+      variableValues.familyMember6Age = userProfile.familyMember6Age || null;
+      variableValues.familyMember6Relation = userProfile.familyMember6Relation || "";
+      variableValues.familyMember7 = userProfile.familyMember7 || "";
+      variableValues.familyMember7Age = userProfile.familyMember7Age || null;
+      variableValues.familyMember7Relation = userProfile.familyMember7Relation || "";
     }
   }
 

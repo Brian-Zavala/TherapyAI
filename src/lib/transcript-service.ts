@@ -90,6 +90,23 @@ export async function addTranscriptEntry(entry: TranscriptEntry): Promise<Transc
       if (response.ok) {
         const result = await response.json();
         console.log(`✅ PRIMARY API SUCCESS: Entry saved with ID ${result.id}`);
+        
+        // Verify the entry was actually saved by checking the database
+        try {
+          const verifyResponse = await fetch(`/api/sessions/${entry.sessionId}/transcript?limit=1&offset=0`);
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            const entries = Array.isArray(verifyData) ? verifyData : verifyData.entries;
+            if (entries && entries.length > 0) {
+              console.log(`✅ VERIFICATION SUCCESS: Found ${entries.length} entries in database`);
+            } else {
+              console.warn(`⚠️ VERIFICATION WARNING: No entries found in database after save`);
+            }
+          }
+        } catch (verifyError) {
+          console.warn('Could not verify database save:', verifyError);
+        }
+        
         return result;
       }
       
@@ -305,7 +322,17 @@ export async function getTranscriptEntries(sessionId: string): Promise<Transcrip
       throw new Error(errorData.error || 'Failed to fetch transcript entries')
     }
 
-    return await response.json()
+    const data = await response.json()
+    const entries = Array.isArray(data) ? data : data.entries || []
+    
+    console.log(`📊 TRANSCRIPT COUNT: Session ${sessionId} has ${entries.length} entries`)
+    if (entries.length > 0) {
+      const userCount = entries.filter(e => e.speaker === 'user').length
+      const assistantCount = entries.filter(e => e.speaker === 'assistant').length
+      console.log(`📊 SPEAKER BREAKDOWN: ${userCount} user, ${assistantCount} assistant`)
+    }
+    
+    return entries
   } catch (error) {
     console.error('Error fetching transcript entries:', error)
     throw error

@@ -9,67 +9,76 @@ datasource db {
 }
 
 model User {
-  id                   String                 @id @default(cuid())
-  email                String                 @unique
-  name                 String?
-  password             String?
-  partnerName          String?
-  relationshipStatus   String?                @default("Married")
-  assistantId          String?
-  familyMember1        String?
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  name                  String?
+  password              String?
+  partnerName           String?
+  relationshipStatus    String?                @default("Married")
+  assistantId           String?
+  familyMember1         String?
+  familyMember2         String?
+  familyMember3         String?
+  familyMember4         String?
+  image                 String?
+  emailVerified         DateTime?
+  onboardingCompleted   Boolean                @default(false)
+  onboardingData        Json?
+  pronouns              String?
+  therapyType           String?
+  currentConcerns       Json?
+  emergencyContact      String?
+  sessionPreference     String?
+  communicationStyle    String?
+  additionalNotes       String?
+  phone                 String?
+  notificationPrefs     String?                @default("email")
+  age                   Int?
+  partnerAge            Int?
+  familyMember1Age      Int?
+  familyMember2Age      Int?
+  familyMember3Age      Int?
+  familyMember4Age      Int?
+  hasSeenIntro          Boolean                @default(false)
   familyMember1Relation String?
-  familyMember2        String?
   familyMember2Relation String?
-  familyMember3        String?
   familyMember3Relation String?
-  familyMember4        String?
   familyMember4Relation String?
-  image                String?
-  emailVerified        DateTime?
-  onboardingCompleted  Boolean                @default(false)
-  onboardingData       Json?
-  hasSeenIntro         Boolean                @default(false)
-  pronouns             String?
-  therapyType          String?
-  currentConcerns      Json?
-  emergencyContact     String?
-  sessionPreference    String?
-  communicationStyle   String?
-  additionalNotes      String?
-  phone                String?
-  notificationPrefs    String?                @default("email")
-  age                  Int?
-  partnerAge           Int?
-  familyMember1Age     Int?
-  familyMember2Age     Int?
-  familyMember3Age     Int?
-  familyMember4Age     Int?
-  accounts             Account[]
-  authSessions         AuthSession[]
-  communicationMetrics CommunicationMetrics[]
-  progressTracking     ProgressTracking[]
-  sessions             Session[]
-  therapySessions      TherapySession[]
+  familyMember5         String?
+  familyMember5Age      Int?
+  familyMember5Relation String?
+  familyMember6         String?
+  familyMember6Age      Int?
+  familyMember6Relation String?
+  familyMember7         String?
+  familyMember7Age      Int?
+  familyMember7Relation String?
+  accounts              Account[]
+  authSessions          AuthSession[]
+  communicationMetrics  CommunicationMetrics[]
+  progressTracking      ProgressTracking[]
+  sessions              Session[]
+  therapySessions       TherapySession[]
 }
 
 model Session {
-  id                String            @id @default(uuid())
-  userId            String
-  date              DateTime
-  startTime         DateTime?         // Actual start time of the session
-  duration          Int
-  theme             String            @default("AI Therapy Session")
-  notes             String?           @default("")
-  status            String            @default("scheduled")
-  reminderSent      Boolean           @default(false)
-  transcript        String?
-  notificationPrefs String?           @default("email")
-  smsReminderSent   Boolean?          @default(false)
-  emailReminderSent Boolean?          @default(false)
-  oneHourReminderSent Boolean?        @default(false)
-  assistantId       String?           // ID of the Vapi assistant used in this session
-  user              User              @relation(fields: [userId], references: [id])
-  transcriptEntries TranscriptEntry[]
+  id                  String            @id @default(uuid())
+  userId              String
+  date                DateTime
+  duration            Int
+  theme               String            @default("AI Therapy Session")
+  notes               String?           @default("")
+  status              String            @default("scheduled")
+  reminderSent        Boolean           @default(false)
+  transcript          String?
+  notificationPrefs   String?           @default("email")
+  smsReminderSent     Boolean?          @default(false)
+  emailReminderSent   Boolean?          @default(false)
+  assistantId         String?
+  oneHourReminderSent Boolean?          @default(false)
+  startTime           DateTime?
+  user                User              @relation(fields: [userId], references: [id])
+  transcriptEntries   TranscriptEntry[]
 
   @@index([userId])
   @@index([assistantId])
@@ -82,12 +91,13 @@ model TranscriptEntry {
   text        String
   timestamp   DateTime @default(now())
   isFinal     Boolean  @default(true)
-  assistantId String?  // ID of the assistant that generated this transcript entry
+  assistantId String?
   session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([timestamp])
   @@index([assistantId])
+  @@index([sessionId], map: "TranscriptEntry_sessionId_count_idx")
 }
 
 model ProgressTracking {
@@ -99,7 +109,7 @@ model ProgressTracking {
   therapyType        String   @default("couple")
   notes              String?
   sessionId          String?
-  assistantId        String?  // ID of the Vapi assistant used in this session
+  assistantId        String?
   user               User     @relation(fields: [userId], references: [id])
 
   @@index([therapyType])
@@ -150,7 +160,7 @@ model CommunicationMetrics {
   expressingNeedsScore    Int
   conflictResolutionScore Int
   emotionalSupportScore   Int
-  assistantId             String?  // ID of the Vapi assistant used in this session
+  assistantId             String?
   user                    User     @relation(fields: [userId], references: [id])
 
   @@index([assistantId])

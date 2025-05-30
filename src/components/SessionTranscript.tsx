@@ -406,8 +406,8 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600/90 p-5">
+      <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-5">
           <h2 className="text-xl font-semibold text-white flex items-center">
             <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -418,7 +418,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
         <div className="p-4 sm:p-5 min-h-[300px]">
           <div className="flex flex-col justify-center items-center h-full">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-            <p className="text-gray-500 text-sm">Loading transcript data...</p>
+            <p className="text-white/70 text-sm">Loading transcript data...</p>
           </div>
         </div>
       </div>
@@ -427,7 +427,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
 
   if (error || !session) {
     return (
-      <div className="p-6 bg-red-50 text-red-700 rounded-lg">
+      <div className="p-6 bg-red-500/20 backdrop-blur-md text-red-300 rounded-xl border border-red-400/30">
         {error || 'Session not found'}
       </div>
     )
@@ -451,8 +451,8 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
     
     // Display loading placeholders for a better user experience
     return (
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600/90 p-5">
+      <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-5">
           <h2 className="text-xl font-semibold text-white flex items-center">
             <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -460,7 +460,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             Session Transcript
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
               <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -494,14 +494,14 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   }}
                 >
                   <div 
-                    className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm ${
+                    className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm backdrop-blur-sm ${
                       isUser 
-                        ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-900 border border-indigo-100' 
-                        : 'bg-white text-gray-800 border border-gray-100'
+                        ? 'bg-blue-500/20 text-white border border-blue-400/30' 
+                        : 'bg-white/15 text-white border border-white/20'
                     }`}
                   >
                     <div className={`text-xs font-medium mb-1 flex items-center ${
-                      isUser ? 'text-indigo-700' : 'text-gray-600'
+                      isUser ? 'text-blue-300' : 'text-white/80'
                     }`}>
                       {isUser ? (
                         <>
@@ -566,22 +566,16 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
         continue;
       }
       
-      // Filter out entries that are session summaries or artifacts
-      if (entry.text.includes("I've reviewed my notes from our previous sessions") ||
-          entry.text.includes("From our session on") ||
-          entry.text.includes("Key client concerns discussed:") ||
-          entry.text.includes("Guidance I provided:") ||
-          entry.text.includes("Full conversation transcript:") ||
-          entry.text.includes("I don't have detailed notes from this session") ||
-          entry.text.includes("-----") ||
-          (entry.speaker === 'assistant' && entry.text.match(/^\s*-\s+/))) {
-        console.log('Found summary/artifact entry - excluding');
-        // Skip entries with summary text or list items
+      // Only filter out truly invalid entries - be much less aggressive
+      if (entry.text.includes("-----") ||
+          entry.text.includes("Full conversation transcript:")) {
+        console.log('Found clear artifact entry - excluding');
+        // Only skip obvious separators and system artifacts
         continue;
       }
-      // Regular conversation entry - include as is
+      // Include all other conversation entries
       else {
-        console.log('Found regular conversation entry - including');
+        console.log('Found conversation entry - including');
         initialFiltered.push(entry);
       }
     }
@@ -607,185 +601,74 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   })
   
-  // Enhanced deduplication to handle partial/progressive text with improved similarity detection
+  // Simplified deduplication - only remove exact duplicates and obvious progressions
   let filteredEntriesArray: TranscriptEntry[] = [];
-  const speakerTexts = new Map<string, Array<{id: string, text: string}>>();
+  const seenTexts = new Set<string>();
   
-  // Helper functions for text normalization and comparison
+  // Helper function for text normalization
   const normalizeText = (text: string): string => {
     if (!text) return '';
     return text.toLowerCase().trim().replace(/\s+/g, ' ');
   };
   
-  const isSignificantlyDifferent = (text1: string, text2: string): boolean => {
-    // Normalized versions for comparison
-    const norm1 = normalizeText(text1);
-    const norm2 = normalizeText(text2);
-    
-    // Check if one string contains most of the other
-    const containsSignificantPart = (a: string, b: string): boolean => {
-      // If a is a very short fragment, it's probably just the beginning of b
-      if (a.split(' ').length <= 3 && b.includes(a)) {
-        return true;
-      }
-      
-      // If a contains more than 80% of b's words, consider them similar
-      const aWords = new Set(a.split(' '));
-      const bWords = b.split(' ');
-      const commonWords = bWords.filter((word: string) => aWords.has(word));
-      
-      return commonWords.length >= bWords.length * 0.8;
-    };
-    
-    // Check both directions of containment
-    return !containsSignificantPart(norm1, norm2) && !containsSignificantPart(norm2, norm1);
-  };
-  
   // Process entries in chronological order
   sortedEntries.forEach(entry => {
-    const speaker = entry.speaker.toLowerCase();
     const text = entry.text.trim();
     
     // Skip empty entries
     if (!text) return;
     
-    // Get existing entries for this speaker
-    const speakerHistory = speakerTexts.get(speaker) || [];
+    const normalizedText = normalizeText(text);
+    const textKey = `${entry.speaker}:${normalizedText}`;
     
-    // Check if this text is redundant with any previous entries
-    let isRedundant = false;
-    let replacedEntries = [];
-    
-    // Check against recent messages from this speaker
-    for (let i = speakerHistory.length - 1; i >= Math.max(0, speakerHistory.length - 10); i--) {
-      const prevEntry = speakerHistory[i];
-      const prevText = prevEntry.text;
-      
-      // CASE 1: Current text is completely contained in a previous entry - skip it
-      if (normalizeText(prevText).includes(normalizeText(text))) {
-        isRedundant = true;
-        break;
-      }
-      
-      // CASE 2: Previous text is completely contained in current text - replace it
-      if (normalizeText(text).includes(normalizeText(prevText))) {
-        replacedEntries.push({
-          index: i,
-          id: prevEntry.id
-        });
-        continue;
-      }
-      
-      // CASE 3: Check for beginning fragments (common with voice transcription)
-      const normText = normalizeText(text);
-      const normPrevText = normalizeText(prevText);
-      
-      // Beginning fragments: one message starts with the same words as another
-      const isBeginningFragment = (
-        (normText.length < normPrevText.length * 0.5 && normPrevText.startsWith(normText)) ||
-        (normPrevText.length < normText.length * 0.5 && normText.startsWith(normPrevText))
-      );
-      
-      if (isBeginningFragment) {
-        // If current text is shorter, skip it in favor of the more complete message
-        if (text.length < prevText.length) {
-          isRedundant = true;
-          break;
-        } else {
-          // Current text is more complete, replace the shorter version
-          replacedEntries.push({
-            index: i,
-            id: prevEntry.id
-          });
-          continue;
-        }
-      }
-      
-      // CASE 4: Check for semantically similar content
-      if (!isSignificantlyDifferent(text, prevText)) {
-        // Keep the longer message
-        if (text.length >= prevText.length) {
-          // Current is more complete, replace the shorter one
-          replacedEntries.push({
-            index: i,
-            id: prevEntry.id
-          });
-        } else {
-          // Previous is more complete, current is redundant
-          isRedundant = true;
-          break;
-        }
-      }
+    // Only remove exact duplicates
+    if (seenTexts.has(textKey)) {
+      console.log('Skipping exact duplicate:', text.substring(0, 50));
+      return;
     }
     
-    // Skip if this entry is redundant with existing messages
-    if (isRedundant) return;
-    
-    // Remove entries that this one replaces
-    if (replacedEntries.length > 0) {
-      // Sort indices in descending order to avoid shifting
-      replacedEntries.sort((a, b) => b.index - a.index);
-      
-      for (const replaced of replacedEntries) {
-        // Remove from speaker history
-        speakerHistory.splice(replaced.index, 1);
+    // Check for obvious progressive transcriptions (where new text contains old text completely)
+    let isProgression = false;
+    for (const existingEntry of filteredEntriesArray.slice(-3)) { // Only check last 3 entries
+      if (existingEntry.speaker === entry.speaker) {
+        const existingNorm = normalizeText(existingEntry.text);
         
-        // Remove from filtered list if present
-        const indexInFiltered = filteredEntriesArray.findIndex(e => e.id === replaced.id);
-        if (indexInFiltered >= 0) {
-          filteredEntriesArray.splice(indexInFiltered, 1);
+        // If this text completely contains a recent entry from same speaker, replace it
+        if (normalizedText.length > existingNorm.length && 
+            normalizedText.includes(existingNorm) &&
+            existingNorm.length > 10) { // Only for substantial text
+          
+          // Remove the shorter version
+          const indexToRemove = filteredEntriesArray.indexOf(existingEntry);
+          if (indexToRemove >= 0) {
+            filteredEntriesArray.splice(indexToRemove, 1);
+            seenTexts.delete(`${existingEntry.speaker}:${existingNorm}`);
+            console.log('Replaced shorter version with longer:', existingEntry.text.substring(0, 30), '->', text.substring(0, 30));
+          }
+          isProgression = true;
+          break;
+        }
+        
+        // If a recent entry completely contains this text, skip this one
+        if (existingNorm.length > normalizedText.length && 
+            existingNorm.includes(normalizedText) &&
+            normalizedText.length > 10) { // Only for substantial text
+          console.log('Skipping shorter version of existing text');
+          isProgression = true;
+          return;
         }
       }
     }
     
-    // Add this entry to speaker history
-    speakerHistory.push({
-      id: entry.id,
-      text: text
-    });
-    
-    // Update speaker map
-    speakerTexts.set(speaker, speakerHistory);
+    // Add to seen texts
+    seenTexts.add(textKey);
     
     // Add to our filtered list
     filteredEntriesArray.push(entry);
   })
   
-  // Final pass - group messages by conversation position to catch any remaining redundancies
-  const finalEntries: TranscriptEntry[] = [];
-  const conversationGroups = new Map<string, TranscriptEntry[]>();
-  
-  // Group messages by approximate position in conversation
-  filteredEntriesArray.forEach((entry, idx) => {
-    const speaker = entry.speaker.toLowerCase();
-    // Group by speaker and rough position in conversation flow
-    const key = `${speaker}-${Math.floor(idx / 2)}`;
-    
-    if (!conversationGroups.has(key)) {
-      conversationGroups.set(key, []);
-    }
-    conversationGroups.get(key)!.push(entry);
-  });
-  
-  // For each group, keep only the most complete message
-  conversationGroups.forEach(group => {
-    if (group.length === 1) {
-      finalEntries.push(group[0]);
-      return;
-    }
-    
-    // Prefer longer messages as they're typically more complete
-    group.sort((a: TranscriptEntry, b: TranscriptEntry) => b.text.length - a.text.length);
-    finalEntries.push(group[0]);
-  });
-  
-  // Sort by timestamp to maintain conversation flow
-  finalEntries.sort((a: TranscriptEntry, b: TranscriptEntry) => {
-    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  });
-  
-  // Use the final filtered list as our result
-  const filteredEntries = finalEntries;
+  // Use the simplified filtered list directly - no additional complex grouping
+  const filteredEntries = filteredEntriesArray;
   
   // If still no valid entries, show placeholder
   // Filter out system messages with "no recorded conversation" to prevent showing them when real entries exist
@@ -807,7 +690,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
       }]
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+    <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5">
         <h2 className="text-xl font-semibold text-white flex items-center">
           <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -816,14 +699,14 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
           Session Transcript
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-black">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             {format(new Date(session.date), 'PPP')}
           </span>
           
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-black">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -837,7 +720,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             )}
           </span>
           
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-black">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
@@ -868,17 +751,17 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                 >
                   <div 
-                    className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm ${
+                    className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm backdrop-blur-sm ${
                       isUser 
-                        ? 'bg-gradient-to-r from-blue-500/10 to-blue-500/5 text-black border border-indigo-100' 
+                        ? 'bg-blue-500/20 text-white border border-blue-400/30' 
                         : entry.speaker === 'system'
-                          ? 'bg-gray-100 text-gray-600 border border-gray-200'
-                          : 'bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 text-black/90 border border-gray-100'
+                          ? 'bg-white/10 text-white/80 border border-white/20'
+                          : 'bg-white/15 text-white border border-white/20'
                     }`}
                   >
                     {entry.speaker !== 'system' && (
                       <div className={`text-xs font-medium mb-1 flex items-center ${
-                        isUser ? 'text-green-600/90' : 'text-stone-700'
+                        isUser ? 'text-blue-300' : 'text-white/80'
                       }`}>
                         {isUser ? (
                           <>
@@ -899,14 +782,14 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                     )}
                     
                     {entry.speaker === 'system' ? (
-                      <div className="text-sm flex items-center justify-center">
-                        <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="text-sm flex items-center justify-center text-white/80">
+                        <svg className="h-4 w-4 mr-2 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {entry.text}
                       </div>
                     ) : (
-                      <div className="text-sm whitespace-pre-wrap">{entry.text}</div>
+                      <div className="text-sm whitespace-pre-wrap text-white/90">{entry.text}</div>
                     )}
                   </div>
                 </motion.div>
@@ -915,9 +798,9 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
           </motion.div>
         ) : (
           <div className="text-center py-8">
-            <div className="bg-indigo-50 rounded-lg p-5 inline-block">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 inline-block border border-white/20">
               <svg 
-                className="h-10 w-10 text-blue-500 mx-auto mb-2" 
+                className="h-10 w-10 text-blue-400 mx-auto mb-2" 
                 fill="none" 
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -929,8 +812,8 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" 
                 />
               </svg>
-              <p className="text-blue-600 font-medium">No transcript available</p>
-              <p className="text-blue-500 text-sm mt-1">This session does not have any recorded conversation yet.</p>
+              <p className="text-white font-medium">No transcript available</p>
+              <p className="text-white/70 text-sm mt-1">This session does not have any recorded conversation yet.</p>
             </div>
           </div>
         )}

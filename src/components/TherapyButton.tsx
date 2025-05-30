@@ -734,18 +734,67 @@ function TherapyButton({
           }
           
           if (!currentSessionId) {
-            console.log('Processing transcript without session ID (test mode)');
+            console.error('⚠️ CRITICAL: Processing transcript without session ID - transcripts will NOT be saved to database!');
+            console.log('Available session references:', {
+              sessionId,
+              vapiSessionId: vapiInstanceRef.current?._sessionId,
+              storageSessionId: sessionStorage.getItem('current-session-id')
+            });
             
-            // Add this transcript to UI state at minimum
-            const text = message.transcript || message.content || message.text || '';
-            const speaker = message.role || 'user';
+            // Try to recover session ID from alternative sources
+            const recoveredSessionId = sessionId || 
+                                     vapiInstanceRef.current?._sessionId || 
+                                     sessionStorage.getItem('current-session-id');
             
-            if (text && text.trim() !== '') {
-              const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
-              setTranscriptChunks(prev => [...prev, `${displaySpeaker}: ${text}`]);
-              console.log(`Added to transcript chunks: ${displaySpeaker}: ${text.substring(0, 50)}...`);
+            if (recoveredSessionId) {
+              console.log(`✓ RECOVERED SESSION ID: ${recoveredSessionId}`);
+              setSessionId(recoveredSessionId);
+              // Continue with normal processing using recovered ID
+              currentSessionId = recoveredSessionId;
+            } else {
+              console.error('💥 FATAL: Cannot recover session ID - creating emergency session');
+              
+              // Add this transcript to UI state at minimum
+              const text = message.transcript || message.content || message.text || '';
+              const speaker = message.role || 'user';
+              
+              if (text && text.trim() !== '') {
+                const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
+                setTranscriptChunks(prev => [...prev, `${displaySpeaker}: ${text}`]);
+                console.log(`Added to transcript chunks: ${displaySpeaker}: ${text.substring(0, 50)}...`);
+                
+                // Try to create an emergency session to save this transcript
+                try {
+                  const emergencyResponse = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      date: new Date().toISOString(),
+                      duration: 30,
+                      theme: 'Emergency Recovery Session',
+                      status: 'active'
+                    })
+                  });
+                  
+                  if (emergencyResponse.ok) {
+                    const emergencySession = await emergencyResponse.json();
+                    console.log(`✓ CREATED EMERGENCY SESSION: ${emergencySession.id}`);
+                    setSessionId(emergencySession.id);
+                    sessionStorage.setItem('current-session-id', emergencySession.id);
+                    currentSessionId = emergencySession.id;
+                    // Continue with normal processing
+                  } else {
+                    console.error('Failed to create emergency session');
+                    return; // Give up on database storage
+                  }
+                } catch (emergencyError) {
+                  console.error('Error creating emergency session:', emergencyError);
+                  return; // Give up on database storage
+                }
+              } else {
+                return; // No valid text to process
+              }
             }
-            return;
           }
           
           // IMPROVED TRANSCRIPT HANDLING
@@ -2359,8 +2408,8 @@ function TherapyButton({
           </div>
         )}
         
-        {/* Start Therapy Button - Only visible when call is not active */}
-        {!isCallActive && (
+        {/* Start Therapy Button - Only visible when call is not active and modal is closed */}
+        {!isCallActive && !showDurationModal && (
           <motion.div 
             className="absolute inset-0 flex items-center justify-center z-20"
             initial={{ opacity: 0, scale: 0.8 }}
