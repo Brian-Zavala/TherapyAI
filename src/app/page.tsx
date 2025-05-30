@@ -183,6 +183,14 @@ export default function Home() {
     return defaultDelay;
   };
 
+  // Enhanced stagger timing with exponential decay for statistics
+  const getStaggerDelay = (index: number): number => {
+    if (prefersReducedMotion) return 0;
+    // Exponential decay: faster initial delays, max 300ms
+    const delay = Math.min(index * 0.05, 0.3);
+    return isMobileView ? delay * 0.6 : delay;
+  };
+
   // --- Refs for Sections and Key Elements ---
   // (Copied from original, added videoRef and ctaRef)
   const heroRef = useRef<HTMLElement>(null); // Specify element type
@@ -239,6 +247,29 @@ export default function Home() {
       }
     }
   }, [statsVideoCardView.isInView, prefersReducedMotion]);
+
+  // --- Animation Performance Control ---
+  const [isStatsAnimationPaused, setIsStatsAnimationPaused] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsStatsAnimationPaused(!entry.isIntersecting);
+        // Update CSS custom property for animation control
+        document.documentElement.style.setProperty(
+          '--animation-play-state', 
+          entry.isIntersecting ? 'running' : 'paused'
+        );
+      },
+      { threshold: 0.1 }
+    );
+
+    if (statsVideoCardView.ref.current) {
+      observer.observe(statsVideoCardView.ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // --- Smooth Scroll Click Handler (Standard API) ---
   const handleScrollClick = (ref: React.RefObject<HTMLElement>) => {
@@ -339,6 +370,26 @@ export default function Home() {
             border-radius: 0 0 5rem 5rem;
           }
         }
+        /* Ensure hero images fill completely without gaps */
+        .hero-images-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+        }
+        .hero-images-container img {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          min-width: 100%;
+          min-height: 100%;
+          width: auto;
+          height: auto;
+          object-fit: cover;
+        }
       `}</style>
       {/* Preload all hero images - both mobile and desktop */}
       <ImagePreloader
@@ -348,10 +399,10 @@ export default function Home() {
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref
-        className="w-full relative overflow-hidden min-h-[100vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-white" // Full viewport height
+        className="w-full relative overflow-hidden min-h-[100vh] shadow-md shadow-black/10 rounded-b-[4rem] md:rounded-b-[5rem] bg-gray-900" // Changed from bg-white to bg-gray-900 to prevent white bleed
       >
         {/* Background Images Slider */}
-        <div className="absolute inset-0 h-full w-full z-0">
+        <div className="hero-images-container z-0">
           {/* Overlay - Show immediately on page load */}
           <div className="hero-overlay"></div>
           <ImagesSlider
@@ -413,9 +464,9 @@ export default function Home() {
           </div>
 
           {/* Scroll Down Arrow (Original Structure) */}
-          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 optimize-gpu">
+          <div className="absolute bottom-16 md:bottom-24 lg:bottom-32 xl:bottom-40 left-1/2 transform -translate-x-1/2 optimize-gpu">
             {" "}
-            {/* Keep original class if needed */}
+            {/* Responsive positioning: closer on mobile, farther on large screens */}
             <ScrollDownArrow
               // Optimization: Use standard smooth scroll handler
               onClick={() =>
@@ -497,11 +548,11 @@ export default function Home() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: getOptimizedThreshold(0.1) }}
-              variants={fadeInUp} // Original variant
-              className="bg-white/15 p-6 sm:p-8 rounded-3xl border border-white/5 shadow-lg relative overflow-hidden" // Original classes
+              variants={fadeInUp}
+              className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-white/20 to-white/10 border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300"
             >
               {/* Original content */}
-              <h3 className="text-xl sm:text-2xl font-semibold mb-5 sm:mb-6 text-white">
+              <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 relative z-10 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent drop-shadow-lg">
                 Average Therapy Costs
               </h3>
               <p className="text-white text-sm sm:text-md md:text:lg mb-6 sm:mb-8 relative z-10">
@@ -514,14 +565,14 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
                 {/* Traditional Therapy Box */}
                 <div className="relative">
-                  <div className="p-5 sm:p-6 rounded-xl shadow-sm relative bg-white/50">
+                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-white/50 border border-white/30 shadow-md hover:shadow-lg transition-shadow duration-300">
                     {/* Original Heading */}
-                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex flex-wrap items-center gap-2 relative z-10">
-                      <span className="bg-black text-white px-3 py-1 rounded-lg">
+                    <h4 className="text-lg font-bold mb-3 flex flex-wrap items-center gap-2 relative z-10">
+                      <span className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-3 py-1 rounded-lg shadow-md">
                         TRADITIONAL
                       </span>
-                      <span>Therapy</span>
-                      <span className="sm:ml-auto text-xs sm:text-sm text-red-600 font-bold border border-red-300 px-2 py-1 rounded-lg">
+                      <span className="text-gray-800 font-semibold">Therapy</span>
+                      <span className="sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md">
                         HIGH COST
                       </span>
                     </h4>
@@ -549,21 +600,35 @@ export default function Home() {
                             transition={{
                               delay: getOptimizedDelay(index * 0.15),
                             }} // Apply optimized stagger
-                            className="bg-white p-4 rounded-xl text-center shadow-sm relative overflow-hidden border border-gray-200"
+                            className="rounded-2xl p-4 text-center bg-gradient-to-br from-white to-red-50/30 border border-red-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 relative overflow-hidden"
                           >
+                            {/* Large X Animation Overlay - covers entire card */}
+                            <motion.div
+                              className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                              initial={{ opacity: 0 }}
+                              animate={{ 
+                                opacity: [0, 0.4, 0, 0.3, 0],
+                              }}
+                              transition={{
+                                duration: 4,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                            >
+                              <div 
+                                className="text-red-500/80 select-none flex items-center justify-center w-full h-full"
+                                style={{ 
+                                  fontSize: '12rem', 
+                                  lineHeight: '1',
+                                  width: '100%',
+                                  height: '100%'
+                                }}
+                              >
+                                ✕
+                              </div>
+                            </motion.div>
                             {/* Price container */}
                             <div className="relative inline-block mb-2">
-                              {/* Controlled Red Pulse */}
-                              <motion.span
-                                className="absolute inset-0 border-2 border-red-300/70 rounded-full" // Added shape
-                                variants={pulseBorderVariant(index * 0.1)} // Use defined variant + delay
-                                initial="hidden"
-                                animate={
-                                  prefersReducedMotion
-                                    ? "hidden"
-                                    : pulseControls.controls
-                                } // Controlled animation
-                              />
                               {/* Original price span */}
                               <span className="block text-red-600 font-bold text-xl sm:text-2xl relative z-10">
                                 {session.price}
@@ -571,7 +636,7 @@ export default function Home() {
                             </div>
                             {/* Original tag */}
                             <div className="mt-1">
-                              <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
+                              <span className="inline-block text-xs font-bold px-2 py-1 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm">
                                 EXPENSIVE
                               </span>
                             </div>
@@ -603,14 +668,14 @@ export default function Home() {
                   variants={fadeInUp}
                   className="relative"
                 >
-                  <div className=" p-5 sm:p-6 rounded-xl shadow-lg relative overflow-hidden bg-white/50">
+                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-blue-50/40 border border-blue-200/50 shadow-md hover:shadow-lg transition-shadow duration-300">
                     {/* Original heading */}
-                    <h4 className="text-lg font-semibold text-blue-500 mb-4 relative z-10 flex flex-wrap items-center gap-2">
-                      <span className="bg-gradient-to-br from-blue-500 to-blue-500/90 text-white px-3 py-1 rounded-lg">
+                    <h4 className="text-lg font-bold mb-4 relative z-10 flex flex-wrap items-center gap-2">
+                      <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg shadow-md">
                         AI-POWERED
                       </span>
-                      <span>Therapy</span>
-                      <span className="sm:ml-auto text-xs sm:text-sm bg-green-100/90 text-green-700 font-bold p-1 px-2 rounded-lg text-center">
+                      <span className="text-blue-600 font-semibold">Therapy</span>
+                      <span className="sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md">
                         AFFORDABLE
                       </span>
                     </h4>
@@ -619,15 +684,15 @@ export default function Home() {
                       {/* 30 Min Session Card */}
                       {/* Simple fade-in for this inner card */}
                       <motion.div
-                        ref={statsCostsAIPulse1.ref} // Ref for pulse control
-                        className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
+                        ref={statsCostsAIPulse1.ref}
+                        className="rounded-2xl p-4 pt-8 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300"
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
                       >
                         {/* Original card title */}
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-500/90 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 inline-block text-sm sm:text-base shadow-md">
                           30-Minute Session
                         </div>
                         {/* Original price section */}
@@ -656,27 +721,35 @@ export default function Home() {
                         {/* Original cost breakdown list */}
                         <ul className="text-sm text-gray-600 space-y-2">
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Vapi platform: $1.50</span>
                           </li>
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Claude 3.7 AI: $0.07</span>
                           </li>
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Voice synthesis: $0.75</span>
                           </li>
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Transcription: $0.30</span>
                           </li>
                         </ul>
@@ -685,15 +758,15 @@ export default function Home() {
                       {/* 60 Min Session Card */}
                       {/* Simple fade-in for this inner card */}
                       <motion.div
-                        ref={statsCostsAIPulse2.ref} // Ref for pulse control
-                        className="bg-white rounded-xl p-4 pt-8 sm:p-4 shadow-md border border-indigo-200 relative" // Original classes
+                        ref={statsCostsAIPulse2.ref}
+                        className="rounded-2xl p-4 pt-8 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300"
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.2 }}
                       >
                         {/* Original card title */}
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-500/90 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 shadow-md inline-block text-sm sm:text-base">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 inline-block text-sm sm:text-base shadow-md">
                           60-Minute Session
                         </div>
                         {/* Original price section */}
@@ -722,27 +795,35 @@ export default function Home() {
                         {/* Original cost breakdown list */}
                         <ul className="text-sm text-gray-600 space-y-2">
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />{" "}
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Vapi platform: $3.00</span>
                           </li>
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />{" "}
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Claude 3.7 AI: $0.15</span>
                           </li>
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />{" "}
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Voice synthesis: $1.50</span>
                           </li>
                           <li className="flex items-start">
-                            <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0">
-                              <path d="M5 13l4 4L19 7" />{" "}
-                            </svg>
+                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span>Transcription: $0.60</span>
                           </li>
                         </ul>
@@ -815,7 +896,13 @@ export default function Home() {
                   loop
                   muted
                   playsInline
-                  className="absolute inset-0 w-full h-full object-cover opacity-80" // Original classes
+                  preload="metadata" // Only load metadata initially for faster load
+                  loading="lazy" // Lazy load video
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 will-change-transform" // GPU optimization
+                  style={{ 
+                    transform: 'translateZ(0)', // Force GPU layer
+                    backfaceVisibility: 'hidden' // Prevent flickering
+                  }}
                   // poster="/videos/rain-poster.jpg" // Optional: Add poster image
                 >
                   <source src="/videos/depressed.mp4" type="video/mp4" />
@@ -831,7 +918,7 @@ export default function Home() {
               {/* Container to control all icon pulses */}
               <div
                 ref={statsIconsPulseView.ref}
-                className="space-y-5 sm:space-y-6 relative z-10"
+                className={`space-y-5 sm:space-y-6 relative z-10 ${isStatsAnimationPaused ? 'animation-paused' : ''}`}
               >
                 {[
                   {
@@ -882,7 +969,7 @@ export default function Home() {
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.5 }} // Animate once
                     variants={fadeInUp} // Use standard variant
-                    transition={{ delay: getOptimizedDelay(index * 0.1) }} // Apply optimized stagger
+                    transition={{ delay: getStaggerDelay(index) }} // Enhanced stagger with exponential decay
                     className="flex items-start" // Original classes
                   >
                     {/* Icon Container */}
@@ -898,37 +985,14 @@ export default function Home() {
                       }
                       className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0 shadow-sm relative" // Original classes
                     >
-                      {/* Controlled Icon Pulses (using parent ref/controls) */}
-                      <motion.span
-                        className="absolute inset-0 rounded-full border border-indigo-300/30" // Original class
-                        variants={pulseIconRingVariant(0)} // Use defined variant
-                        initial="hidden"
-                        animate={
-                          prefersReducedMotion
-                            ? "hidden"
-                            : statsIconsPulseView.controls
-                        } // Controlled by parent
-                      />
-                      <motion.span
-                        className="absolute inset-0 rounded-full border border-indigo-300/30"
-                        variants={pulseIconRingVariant(1.33)} // Use defined variant + delay
-                        initial="hidden"
-                        animate={
-                          prefersReducedMotion
-                            ? "hidden"
-                            : statsIconsPulseView.controls
-                        }
-                      />
-                      <motion.span
-                        className="absolute inset-0 rounded-full border border-indigo-300/30"
-                        variants={pulseIconRingVariant(2.66)} // Use defined variant + delay
-                        initial="hidden"
-                        animate={
-                          prefersReducedMotion
-                            ? "hidden"
-                            : statsIconsPulseView.controls
-                        }
-                      />
+                      {/* High-Performance CSS Pulse Rings */}
+                      {!prefersReducedMotion && (
+                        <>
+                          <span className="absolute inset-0 rounded-full border border-indigo-300/30 pulse-ring" />
+                          <span className="absolute inset-0 rounded-full border border-indigo-300/30 pulse-ring pulse-ring-delay-1" />
+                          <span className="absolute inset-0 rounded-full border border-indigo-300/30 pulse-ring pulse-ring-delay-2" />
+                        </>
+                      )}
                       {/* Original stat value */}
                       <span className="relative z-10 text-blue-500 font-bold text-base sm:text-lg">
                         {stat.value}

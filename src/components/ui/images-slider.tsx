@@ -324,7 +324,7 @@ export const ImagesSlider = ({
                   : false
             }
             variants={slideVariants}
-            className="absolute inset-0 flex items-center justify-center w-full h-full min-h-[100vh]"
+            className="absolute inset-0 w-full h-full min-h-[100vh]"
           >
             {(() => {
               // Safety check to ensure we don't exceed array bounds
@@ -375,7 +375,7 @@ export const ImagesSlider = ({
                     height: "100%", // Always use full height
                     objectFit: imageConfig.objectFit || "cover",
                     objectPosition: imageConfig.objectPosition || "center",
-                    maxHeight: "100vh", // Ensure it doesn't exceed viewport height
+                    minHeight: "100vh", // Ensure it covers full viewport height
                     transition: "none", // Disable CSS transitions that might conflict
                     willChange: "transform", // Optimize for animations
                   }}
@@ -394,12 +394,13 @@ export const ImagesSlider = ({
   return (
     <div
       className={cn(
-        "overflow-hidden h-full w-full relative flex items-center justify-center",
+        "overflow-hidden h-full w-full relative",
         className
       )}
       style={{
         perspective: "1000px",
         minHeight: "100vh", // Ensure full viewport height
+        height: "100%", // Fill parent height completely
       }}
     >
       {renderContent()}

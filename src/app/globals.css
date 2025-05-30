@@ -228,6 +228,39 @@ body.session-active .hide-during-session {
 
 /* --- Animations --- */
 
+/* High-Performance Pulse Ring Animation for Statistics */
+@keyframes pulse-ring {
+  0% { 
+    transform: scale(1); 
+    opacity: 0; 
+  }
+  40% { 
+    opacity: 0.4; 
+  }
+  100% { 
+    transform: scale(1.7); 
+    opacity: 0; 
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 2.5s ease-out infinite;
+  animation-play-state: var(--animation-play-state, running);
+}
+
+.pulse-ring-delay-1 { 
+  animation-delay: 1.33s; 
+}
+
+.pulse-ring-delay-2 { 
+  animation-delay: 2.66s; 
+}
+
+/* Animation pause control for performance */
+.animation-paused .pulse-ring {
+  animation-play-state: paused;
+}
+
 /* Keyframes */
 @keyframes pulse-glow {
   0%,

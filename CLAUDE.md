@@ -740,19 +740,52 @@ The application uses a multi-layered transcript storage system for VAPI voice AI
 
 ### Critical Issues Resolved
 
-#### 1. **Over-Aggressive Display Filtering**
+#### 1. **VAPI Assistant Message Capture** (May 2025 - CRITICAL FIX)
+**Problem**: Assistant messages not appearing in session transcripts despite user messages being captured correctly
+**Root Cause Analysis**: 
+- **Default Speaker Assignment**: `const speaker = message.role || 'user'` (line 805) defaulted ALL messages to 'user' if no role specified
+- **Final-Only Processing**: Lines 814-817 skipped ALL non-final transcripts, but VAPI assistant messages might not be marked as `isFinal: true`
+- **Result**: Assistant messages were either completely skipped or saved as user messages
+
+**Solution Implemented**: 
+- **Intelligent Speaker Detection**: Uses content analysis with therapeutic language patterns to identify assistant messages when role is missing
+- **Process Assistant Messages Regardless of Final Status**: Only skips partial user transcripts, always processes assistant messages
+- **Enhanced Content Analysis**: Detects phrases like "I understand", "tell me more", "how does that make you feel"
+
+**Files Fixed**: `src/components/TherapyButton.tsx:803-838`
+
+**Key Code Changes**:
+```typescript
+// OLD (BROKEN):
+const speaker = message.role || 'user';  // Always defaulted to 'user'
+if (!isFinal) return;  // Skipped ALL non-final messages
+
+// NEW (FIXED):
+let speaker = message.role || message.speaker || null;
+if (!speaker) {
+  // Content analysis for speaker detection
+  const isLikelyAssistant = /\b(I understand|let me|tell me more)\b/i.test(text);
+  speaker = isLikelyAssistant ? 'assistant' : 'user';
+}
+// Process assistant messages regardless of final status
+if (!isFinal && speaker === 'user') return;  // Only skip partial user messages
+```
+
+**Why This Fixes the Issue**: VAPI assistant messages were coming through the `transcript` event path but being either skipped (not final) or misidentified (no role). The fix ensures all assistant content is captured and saved correctly.
+
+#### 2. **Over-Aggressive Display Filtering**
 **Problem**: `SessionTranscript.tsx` was filtering out valid conversation entries
 **Root Cause**: Complex filtering logic removed assistant messages containing common therapeutic phrases
 **Solution**: Simplified filtering to only remove obvious artifacts (separators, system messages)
 **Files**: `src/components/SessionTranscript.tsx:570-580`
 
-#### 2. **Missing Session ID Validation** 
+#### 3. **Missing Session ID Validation** 
 **Problem**: Transcripts processed without session ID were not saved to database
 **Root Cause**: Early return when `currentSessionId` was null, skipping database storage
 **Solution**: Added session ID recovery logic and emergency session creation
 **Files**: `src/components/TherapyButton.tsx:736-798`
 
-#### 3. **Complex Deduplication Logic**
+#### 4. **Complex Deduplication Logic**
 **Problem**: Multi-stage deduplication removed legitimate conversation turns
 **Root Cause**: Overly sophisticated similarity detection and grouping algorithms
 **Solution**: Simplified to only remove exact duplicates and obvious progressions
@@ -803,6 +836,11 @@ const recoveredSessionId = sessionId ||
 ### Debugging Transcript Issues
 
 #### Common Symptoms & Solutions
+**Symptom**: Assistant messages not appearing in transcripts (MOST COMMON)
+**Cause**: VAPI assistant messages being skipped or misidentified as user messages
+**Debug**: Check `TherapyButton.tsx` speaker detection logic and final status handling
+**Solution**: Ensure intelligent speaker detection and assistant message processing regardless of final status
+
 **Symptom**: Transcripts appear during session but not in history
 **Cause**: Missing session ID causing database skip
 **Debug**: Check console for "CRITICAL: Processing transcript without session ID"
@@ -926,7 +964,8 @@ The onboarding process consists of 6 steps:
 - Check console for errors during development
 - **Create git commits after significant code changes**
 - **Always validate JSX syntax** when making component edits
-- **For transcript issues**: Check session ID validation and filtering logic first
+- **For missing assistant transcripts**: Check TherapyButton.tsx speaker detection and final status logic first
+- **For transcript issues**: Check session ID validation and filtering logic second
 - **For transcript quality issues**: Verify AI prompts don't contain meta-observational language
 - **For onboarding validation**: Test edge cases and verify visual feedback appears correctly
 
