@@ -837,10 +837,9 @@ export default function WelcomePage() {
     <div className="bg-gray-900 welcome-page">
       {/* Light overlay to make background less dark - fixed positioning to cover entire page */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20 pointer-events-none" />
-      <Spotlight />
       <ConfettiAnimation trigger={showConfetti} />
       
-      <div className="relative z-10 px-4 flex justify-center" style={{paddingTop: 'max(2rem, calc(50vh - 400px))', paddingBottom: 'max(2rem, calc(50vh - 400px))'}}>
+      <div className="relative z-10 px-4 pt-8">
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div 
@@ -856,7 +855,7 @@ export default function WelcomePage() {
           </motion.div>
         )}
         
-        <GlassCard className="w-full max-w-2xl">
+        <GlassCard className="w-full max-w-2xl mx-auto">
           {/* Progress bar and step indicators */}
           <div className="mb-8">
             <div className="flex justify-between text-sm text-white/70 mb-4">
