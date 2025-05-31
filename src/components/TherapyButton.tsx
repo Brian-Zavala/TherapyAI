@@ -10,7 +10,6 @@ import { useSoundContext } from './SoundProvider'
 import SessionDurationModal from './SessionDurationModal'
 import SessionTimer from './SessionTimer'
 import { RealTimeMetricsCalculator, type IncrementalMetrics } from '@/lib/real-time-metrics'
-import { getMetricsWebSocketServer } from '@/lib/websocket-real-time-metrics'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -71,6 +70,46 @@ function TherapyButton({
   const [metricsCalculator, setMetricsCalculator] = useState<RealTimeMetricsCalculator | null>(null)
   const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
   
+  // WebSocket client functions for real-time communication
+  const sendMetricsUpdate = useCallback(async (userId: string, sessionId: string, metrics: IncrementalMetrics) => {
+    // For now, send metrics via HTTP API as WebSocket is complex to set up correctly
+    try {
+      await fetch('/api/ws/metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'metrics_update',
+          userId,
+          sessionId,
+          metrics,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send metrics update:', error);
+    }
+  }, []);
+
+  const sendSessionUpdate = useCallback(async (userId: string, sessionId: string, status: string, data?: any) => {
+    // For now, send session updates via HTTP API as WebSocket is complex to set up correctly
+    try {
+      await fetch('/api/ws/metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'session_update',
+          userId,
+          sessionId,
+          status,
+          data,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send session update:', error);
+    }
+  }, []);
+  
   // Initialize metrics calculator when session starts
   const initializeMetricsCalculator = useCallback((sessionId: string, therapyType: string, userId: string, duration = 60) => {
     if (!metricsCalculator) {
@@ -115,11 +154,9 @@ function TherapyButton({
       if (RealTimeMetricsCalculator.shouldTriggerUpdate(metrics)) {
         console.log(`📊 METRICS: Broadcasting update for session ${sessionId} - Confidence: ${metrics.confidence}%`);
         
-        // Import and use WebSocket broadcaster  
+        // Send metrics update via WebSocket client to server
         try {
-          const { getMetricsWebSocketServer } = await import('@/lib/websocket-real-time-metrics');
-          const wsServer = getMetricsWebSocketServer();
-          wsServer.broadcastMetricsUpdate(userId, sessionId, metrics);
+          await sendMetricsUpdate(userId, sessionId, metrics);
         } catch (broadcastError) {
           console.error('Error broadcasting metrics update:', broadcastError);
         }
@@ -142,395 +179,8 @@ function TherapyButton({
   const analyser = useRef<AnalyserNode | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
-  const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
-  
-  // Check for existing session and recover timer state
-  const checkForActiveSession = useCallback(async () => {
-    try {
-      console.log('Checking for active sessions for user:', userId);
-      const response = await fetch(`/api/sessions/active?userId=${userId}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data && data.id) {
-          setSessionId(data.id)
-          console.log('Found existing session:', data.id)
-          
-          // Use the prop from therapy page to determine if we should auto-restart
-          const shouldPerformAutoRestart = shouldAutoRestart && data.startTime
-          
-          // Recover session timing data if available
-          if (data.startTime && data.duration) {
-            const sessionStart = new Date(data.startTime);
-            const sessionDuration = data.duration;
-            const now = new Date();
-            const elapsedMs = now.getTime() - sessionStart.getTime();
-            const elapsedMinutes = Math.floor(elapsedMs / 60000);
-            
-            // Only recover if session is still within duration
-            if (elapsedMinutes < sessionDuration) {
-              console.log(`📚 RECOVERING SESSION: Started ${elapsedMinutes} minutes ago, ${sessionDuration - elapsedMinutes} minutes remaining`);
-              
-              // Restore timer state
-              setSessionStartTime(sessionStart);
-              setSelectedSessionDuration(sessionDuration as 30 | 60);
-              setSessionRecovered(true);
-              
-              // Store recovery info for user awareness
-              sessionStorage.setItem('session-recovered', JSON.stringify({
-                sessionId: data.id,
-                originalStart: data.startTime,
-                recoveredAt: now.toISOString(),
-                elapsedMinutes,
-                remainingMinutes: sessionDuration - elapsedMinutes,
-                autoRestarted: shouldPerformAutoRestart
-              }));
-              
-              // Auto-restart session UI if page was refreshed during active session
-              if (shouldPerformAutoRestart) {
-                console.log('🚀 Auto-restarting session UI after page refresh')
-                
-                // Set session active immediately
-                if (typeof window !== 'undefined') {
-                  (window as any).__therapySessionActive = true;
-                  document.body.classList.add('session-active');
-                }
-                
-                setIsCallActive(true);
-                setSessionActive(true);
-                
-                // Apply visual effects
-                const main = document.querySelector('main');
-                if (main) {
-                  main.style.transition = 'all 0.3s ease-in-out';
-                  main.style.opacity = '0.95';
-                }
-                
-                // Restart the Vapi session after a brief delay
-                setTimeout(() => {
-                  console.log('🎯 Restarting Vapi session with recovered state')
-                  startTherapySession().catch(error => {
-                    console.error('Error restarting session:', error);
-                    setErrorMessage(`Failed to restart session: ${error.message || 'Unknown error'}`);
-                    // Reset UI state if restart fails
-                    setIsCallActive(false);
-                    setSessionActive(false);
-                    if (main) {
-                      main.style.opacity = '1';
-                    }
-                    document.body.classList.remove('session-active');
-                  });
-                }, 500);
-              }
-              
-              console.log(`✅ Session timer recovered successfully (auto-restart: ${shouldPerformAutoRestart})`);
-            } else {
-              console.log(`⚠️ Session has expired (${elapsedMinutes} minutes elapsed, duration was ${sessionDuration} minutes)`);
-            }
-          }
-          
-          // Set flag to avoid cleanup
-          if (typeof window !== 'undefined') {
-            (window as any).__existingSession = data.id;
-          }
-        } else {
-          console.log('No active session found for user');
-        }
-      }
-    } catch (error) {
-      console.error('Error checking for active session:', error)
-    }
-  }, [userId, setSessionActive, startTherapySession])
-  
-  // Effect to cycle loading messages
-  useEffect(() => {
-    if (isLoading) {
-      const interval = setInterval(() => {
-        setLoadingMessageIndex((prev) => (prev + 1) % 6);
-      }, 2000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [isLoading]);
-  
-  useEffect(() => {
-    checkForActiveSession()
-    
-    // Debug function to check transcriber configuration
-    const debugTranscriberConfig = async () => {
-      try {
-        console.log('🔍 DEBUG: Checking transcriber configuration...');
-        const response = await fetch('/api/vapi/transcriber');
-        if (response.ok) {
-          const config = await response.json();
-          console.log('🔍 DEBUG: Transcriber config available:', config);
-        } else {
-          console.log('🔍 DEBUG: Transcriber config not available:', response.status);
-        }
-      } catch (error) {
-        console.error('🔍 DEBUG: Error checking transcriber config:', error);
-      }
-    };
-    
-    // Only run in development mode
-    if (process.env.NODE_ENV === 'development') {
-      debugTranscriberConfig();
-    }
-    
-    // NOTE: We DON'T want to clean up on unmount if a session is active
-    // Because this would immediately stop any session that was just started
-    return () => {
-      // Check multiple indicators for active session
-      const hasSessionClass = document.body.classList.contains('session-active');
-      const hasWindowFlag = (window as any).__therapySessionActive === true;
-      const hasExistingSession = (window as any).__existingSession;
-      
-      if (hasSessionClass || hasWindowFlag || hasExistingSession) {
-        console.log('Component unmounting but session indicators present - NOT cleaning up', {
-          hasSessionClass,
-          hasWindowFlag,
-          hasExistingSession
-        });
-      } else {
-        console.log('Component unmounting, no active session - cleaning up resources');
-        cleanupResources();
-      }
-    }
-  }, [checkForActiveSession]) // Only depend on checkForActiveSession
-  
-  // Enhanced cleanup function for thoroughly releasing resources
-  const cleanupResources = () => {
-    // Check if we have an active session flag set
-    if (typeof window !== 'undefined' && (window as any).__therapySessionActive === true) {
-      console.log('⚠️ Cleanup requested but session is active - SKIPPING CLEANUP');
-      return;
-    }
-    
-    console.log('🧹 Cleaning up resources...');
-    
-    // 1. Clean up animation frame
-    if (animationFrameRef.current) {
-      console.log('- Canceling animation frame');
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    
-    // 2. Clean up audio context
-    if (audioContext.current) {
-      console.log('- Closing audio context');
-      audioContext.current.close();
-      audioContext.current = null;
-    }
-    
-    // 3. Clean up audio tracks
-    if (audioStreamRef.current) {
-      console.log('- Stopping audio tracks');
-      audioStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log(`  - Track ${track.id} stopped (${track.kind})`);
-      });
-      audioStreamRef.current = null;
-      audioTrackRef.current = null;
-    }
-    
-    // 4. Clean up Vapi status interval
-    if (vapiInstanceRef.current && (vapiInstanceRef.current as any)._statusInterval) {
-      console.log('- Clearing status check interval');
-      clearInterval((vapiInstanceRef.current as any)._statusInterval);
-      (vapiInstanceRef.current as any)._statusInterval = null;
-    }
-    
-    // 5. Reset Vapi tracking values
-    if (vapiInstanceRef.current) {
-      (vapiInstanceRef.current as any)._isCallActive = false;
-      (vapiInstanceRef.current as any)._currentAssistantId = null;
-      
-      // Explicitly mark the transport as closed to avoid reconnection attempts
-      (vapiInstanceRef.current as any)._transportState = 'closed';
-    }
-    
-    // 6. Remove event listeners
-    if (typeof window !== 'undefined') {
-      console.log('- Removing window event listeners');
-      window.removeEventListener('online', () => {});
-      window.removeEventListener('offline', () => {});
-    }
-    
-    // 7. Release browser permissions indicators if present
-    try {
-      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-        navigator.permissions.query({ name: 'microphone' as PermissionName })
-          .then(permissionStatus => {
-            console.log(`- Current microphone permission status: ${permissionStatus.state}`);
-          })
-          .catch(() => {});
-      }
-    } catch (permError) {
-      // Ignore permission query errors
-    }
-    
-    // 8. Remove session styling immediately
-    console.log('- Removing session styling');
-    document.body.classList.remove('session-active');
-    
-    // 9. Restore opacity of main content with faster transition
-    const main = document.querySelector('main');
-    if (main) {
-      main.style.transition = 'opacity 0.15s ease-in-out';
-      main.style.opacity = '1';
-    }
-    
-    // 10. Ensure any backdrop filter is completely removed
-    document.body.style.backdropFilter = 'none';
-    
-    // 11. For extra safety, also remove any other potential overlay effects
-    document.body.style.filter = 'none';
-    
-    // 12. Reset browser idle detection if available
-    if ('IdleDetector' in window) {
-      try {
-        // Inform the browser we're no longer in an active call
-        // This can help with power management and background throttling
-        (navigator as any).userActivation?.isActive;
-      } catch (idleError) {
-        // Ignore idle detection errors
-      }
-    }
-    
-    // 13. Update session state in context
-    setSessionActive(false);
-    
-    console.log('✅ Cleanup complete');
-  }
-  
-  // Simplified audio analyzer setup
-  const setupAudioAnalyzer = async () => {
-    // Avoid creating multiple audio contexts
-    if (audioContext.current) return
-    
-    try {
-      // Request audio access with optimal settings
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { 
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 44100
-        } 
-      })
-      
-      // Store stream for cleanup
-      audioStreamRef.current = stream
-      
-      // Store the audio track for muting functionality
-      const audioTracks = stream.getAudioTracks()
-      if (audioTracks.length > 0) {
-        audioTrackRef.current = audioTracks[0]
-        console.log('Audio track stored for mute functionality')
-      }
-      
-      // Create audio context
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-      audioContext.current = new AudioContextClass({ 
-        latencyHint: 'interactive',
-        sampleRate: 44100
-      })
-      
-      // Set up analyzer
-      analyser.current = audioContext.current.createAnalyser()
-      analyser.current.fftSize = 256
-      analyser.current.smoothingTimeConstant = 0.7
-      
-      // Connect audio
-      const source = audioContext.current.createMediaStreamSource(stream)
-      source.connect(analyser.current)
-      
-      // Create array to hold frequency data
-      const dataArray = new Uint8Array(analyser.current.frequencyBinCount)
-      
-      // Start analyzing audio
-      const updateAudioLevel = () => {
-        if (!analyser.current) return
-        
-        // Get frequency data
-        analyser.current.getByteFrequencyData(dataArray)
-        
-        // Simple average calculation
-        let sum = 0
-        const speechRange = Math.min(dataArray.length, 30) // Focus on first ~30 bins (speech range)
-        
-        for (let i = 0; i < speechRange; i++) {
-          sum += dataArray[i]
-        }
-        
-        // Normalize to 0-100
-        const level = sum / speechRange
-        
-        // Use graduated normalization to allow for smoother transitions
-        // This creates a more natural animation between silence and speech
-        let normalizedLevel = 0;
-        
-        if (level < 30) {
-          // Complete silence or very low background noise (0-3)
-          normalizedLevel = level < 10 ? 0 : level / 3; 
-        } else if (level < 50) {
-          // Low sounds (3-15)
-          normalizedLevel = 10 + ((level - 30) / 20) * 10;
-        } else if (level < 80) {
-          // Normal speech (15-50)
-          normalizedLevel = 20 + ((level - 50) / 30) * 30;
-        } else {
-          // Loud speech (50-100)
-          normalizedLevel = 50 + Math.min(50, (level - 80) * 1.5);
-        }
-        
-        // Update state
-        setAudioLevel(normalizedLevel)
-        
-        // Continue loop
-        animationFrameRef.current = requestAnimationFrame(updateAudioLevel)
-      }
-      
-      // Resume audio for Safari
-      if (audioContext.current.state === 'suspended') {
-        try {
-          await audioContext.current.resume()
-        } catch (e) {
-          console.warn('Could not resume audio context, waiting for user interaction')
-        }
-      }
-      
-      // Start analysis loop
-      animationFrameRef.current = requestAnimationFrame(updateAudioLevel)
-    } catch (err) {
-      console.error('Error setting up audio analyzer:', err)
-      setErrorMessage('Could not access microphone. Please check permissions.')
-    }
-  }
-  
-  // Broadcast session status updates to dashboard
-  const broadcastSessionStatus = useCallback(async (sessionId: string, status: 'active' | 'completed', data?: any) => {
-    try {
-      const { getMetricsWebSocketServer } = await import('@/lib/websocket-real-time-metrics');
-      const wsServer = getMetricsWebSocketServer();
-      wsServer.broadcastSessionUpdate(userId, sessionId, status, data);
-      console.log(`📱 BROADCAST: Session ${sessionId} status: ${status}`);
-    } catch (error) {
-      console.error('Error broadcasting session status:', error);
-    }
-  }, [userId]);
-  
-  // Extend Vapi type to include our custom properties
-  type ExtendedVapi = Vapi & {
-    _customData?: {
-      systemPrompt?: string
-      firstMessage?: string
-    }
-    setMuted?: (muted: boolean) => void
-    isMuted?: () => boolean
-  }
-  
-  // Create Vapi instance with optimizations
+
+
   const createVapiInstance = useCallback(async (userProfile?: any) => {
     try {
       // Dispose of any existing instance
@@ -1355,208 +1005,23 @@ function TherapyButton({
     }
   }, [sessionId, therapyType])
   
-  // Set up network request capture to debug API issues
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-      // Create network capture to see where requests are going
-      try {
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-          const [url, options] = args;
-          // Only log API calls related to Vapi
-          if (url && typeof url === 'string' && 
-             (url.includes('vapi.ai') || url.includes('call/web') || url.includes('assistant'))) {
-            console.log(`🌐 FETCH REQUEST: ${url}`, options);
-            
-            // Return the promise but also add our own then/catch to see the result
-            return originalFetch(...args)
-              .then(response => {
-                // Clone the response so we can both log it and return it
-                const clone = response.clone();
-                // Log success or failure
-                if (response.ok) {
-                  console.log(`✅ FETCH SUCCESS: ${url} - Status: ${response.status}`);
-                } else {
-                  console.error(`❌ FETCH ERROR: ${url} - Status: ${response.status}`);
-                  // Try to get response body for error details
-                  clone.text().then(text => {
-                    try {
-                      const json = JSON.parse(text);
-                      console.error('Error details:', json);
-                    } catch {
-                      console.error('Error response (text):', text);
-                    }
-                  }).catch(e => {
-                    console.error('Error parsing response:', e);
-                  });
-                }
-                return response;
-              })
-              .catch(error => {
-                console.error(`💥 FETCH EXCEPTION: ${url}`, error);
-                throw error;
-              });
-          }
-          return originalFetch(...args);
-        };
-        
-        console.log('👀 API request capture active - monitoring Vapi API calls');
-        
-        return () => {
-          window.fetch = originalFetch;
-          console.log('API request capture removed');
-        };
-      } catch (error) {
-        console.warn('Could not set up network capture:', error);
+  // Cleanup metrics calculator function
+  const cleanupMetricsCalculator = useCallback(() => {
+    try {
+      if (metricsCalculator) {
+        console.log('🧹 Cleaning up metrics calculator for session');
+        metricsCalculator.cleanupSession();
+        setMetricsCalculator(null);
+        setCurrentMetrics(null);
+        console.log('✅ Metrics calculator cleanup complete');
       }
+    } catch (error) {
+      console.error('Error during metrics calculator cleanup:', error);
     }
-  }, []);
-
-  // Handle modal actions
-  const handleStartButtonClick = () => {
-    console.log('Start button clicked - showing duration selection modal');
-    setShowDurationModal(true);
-  };
-
-  const handleDurationSelect = async (duration: 30 | 60) => {
-    console.log('Duration selected:', duration);
-    setSelectedSessionDuration(duration);
-    setShowDurationModal(false);
-    
-    // IMMEDIATE UI FEEDBACK - critical for user experience
-    // 1. Set window flag FIRST to prevent cleanup
-    if (typeof window !== 'undefined') {
-      (window as any).__therapySessionActive = true;
-      console.log('Set window.__therapySessionActive = true');
-    }
-    
-    // 2. Set session-active class for visual feedback
-    document.body.classList.add('session-active');
-    console.log('Added session-active class to body');
-    
-    // 3. Set UI state for component
-    setIsCallActive(true);
-    console.log('Set isCallActive = true');
-    
-    // 4. Apply visual effects immediately 
-    const main = document.querySelector('main');
-    if (main) {
-      main.style.transition = 'all 0.3s ease-in-out';
-      main.style.opacity = '0.95';
-    }
-    
-    // 5. Tell the sound context we're active
-    setSessionActive(true);
-    console.log('Set session active in sound context');
-    
-    // 6. Start the session initialization process
-    console.log(`Starting therapy session process with ${duration} minute duration`);
-    startTherapySession().catch(error => {
-      console.error('Error starting session:', error);
-      setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
-      
-      // Reset UI state if session fails to start
-      document.body.classList.remove('session-active');
-      setIsCallActive(false);
-      if (main) {
-        main.style.opacity = '1';
-      }
-      setSessionActive(false);
-    });
-  };
-
-  const handleModalClose = () => {
-    console.log('Duration selection modal closed');
-    setShowDurationModal(false);
-  };
-
-  // Handle real-time timer updates with VAPI assistant integration
-  const handleTimeUpdate = useCallback((remainingTimeMinutes: number, remainingTimeSeconds: number) => {
-    if (vapiInstanceRef.current && isCallActive) {
-      try {
-        const totalSeconds = selectedSessionDuration * 60;
-        const sessionPercentageRemaining = (remainingTimeSeconds / totalSeconds) * 100;
-        
-        // Log time updates (throttled)
-        if (remainingTimeSeconds % 30 === 0) {
-          console.log(`📊 SESSION TIME: ${remainingTimeMinutes}:${(remainingTimeSeconds % 60).toString().padStart(2, '0')} remaining (${sessionPercentageRemaining.toFixed(1)}%)`);
-        }
-        
-        // Send critical time updates to VAPI assistant via system messages
-        const shouldSendUpdate = (
-          remainingTimeMinutes === 10 ||  // 10 minutes warning
-          remainingTimeMinutes === 5 ||   // 5 minutes warning
-          remainingTimeMinutes === 3 ||   // 3 minutes warning
-          remainingTimeMinutes === 2 ||   // 2 minutes warning
-          remainingTimeMinutes === 1 ||   // 1 minute warning
-          (remainingTimeSeconds === 45) || // 45 seconds warning
-          (remainingTimeSeconds === 30)    // 30 seconds warning
-        );
-        
-        // Client-side backup termination - force end session if time runs out
-        if (remainingTimeSeconds <= 30 && remainingTimeSeconds > 0) {
-          console.log('🚨 BACKUP TERMINATION: Less than 30 seconds remaining - preparing forced session end');
-          try {
-            if (typeof vapiInstanceRef.current.say === 'function') {
-              // Use VAPI's say method to force session termination with goodbye message
-              const goodbyeMessage = remainingTimeSeconds <= 10 
-                ? "Our time has come to an end. Thank you for sharing this meaningful session with me. Take care."
-                : "We need to wrap up our time together now. Thank you for this important conversation.";
-              
-              console.log('🔚 FORCED TERMINATION: Using vapi.say() to end session');
-              vapiInstanceRef.current.say(goodbyeMessage, true); // true = endCallAfterSpoken
-              return; // Exit early to prevent further updates
-            }
-          } catch (forceEndError) {
-            console.warn('Backup termination failed:', forceEndError);
-          }
-        }
-        
-        if (shouldSendUpdate) {
-          try {
-            // Create time-aware system message for assistant
-            let timeMessage = '';
-            if (remainingTimeMinutes === 10) {
-              timeMessage = 'Time Update: 10 minutes remaining in session. Continue conversation naturally but begin to consider pacing toward meaningful insights.';
-            } else if (remainingTimeMinutes === 5) {
-              timeMessage = 'Time Update: 5 minutes remaining in session. Begin natural transition toward session closure while maintaining therapeutic value.';
-            } else if (remainingTimeMinutes === 3) {
-              timeMessage = 'Time Update: 3 minutes remaining in session. Start wrapping up current topics and begin summarizing key insights.';
-            } else if (remainingTimeMinutes === 2) {
-              timeMessage = 'Time Update: 2 minutes remaining in session. Begin active closure and prepare for ending. Start providing final therapeutic insights.';
-            } else if (remainingTimeMinutes === 1) {
-              timeMessage = 'Time Update: 1 minute remaining. CRITICAL: Begin immediate session closure and prepare to use end_therapy_session function.';
-            } else if (remainingTimeSeconds === 45) {
-              timeMessage = 'Time Update: 45 seconds remaining. URGENT: Begin final goodbye and use end_therapy_session function immediately.';
-            } else if (remainingTimeSeconds === 30) {
-              timeMessage = 'Time Update: 30 seconds remaining. FINAL WARNING: Use end_therapy_session function NOW to avoid forced termination.';
-            }
-            
-            // Send system message to assistant via VAPI
-            if (timeMessage && typeof vapiInstanceRef.current.send === 'function') {
-              vapiInstanceRef.current.send({
-                type: 'add-message',
-                message: {
-                  role: 'system',
-                  content: timeMessage
-                }
-              });
-              
-              console.log(`⏰ REAL-TIME ASSISTANT UPDATE: Sent "${timeMessage.substring(0, 50)}..."`);
-            }
-            
-          } catch (msgError) {
-            console.warn('Failed to send time update to assistant:', msgError);
-          }
-        }
-        
-      } catch (error) {
-        console.warn('Error in timer update handling:', error);
-      }
-    }
-  }, [selectedSessionDuration, isCallActive]);
-
-  // Start therapy session
+  }, [metricsCalculator, setMetricsCalculator, setCurrentMetrics])
+  
+  // Create Vapi instance - MOVED HERE TO FIX HOISTING ISSUE
+  // Start therapy session - MOVED HERE TO FIX HOISTING ISSUE
   const startTherapySession = useCallback(async () => {
     console.log('⚙️ Starting therapy session initialization...');
     setErrorMessage(null)
@@ -1807,140 +1272,633 @@ function TherapyButton({
               console.log('✅ Session started with server-configured assistant and personalized intro');
               return; // Exit early on success
             }
-          } catch (configError) {
-            console.warn('Server-side configuration failed, using client-side approach:', configError);
+          } catch (serverConfigError) {
+            console.warn('Server-side configuration failed, falling back to client-side:', serverConfigError);
           }
           
-          // Option 2: Store config in multiple places for redundancy
-          // Store in Vapi instance
-          if (vapiInstanceRef.current) {
-            (vapiInstanceRef.current as any)._enhancedConfig = personalizedConfig;
-            console.log('Stored enhanced configuration on Vapi instance');
-          }
+          // Option 2: Fall back to client-side configuration
+          console.log('Attempting client-side assistant configuration...');
+          await vapiInstanceRef.current.start(assistantId, personalizedConfig);
+          console.log('✅ Session started with client-side personalized configuration');
           
-          // Store in sessionStorage for persistence
-          try {
-            const { VapiConfigStore } = await import('@/lib/vapi-config-store');
-            VapiConfigStore.storeConfig(assistantId, {
-              model: personalizedConfig.model,
-              voice: personalizedConfig.voice,
-              transcriber: personalizedConfig.transcriber,
-              silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
-              maxDurationSeconds: personalizedConfig.maxDurationSeconds,
-              responseDelaySeconds: personalizedConfig.responseDelaySeconds,
-              llmRequestDelaySeconds: personalizedConfig.llmRequestDelaySeconds,
-              numWordsToInterruptAssistant: personalizedConfig.numWordsToInterruptAssistant,
-              backchanneling: personalizedConfig.backchanneling,
-            });
-            console.log('Stored configuration in sessionStorage');
-          } catch (storeError) {
-            console.warn('Failed to store config in sessionStorage:', storeError);
-          }
+        } catch (personalizedError) {
+          console.warn('Personalized configuration failed, using basic assistant:', personalizedError);
           
-          // Only send minimal overrides in the payload
-          const minimalOverrides = {
-            firstMessage: personalizedConfig.firstMessage,
-            maxDurationSeconds: personalizedConfig.maxDurationSeconds, // Session timeout
-            variableValues: {
-              userName: personalizedConfig.variableValues?.userName || userProfile?.name || 'there',
-              partnerName: personalizedConfig.variableValues?.partnerName || userProfile?.partnerName || '',
-              therapyType: therapyType,
-              ...personalizedConfig.variableValues // Include all session timing variables
-            }
-          };
+          // Option 3: Final fallback to basic assistant start
+          await vapiInstanceRef.current.start(assistantId);
+          console.log('⚠️ Session started with basic assistant (no personalization)');
+        }
+        
+      } catch (sessionError) {
+        console.error('Failed to start enhanced session:', sessionError);
+        throw sessionError;
+      }
+      
+      console.log('⭐ Therapy session started successfully!');
+    } catch (error) {
+      console.error('Error starting therapy session:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to start session');
+      
+      // Cleanup on error
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = false;
+      }
+      document.body.classList.remove('session-active');
+      setSessionActive(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive, selectedSessionDuration])
+  const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
+  
+  // Check for existing session and recover timer state
+  const checkForActiveSession = useCallback(async () => {
+    try {
+      console.log('Checking for active sessions for user:', userId);
+      const response = await fetch(`/api/sessions/active?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data && data.id) {
+          setSessionId(data.id)
+          console.log('Found existing session:', data.id)
           
-          // Start with minimal configuration
-          await vapiInstanceRef.current.start(assistantId, minimalOverrides);
-          console.log('✅ Enhanced therapy session started successfully');
+          // Use the prop from therapy page to determine if we should auto-restart
+          const shouldPerformAutoRestart = shouldAutoRestart && data.startTime
           
-        } catch (enhancedError) {
-          console.warn('⚠️ Enhanced mode failed, falling back to basic configuration:', enhancedError);
-          
-          // Fallback: try with progressively simpler configurations
-          console.warn('Enhanced mode failed, trying fallback approaches...');
-          
-          // First try: Just variable values with basic session timeout
-          try {
-            console.log('Fallback 1: Trying with just variable values and session timeout...');
-            const minimalOverrides = {
-              maxDurationSeconds: sessionDuration * 60, // Convert minutes to seconds
-              variableValues: {
-                userName: userProfile?.name || 'there',
-                partnerName: userProfile?.partnerName || '',
-                therapyType: therapyType,
-                sessionDurationMinutes: sessionDuration
-              }
-            };
-            await vapiInstanceRef.current.start(assistantId, minimalOverrides);
-            console.log('✅ Variable values fallback successful');
-          } catch (fallback1Error) {
-            console.warn('Fallback 1 failed:', fallback1Error);
+          // Recover session timing data if available
+          if (data.startTime && data.duration) {
+            const sessionStart = new Date(data.startTime);
+            const sessionDuration = data.duration;
+            const now = new Date();
+            const elapsedMs = now.getTime() - sessionStart.getTime();
+            const elapsedMinutes = Math.floor(elapsedMs / 60000);
             
-            // Second try: Just assistant ID
-            try {
-              console.log('Fallback 2: Trying with just assistant ID...');
-              await vapiInstanceRef.current.start(assistantId);
-              console.log('✅ Minimal configuration successful');
-            } catch (fallback2Error) {
-              console.error('❌ All fallback approaches failed:', fallback2Error);
+            // Only recover if session is still within duration
+            if (elapsedMinutes < sessionDuration) {
+              console.log(`📚 RECOVERING SESSION: Started ${elapsedMinutes} minutes ago, ${sessionDuration - elapsedMinutes} minutes remaining`);
               
-              // Final attempt: Use a default assistant ID if available
-              const defaultAssistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-              if (defaultAssistantId && defaultAssistantId !== assistantId) {
-                try {
-                  console.log('Final fallback: Trying with default assistant ID...');
-                  await vapiInstanceRef.current.start(defaultAssistantId);
-                  console.log('✅ Default assistant fallback successful');
-                } catch (finalError) {
-                  throw new Error('Failed to start session with any configuration or assistant');
+              // Restore timer state
+              setSessionStartTime(sessionStart);
+              setSelectedSessionDuration(sessionDuration as 30 | 60);
+              setSessionRecovered(true);
+              
+              // Store recovery info for user awareness
+              sessionStorage.setItem('session-recovered', JSON.stringify({
+                sessionId: data.id,
+                originalStart: data.startTime,
+                recoveredAt: now.toISOString(),
+                elapsedMinutes,
+                remainingMinutes: sessionDuration - elapsedMinutes,
+                autoRestarted: shouldPerformAutoRestart
+              }));
+              
+              // Auto-restart session UI if page was refreshed during active session
+              if (shouldPerformAutoRestart) {
+                console.log('🚀 Auto-restarting session UI after page refresh')
+                
+                // Set session active immediately
+                if (typeof window !== 'undefined') {
+                  (window as any).__therapySessionActive = true;
+                  document.body.classList.add('session-active');
                 }
-              } else {
-                throw new Error('Failed to start session with any configuration level');
+                
+                setIsCallActive(true);
+                setSessionActive(true);
+                
+                // Apply visual effects
+                const main = document.querySelector('main');
+                if (main) {
+                  main.style.transition = 'all 0.3s ease-in-out';
+                  main.style.opacity = '0.95';
+                }
+                
+                // Restart the Vapi session after a brief delay
+                setTimeout(() => {
+                  console.log('🎯 Restarting Vapi session with recovered state')
+                  startTherapySession().catch(error => {
+                    console.error('Error restarting session:', error);
+                    setErrorMessage(`Failed to restart session: ${error.message || 'Unknown error'}`);
+                    // Reset UI state if restart fails
+                    setIsCallActive(false);
+                    setSessionActive(false);
+                    if (main) {
+                      main.style.opacity = '1';
+                    }
+                    document.body.classList.remove('session-active');
+                  });
+                }, 500);
               }
+              
+              console.log(`✅ Session timer recovered successfully (auto-restart: ${shouldPerformAutoRestart})`);
+            } else {
+              console.log(`⚠️ Session has expired (${elapsedMinutes} minutes elapsed, duration was ${sessionDuration} minutes)`);
             }
+          }
+          
+          // Set flag to avoid cleanup
+          if (typeof window !== 'undefined') {
+            (window as any).__existingSession = data.id;
+          }
+        } else {
+          console.log('No active session found for user');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for active session:', error)
+    }
+  }, [userId, setSessionActive, startTherapySession])
+  
+  // Effect to cycle loading messages
+  useEffect(() => {
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setLoadingMessageIndex((prev) => (prev + 1) % 6);
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isLoading]);
+  
+  useEffect(() => {
+    checkForActiveSession()
+    
+    // Debug function to check transcriber configuration
+    const debugTranscriberConfig = async () => {
+      try {
+        console.log('🔍 DEBUG: Checking transcriber configuration...');
+        const response = await fetch('/api/vapi/transcriber');
+        if (response.ok) {
+          const config = await response.json();
+          console.log('🔍 DEBUG: Transcriber config available:', config);
+        } else {
+          console.log('🔍 DEBUG: Transcriber config not available:', response.status);
+        }
+      } catch (error) {
+        console.error('🔍 DEBUG: Error checking transcriber config:', error);
+      }
+    };
+    
+    // Only run in development mode
+    if (process.env.NODE_ENV === 'development') {
+      debugTranscriberConfig();
+    }
+    
+    // NOTE: We DON'T want to clean up on unmount if a session is active
+    // Because this would immediately stop any session that was just started
+    return () => {
+      // Check multiple indicators for active session
+      const hasSessionClass = document.body.classList.contains('session-active');
+      const hasWindowFlag = (window as any).__therapySessionActive === true;
+      const hasExistingSession = (window as any).__existingSession;
+      
+      if (hasSessionClass || hasWindowFlag || hasExistingSession) {
+        console.log('Component unmounting but session indicators present - NOT cleaning up', {
+          hasSessionClass,
+          hasWindowFlag,
+          hasExistingSession
+        });
+      } else {
+        console.log('Component unmounting, no active session - cleaning up resources');
+        cleanupResources();
+      }
+    }
+  }, [checkForActiveSession]) // Only depend on checkForActiveSession
+  
+  // Enhanced cleanup function for thoroughly releasing resources
+  const cleanupResources = () => {
+    // Check if we have an active session flag set
+    if (typeof window !== 'undefined' && (window as any).__therapySessionActive === true) {
+      console.log('⚠️ Cleanup requested but session is active - SKIPPING CLEANUP');
+      return;
+    }
+    
+    console.log('🧹 Cleaning up resources...');
+    
+    // 1. Clean up animation frame
+    if (animationFrameRef.current) {
+      console.log('- Canceling animation frame');
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    // 2. Clean up audio context
+    if (audioContext.current) {
+      console.log('- Closing audio context');
+      audioContext.current.close();
+      audioContext.current = null;
+    }
+    
+    // 3. Clean up audio tracks
+    if (audioStreamRef.current) {
+      console.log('- Stopping audio tracks');
+      audioStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log(`  - Track ${track.id} stopped (${track.kind})`);
+      });
+      audioStreamRef.current = null;
+      audioTrackRef.current = null;
+    }
+    
+    // 4. Clean up Vapi status interval
+    if (vapiInstanceRef.current && (vapiInstanceRef.current as any)._statusInterval) {
+      console.log('- Clearing status check interval');
+      clearInterval((vapiInstanceRef.current as any)._statusInterval);
+      (vapiInstanceRef.current as any)._statusInterval = null;
+    }
+    
+    // 5. Reset Vapi tracking values
+    if (vapiInstanceRef.current) {
+      (vapiInstanceRef.current as any)._isCallActive = false;
+      (vapiInstanceRef.current as any)._currentAssistantId = null;
+      
+      // Explicitly mark the transport as closed to avoid reconnection attempts
+      (vapiInstanceRef.current as any)._transportState = 'closed';
+    }
+    
+    // 6. Remove event listeners
+    if (typeof window !== 'undefined') {
+      console.log('- Removing window event listeners');
+      window.removeEventListener('online', () => {});
+      window.removeEventListener('offline', () => {});
+    }
+    
+    // 7. Release browser permissions indicators if present
+    try {
+      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+        navigator.permissions.query({ name: 'microphone' as PermissionName })
+          .then(permissionStatus => {
+            console.log(`- Current microphone permission status: ${permissionStatus.state}`);
+          })
+          .catch(() => {});
+      }
+    } catch (permError) {
+      // Ignore permission query errors
+    }
+    
+    // 8. Remove session styling immediately
+    console.log('- Removing session styling');
+    document.body.classList.remove('session-active');
+    
+    // 9. Restore opacity of main content with faster transition
+    const main = document.querySelector('main');
+    if (main) {
+      main.style.transition = 'opacity 0.15s ease-in-out';
+      main.style.opacity = '1';
+    }
+    
+    // 10. Ensure any backdrop filter is completely removed
+    document.body.style.backdropFilter = 'none';
+    
+    // 11. For extra safety, also remove any other potential overlay effects
+    document.body.style.filter = 'none';
+    
+    // 12. Reset browser idle detection if available
+    if ('IdleDetector' in window) {
+      try {
+        // Inform the browser we're no longer in an active call
+        // This can help with power management and background throttling
+        (navigator as any).userActivation?.isActive;
+      } catch (idleError) {
+        // Ignore idle detection errors
+      }
+    }
+    
+    // 13. Update session state in context
+    setSessionActive(false);
+    
+    console.log('✅ Cleanup complete');
+  }
+  
+  // Simplified audio analyzer setup
+  const setupAudioAnalyzer = async () => {
+    // Avoid creating multiple audio contexts
+    if (audioContext.current) return
+    
+    try {
+      // Request audio access with optimal settings
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 44100
+        } 
+      })
+      
+      // Store stream for cleanup
+      audioStreamRef.current = stream
+      
+      // Store the audio track for muting functionality
+      const audioTracks = stream.getAudioTracks()
+      if (audioTracks.length > 0) {
+        audioTrackRef.current = audioTracks[0]
+        console.log('Audio track stored for mute functionality')
+      }
+      
+      // Create audio context
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      audioContext.current = new AudioContextClass({ 
+        latencyHint: 'interactive',
+        sampleRate: 44100
+      })
+      
+      // Set up analyzer
+      analyser.current = audioContext.current.createAnalyser()
+      analyser.current.fftSize = 256
+      analyser.current.smoothingTimeConstant = 0.7
+      
+      // Connect audio
+      const source = audioContext.current.createMediaStreamSource(stream)
+      source.connect(analyser.current)
+      
+      // Create array to hold frequency data
+      const dataArray = new Uint8Array(analyser.current.frequencyBinCount)
+      
+      // Start analyzing audio
+      const updateAudioLevel = () => {
+        if (!analyser.current) return
+        
+        // Get frequency data
+        analyser.current.getByteFrequencyData(dataArray)
+        
+        // Simple average calculation
+        let sum = 0
+        const speechRange = Math.min(dataArray.length, 30) // Focus on first ~30 bins (speech range)
+        
+        for (let i = 0; i < speechRange; i++) {
+          sum += dataArray[i]
+        }
+        
+        // Normalize to 0-100
+        const level = sum / speechRange
+        
+        // Use graduated normalization to allow for smoother transitions
+        // This creates a more natural animation between silence and speech
+        let normalizedLevel = 0;
+        
+        if (level < 30) {
+          // Complete silence or very low background noise (0-3)
+          normalizedLevel = level < 10 ? 0 : level / 3; 
+        } else if (level < 50) {
+          // Low sounds (3-15)
+          normalizedLevel = 10 + ((level - 30) / 20) * 10;
+        } else if (level < 80) {
+          // Normal speech (15-50)
+          normalizedLevel = 20 + ((level - 50) / 30) * 30;
+        } else {
+          // Loud speech (50-100)
+          normalizedLevel = 50 + Math.min(50, (level - 80) * 1.5);
+        }
+        
+        // Update state
+        setAudioLevel(normalizedLevel)
+        
+        // Continue loop
+        animationFrameRef.current = requestAnimationFrame(updateAudioLevel)
+      }
+      
+      // Resume audio for Safari
+      if (audioContext.current.state === 'suspended') {
+        try {
+          await audioContext.current.resume()
+        } catch (e) {
+          console.warn('Could not resume audio context, waiting for user interaction')
+        }
+      }
+      
+      // Start analysis loop
+      animationFrameRef.current = requestAnimationFrame(updateAudioLevel)
+    } catch (err) {
+      console.error('Error setting up audio analyzer:', err)
+      setErrorMessage('Could not access microphone. Please check permissions.')
+    }
+  }
+  
+  // Broadcast session status updates to dashboard
+  const broadcastSessionStatus = useCallback(async (sessionId: string, status: 'active' | 'completed', data?: any) => {
+    try {
+      await sendSessionUpdate(userId, sessionId, status, data);
+      console.log(`📱 BROADCAST: Session ${sessionId} status: ${status}`);
+    } catch (error) {
+      console.error('Error broadcasting session status:', error);
+    }
+  }, [userId]);
+  
+  // Extend Vapi type to include our custom properties
+  type ExtendedVapi = Vapi & {
+    _customData?: {
+      systemPrompt?: string
+      firstMessage?: string
+    }
+    setMuted?: (muted: boolean) => void
+    isMuted?: () => boolean
+  }
+  
+  // Create Vapi instance with optimizations
+  
+  // Set up network request capture to debug API issues
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      // Create network capture to see where requests are going
+      try {
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+          const [url, options] = args;
+          // Only log API calls related to Vapi
+          if (url && typeof url === 'string' && 
+             (url.includes('vapi.ai') || url.includes('call/web') || url.includes('assistant'))) {
+            console.log(`🌐 FETCH REQUEST: ${url}`, options);
+            
+            // Return the promise but also add our own then/catch to see the result
+            return originalFetch(...args)
+              .then(response => {
+                // Clone the response so we can both log it and return it
+                const clone = response.clone();
+                // Log success or failure
+                if (response.ok) {
+                  console.log(`✅ FETCH SUCCESS: ${url} - Status: ${response.status}`);
+                } else {
+                  console.error(`❌ FETCH ERROR: ${url} - Status: ${response.status}`);
+                  // Try to get response body for error details
+                  clone.text().then(text => {
+                    try {
+                      const json = JSON.parse(text);
+                      console.error('Error details:', json);
+                    } catch {
+                      console.error('Error response (text):', text);
+                    }
+                  }).catch(e => {
+                    console.error('Error parsing response:', e);
+                  });
+                }
+                return response;
+              })
+              .catch(error => {
+                console.error(`💥 FETCH EXCEPTION: ${url}`, error);
+                throw error;
+              });
+          }
+          return originalFetch(...args);
+        };
+        
+        console.log('👀 API request capture active - monitoring Vapi API calls');
+        
+        return () => {
+          window.fetch = originalFetch;
+          console.log('API request capture removed');
+        };
+      } catch (error) {
+        console.warn('Could not set up network capture:', error);
+      }
+    }
+  }, []);
+
+  // Handle modal actions
+  const handleStartButtonClick = () => {
+    console.log('Start button clicked - showing duration selection modal');
+    setShowDurationModal(true);
+  };
+
+  const handleDurationSelect = async (duration: 30 | 60) => {
+    console.log('Duration selected:', duration);
+    setSelectedSessionDuration(duration);
+    setShowDurationModal(false);
+    
+    // IMMEDIATE UI FEEDBACK - critical for user experience
+    // 1. Set window flag FIRST to prevent cleanup
+    if (typeof window !== 'undefined') {
+      (window as any).__therapySessionActive = true;
+      console.log('Set window.__therapySessionActive = true');
+    }
+    
+    // 2. Set session-active class for visual feedback
+    document.body.classList.add('session-active');
+    console.log('Added session-active class to body');
+    
+    // 3. Set UI state for component
+    setIsCallActive(true);
+    console.log('Set isCallActive = true');
+    
+    // 4. Apply visual effects immediately 
+    const main = document.querySelector('main');
+    if (main) {
+      main.style.transition = 'all 0.3s ease-in-out';
+      main.style.opacity = '0.95';
+    }
+    
+    // 5. Tell the sound context we're active
+    setSessionActive(true);
+    console.log('Set session active in sound context');
+    
+    // 6. Start the session initialization process
+    console.log(`Starting therapy session process with ${duration} minute duration`);
+    startTherapySession().catch(error => {
+      console.error('Error starting session:', error);
+      setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
+      
+      // Reset UI state if session fails to start
+      document.body.classList.remove('session-active');
+      setIsCallActive(false);
+      if (main) {
+        main.style.opacity = '1';
+      }
+      setSessionActive(false);
+    });
+  };
+
+  const handleModalClose = () => {
+    console.log('Duration selection modal closed');
+    setShowDurationModal(false);
+  };
+
+  // Handle real-time timer updates with VAPI assistant integration
+  const handleTimeUpdate = useCallback((remainingTimeMinutes: number, remainingTimeSeconds: number) => {
+    if (vapiInstanceRef.current && isCallActive) {
+      try {
+        const totalSeconds = selectedSessionDuration * 60;
+        const sessionPercentageRemaining = (remainingTimeSeconds / totalSeconds) * 100;
+        
+        // Log time updates (throttled)
+        if (remainingTimeSeconds % 30 === 0) {
+          console.log(`📊 SESSION TIME: ${remainingTimeMinutes}:${(remainingTimeSeconds % 60).toString().padStart(2, '0')} remaining (${sessionPercentageRemaining.toFixed(1)}%)`);
+        }
+        
+        // Send critical time updates to VAPI assistant via system messages
+        const shouldSendUpdate = (
+          remainingTimeMinutes === 10 ||  // 10 minutes warning
+          remainingTimeMinutes === 5 ||   // 5 minutes warning
+          remainingTimeMinutes === 3 ||   // 3 minutes warning
+          remainingTimeMinutes === 2 ||   // 2 minutes warning
+          remainingTimeMinutes === 1 ||   // 1 minute warning
+          (remainingTimeSeconds === 45) || // 45 seconds warning
+          (remainingTimeSeconds === 30)    // 30 seconds warning
+        );
+        
+        // Client-side backup termination - force end session if time runs out
+        if (remainingTimeSeconds <= 30 && remainingTimeSeconds > 0) {
+          console.log('🚨 BACKUP TERMINATION: Less than 30 seconds remaining - preparing forced session end');
+          try {
+            if (typeof vapiInstanceRef.current.say === 'function') {
+              // Use VAPI's say method to force session termination with goodbye message
+              const goodbyeMessage = remainingTimeSeconds <= 10 
+                ? "Our time has come to an end. Thank you for sharing this meaningful session with me. Take care."
+                : "We need to wrap up our time together now. Thank you for this important conversation.";
+              
+              console.log('🔚 FORCED TERMINATION: Using vapi.say() to end session');
+              vapiInstanceRef.current.say(goodbyeMessage, true); // true = endCallAfterSpoken
+              return; // Exit early to prevent further updates
+            }
+          } catch (forceEndError) {
+            console.warn('Backup termination failed:', forceEndError);
           }
         }
         
-        console.log('✅ Therapy session initialization complete');
-      } catch (err) {
-        console.error('❌ Fatal error starting therapy session:', err);
-        throw err;
-      }
-    } catch (error) {
-      console.error('❌ Failed to start therapy session:', error)
-      setErrorMessage(`Start session error: ${error}`)
-      
-      // Reset the session active flag since the session failed to start
-      if (typeof window !== 'undefined') {
-        (window as any).__therapySessionActive = false;
-        console.log('Resetting session active flag due to error');
-      }
-      
-      // Clean up UI and resources
-      cleanupResources();
-      
-      // Clean up failed session
-      if (sessionId) {
-        try {
-          await fetch(`/api/sessions/${sessionId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              status: 'failed',
-              endTime: new Date().toISOString(),
-            }),
-          })
-        } catch (err) {
-          console.error('Failed to cleanup session after error:', err)
+        if (shouldSendUpdate) {
+          try {
+            // Create time-aware system message for assistant
+            let timeMessage = '';
+            if (remainingTimeMinutes === 10) {
+              timeMessage = 'Time Update: 10 minutes remaining in session. Continue conversation naturally but begin to consider pacing toward meaningful insights.';
+            } else if (remainingTimeMinutes === 5) {
+              timeMessage = 'Time Update: 5 minutes remaining in session. Begin natural transition toward session closure while maintaining therapeutic value.';
+            } else if (remainingTimeMinutes === 3) {
+              timeMessage = 'Time Update: 3 minutes remaining in session. Start wrapping up current topics and begin summarizing key insights.';
+            } else if (remainingTimeMinutes === 2) {
+              timeMessage = 'Time Update: 2 minutes remaining in session. Begin active closure and prepare for ending. Start providing final therapeutic insights.';
+            } else if (remainingTimeMinutes === 1) {
+              timeMessage = 'Time Update: 1 minute remaining. CRITICAL: Begin immediate session closure and prepare to use end_therapy_session function.';
+            } else if (remainingTimeSeconds === 45) {
+              timeMessage = 'Time Update: 45 seconds remaining. URGENT: Begin final goodbye and use end_therapy_session function immediately.';
+            } else if (remainingTimeSeconds === 30) {
+              timeMessage = 'Time Update: 30 seconds remaining. FINAL WARNING: Use end_therapy_session function NOW to avoid forced termination.';
+            }
+            
+            // Send system message to assistant via VAPI
+            if (timeMessage && typeof vapiInstanceRef.current.send === 'function') {
+              vapiInstanceRef.current.send({
+                type: 'add-message',
+                message: {
+                  role: 'system',
+                  content: timeMessage
+                }
+              });
+              
+              console.log(`⏰ REAL-TIME ASSISTANT UPDATE: Sent "${timeMessage.substring(0, 50)}..."`);
+            }
+            
+          } catch (msgError) {
+            console.warn('Failed to send time update to assistant:', msgError);
+          }
         }
-        setSessionId(null)
+        
+      } catch (error) {
+        console.warn('Error in timer update handling:', error);
       }
-    } finally {
-      setIsLoading(false)
     }
-  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive, selectedSessionDuration])
-  
-  // End therapy session
+  }, [selectedSessionDuration, isCallActive]);
+
+  // Duplicate function removed - function is now defined earlier
   const endTherapySession = useCallback(async () => {
     console.log('End therapy session called')
     
