@@ -189,8 +189,11 @@ This is a Next.js 15 TypeScript web application for couple and therapy sessions 
 
 ### Assistant Types & IDs
 - **Couple Therapy**: Dr. Maya Thompson (`NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID`)
+  - Model: `claude-sonnet-4-20250514`, Temperature: 1.0, Max Tokens: 750
 - **Solo Therapy**: Dr. Elliot Mackaphy (`NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID`)
+  - Model: `claude-sonnet-4-20250514`, Temperature: 1.0, Max Tokens: 750
 - **Family Therapy**: Dr. Jada Pearson (`NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID`)
+  - Model: `claude-sonnet-4-20250514`, Temperature: 1.0, Max Tokens: 750
 
 ### Key Configuration Files
 - `/src/lib/vapi.ts`: Main VAPI configuration and personalization logic
@@ -250,11 +253,13 @@ This is a Next.js 15 TypeScript web application for couple and therapy sessions 
 
 ### VAPI Settings
 - `backgroundSound: "off"`: Disables ambient office sounds
-- `hipaaEnabled: true`: Ensures HIPAA compliance (no data stored on VAPI servers)
+- `hipaaEnabled: false`: HIPAA compliance disabled for enhanced features
 - `recordingEnabled: true`: Enables session recording
 - `silenceTimeoutSeconds`: Varies by therapy type (45-60 seconds)
 - `responseDelaySeconds`: Natural response timing (0.8-1.0 seconds)
 - `maxDurationSeconds`: Session duration limit (1800 for 30min, 3600 for 60min)
+- `modelOutputInMessagesEnabled: true`: Ensures AI responses are sent to client
+- `clientMessages`: Critical configuration for transcript capture (see Transcript System section)
 
 ### Personalization Flow
 1. User profile data is fetched (names, ages, concerns, session history)
@@ -704,12 +709,47 @@ When encountering "Unexpected token `div`. Expected jsx identifier" or similar p
 ## Transcript System Architecture
 
 ### Overview
-The application uses a multi-layered transcript storage system for VAPI voice AI therapy sessions:
+The application uses a comprehensive transcript capture system that ensures complete conversation recording for VAPI voice AI therapy sessions:
 
-1. **Real-time capture** via VAPI message events in `TherapyButton.tsx`
-2. **Multi-layer storage** with sessionStorage backup and database persistence
-3. **Structured display** through `SessionTranscript.tsx` component
-4. **API endpoints** for CRUD operations on transcript entries
+1. **VAPI Message Configuration** via `clientMessages` field in assistant configs
+2. **Real-time capture** via VAPI message events in `TherapyButton.tsx`
+3. **Multi-layer storage** with sessionStorage backup and database persistence
+4. **Structured display** through `SessionTranscript.tsx` component
+5. **API endpoints** for CRUD operations on transcript entries
+
+### CRITICAL: VAPI clientMessages Configuration
+
+**PROBLEM SOLVED (December 2024)**: Sessions were only showing user messages without AI responses.
+
+**ROOT CAUSE**: VAPI assistants must be explicitly configured with `clientMessages` to specify which message types to send to the client.
+
+**SOLUTION**: All assistant configurations now include:
+```javascript
+clientMessages: [
+  "transcript",        // User speech transcripts
+  "model-output",      // AI assistant responses (CRITICAL!)
+  "hang",              // Call end events
+  "function-call",     // Function calling events
+  "tool-calls",        // Tool usage
+  "speech-update",     // Speech processing updates
+  "conversation-update", // Conversation state changes
+  "assistant-request", // Assistant API calls
+  "voice-input"        // Voice input processing
+],
+```
+
+**Configured in**:
+- `COUPLE_THERAPY_ASSISTANT_CONFIG` (Dr. Maya Thompson)
+- `INDIVIDUAL_THERAPY_ASSISTANT_CONFIG` (Dr. Elliot Mackaphy)  
+- `FAMILY_THERAPY_ASSISTANT_CONFIG` (Dr. Jada Pearson)
+
+### Message Processing Pipeline
+
+**User Messages**: `transcript` → speaker detection → `addTranscriptEntry()` → database
+**AI Responses**: `model-output` → speaker='assistant' → `addTranscriptEntry()` → database
+**Session End**: `function-call` → end handler → `addTranscriptEntry()` → database
+
+**Key Enhancement**: Enhanced message handler in `TherapyButton.tsx` prioritizes `model-output` messages containing AI responses and uses improved text extraction for different message types.
 
 ### Database Schema
 - **TranscriptEntry** model with fields: `id`, `sessionId`, `speaker`, `text`, `timestamp`, `isFinal`, `assistantId`
@@ -722,10 +762,16 @@ The application uses a multi-layered transcript storage system for VAPI voice AI
 **Legacy**: Single transcript string in Session model
 
 ### Key Components
-- **TherapyButton.tsx**: VAPI event handling and transcript capture
+- **TherapyButton.tsx**: VAPI event handling and transcript capture with enhanced message processing
 - **SessionTranscript.tsx**: Display component with filtering and deduplication
 - **transcript-service.ts**: API layer with multi-attempt saving strategy
 - **transcriptionService.ts**: Deepgram integration for speech-to-text
+
+### Assistant Model Configuration
+**Updated**: All assistants now use Claude Sonnet 4 (`claude-sonnet-4-20250514`) with optimized settings:
+- **Temperature**: 1.0 (balanced creativity and consistency)
+- **Max Tokens**: 750 (increased for more detailed responses)
+- **Provider**: Anthropic
 
 ### Transcript Quality & Meta Speech Impact
 **CRITICAL**: Meta-observational language in AI prompts directly affects transcript quality. When therapist AIs use phrases like "I see we have..." or "I notice that...", these get captured in transcripts as unprofessional robotic speech.
@@ -735,6 +781,12 @@ The application uses a multi-layered transcript storage system for VAPI voice AI
 - Filtering logic cannot reliably remove meta speech without affecting legitimate conversation
 - Prevention at the prompt level (in `/src/lib/vapi.ts`) is the only reliable solution
 - Transcript display issues often trace back to AI prompt problems, not display logic
+
+### Session Timing Integration
+Enhanced session timing instructions integrate with function calling for graceful session termination:
+- **Critical timing directives** in system prompts ensure AIs proactively end sessions
+- **Function calling** (`end_therapy_session`) properly captures goodbye messages in transcripts
+- **VAPI hard limits** prevent sessions from running over allocated time
 
 ## Transcript System Fixes (December 2024)
 
@@ -837,9 +889,10 @@ const recoveredSessionId = sessionId ||
 
 #### Common Symptoms & Solutions
 **Symptom**: Assistant messages not appearing in transcripts (MOST COMMON)
-**Cause**: VAPI assistant messages being skipped or misidentified as user messages
-**Debug**: Check `TherapyButton.tsx` speaker detection logic and final status handling
-**Solution**: Ensure intelligent speaker detection and assistant message processing regardless of final status
+**Root Cause**: VAPI assistant not configured with proper `clientMessages` array
+**Primary Fix**: Ensure all assistant configs include `clientMessages` with `"model-output"` type
+**Secondary Fix**: Check `TherapyButton.tsx` message handler prioritizes `model-output` messages
+**Debug**: Look for `🎯 MODEL OUTPUT CAPTURED:` logs in browser console during sessions
 
 **Symptom**: Transcripts appear during session but not in history
 **Cause**: Missing session ID causing database skip
@@ -869,10 +922,17 @@ const recoveredSessionId = sessionId ||
 ### Testing Transcript System
 1. **Start therapy session** and verify session ID is created
 2. **Speak as user** and check for transcript capture logs
-3. **Wait for AI response** and verify assistant message logging
+3. **Wait for AI response** and verify assistant message logging with `🎯 MODEL OUTPUT CAPTURED:` logs
 4. **End session** and check database persistence
 5. **View session history** and confirm both speakers appear
 6. **Check console logs** for verification success messages
+
+### VAPI Configuration Verification
+If transcripts still show only user messages:
+1. **Check assistant configs** in `/src/lib/vapi.ts` have `clientMessages` arrays
+2. **Verify VAPI dashboard** assistant settings include message streaming
+3. **Monitor browser console** during sessions for `model-output` message types
+4. **Test different therapy types** (couple/individual/family) to isolate issues
 
 ## Welcome Page Onboarding & Validation
 
@@ -964,10 +1024,11 @@ The onboarding process consists of 6 steps:
 - Check console for errors during development
 - **Create git commits after significant code changes**
 - **Always validate JSX syntax** when making component edits
-- **For missing assistant transcripts**: Check TherapyButton.tsx speaker detection and final status logic first
-- **For transcript issues**: Check session ID validation and filtering logic second
+- **For missing assistant transcripts**: Check VAPI `clientMessages` configuration first, then TherapyButton.tsx message handling
+- **For transcript issues**: Verify `model-output` messages are being received and processed correctly
 - **For transcript quality issues**: Verify AI prompts don't contain meta-observational language
 - **For onboarding validation**: Test edge cases and verify visual feedback appears correctly
+- **For VAPI configuration**: Ensure all assistant configs include proper `clientMessages` arrays with `"model-output"` type
 
 ## Layout and Viewport Height Issues
 

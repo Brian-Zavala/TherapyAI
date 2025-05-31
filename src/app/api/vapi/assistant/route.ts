@@ -145,6 +145,22 @@ export async function GET(req: NextRequest) {
           sessions = [];
         }
         
+        // Get the therapy type from query params or user profile - prioritize user selection (FIXED)
+        const queryTherapyType = searchParams.get('therapyType');
+        const userStoredType = user.therapyType;
+        // CRITICAL FIX: Query parameter (user's explicit selection) should take priority over stored preference
+        const therapyType = queryTherapyType || userStoredType || 'couple';
+        
+        // Debug user data and therapy type selection
+        console.log('🔍 THERAPY TYPE SELECTION DEBUG:', {
+          queryTherapyType: queryTherapyType, // From URL parameter
+          userStoredType: userStoredType, // From database
+          finalTherapyType: therapyType, // What we'll actually use
+          hasPartner: !!user.partnerName,
+          hasFamilyMembers: !!(user.familyMember1 || user.familyMember2),
+          priorityUsed: queryTherapyType ? 'query-param' : userStoredType ? 'stored-pref' : 'default'
+        });
+
         // Create a comprehensive user profile with all available data
         const userProfile = {
           id: user.id,
@@ -189,9 +205,6 @@ export async function GET(req: NextRequest) {
           lastSessionDate: sessions[0]?.date || null
         };
         
-        // Get the therapy type from query params or user profile
-        const therapyType = searchParams.get('therapyType') || user.therapyType || 'couple';
-        
         // Get session duration and start time if provided
         const sessionDuration = searchParams.get('duration') ? parseInt(searchParams.get('duration')!) : 60;
         const sessionStartTime = searchParams.get('startTime') || new Date().toISOString();
@@ -231,6 +244,18 @@ export async function GET(req: NextRequest) {
           }
         }
         
+        // Debug final generated config
+        const systemContent = personalizedConfig.model?.messages?.[0]?.content || '';
+        const firstWords = systemContent.substring(0, 50);
+        console.log('🎯 FINAL GENERATED CONFIG:', {
+          assistantId,
+          therapyType: personalizedConfig.metadata?.therapyType,
+          systemPromptStart: firstWords,
+          isJada: systemContent.includes('Dr. Jada Pearson'),
+          isMaya: systemContent.includes('Dr. Maya Thompson'),
+          isElliot: systemContent.includes('Dr. Elliot Mackaphy')
+        });
+
         // Return the personalized config without creating an actual assistant
         return NextResponse.json({
           id: assistantId,

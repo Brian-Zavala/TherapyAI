@@ -385,9 +385,15 @@ Goal: Help them improve communication, develop secure attachment, and build a he
 };
 
 // Get personalized first message based on user profile
-export const getPersonalizedFirstMessage = (userProfile?: any): string => {
-  // Determine therapy type from userProfile or default to couple
-  const therapyType = userProfile?.therapyType || "couple";
+export const getPersonalizedFirstMessage = (userProfile?: any, explicitType?: string): string => {
+  // CRITICAL FIX: Use explicit type parameter if provided, otherwise fall back to user profile
+  const therapyType = explicitType || userProfile?.therapyType || "couple";
+  
+  console.log('🎭 COUPLE FIRST MESSAGE TYPE:', {
+    explicitType,
+    userStoredType: userProfile?.therapyType,
+    finalType: therapyType
+  });
 
   if (!userProfile || !userProfile?.userName) {
     // Default first message
@@ -1230,11 +1236,18 @@ export const getPersonalizedFirstMessageForType = (
   type: string = "couple",
   userProfile?: any
 ): string => {
-  // Use therapy type from parameters, or from userProfile if available
+  // Debug therapy type selection for first message
+  console.log('🎭 FIRST MESSAGE TYPE SELECTION:', {
+    inputType: type,
+    userStoredType: userProfile?.therapyType,
+    willUse: type || userProfile?.therapyType || "couple"
+  });
+  
+  // CRITICAL FIX: Prioritize explicit type parameter over stored user preference
   const preferredType = type || userProfile?.therapyType || "couple";
 
   if (preferredType === "couple") {
-    return getPersonalizedFirstMessage(userProfile);
+    return getPersonalizedFirstMessage(userProfile, preferredType);
   }
 
   const config = getAssistantConfigByType(type);
