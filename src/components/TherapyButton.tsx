@@ -908,22 +908,22 @@ function TherapyButton({
             
             // If no speaker specified, use content analysis to determine speaker
             if (!speaker) {
-              // Enhanced speaker detection with broader patterns to catch more AI responses
+              // Enhanced speaker detection with more precise patterns
               const isLikelyAssistant = 
-                // Direct AI language patterns
+                // Strong AI indicators - therapeutic language patterns
                 /\b(I understand|let me|tell me more|how does that make you feel|what I hear|it sounds like|have you considered|that's interesting|I'd like to explore|from what you're sharing)\b/i.test(text) ||
-                // Therapeutic/professional language
+                // Professional/therapeutic language  
                 /\b(therapy|therapeutic|counseling|session|feelings|emotions|relationship|communication)\b/i.test(text) ||
-                // Common AI response patterns
-                /\b(how are you|good morning|good afternoon|good evening|thank you for|I appreciate|can you tell me|what would you like|let's talk about|that sounds|I hear that|it seems like)\b/i.test(text) ||
-                // Question patterns typical of therapists
-                /\b(what|how|why|when|where|can you|could you|would you|have you|do you|are you)\b.*\?/i.test(text) ||
-                // Professional responses
+                // AI-initiated conversation patterns
+                /\b(good morning|good afternoon|good evening|thank you for|I appreciate|what would you like|let's talk about|that sounds|I hear that|it seems like)\b/i.test(text) ||
+                // Therapist-specific question patterns (more precise)
+                /\b(can you tell me|could you share|would you mind|have you ever considered|do you think that|are you feeling|what comes to mind when)\b/i.test(text) ||
+                // Professional acknowledgment responses
                 /\b(I see|I notice|that makes sense|absolutely|of course|certainly|indeed|exactly|precisely)\b/i.test(text) ||
                 // Length-based detection (longer responses are usually AI)
-                text.length > 80 ||
-                // Formal language patterns
-                /\b(please|certainly|absolutely|wonderful|excellent|fantastic|great|perfect)\b/i.test(text)
+                text.length > 100 ||
+                // Professional language patterns
+                /\b(wonderful|excellent|fantastic|that's understandable|that's valid|I can hear that)\b/i.test(text)
               
               speaker = isLikelyAssistant ? 'assistant' : 'user';
               console.log(`🤖 SPEAKER DETECTION: Determined speaker as '${speaker}' for text: "${text.substring(0, 60)}..." (length: ${text.length})`);
@@ -1008,29 +1008,44 @@ function TherapyButton({
               console.error('💥 ERROR STORING TRANSCRIPT:', (storageError instanceof Error) ? storageError.message : String(storageError));
             }
           }
-          // 🤖 ENHANCED ASSISTANT MESSAGE CAPTURE - FIXED FOR ALL VAPI RESPONSE TYPES
+          // 🤖 ENHANCED ASSISTANT MESSAGE CAPTURE - PRIORITIZING CONFIGURED CLIENT MESSAGES
           else if (
-            // Comprehensive assistant message type detection
+            // Priority: clientMessages types we configured
+            message.type === 'model-output' ||  // AI assistant responses (primary)
+            message.type === 'assistant-request' ||  // Assistant API calls
+            message.type === 'conversation-update' ||  // Conversation updates
+            message.type === 'speech-update' ||  // Speech processing
+            message.type === 'voice-input' ||  // Voice input processing
+            // Fallback: other assistant message patterns
             message.type === 'transcript-response' || 
             message.type === 'assistant-response' ||
-            message.type === 'model-output' ||
-            message.type === 'speech-update' ||
-            message.type === 'function-call' ||
             (message.role === 'assistant' && (message.content || message.transcript)) ||
             (message.speaker === 'assistant') ||
             (message.from === 'assistant') ||
-            // Common VAPI assistant message patterns
-            (message.type === 'message' && message.role === 'assistant') ||
-            (message.type === 'conversation-update' && message.role === 'assistant')
+            // Legacy patterns for backward compatibility
+            (message.type === 'message' && message.role === 'assistant')
           ) {
-            const text = message.transcript || message.content || message.text || message.message || '';
+            // Enhanced text extraction for different message types
+            let text = '';
+            if (message.type === 'model-output') {
+              // model-output messages may have different structure
+              text = message.output || message.response || message.content || message.text || '';
+            } else {
+              // Standard text extraction for other message types
+              text = message.transcript || message.content || message.text || message.message || '';
+            }
             
             if (!text || text.trim() === '') {
               console.log('⏭️ Skipping empty assistant message');
               return;
             }
             
-            console.log(`🤖 ASSISTANT RESPONSE CAPTURED: ${text.substring(0, 100)}... (type: ${message.type})`);
+            // Enhanced logging for different message types
+            if (message.type === 'model-output') {
+              console.log(`🎯 MODEL OUTPUT CAPTURED: ${text.substring(0, 100)}... (AI RESPONSE)`);
+            } else {
+              console.log(`🤖 ASSISTANT MESSAGE CAPTURED: ${text.substring(0, 100)}... (type: ${message.type})`);
+            }
             
             // Enhanced assistant message storage
             try {
@@ -1304,9 +1319,31 @@ function TherapyButton({
         const shouldSendUpdate = (
           remainingTimeMinutes === 10 ||  // 10 minutes warning
           remainingTimeMinutes === 5 ||   // 5 minutes warning
+          remainingTimeMinutes === 3 ||   // 3 minutes warning
           remainingTimeMinutes === 2 ||   // 2 minutes warning
-          (remainingTimeMinutes === 1 && remainingTimeSeconds % 15 === 0) // Every 15 seconds in last minute
+          remainingTimeMinutes === 1 ||   // 1 minute warning
+          (remainingTimeSeconds === 45) || // 45 seconds warning
+          (remainingTimeSeconds === 30)    // 30 seconds warning
         );
+        
+        // Client-side backup termination - force end session if time runs out
+        if (remainingTimeSeconds <= 30 && remainingTimeSeconds > 0) {
+          console.log('🚨 BACKUP TERMINATION: Less than 30 seconds remaining - preparing forced session end');
+          try {
+            if (typeof vapiInstanceRef.current.say === 'function') {
+              // Use VAPI's say method to force session termination with goodbye message
+              const goodbyeMessage = remainingTimeSeconds <= 10 
+                ? "Our time has come to an end. Thank you for sharing this meaningful session with me. Take care."
+                : "We need to wrap up our time together now. Thank you for this important conversation.";
+              
+              console.log('🔚 FORCED TERMINATION: Using vapi.say() to end session');
+              vapiInstanceRef.current.say(goodbyeMessage, true); // true = endCallAfterSpoken
+              return; // Exit early to prevent further updates
+            }
+          } catch (forceEndError) {
+            console.warn('Backup termination failed:', forceEndError);
+          }
+        }
         
         if (shouldSendUpdate) {
           try {
@@ -1316,10 +1353,16 @@ function TherapyButton({
               timeMessage = 'Time Update: 10 minutes remaining in session. Continue conversation naturally but begin to consider pacing toward meaningful insights.';
             } else if (remainingTimeMinutes === 5) {
               timeMessage = 'Time Update: 5 minutes remaining in session. Begin natural transition toward session closure while maintaining therapeutic value.';
+            } else if (remainingTimeMinutes === 3) {
+              timeMessage = 'Time Update: 3 minutes remaining in session. Start wrapping up current topics and begin summarizing key insights.';
             } else if (remainingTimeMinutes === 2) {
-              timeMessage = 'Time Update: 2 minutes remaining in session. Start providing closure, summarize key insights, and prepare for ending.';
+              timeMessage = 'Time Update: 2 minutes remaining in session. Begin active closure and prepare for ending. Start providing final therapeutic insights.';
             } else if (remainingTimeMinutes === 1) {
-              timeMessage = 'Time Update: 1 minute remaining. Begin final therapeutic closure and farewell.';
+              timeMessage = 'Time Update: 1 minute remaining. CRITICAL: Begin immediate session closure and prepare to use end_therapy_session function.';
+            } else if (remainingTimeSeconds === 45) {
+              timeMessage = 'Time Update: 45 seconds remaining. URGENT: Begin final goodbye and use end_therapy_session function immediately.';
+            } else if (remainingTimeSeconds === 30) {
+              timeMessage = 'Time Update: 30 seconds remaining. FINAL WARNING: Use end_therapy_session function NOW to avoid forced termination.';
             }
             
             // Send system message to assistant via VAPI
@@ -2294,8 +2337,8 @@ function TherapyButton({
         body: JSON.stringify({
           endTime: sessionEndTime.toISOString(),
           status: 'completed',
-          duration: actualDurationMinutes,
-          notes: `Therapy session ${sessionEndTime.toLocaleDateString()} - Planned: ${sessionDuration}min, Session: ${actualDurationMinutes}min, VAPI Call: ${Math.round(vapiCallDuration/60)}min - ${dedupedEntries.length} transcript entries`,
+          duration: selectedSessionDuration, // Use the originally selected duration, not the calculated actual duration
+          notes: `Therapy session ${sessionEndTime.toLocaleDateString()} - Selected: ${selectedSessionDuration}min, Actual: ${actualDurationMinutes}min, VAPI Call: ${Math.round(vapiCallDuration/60)}min - ${dedupedEntries.length} transcript entries`,
           sessionTimingMetadata: JSON.stringify(sessionTimingMetadata)
         }),
       });

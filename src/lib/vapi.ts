@@ -279,24 +279,34 @@ export const getPersonalizedSystemPrompt = (userProfile?: any, sessionOptions?: 
   const warningTimeMinutes = 5;
   
   const sessionTimingInstructions = `
-SESSION TIMING MANAGEMENT:
-• This is a ${sessionDurationMinutes}-minute session that will automatically end when time expires
+SESSION TIMING MANAGEMENT - CRITICAL INSTRUCTIONS:
+• This is a ${sessionDurationMinutes}-minute session that MUST end at the allocated time
+• VAPI will forcefully terminate the call at ${sessionDurationMinutes} minutes - you MUST end before this happens
 • Use natural conversation pacing and therapeutic intuition to manage session time effectively
-• Begin naturally transitioning toward closure around ${sessionDurationMinutes - warningTimeMinutes} minutes into the session
-• Provide gentle transitions: "We have about ${warningTimeMinutes} minutes left in our session today..."
+• At the ${sessionDurationMinutes - warningTimeMinutes}-minute mark, begin transitioning toward closure: "We have about ${warningTimeMinutes} minutes left in our session today..."
 • In the final ${warningTimeMinutes} minutes, offer brief summarization and meaningful closure
-• In the final 1-2 minutes, prepare for natural ending: "Our time together is coming to a close..."
-• Pace conversations appropriately - allow depth early on, focus on insights and closure later
-• When you sense the session entering its final quarter, begin prioritizing key takeaways
-• Trust your therapeutic timing instincts combined with the session duration knowledge
-• End gracefully and naturally without abrupt cutoffs
-• Never mention exact timing or technical details about call duration limits
-• Integrate time awareness naturally into therapeutic conversation flow
+• At the ${sessionDurationMinutes - 2}-minute mark, begin actively ending: "Our time together is coming to a close..."
+• At the ${sessionDurationMinutes - 1}-minute mark, you MUST use the end_therapy_session function to properly conclude
+
+MANDATORY SESSION TERMINATION:
+• When time warnings indicate the session is nearing its end, you MUST proactively end the session
+• Use the end_therapy_session function when:
+  - You reach the final 1-2 minutes of the session
+  - You sense the conversation has reached natural completion
+  - The user indicates they want to end early
+• NEVER let the session run past ${sessionDurationMinutes} minutes - always end gracefully before VAPI's hard limit
+• Provide warm closure and key takeaways before calling end_therapy_session
+
+TIMING DIRECTIVE:
+• ${sessionDurationMinutes - 10} minutes: Continue normal therapeutic conversation
+• ${sessionDurationMinutes - 5} minutes: Begin gentle transition toward closure
+• ${sessionDurationMinutes - 2} minutes: Start summarizing key insights and progress
+• ${sessionDurationMinutes - 1} minute: MUST call end_therapy_session function with goodbye message
 
 USER-INITIATED SESSION ENDING:
 • When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session, acknowledge their request warmly
 • Provide a brief, compassionate closure and summary of key insights from the session
-• Use the end_therapy_session function to properly end the call
+• IMMEDIATELY use the end_therapy_session function to properly end the call
 • Examples of ending phrases to recognize:
   - "I think we can wrap up now"
   - "I'd like to end here today"
@@ -482,9 +492,9 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   type: "couple",
   model: {
     provider: "anthropic",
-    model: "claude-3-5-sonnet-20241022",
-    temperature: 1.1,
-    maxTokens: 700,
+    model: "claude-sonnet-4-20250514",
+    temperature: 1.0,
+    maxTokens: 750,
     messages: [
       {
         role: "system",
@@ -569,6 +579,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     smartFormat: true,
     keywords: ["Gottman", "EFT", "attachment", "mindfulness", "CBT", "therapy"],
   },
+  // Configure which messages to send to client for transcript capture
+  clientMessages: [
+    "transcript", // User speech transcripts
+    "model-output", // AI assistant responses  
+    "hang", // Call end events
+    "function-call", // Function calling events
+    "tool-calls", // Tool usage
+    "speech-update", // Speech processing updates
+    "conversation-update", // Conversation state changes
+    "assistant-request", // Assistant API calls
+    "voice-input" // Voice input processing
+  ],
   firstMessage:
     "Hello {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. Welcome to our first session together. You know, I've been doing couples therapy for over fifteen years, and I want you to know that being here today takes real courage. It shows how much you both care about your relationship and about each other. This space is completely yours - a place where both of your voices matter equally, where you can be honest, and where we'll work together at whatever pace feels right for you. I'm genuinely honored to be part of this journey with you both. So, let me start by asking - how are you both feeling right now?",
   silenceTimeoutSeconds: 45,
@@ -584,9 +606,9 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   type: "solo",
   model: {
     provider: "anthropic",
-    model: "claude-3-5-sonnet-20241022",
-    temperature: 1.1,
-    maxTokens: 700,
+    model: "claude-sonnet-4-20250514",
+    temperature: 1.0,
+    maxTokens: 750,
     messages: [
       {
         role: "system",
@@ -681,6 +703,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
       "feelings",
     ],
   },
+  // Configure which messages to send to client for transcript capture
+  clientMessages: [
+    "transcript", // User speech transcripts
+    "model-output", // AI assistant responses  
+    "hang", // Call end events
+    "function-call", // Function calling events
+    "tool-calls", // Tool usage
+    "speech-update", // Speech processing updates
+    "conversation-update", // Conversation state changes
+    "assistant-request", // Assistant API calls
+    "voice-input" // Voice input processing
+  ],
   firstMessage:
     "Hello {{userName}}, I'm Dr. Elliot Mackaphy. Welcome to our first session together. You know, I've been thinking about this moment since we scheduled our time, and I want you to know that reaching out and being here today takes real courage. That's not something I say lightly - I truly mean it. This space is completely yours. It's a place where you can explore your thoughts and feelings without any judgment whatsoever. I'm here to listen deeply, to understand your world, and to support you as we work together toward whatever feels most important for your well-being. I'm really glad you're here. So, how are you doing today?",
   silenceTimeoutSeconds: 60,
@@ -696,9 +730,9 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   type: "family",
   model: {
     provider: "anthropic",
-    model: "claude-3-5-sonnet-20241022",
-    temperature: 1.1,
-    maxTokens: 700,
+    model: "claude-sonnet-4-20250514",
+    temperature: 1.0,
+    maxTokens: 750,
     messages: [
       {
         role: "system",
@@ -795,6 +829,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
       "communication",
     ],
   },
+  // Configure which messages to send to client for transcript capture
+  clientMessages: [
+    "transcript", // User speech transcripts
+    "model-output", // AI assistant responses  
+    "hang", // Call end events
+    "function-call", // Function calling events
+    "tool-calls", // Tool usage
+    "speech-update", // Speech processing updates
+    "conversation-update", // Conversation state changes
+    "assistant-request", // Assistant API calls
+    "voice-input" // Voice input processing
+  ],
   firstMessage:
     "Hello everyone, I'm Dr. Jada Pearson. Welcome to our very first family session together. You know, I've been working with families for eighteen years, and I want to acknowledge something really important - choosing to come together like this as a family takes genuine courage and love. It shows how much you all care about each other and about your family. This space belongs to all of you. It's a place where every single voice matters, where every perspective is valued, and where we'll work together at whatever pace feels right for everyone. We're going to focus on understanding each other better and building even stronger connections. I'm truly honored to be part of this journey with your family. So, let me start by asking - how is everyone feeling about being here today?",
   silenceTimeoutSeconds: 50,
@@ -840,24 +886,34 @@ export const getPersonalizedSystemPromptForType = (
   const warningTimeMinutes = 5; // Warn 5 minutes before end
   
   const sessionTimingInstructions = `
-SESSION TIMING MANAGEMENT:
-• This is a ${sessionDurationMinutes}-minute session that will automatically end when time expires
+SESSION TIMING MANAGEMENT - CRITICAL INSTRUCTIONS:
+• This is a ${sessionDurationMinutes}-minute session that MUST end at the allocated time
+• VAPI will forcefully terminate the call at ${sessionDurationMinutes} minutes - you MUST end before this happens
 • Use natural conversation pacing and therapeutic intuition to manage session time effectively
-• Begin naturally transitioning toward closure around ${sessionDurationMinutes - warningTimeMinutes} minutes into the session
-• Provide gentle transitions: "We have about ${warningTimeMinutes} minutes left in our session today..."
+• At the ${sessionDurationMinutes - warningTimeMinutes}-minute mark, begin transitioning toward closure: "We have about ${warningTimeMinutes} minutes left in our session today..."
 • In the final ${warningTimeMinutes} minutes, offer brief summarization and meaningful closure
-• In the final 1-2 minutes, prepare for natural ending: "Our time together is coming to a close..."
-• Pace conversations appropriately - allow depth early on, focus on insights and closure later
-• When you sense the session entering its final quarter, begin prioritizing key takeaways
-• Trust your therapeutic timing instincts combined with the session duration knowledge
-• End gracefully and naturally without abrupt cutoffs
-• Never mention exact timing or technical details about call duration limits
-• Integrate time awareness naturally into therapeutic conversation flow
+• At the ${sessionDurationMinutes - 2}-minute mark, begin actively ending: "Our time together is coming to a close..."
+• At the ${sessionDurationMinutes - 1}-minute mark, you MUST use the end_therapy_session function to properly conclude
+
+MANDATORY SESSION TERMINATION:
+• When time warnings indicate the session is nearing its end, you MUST proactively end the session
+• Use the end_therapy_session function when:
+  - You reach the final 1-2 minutes of the session
+  - You sense the conversation has reached natural completion
+  - The user indicates they want to end early
+• NEVER let the session run past ${sessionDurationMinutes} minutes - always end gracefully before VAPI's hard limit
+• Provide warm closure and key takeaways before calling end_therapy_session
+
+TIMING DIRECTIVE:
+• ${sessionDurationMinutes - 10} minutes: Continue normal therapeutic conversation
+• ${sessionDurationMinutes - 5} minutes: Begin gentle transition toward closure
+• ${sessionDurationMinutes - 2} minutes: Start summarizing key insights and progress
+• ${sessionDurationMinutes - 1} minute: MUST call end_therapy_session function with goodbye message
 
 USER-INITIATED SESSION ENDING:
 • When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session, acknowledge their request warmly
 • Provide a brief, compassionate closure and summary of key insights from the session
-• Use the end_therapy_session function to properly end the call
+• IMMEDIATELY use the end_therapy_session function to properly end the call
 • Examples of ending phrases to recognize:
   - "I think we can wrap up now"
   - "I'd like to end here today"
@@ -1494,10 +1550,12 @@ export const getPersonalizedAssistantConfig = (
     
     // Enhanced settings for natural conversation
     recordingEnabled: true,
-    hipaaEnabled: true,
+    hipaaEnabled: false, // Disabled HIPAA compliance
     backgroundSound: "off", // Disable background office sounds for cleaner audio
     // Settings that are valid for assistant configuration
     modelOutputInMessagesEnabled: true,
+    
+    // Note: clientMessages inherited from baseConfig - configured in base assistant configs
     
     // Function calling for user-initiated session ending
     functions: [
