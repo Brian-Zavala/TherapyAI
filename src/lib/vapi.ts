@@ -201,9 +201,9 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 };
 
 // Get personalized system prompt based on user profile
-export const getPersonalizedSystemPrompt = (userProfile?: any, sessionOptions?: { duration?: number; startTime?: string }): string => {
-  // Determine therapy type from userProfile or default to couple
-  const therapyType = userProfile?.therapyType || "couple";
+export const getPersonalizedSystemPrompt = (userProfile?: any, sessionOptions?: { duration?: number; startTime?: string }, explicitTherapyType?: string): string => {
+  // Use explicit therapy type if provided, otherwise fall back to userProfile, then default to couple
+  const therapyType = explicitTherapyType || userProfile?.therapyType || "couple";
 
   if (!userProfile || !userProfile?.userName) {
     // Default system prompt if no user profile
@@ -212,12 +212,12 @@ export const getPersonalizedSystemPrompt = (userProfile?: any, sessionOptions?: 
 
   // For solo therapy, redirect to the individual therapy system prompt
   if (therapyType === "solo") {
-    return getPersonalizedSystemPromptForType("solo", userProfile);
+    return getPersonalizedSystemPromptForType("solo", userProfile, sessionOptions);
   }
 
   // For family therapy, redirect to the family therapy system prompt
   if (therapyType === "family") {
-    return getPersonalizedSystemPromptForType("family", userProfile);
+    return getPersonalizedSystemPromptForType("family", userProfile, sessionOptions);
   }
 
   // Continue with couple therapy system prompt
@@ -873,6 +873,7 @@ export const getPersonalizedSystemPromptForType = (
 ): string => {
   // Use therapy type from parameters, or from userProfile if available
   const preferredType = type || userProfile?.therapyType || "couple";
+  
 
   // Extract user preferences
   const pronouns = userProfile?.pronouns || null;
@@ -923,7 +924,7 @@ USER-INITIATED SESSION ENDING:
 • Always offer supportive closing remarks and encourage them about their progress before ending`;
 
   if (preferredType === "couple") {
-    return getPersonalizedSystemPrompt(userProfile, sessionOptions);
+    return getPersonalizedSystemPrompt(userProfile, sessionOptions, preferredType);
   }
 
   const config = getAssistantConfigByType(preferredType);
@@ -1025,7 +1026,7 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
   }
 
   if (preferredType === "family") {
-    // Get family member information with their ages and relationships
+    // Get family member information with ages and relationships
     const familyMember1 = userProfile?.familyMember1 || null;
     const familyMember1Age = userProfile?.familyMember1Age || null;
     const familyMember1Relation = userProfile?.familyMember1Relation || null;
@@ -1052,8 +1053,8 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     const sessionCount = userProfile?.sessionsCompleted || 0;
     const lastSessionDate = userProfile?.lastSessionDate;
 
-    // Create detailed family member list with ages and relationships for system prompt
-    const familyMembersWithAges = [];
+    // Create natural family member information for system prompt (avoid robotic data lists)
+    const familyMembers = [];
     
     // Include partner information in family therapy when present
     const partnerName = userProfile?.partnerName || null;
@@ -1062,48 +1063,42 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     
     if (partnerName) {
       const partnerRelation = relationshipStatus === "married" ? "spouse" : "partner";
-      familyMembersWithAges.push(`${partnerName}${partnerAge ? ` (${partnerAge})` : ""} - ${partnerRelation}`);
+      familyMembers.push({ name: partnerName, age: partnerAge, relation: partnerRelation });
     }
     
     if (familyMember1) {
-      const relationText = familyMember1Relation ? ` - ${familyMember1Relation}` : "";
-      familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember1, age: familyMember1Age, relation: familyMember1Relation });
     }
     if (familyMember2) {
-      const relationText = familyMember2Relation ? ` - ${familyMember2Relation}` : "";
-      familyMembersWithAges.push(`${familyMember2}${familyMember2Age ? ` (${familyMember2Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember2, age: familyMember2Age, relation: familyMember2Relation });
     }
     if (familyMember3) {
-      const relationText = familyMember3Relation ? ` - ${familyMember3Relation}` : "";
-      familyMembersWithAges.push(`${familyMember3}${familyMember3Age ? ` (${familyMember3Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember3, age: familyMember3Age, relation: familyMember3Relation });
     }
     if (familyMember4) {
-      const relationText = familyMember4Relation ? ` - ${familyMember4Relation}` : "";
-      familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember4, age: familyMember4Age, relation: familyMember4Relation });
     }
     if (familyMember5) {
-      const relationText = familyMember5Relation ? ` - ${familyMember5Relation}` : "";
-      familyMembersWithAges.push(`${familyMember5}${familyMember5Age ? ` (${familyMember5Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember5, age: familyMember5Age, relation: familyMember5Relation });
     }
     if (familyMember6) {
-      const relationText = familyMember6Relation ? ` - ${familyMember6Relation}` : "";
-      familyMembersWithAges.push(`${familyMember6}${familyMember6Age ? ` (${familyMember6Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember6, age: familyMember6Age, relation: familyMember6Relation });
     }
     if (familyMember7) {
-      const relationText = familyMember7Relation ? ` - ${familyMember7Relation}` : "";
-      familyMembersWithAges.push(`${familyMember7}${familyMember7Age ? ` (${familyMember7Age})` : ""}${relationText}`);
+      familyMembers.push({ name: familyMember7, age: familyMember7Age, relation: familyMember7Relation });
     }
 
-    // Format the family members string
+    // Format the family members string naturally (just names for the main description)
+    const familyNames = familyMembers.map(member => member.name);
     let familyMembersString;
-    if (familyMembersWithAges.length === 0) {
-      familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge})` : ""} and family`;
-    } else if (familyMembersWithAges.length === 1) {
-      familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge})` : ""} and ${familyMembersWithAges[0]}`;
+    if (familyNames.length === 0) {
+      familyMembersString = `${userProfile?.userName || "the client"} and family`;
+    } else if (familyNames.length === 1) {
+      familyMembersString = `${userProfile?.userName || "the client"} and ${familyNames[0]}`;
     } else {
-      const lastMember = familyMembersWithAges[familyMembersWithAges.length - 1];
-      const otherMembers = familyMembersWithAges.slice(0, -1);
-      familyMembersString = `${userProfile?.userName || "the client"}${userProfile?.userAge ? ` (${userProfile.userAge})` : ""}, ${otherMembers.join(", ")}, and ${lastMember}`;
+      const lastName = familyNames[familyNames.length - 1];
+      const otherNames = familyNames.slice(0, -1);
+      familyMembersString = `${userProfile?.userName || "the client"}, ${otherNames.join(", ")}, and ${lastName}`;
     }
 
     // Build communication style guidance
@@ -1138,38 +1133,41 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
       : "";
 
     // Create individualized member guidance
-    const memberGuidance = familyMembersWithAges.length > 0 
-      ? `• Individual attention: Make sure to check in with each family member (${familyMembersWithAges.join(", ")}) and validate their unique perspectives`
+    const memberGuidance = familyMembers.length > 0 
+      ? `• Individual attention: Make sure to check in with each family member (${familyNames.join(", ")}) and validate their unique perspectives`
       : "";
 
-    // Natural age integration guidance (including partner context)
-    const ageIntegrationGuidance = familyMembersWithAges.length > 0 ? `
-FAMILY MEMBER INTRODUCTION INSTRUCTIONS:
-• NEVER say ages or relations immediately after names (do NOT say "Corbin child 4" or "Julie daughter 11")
-• NEVER list family members mechanically like reading from a data sheet
-• Instead, introduce each family member naturally and warmly:
+    // Enhanced natural age integration guidance to prevent robotic speech
+    const ageIntegrationGuidance = familyMembers.length > 0 ? `
+CRITICAL: NATURAL SPEECH FOR FAMILY MEMBERS
 
-CORRECT INTRODUCTION EXAMPLES:
-  - "Corbin, at four years old, you're {{userName}}'s son and I'm so glad you're here with us"
-  - "Julie, you're eleven years old and {{userName}}'s daughter - welcome"  
-  - "Charles, at nine years old, you're {{userName}}'s son"
-  - "Sarah, you're eight years old and {{userName}}'s daughter"
-  - "{{partnerName}}, as {{userName}}'s partner, you bring such valuable perspective to this family"
+ABSOLUTELY FORBIDDEN PATTERNS (These sound robotic and unprofessional):
+❌ "Araceli 4, ben 5, thomas 2" 
+❌ "Corbin child 4"
+❌ "Julie daughter 11"
+❌ "I see we have Julie who is 11 years old"
+❌ "We're working with Sarah 8 and Ben 5"
 
-WRONG EXAMPLES TO COMPLETELY AVOID:
-  - "Corbin child 4" ❌
-  - "Julie daughter 11" ❌  
-  - "Sarah 8 child" ❌
-  - "Charles son 9" ❌
+REQUIRED NATURAL SPEECH PATTERNS:
+✅ "Araceli, at four years old, you bring such wonderful energy to our family session"
+✅ "Ben, being five years old, you might have thoughts about..."
+✅ "Thomas, at two years old, you're at such a curious age"
+✅ "Julie, you're eleven years old - that's such an important time for understanding feelings"
 
-• Always reference the relationship to the primary client ({{userName}})
-• Use warm, conversational language like you're meeting them for the first time
-• After introduction, continue with age-appropriate communication:
-  - "Julie, at eleven years old, you might find..."
-  - "Charles, being nine, you're at an age where..."
-• Group similar-aged children when relevant: "Both Julie and Charles, being close in age..."
-• Include partner in family dynamics: "As parents, you and {{partnerName}} might have different perspectives..."
-• Speak naturally as if having a real conversation, not reading data aloud` : "";
+CONVERSATION FLOW PRINCIPLES:
+• Introduce ONE family member at a time during natural conversation
+• NEVER list all family members with ages mechanically
+• Let ages emerge naturally through therapeutic insights
+• Use conversational bridges: "Ben, at your age..." or "Thomas, being two years old..."
+• Address each person as an individual, not as data points
+• Speak as if meeting them naturally, not reading from a file
+
+FAMILY MEMBER REFERENCE EXAMPLES:
+${familyMembers.map(member => 
+  `• ${member.name}: "At ${member.age} years old, ${member.name}, you might..." or "${member.name}, being ${member.age}..."`
+).join('\n')}
+
+REMEMBER: Your goal is natural, therapeutic conversation - not mechanical data recitation.` : "";
 
     return `You are Dr. Jada Pearson, family therapist specializing in Structural Family Therapy and systems approaches.
 
@@ -1196,7 +1194,7 @@ ${memberGuidance}
 ${sessionCount > 0 ? `• Naturally reference the family's ongoing journey and growth throughout sessions` : ""}
 
 FAMILY THERAPY PRINCIPLES:
-1. Address everyone by name (${userProfile?.userName || "the client"}${familyMembersWithAges.length > 0 ? `, ${familyMembersWithAges.map(m => m.split('(')[0].trim()).join(", ")}` : " and family"}) and give equal attention to all
+1. Address everyone by name (${userProfile?.userName || "the client"}${familyNames.length > 0 ? `, ${familyNames.join(", ")}` : " and family"}) and give equal attention to all
 2. Use age-appropriate communication tailored to each family member
 3. Explore family dynamics and interaction patterns through natural conversation
 4. Maintain conversational, warm tone rather than clinical distance
@@ -1224,7 +1222,7 @@ Goal: Help improve family communication, strengthen bonds, and develop healthier
   }
 
   // Default to the original system prompt for couple therapy
-  return getPersonalizedSystemPrompt(userProfile);
+  return getPersonalizedSystemPrompt(userProfile, sessionOptions, preferredType);
 };
 
 // Get personalized first message based on assistant type and user profile
@@ -1314,40 +1312,13 @@ export const getPersonalizedFirstMessageForType = (
     // Get the userName for a more natural greeting
     const userName = userProfile?.userName || "everyone";
 
-    // Get family member information with their ages and relationships
+    // Get family member names for natural greetings (ages handled in conversation)
     const familyMember1 = userProfile?.familyMember1 || null;
-    const familyMember1Age = userProfile?.familyMember1Age || null;
-    const familyMember1Relation = userProfile?.familyMember1Relation || null;
     const familyMember2 = userProfile?.familyMember2 || null;
-    const familyMember2Age = userProfile?.familyMember2Age || null;
-    const familyMember2Relation = userProfile?.familyMember2Relation || null;
     const familyMember3 = userProfile?.familyMember3 || null;
-    const familyMember3Age = userProfile?.familyMember3Age || null;
-    const familyMember3Relation = userProfile?.familyMember3Relation || null;
     const familyMember4 = userProfile?.familyMember4 || null;
-    const familyMember4Age = userProfile?.familyMember4Age || null;
-    const familyMember4Relation = userProfile?.familyMember4Relation || null;
 
-    // Create detailed family member list with ages and relationships
-    const familyMembersWithAges = [];
-    if (familyMember1) {
-      const relationText = familyMember1Relation ? ` - ${familyMember1Relation}` : "";
-      familyMembersWithAges.push(`${familyMember1}${familyMember1Age ? ` (${familyMember1Age})` : ""}${relationText}`);
-    }
-    if (familyMember2) {
-      const relationText = familyMember2Relation ? ` - ${familyMember2Relation}` : "";
-      familyMembersWithAges.push(`${familyMember2}${familyMember2Age ? ` (${familyMember2Age})` : ""}${relationText}`);
-    }
-    if (familyMember3) {
-      const relationText = familyMember3Relation ? ` - ${familyMember3Relation}` : "";
-      familyMembersWithAges.push(`${familyMember3}${familyMember3Age ? ` (${familyMember3Age})` : ""}${relationText}`);
-    }
-    if (familyMember4) {
-      const relationText = familyMember4Relation ? ` - ${familyMember4Relation}` : "";
-      familyMembersWithAges.push(`${familyMember4}${familyMember4Age ? ` (${familyMember4Age})` : ""}${relationText}`);
-    }
-
-    // Get basic family member names for casual greetings
+    // Get basic family member names for natural greetings (no ages in greeting)
     const familyMembers = [familyMember1, familyMember2, familyMember3, familyMember4].filter(Boolean);
 
     // Additional context
@@ -1402,9 +1373,9 @@ export const getPersonalizedFirstMessageForType = (
 
       return intros[Math.floor(Math.random() * intros.length)];
     } else {
-      // First session - more detailed family acknowledgment
-      const familyIntroduction = familyMembersWithAges.length > 0 
-        ? ` I'm absolutely delighted to meet ${userName}${familyMembersWithAges.length > 0 ? ` and ${familyMembersWithAges.join(", ")}` : " and your family"}.`
+      // First session - natural family acknowledgment (avoid listing ages)
+      const familyIntroduction = familyMembers.length > 0 
+        ? ` I'm absolutely delighted to meet ${userName} and your wonderful family.`
         : "";
 
       const intros = [
@@ -1434,6 +1405,8 @@ export const getPersonalizedAssistantConfig = (
 ) => {
   // Determine therapy type from user profile if not explicitly provided
   const therapyType = type || userProfile?.therapyType || "couple";
+  
+  
   const baseConfig = getAssistantConfigByType(therapyType);
 
   // Session duration handling - default to 60 minutes if not specified
@@ -1442,7 +1415,6 @@ export const getPersonalizedAssistantConfig = (
   
   // Calculate session timing thresholds
   const warningTimeSeconds = sessionDurationSeconds - (5 * 60); // 5 minutes before end
-  const finalWarningTimeSeconds = sessionDurationSeconds - (1 * 60); // 1 minute before end
 
   // Build comprehensive variable values from user profile
   const variableValues: Record<string, any> = {
@@ -1525,6 +1497,9 @@ export const getPersonalizedAssistantConfig = (
     }
   }
 
+  // Generate system prompt
+  const systemPromptContent = getPersonalizedSystemPromptForType(therapyType, userProfile, sessionOptions);
+
   return {
     ...baseConfig,
     model: {
@@ -1532,7 +1507,7 @@ export const getPersonalizedAssistantConfig = (
       messages: [
         {
           role: "system",
-          content: getPersonalizedSystemPromptForType(therapyType, userProfile, sessionOptions),
+          content: systemPromptContent,
         },
       ],
     },
