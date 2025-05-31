@@ -200,7 +200,7 @@ import { motion } from 'framer-motion';
 ### Git Workflow
 - Commit after significant changes with meaningful messages
 - Format: `<type>: <description>` (feat/fix/refactor/style/docs/test/chore)
-- **Never include Claude attribution** in commits
+- **Never include Claude attribution** in commits (no "Generated with Claude Code" or "Co-Authored-By: Claude")
 
 ### HTTPS Setup (Required for VAPI)
 ```bash
