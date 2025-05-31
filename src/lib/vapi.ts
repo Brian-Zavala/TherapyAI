@@ -389,11 +389,6 @@ export const getPersonalizedFirstMessage = (userProfile?: any, explicitType?: st
   // CRITICAL FIX: Use explicit type parameter if provided, otherwise fall back to user profile
   const therapyType = explicitType || userProfile?.therapyType || "couple";
   
-  console.log('🎭 COUPLE FIRST MESSAGE TYPE:', {
-    explicitType,
-    userStoredType: userProfile?.therapyType,
-    finalType: therapyType
-  });
 
   if (!userProfile || !userProfile?.userName) {
     // Default first message
@@ -1236,12 +1231,6 @@ export const getPersonalizedFirstMessageForType = (
   type: string = "couple",
   userProfile?: any
 ): string => {
-  // Debug therapy type selection for first message
-  console.log('🎭 FIRST MESSAGE TYPE SELECTION:', {
-    inputType: type,
-    userStoredType: userProfile?.therapyType,
-    willUse: type || userProfile?.therapyType || "couple"
-  });
   
   // CRITICAL FIX: Prioritize explicit type parameter over stored user preference
   const preferredType = type || userProfile?.therapyType || "couple";

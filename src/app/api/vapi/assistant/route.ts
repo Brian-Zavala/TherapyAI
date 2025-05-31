@@ -151,15 +151,6 @@ export async function GET(req: NextRequest) {
         // CRITICAL FIX: Query parameter (user's explicit selection) should take priority over stored preference
         const therapyType = queryTherapyType || userStoredType || 'couple';
         
-        // Debug user data and therapy type selection
-        console.log('🔍 THERAPY TYPE SELECTION DEBUG:', {
-          queryTherapyType: queryTherapyType, // From URL parameter
-          userStoredType: userStoredType, // From database
-          finalTherapyType: therapyType, // What we'll actually use
-          hasPartner: !!user.partnerName,
-          hasFamilyMembers: !!(user.familyMember1 || user.familyMember2),
-          priorityUsed: queryTherapyType ? 'query-param' : userStoredType ? 'stored-pref' : 'default'
-        });
 
         // Create a comprehensive user profile with all available data
         const userProfile = {
@@ -244,17 +235,6 @@ export async function GET(req: NextRequest) {
           }
         }
         
-        // Debug final generated config
-        const systemContent = personalizedConfig.model?.messages?.[0]?.content || '';
-        const firstWords = systemContent.substring(0, 50);
-        console.log('🎯 FINAL GENERATED CONFIG:', {
-          assistantId,
-          therapyType: personalizedConfig.metadata?.therapyType,
-          systemPromptStart: firstWords,
-          isJada: systemContent.includes('Dr. Jada Pearson'),
-          isMaya: systemContent.includes('Dr. Maya Thompson'),
-          isElliot: systemContent.includes('Dr. Elliot Mackaphy')
-        });
 
         // Return the personalized config without creating an actual assistant
         return NextResponse.json({
