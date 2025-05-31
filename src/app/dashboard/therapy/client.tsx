@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import TherapyButton from "@/components/TherapyButton";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
+import SessionRecoveryNotification from "@/components/SessionRecoveryNotification";
+import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   COUPLE_THERAPY_ASSISTANT_CONFIG,
@@ -13,6 +15,9 @@ import {
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
+  
+  // Session recovery hook - only runs on therapy page
+  const { isChecking: isCheckingForSession, hasActiveSession, shouldAutoRestart } = useTherapySessionRecovery();
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sessionType, setSessionType] = useState<string | null>(null);
@@ -1387,6 +1392,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                     userId: userId,
                                     assistantConfig: selectedAssistant,
                                     therapyType: sessionType || "couple",
+                                    shouldAutoRestart: shouldAutoRestart, // Pass session recovery state
                                   })
                                 ),
                               ]
@@ -1403,5 +1409,55 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         ),
       ]
     ),
+
+    // Session Recovery Notification
+    React.createElement(SessionRecoveryNotification, {
+      key: "session-recovery-notification"
+    }),
+
+    // Session Recovery Checking Indicator - Only on therapy page when actually checking
+    isCheckingForSession && 
+      React.createElement(
+        motion.div,
+        {
+          key: "session-checking-indicator",
+          className: "fixed top-4 right-4 z-[9998] pointer-events-none",
+          initial: { opacity: 0, scale: 0.8 },
+          animate: { opacity: 1, scale: 1 },
+          exit: { opacity: 0, scale: 0.8 },
+          transition: { duration: 0.3 }
+        },
+        React.createElement(
+          "div",
+          {
+            className: "bg-black/70 text-white px-3 py-2 rounded-lg text-xs backdrop-blur-sm border border-white/20"
+          },
+          [
+            React.createElement(
+              "div",
+              {
+                key: "checking-content",
+                className: "flex items-center space-x-2"
+              },
+              [
+                React.createElement(
+                  motion.div,
+                  {
+                    key: "spinner",
+                    className: "w-3 h-3 border border-white/40 border-t-white rounded-full",
+                    animate: { rotate: 360 },
+                    transition: { duration: 1, repeat: Infinity, ease: "linear" }
+                  }
+                ),
+                React.createElement(
+                  "span",
+                  { key: "text" },
+                  "Checking for active session..."
+                )
+              ]
+            )
+          ]
+        )
+      )
   ]);
 }

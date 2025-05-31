@@ -22,6 +22,8 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useButtonSound } from "@/hooks/useButtonSound";
 import RelationshipAssessment from "@/components/RelationshipAssessment";
+import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
+import type { IncrementalMetrics } from "@/lib/real-time-metrics";
 
 // Define types for the metrics data
 interface MetricDataItem {
@@ -59,6 +61,100 @@ export default function CommunicationMetrics() {
   const expandedRef = useRef(false); // Use ref to track expansion state for scroll timing
   const [userInteracted, setUserInteracted] = useState(false); // Track if user has interacted with chart types
   const [isSmallScreen, setIsSmallScreen] = useState(false); // Track small screen size for responsive adjustments
+  const [liveMetrics, setLiveMetrics] = useState<IncrementalMetrics | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showLiveIndicator, setShowLiveIndicator] = useState(false);
+  
+  // Real-time metrics integration
+  const {
+    isConnected: metricsConnected,
+    currentMetrics,
+    error: metricsError
+  } = useRealTimeMetrics({
+    autoConnect: true,
+    onMetricsUpdate: (metrics, sessionId) => {
+      console.log(`📊 COMMUNICATION METRICS: Received real-time update for session ${sessionId}`);
+      setLiveMetrics(metrics);
+      setActiveSessionId(sessionId);
+      setShowLiveIndicator(true);
+      
+      // Auto-hide live indicator after 3 seconds
+      setTimeout(() => setShowLiveIndicator(false), 3000);
+      
+      // Update metrics data with live values if confidence is high enough
+      if (metrics.confidence > 50) {
+        const liveMetricsData: MetricDataItem[] = [
+          {
+            name: "Active Listening",
+            shortName: "Listening",
+            value: metrics.activeListeningScore,
+            fullMark: 100,
+            fill: "#8884d8",
+            growth: 0, // Could calculate from previous values
+            trend: 'stable' as const,
+            lastUpdate: new Date().toISOString(),
+            isImproving: metrics.activeListeningScore > 70,
+            focusArea: metrics.activeListeningScore < 60
+          },
+          {
+            name: "Expressing Needs",
+            shortName: "Expression",
+            value: metrics.expressingNeedsScore,
+            fullMark: 100,
+            fill: "#82ca9d",
+            growth: 0,
+            trend: 'stable' as const,
+            lastUpdate: new Date().toISOString(),
+            isImproving: metrics.expressingNeedsScore > 70,
+            focusArea: metrics.expressingNeedsScore < 60
+          },
+          {
+            name: "Conflict Resolution",
+            shortName: "Resolution",
+            value: metrics.conflictResolutionScore,
+            fullMark: 100,
+            fill: "#ffc658",
+            growth: 0,
+            trend: 'stable' as const,
+            lastUpdate: new Date().toISOString(),
+            isImproving: metrics.conflictResolutionScore > 70,
+            focusArea: metrics.conflictResolutionScore < 60
+          },
+          {
+            name: "Emotional Support",
+            shortName: "Support",
+            value: metrics.emotionalSupportScore,
+            fullMark: 100,
+            fill: "#ff7c7c",
+            growth: 0,
+            trend: 'stable' as const,
+            lastUpdate: new Date().toISOString(),
+            isImproving: metrics.emotionalSupportScore > 70,
+            focusArea: metrics.emotionalSupportScore < 60
+          }
+        ];
+        
+        // Update the metrics data with live values
+        setMetricsData(liveMetricsData);
+        setError(null);
+        setLoading(false);
+      }
+    },
+    onSessionUpdate: (status, sessionId) => {
+      console.log(`📱 COMMUNICATION METRICS: Session ${sessionId} status: ${status}`);
+      if (status === 'completed') {
+        setActiveSessionId(null);
+        setLiveMetrics(null);
+        // Refresh data after session completion
+        setTimeout(() => {
+          fetchMetricsData(therapyType);
+        }, 2000);
+      }
+    },
+    onError: (error) => {
+      console.error('📊 COMMUNICATION METRICS: Real-time error:', error);
+    }
+  });
   
   // Effect to track screen size for responsive design
   useEffect(() => {

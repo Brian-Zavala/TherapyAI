@@ -66,6 +66,28 @@ app.prepare().then(() => {
   // This allows the API route to access the server instance
   global.__nextServerInstance = server;
 
+  // Set up WebSocket handling for metrics endpoint
+  server.on('upgrade', async (request, socket, head) => {
+    try {
+      const { pathname } = parse(request.url);
+      
+      // Handle metrics WebSocket upgrade
+      if (pathname === '/api/ws/metrics') {
+        // Dynamically import the WebSocket handler
+        const { getMetricsWebSocketServer } = await import('./src/lib/websocket-real-time-metrics.js');
+        const wsServer = getMetricsWebSocketServer();
+        wsServer.handleUpgrade(request, socket, head);
+        console.log('📡 WebSocket upgrade handled for metrics endpoint');
+      } else {
+        // For other WebSocket routes, destroy the connection
+        socket.destroy();
+      }
+    } catch (error) {
+      console.error('Error handling WebSocket upgrade:', error);
+      socket.destroy();
+    }
+  });
+
   // Touch the custom transcriber endpoint to initialize the WebSocket server
   if (!dev) {
     setTimeout(() => {

@@ -17,6 +17,8 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
+import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
+import type { IncrementalMetrics } from "@/lib/real-time-metrics";
 
 // Define types for better clarity (optional but recommended)
 type DataPoint = {
@@ -64,8 +66,68 @@ export default function RelationshipProgressCard() {
   );
   const [chartMetrics, setChartMetrics] = useState<ChartMetrics>(null); // Moved UP
   const [isSmallScreen, setIsSmallScreen] = useState(false); // Track small screen size
+  const [liveMetrics, setLiveMetrics] = useState<IncrementalMetrics | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showLiveIndicator, setShowLiveIndicator] = useState(false);
+  
   // --- Refs ---
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // --- Real-time Metrics Integration ---
+  const {
+    isConnected: metricsConnected,
+    currentMetrics,
+    error: metricsError,
+    subscribeToSession,
+    unsubscribeFromSession
+  } = useRealTimeMetrics({
+    autoConnect: true,
+    onMetricsUpdate: (metrics, sessionId) => {
+      console.log(`📊 DASHBOARD: Received real-time metrics for session ${sessionId}`);
+      setLiveMetrics(metrics);
+      setShowLiveIndicator(true);
+      
+      // Auto-hide live indicator after 3 seconds
+      setTimeout(() => setShowLiveIndicator(false), 3000);
+      
+      // Update chart data with live metrics if it's for an active session
+      if (sessionId === activeSessionId && metrics.confidence > 60) {
+        const liveDataPoint: DataPoint = {
+          name: `Live (${Math.round(metrics.sessionProgress)}%)`,
+          closeness: metrics.closenessScore,
+          communication: metrics.communicationScore,
+          amt: metrics.entryCount,
+          notes: `Live session data - ${metrics.entryCount} conversation entries`,
+          sessionId: sessionId,
+          date: new Date().toISOString(),
+          qualityScore: Math.round((metrics.closenessScore + metrics.communicationScore) / 2)
+        };
+        
+        // Add or update live data point
+        setData(prevData => {
+          const filteredData = prevData.filter(item => !item.name.startsWith('Live'));
+          return [...filteredData, liveDataPoint];
+        });
+      }
+    },
+    onSessionUpdate: (status, sessionId) => {
+      console.log(`📱 DASHBOARD: Session ${sessionId} status: ${status}`);
+      if (status === 'active') {
+        setActiveSessionId(sessionId);
+        subscribeToSession(sessionId);
+      } else if (status === 'completed') {
+        setActiveSessionId(null);
+        unsubscribeFromSession();
+        // Refresh data to get final metrics
+        setTimeout(() => {
+          setTimeframe(prev => prev); // Trigger data refresh
+        }, 2000);
+      }
+    },
+    onError: (error) => {
+      console.error('📊 DASHBOARD: Real-time metrics error:', error);
+    }
+  });
 
   // --- Helper Functions & Callbacks (Defined using useCallback/useMemo) ---
 
@@ -1276,6 +1338,44 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
               Live Data
             </span>
           )}
+          
+          {/* Real-time WebSocket Connection Status */}
+          {metricsConnected && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/80 text-white shadow-sm">
+              <span className="w-2 h-2 mr-1.5 bg-blue-300 rounded-full animate-pulse"></span>
+              Real-time
+            </span>
+          )}
+          
+          {/* Live Session Indicator */}
+          {activeSessionId && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/80 text-white shadow-sm">
+              <span className="w-2 h-2 mr-1.5 bg-purple-300 rounded-full animate-bounce"></span>
+              Live Session
+            </span>
+          )}
+          
+          {/* Live Metrics Update Indicator */}
+          {showLiveIndicator && liveMetrics && (
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/80 text-white shadow-sm"
+            >
+              <span className="w-2 h-2 mr-1.5 bg-emerald-300 rounded-full animate-ping"></span>
+              Metrics Updated ({liveMetrics.confidence}%)
+            </motion.span>
+          )}
+          
+          {/* WebSocket Error Indicator */}
+          {metricsError && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/80 text-white shadow-sm">
+              <span className="w-2 h-2 mr-1.5 bg-red-300 rounded-full"></span>
+              Connection Error
+            </span>
+          )}
+          
           {dataSource === "sample" && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/80 text-white shadow-sm">
               <span className="w-2 h-2 mr-1.5 bg-amber-300 rounded-full"></span>

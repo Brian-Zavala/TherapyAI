@@ -20,6 +20,7 @@ import {
   ExclamationTriangleIcon,
   DocumentChartBarIcon,
 } from "@heroicons/react/24/outline"; // Example icons
+import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
 
 // Helper function for number formatting (optional, but nice for tooltips)
 const formatNumber = (num: number) => num.toLocaleString();
@@ -43,6 +44,62 @@ export default function SessionTimeChart() {
   const [therapyType, setTherapyType] = useState("couple"); // 'couple', 'solo', or 'family'
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [isMediumScreen, setIsMediumScreen] = useState(false);
+  
+  // Real-time session tracking
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [liveSessionDuration, setLiveSessionDuration] = useState(0); // in minutes
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [showLiveIndicator, setShowLiveIndicator] = useState(false);
+
+  // Real-time metrics integration
+  const {
+    isConnected: metricsConnected,
+    currentMetrics,
+    error: metricsError
+  } = useRealTimeMetrics({
+    autoConnect: true,
+    onSessionUpdate: (status, sessionId, data) => {
+      console.log(`📊 SESSION TIME: Session ${sessionId} status: ${status}`);
+      
+      if (status === 'active') {
+        setActiveSessionId(sessionId);
+        setSessionStartTime(data?.startTime ? new Date(data.startTime) : new Date());
+        setShowLiveIndicator(true);
+        console.log(`⏱️ LIVE SESSION: Started tracking session ${sessionId}`);
+      } else if (status === 'completed') {
+        console.log(`⏱️ LIVE SESSION: Completed session ${sessionId} - Duration: ${data?.duration || 0} seconds`);
+        setActiveSessionId(null);
+        setLiveSessionDuration(0);
+        setSessionStartTime(null);
+        setShowLiveIndicator(false);
+        
+        // Refresh session data after completion
+        setTimeout(() => {
+          fetchSessionData(therapyType);
+        }, 2000);
+      }
+    },
+    onError: (error) => {
+      console.error('📊 SESSION TIME: Real-time error:', error);
+    }
+  });
+
+  // Live session duration timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (activeSessionId && sessionStartTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000 / 60); // minutes
+        setLiveSessionDuration(elapsed);
+      }, 1000); // Update every second
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeSessionId, sessionStartTime]);
 
   const fetchSessionData = async (type = "couple") => {
     try {
@@ -638,6 +695,40 @@ export default function SessionTimeChart() {
           Session Time Overview
         </h2>
       </div>
+
+      {/* Real-Time Session Indicators */}
+      <div className="flex justify-end mb-3">
+        <div className="flex space-x-2 items-center">
+          {/* WebSocket Connection Status */}
+          {metricsConnected && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/80 text-white shadow-sm">
+              <span className="w-2 h-2 mr-1.5 bg-blue-300 rounded-full animate-pulse"></span>
+              Real-time
+            </span>
+          )}
+          
+          {/* Live Session Indicator */}
+          {activeSessionId && (
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/80 text-white shadow-sm"
+            >
+              <span className="w-2 h-2 mr-1.5 bg-green-300 rounded-full animate-bounce"></span>
+              Live Session ({liveSessionDuration}m)
+            </motion.span>
+          )}
+          
+          {/* Connection Error Indicator */}
+          {metricsError && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/80 text-white shadow-sm">
+              <span className="w-2 h-2 mr-1.5 bg-red-300 rounded-full"></span>
+              Connection Error
+            </span>
+          )}
+        </div>
+      </div>
+
       {sessionData.length > 0 && <TherapyTypeSelector />}
 
       {/* Enhanced Summary Stats with better visibility */}
@@ -658,10 +749,18 @@ export default function SessionTimeChart() {
               Total Time
             </p>
             <p className="text-2xl sm:text-3xl font-bold text-white">
-              {totalHours}
+              {activeSessionId ? 
+                Math.round((totalHours + (liveSessionDuration / 60)) * 10) / 10 : 
+                totalHours
+              }
               <span className="text-sm sm:text-base font-medium text-white/80 ml-1">
                 hours
               </span>
+              {activeSessionId && (
+                <span className="text-xs text-green-300 ml-1 animate-pulse">
+                  (+{liveSessionDuration}m live)
+                </span>
+              )}
             </p>
           </div>
         </motion.div>

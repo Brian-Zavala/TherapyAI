@@ -136,13 +136,13 @@ export default function Home() {
     "/images/home/large/3-lg.jpg",
     "/images/home/large/4-lg.jpg",
     "/images/home/large/5-lg.jpg",
-    "/images/home/large/4-lg.jpg",
-    "/images/home/large/5-lg.jpg",
+    "/images/home/large/6-lg.jpg",
+    "/images/home/large/7-lg.jpg",
+    "/images/home/large/8-lg.jpg",
     "/images/home/large/9-lg.jpg",
     "/images/home/large/10-lg.jpg",
-    "/images/home/large/hands-lg.jpg",
-    "/images/home/large/group-lg.jpg",
-    "/images/home/large/6-lg.jpg",
+    "/images/home/large/11-lg.jpg",
+    "/images/home/large/12-lg.jpg",
   ];
 
   // Select appropriate images based on screen size

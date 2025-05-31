@@ -9,6 +9,8 @@ import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
 import { useSoundContext } from './SoundProvider'
 import SessionDurationModal from './SessionDurationModal'
 import SessionTimer from './SessionTimer'
+import { RealTimeMetricsCalculator, type IncrementalMetrics } from '@/lib/real-time-metrics'
+import { getMetricsWebSocketServer } from '@/lib/websocket-real-time-metrics'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -39,12 +41,14 @@ type TherapyButtonProps = {
   userId: string;
   assistantConfig?: AssistantConfigType;
   therapyType?: string;
+  shouldAutoRestart?: boolean; // When true, auto-restart session if found
 }
 
 function TherapyButton({ 
   userId, 
   assistantConfig = COUPLE_THERAPY_ASSISTANT_CONFIG as AssistantConfigType, 
-  therapyType = 'couple'
+  therapyType = 'couple',
+  shouldAutoRestart = false
 }: TherapyButtonProps) {
   // State management
   const [isLoading, setIsLoading] = useState(false)
@@ -62,6 +66,71 @@ function TherapyButton({
   const [isEndingSession, setIsEndingSession] = useState(false)
   const [vapiCallStartTime, setVapiCallStartTime] = useState<Date | null>(null)
   const [vapiCallDuration, setVapiCallDuration] = useState(0)
+  
+  // Real-time metrics calculation state
+  const [metricsCalculator, setMetricsCalculator] = useState<RealTimeMetricsCalculator | null>(null)
+  const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
+  
+  // Initialize metrics calculator when session starts
+  const initializeMetricsCalculator = useCallback((sessionId: string, therapyType: string, userId: string, duration = 60) => {
+    if (!metricsCalculator) {
+      const calculator = new RealTimeMetricsCalculator({
+        sessionId,
+        therapyType: therapyType as 'couple' | 'family' | 'solo',
+        sessionDurationMinutes: duration,
+        userId
+      });
+      setMetricsCalculator(calculator);
+      console.log(`📊 METRICS: Initialized calculator for ${therapyType} therapy session ${sessionId}`);
+      return calculator;
+    }
+    return metricsCalculator;
+  }, [metricsCalculator]);
+
+  // Calculate and broadcast incremental metrics
+  const calculateAndBroadcastIncrementalMetrics = useCallback(async (sessionId: string, speaker: 'user' | 'assistant', text: string) => {
+    try {
+      // Ensure we have a metrics calculator
+      let calculator = metricsCalculator;
+      if (!calculator) {
+        calculator = initializeMetricsCalculator(sessionId, therapyType, userId, selectedSessionDuration);
+      }
+      
+      if (!calculator) {
+        console.warn('📊 METRICS: No calculator available for session', sessionId);
+        return;
+      }
+
+      // Add transcript entry to metrics calculator
+      const transcriptEntry = {
+        speaker,
+        text,
+        timestamp: new Date().toISOString()
+      };
+
+      const metrics = calculator.addTranscriptEntry(transcriptEntry);
+      setCurrentMetrics(metrics);
+      
+      // Only broadcast if metrics are confident enough or significant
+      if (RealTimeMetricsCalculator.shouldTriggerUpdate(metrics)) {
+        console.log(`📊 METRICS: Broadcasting update for session ${sessionId} - Confidence: ${metrics.confidence}%`);
+        
+        // Import and use WebSocket broadcaster  
+        try {
+          const { getMetricsWebSocketServer } = await import('@/lib/websocket-real-time-metrics');
+          const wsServer = getMetricsWebSocketServer();
+          wsServer.broadcastMetricsUpdate(userId, sessionId, metrics);
+        } catch (broadcastError) {
+          console.error('Error broadcasting metrics update:', broadcastError);
+        }
+      } else {
+        console.log(`📊 METRICS: Calculated but not broadcasting (confidence: ${metrics.confidence}%, entries: ${metrics.entryCount})`);
+      }
+      
+    } catch (error) {
+      console.error('Error in calculateAndBroadcastIncrementalMetrics:', error);
+    }
+  }, [metricsCalculator, initializeMetricsCalculator, therapyType, userId, selectedSessionDuration]);
   
   // Get the sound context to control music playback
   const { stopMusicPlayback, setSessionActive } = useSoundContext()
@@ -86,6 +155,9 @@ function TherapyButton({
           setSessionId(data.id)
           console.log('Found existing session:', data.id)
           
+          // Use the prop from therapy page to determine if we should auto-restart
+          const shouldPerformAutoRestart = shouldAutoRestart && data.startTime
+          
           // Recover session timing data if available
           if (data.startTime && data.duration) {
             const sessionStart = new Date(data.startTime);
@@ -109,10 +181,48 @@ function TherapyButton({
                 originalStart: data.startTime,
                 recoveredAt: now.toISOString(),
                 elapsedMinutes,
-                remainingMinutes: sessionDuration - elapsedMinutes
+                remainingMinutes: sessionDuration - elapsedMinutes,
+                autoRestarted: shouldPerformAutoRestart
               }));
               
-              console.log(`✅ Session timer recovered successfully`);
+              // Auto-restart session UI if page was refreshed during active session
+              if (shouldPerformAutoRestart) {
+                console.log('🚀 Auto-restarting session UI after page refresh')
+                
+                // Set session active immediately
+                if (typeof window !== 'undefined') {
+                  (window as any).__therapySessionActive = true;
+                  document.body.classList.add('session-active');
+                }
+                
+                setIsCallActive(true);
+                setSessionActive(true);
+                
+                // Apply visual effects
+                const main = document.querySelector('main');
+                if (main) {
+                  main.style.transition = 'all 0.3s ease-in-out';
+                  main.style.opacity = '0.95';
+                }
+                
+                // Restart the Vapi session after a brief delay
+                setTimeout(() => {
+                  console.log('🎯 Restarting Vapi session with recovered state')
+                  startTherapySession().catch(error => {
+                    console.error('Error restarting session:', error);
+                    setErrorMessage(`Failed to restart session: ${error.message || 'Unknown error'}`);
+                    // Reset UI state if restart fails
+                    setIsCallActive(false);
+                    setSessionActive(false);
+                    if (main) {
+                      main.style.opacity = '1';
+                    }
+                    document.body.classList.remove('session-active');
+                  });
+                }, 500);
+              }
+              
+              console.log(`✅ Session timer recovered successfully (auto-restart: ${shouldPerformAutoRestart})`);
             } else {
               console.log(`⚠️ Session has expired (${elapsedMinutes} minutes elapsed, duration was ${sessionDuration} minutes)`);
             }
@@ -129,7 +239,7 @@ function TherapyButton({
     } catch (error) {
       console.error('Error checking for active session:', error)
     }
-  }, [userId])
+  }, [userId, setSessionActive, startTherapySession])
   
   // Effect to cycle loading messages
   useEffect(() => {
@@ -398,6 +508,18 @@ function TherapyButton({
     }
   }
   
+  // Broadcast session status updates to dashboard
+  const broadcastSessionStatus = useCallback(async (sessionId: string, status: 'active' | 'completed', data?: any) => {
+    try {
+      const { getMetricsWebSocketServer } = await import('@/lib/websocket-real-time-metrics');
+      const wsServer = getMetricsWebSocketServer();
+      wsServer.broadcastSessionUpdate(userId, sessionId, status, data);
+      console.log(`📱 BROADCAST: Session ${sessionId} status: ${status}`);
+    } catch (error) {
+      console.error('Error broadcasting session status:', error);
+    }
+  }, [userId]);
+  
   // Extend Vapi type to include our custom properties
   type ExtendedVapi = Vapi & {
     _customData?: {
@@ -509,7 +631,7 @@ function TherapyButton({
       
       
       // Set up event handlers
-      vapiInstanceRef.current.on('call-start', () => {
+      vapiInstanceRef.current.on('call-start', async () => {
         console.log('✅ Vapi call started - call-start event fired');
         setIsCallActive(true);
         setIsLoading(false); // Stop loading animation when call actually starts
@@ -519,6 +641,16 @@ function TherapyButton({
         const vapiStartTime = new Date();
         setVapiCallStartTime(vapiStartTime);
         console.log('📞 VAPI Call timing started:', vapiStartTime.toISOString());
+        
+        // Initialize metrics calculator and broadcast session start
+        if (sessionId) {
+          initializeMetricsCalculator(sessionId, therapyType, userId, selectedSessionDuration);
+          await broadcastSessionStatus(sessionId, 'active', {
+            therapyType,
+            duration: selectedSessionDuration,
+            startTime: vapiStartTime.toISOString()
+          });
+        }
         
         // Ensure session-active class is present (critical for starry night visualization)
         if (!document.body.classList.contains('session-active')) {
@@ -624,7 +756,7 @@ function TherapyButton({
       })
       
       // Using proper type annotation for the event handler
-      vapiInstanceRef.current.on('call-end', function(event?: any) {
+      vapiInstanceRef.current.on('call-end', async function(event?: any) {
         // Log the complete event for debugging
         console.log('Vapi call ended, complete event:', event || {});
         
@@ -658,6 +790,20 @@ function TherapyButton({
         }
         
         if (sessionId) {
+          // Broadcast session end to dashboard
+          await broadcastSessionStatus(sessionId, 'completed', {
+            endTime: new Date().toISOString(),
+            duration: vapiDurationSeconds || 0,
+            reason: reason !== 'No reason provided' ? reason : 'normal'
+          });
+          
+          // Cleanup metrics calculator
+          if (metricsCalculator) {
+            metricsCalculator.cleanupSession();
+            setMetricsCalculator(null);
+            setCurrentMetrics(null);
+          }
+          
           // Directly use the current ref value to avoid circular dependencies
           handleCallEndRef.current();
         }
@@ -1000,6 +1146,13 @@ function TherapyButton({
                 });
                 
                 console.log(`✅ DB SAVE SUCCESS: ${normalizedSpeaker} transcript saved with ID: ${result?.id || 'unknown'}`);
+                
+                // 📊 REAL-TIME METRICS CALCULATION
+                try {
+                  await calculateAndBroadcastIncrementalMetrics(currentSessionId, normalizedSpeaker, text.trim());
+                } catch (metricsError) {
+                  console.error('Error calculating incremental metrics:', metricsError);
+                }
               } catch (dbError) {
                 console.error(`❌ DB SAVE FAILED for ${speaker}:`, dbError);
                 console.warn('Transcript preserved in sessionStorage despite DB failure');
@@ -1102,6 +1255,13 @@ function TherapyButton({
                 });
                 
                 console.log(`✅ ASSISTANT DB SAVE SUCCESS: Saved with ID: ${result?.id || 'unknown'}`);
+                
+                // 📊 REAL-TIME METRICS CALCULATION
+                try {
+                  await calculateAndBroadcastIncrementalMetrics(currentSessionId, 'assistant', text.trim());
+                } catch (metricsError) {
+                  console.error('Error calculating incremental metrics for assistant:', metricsError);
+                }
               } catch (dbError) {
                 console.error(`❌ ASSISTANT DB SAVE FAILED:`, dbError);
                 console.warn('Assistant response preserved in sessionStorage despite DB failure');
@@ -1166,6 +1326,13 @@ function TherapyButton({
                   });
                   
                   console.log(`🆘 CATCH-ALL DB SAVE: Saved unknown assistant message to database`);
+                  
+                  // 📊 REAL-TIME METRICS CALCULATION
+                  try {
+                    await calculateAndBroadcastIncrementalMetrics(currentSessionId, 'assistant', potentialText.trim());
+                  } catch (metricsError) {
+                    console.error('Error calculating incremental metrics for catch-all:', metricsError);
+                  }
                 } catch (catchAllError) {
                   console.error('Error in catch-all handler:', catchAllError);
                 }
@@ -2357,12 +2524,15 @@ function TherapyButton({
       console.error('Failed to end session:', error);
       setErrorMessage(`End session error: ${error}`);
     } finally {
+      // 📊 CLEANUP METRICS CALCULATOR
+      cleanupMetricsCalculator();
+      
       // Make sure to clear the session ID
       setSessionId(null);
       // Clear transcript chunks to free memory
       setTranscriptChunks([]);
     }
-  }, [sessionId, transcriptChunks, setSessionActive])
+  }, [sessionId, transcriptChunks, setSessionActive, cleanupMetricsCalculator])
   
   // Toggle mute function
   const toggleMute = useCallback(() => {
