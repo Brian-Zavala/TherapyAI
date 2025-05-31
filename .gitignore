@@ -70,6 +70,11 @@ setup-wsl2-remote-access.sh
 generate-remote-certs.sh
 setup-port-forward.ps1
 
+# debug scripts
+debug-*.js
+debug-*.ts
+debug-*.json
+
 # IDE files
 .idea/
 
