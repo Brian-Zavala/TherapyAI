@@ -38,8 +38,8 @@ export class RealTimeMetricsCalculator {
   private transcriptEntries: TranscriptEntry[] = [];
   private sessionStartTime: Date;
   private lastUpdateTime: Date;
-  private calculationThreshold: number = 3; // Only calculate every N messages
-  private debounceMs: number = 2000; // 2 second debounce
+  private calculationThreshold: number = 5; // Increased from 3 to reduce calculation frequency
+  private debounceMs: number = 5000; // Increased from 2 to 5 seconds to reduce overhead
 
   constructor(options: RealTimeMetricsOptions) {
     this.sessionId = options.sessionId;
@@ -70,7 +70,7 @@ export class RealTimeMetricsCalculator {
     // Calculate only every N entries or if confidence is too low
     const shouldCalculate = 
       entryCount % this.calculationThreshold === 0 || 
-      entryCount <= 5 ||
+      entryCount <= this.calculationThreshold ||
       this.getConfidence(entryCount) < 40;
 
     if (!shouldCalculate) {

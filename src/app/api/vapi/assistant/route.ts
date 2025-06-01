@@ -152,6 +152,19 @@ export async function GET(req: NextRequest) {
         const therapyType = queryTherapyType || userStoredType || 'couple';
         
 
+        // Handle selected family members for family therapy sessions
+        const selectedFamilyMembersParam = searchParams.get('selectedFamilyMembers');
+        let selectedFamilyMembers: Array<{name: string, age: number, relation: string}> = [];
+        
+        if (selectedFamilyMembersParam) {
+          try {
+            selectedFamilyMembers = JSON.parse(decodeURIComponent(selectedFamilyMembersParam));
+            console.log('Received selected family members for session:', selectedFamilyMembers);
+          } catch (error) {
+            console.error('Error parsing selected family members:', error);
+          }
+        }
+
         // Create a comprehensive user profile with all available data
         const userProfile = {
           id: user.id,
@@ -193,7 +206,9 @@ export async function GET(req: NextRequest) {
           // Additional context for enhanced personalization
           onboardingCompleted: user.onboardingCompleted,
           sessionsCompleted: sessions.length,
-          lastSessionDate: sessions[0]?.date || null
+          lastSessionDate: sessions[0]?.date || null,
+          // Add selected family members for this specific session
+          selectedFamilyMembers: selectedFamilyMembers.length > 0 ? selectedFamilyMembers : undefined
         };
         
         // Get session duration and start time if provided

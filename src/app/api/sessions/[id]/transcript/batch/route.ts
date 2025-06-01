@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const sessionId = params.id;
+    const { id: sessionId } = await params;
     const { entries } = await req.json();
 
     // Validate input

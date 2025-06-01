@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
 import { useSoundContext } from './SoundProvider'
 import SessionDurationModal from './SessionDurationModal'
+import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
 import SessionTimer from './SessionTimer'
 import { RealTimeMetricsCalculator, type IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
 
@@ -52,7 +53,10 @@ function TherapyButton({
   // State management
   const [isLoading, setIsLoading] = useState(false)
   const [showDurationModal, setShowDurationModal] = useState(false)
+  const [showFamilySelectionModal, setShowFamilySelectionModal] = useState(false)
   const [selectedSessionDuration, setSelectedSessionDuration] = useState<30 | 60>(60)
+  const [familyMembers, setFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
+  const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
   const [isCallActive, setIsCallActive] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [transcriptChunks, setTranscriptChunks] = useState<string[]>([])
@@ -76,6 +80,10 @@ function TherapyButton({
   const sessionCheckInProgress = useRef(false)
   const componentMounted = useRef(false)
   const currentSessionDuration = useRef<30 | 60>(60) // Track the actual session duration being used
+  
+  // Conversation deduplication to prevent processing same conversation-update multiple times
+  const lastConversationHash = useRef<string | null>(null)
+  const lastConversationSessionId = useRef<string | null>(null)
   
   // WebSocket client functions for real-time communication
   const sendMetricsUpdate = useCallback(async (userId: string, sessionId: string, metrics: IncrementalMetrics) => {
@@ -552,9 +560,77 @@ function TherapyButton({
       // 🎯 COMPREHENSIVE MESSAGE HANDLER - CATCHES ALL VAPI MESSAGE TYPES
       vapiInstanceRef.current.on('message', async (message: any) => {
         try {
-          // 🔍 ENHANCED DEBUG LOGGING - Shows all VAPI message details
-          console.log('🔔 VAPI MESSAGE EVENT:', JSON.stringify(message, null, 2));
-          console.log(`📋 Message Summary: type="${message.type}", role="${message.role}", speaker="${message.speaker}", hasContent=${!!message.content}, hasTranscript=${!!message.transcript}`);
+          // 🔍 MINIMAL DEBUG LOGGING - Reduced verbose logging for performance
+          console.log(`📨 VAPI MSG: ${message.type}${message.role ? ` (${message.role})` : ''}`);
+          
+          // 🚫 CONVERSATION-UPDATE DEDUPLICATION - Prevent processing duplicate conversation states
+          if (message.type === 'conversation-update') {
+            try {
+              // Create hash of conversation content to detect duplicates
+              const conversationContent = JSON.stringify(message.conversation || message.messages || []);
+              const conversationHash = btoa(conversationContent).substring(0, 32); // Simple hash
+              
+              // Handle session ID changes with session recovery awareness
+              if (lastConversationSessionId.current !== sessionId) {
+                let shouldResetHash = true;
+                
+                // Only check for recovery if we have a valid sessionId
+                if (sessionId) {
+                  try {
+                    const recoveryData = sessionStorage.getItem('session-recovered');
+                    if (recoveryData) {
+                      const parsed = JSON.parse(recoveryData);
+                      // Validate the recovery data structure and ensure sessionId matches
+                      const isSessionRecovery = parsed && 
+                                               typeof parsed.sessionId === 'string' && 
+                                               parsed.sessionId === sessionId;
+                      
+                      if (isSessionRecovery) {
+                        // Try to restore conversation hash from sessionStorage
+                        const storedHash = sessionStorage.getItem(`conversation-hash-${sessionId}`);
+                        if (storedHash) {
+                          lastConversationHash.current = storedHash;
+                          shouldResetHash = false;
+                          console.log(`🔄 RESTORED conversation hash for recovered session: ${sessionId} (hash: ${storedHash})`);
+                        } else {
+                          console.log(`🔄 NO STORED HASH for recovered session: ${sessionId} - will reset`);
+                        }
+                      }
+                    }
+                  } catch (storageError) {
+                    console.warn('Error accessing session recovery data:', storageError);
+                  }
+                }
+                
+                if (shouldResetHash) {
+                  lastConversationHash.current = null;
+                  console.log(`🔄 RESET conversation hash for ${sessionId ? 'new session' : 'null session'}: ${sessionId}`);
+                }
+                
+                lastConversationSessionId.current = sessionId;
+              }
+              
+              // Deduplication logic
+              if (lastConversationHash.current === conversationHash) {
+                console.log(`⏭️ SKIPPING DUPLICATE conversation-update (hash: ${conversationHash})`);
+                return; // Skip processing this duplicate
+              }
+              
+              // Update hash and persist for future recovery
+              lastConversationHash.current = conversationHash;
+              if (sessionId) {
+                try {
+                  sessionStorage.setItem(`conversation-hash-${sessionId}`, conversationHash);
+                } catch (storageError) {
+                  console.warn('Error storing conversation hash:', storageError);
+                }
+              }
+              console.log(`✅ PROCESSING NEW conversation-update (hash: ${conversationHash})`);
+              
+            } catch (hashError) {
+              console.warn('Error in conversation deduplication, processing anyway:', hashError);
+            }
+          }
           
           // Try to get session ID from multiple sources with better fallbacks
           let currentSessionId = null;
@@ -1030,7 +1106,7 @@ function TherapyButton({
   
   // Create Vapi instance - MOVED HERE TO FIX HOISTING ISSUE
   // Start therapy session - MOVED HERE TO FIX HOISTING ISSUE
-  const startTherapySession = useCallback(async (existingSessionId?: string, selectedDuration?: 30 | 60) => {
+  const startTherapySession = useCallback(async (existingSessionId?: string, selectedDuration?: 30 | 60, selectedMembers?: Array<{name: string, age: number, relation: string}>) => {
     // Prevent duplicate session creation
     if (sessionCreationInProgress.current) {
       console.log('⚠️ SESSION CREATION GUARD: Session creation already in progress, skipping duplicate attempt');
@@ -1291,7 +1367,17 @@ function TherapyButton({
           console.log(`🕒 DURATION DEBUG: selectedDuration=${selectedDuration}, currentSessionDuration.current=${currentSessionDuration.current}, final sessionDuration=${sessionDuration}`);
           const startTimeISO = sessionStartTime.toISOString();
           
-          const configResponse = await fetch(`/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${sessionDuration}&startTime=${encodeURIComponent(startTimeISO)}`);
+          // Build URL with selected family members for family therapy
+          let configUrl = `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${sessionDuration}&startTime=${encodeURIComponent(startTimeISO)}`;
+          
+          // Add selected family members to the request for family therapy
+          if (therapyType === 'family' && selectedMembers && selectedMembers.length > 0) {
+            const familyMembersParam = encodeURIComponent(JSON.stringify(selectedMembers));
+            configUrl += `&selectedFamilyMembers=${familyMembersParam}`;
+            console.log('Adding selected family members to configuration:', selectedMembers);
+          }
+          
+          const configResponse = await fetch(configUrl);
           
           if (!configResponse.ok) {
             throw new Error('Failed to fetch personalized configuration');
@@ -1635,7 +1721,22 @@ function TherapyButton({
     // 11. For extra safety, also remove any other potential overlay effects
     document.body.style.filter = 'none';
     
-    // 12. Reset browser idle detection if available
+    // 12. Clean up conversation hash from sessionStorage
+    if (sessionId) {
+      try {
+        const hashKey = `conversation-hash-${sessionId}`;
+        sessionStorage.removeItem(hashKey);
+        console.log(`- Removed conversation hash for session: ${sessionId}`);
+      } catch (storageError) {
+        console.warn('Error removing conversation hash:', storageError);
+      }
+    }
+    
+    // Reset conversation hash references
+    lastConversationHash.current = null;
+    lastConversationSessionId.current = null;
+    
+    // 13. Reset browser idle detection if available
     if ('IdleDetector' in window) {
       try {
         // Inform the browser we're no longer in an active call
@@ -1646,7 +1747,7 @@ function TherapyButton({
       }
     }
     
-    // 13. Update session state in context
+    // 14. Update session state in context
     setSessionActive(false);
     
     console.log('✅ Cleanup complete');
@@ -1837,6 +1938,48 @@ function TherapyButton({
     }
   }, []);
 
+  // Fetch family members from user profile
+  const fetchFamilyMembers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      if (response.ok) {
+        const userData = await response.json();
+        const members = [];
+        
+        // Add partner if exists
+        if (userData.partnerName) {
+          members.push({
+            name: userData.partnerName,
+            age: userData.partnerAge || 0,
+            relation: userData.relationshipStatus === 'married' ? 'spouse' : 'partner'
+          });
+        }
+        
+        // Add family members 1-7
+        for (let i = 1; i <= 7; i++) {
+          const name = userData[`familyMember${i}`];
+          const age = userData[`familyMember${i}Age`];
+          const relation = userData[`familyMember${i}Relation`];
+          
+          if (name) {
+            members.push({
+              name,
+              age: age || 0,
+              relation: relation || 'family member'
+            });
+          }
+        }
+        
+        setFamilyMembers(members);
+        console.log('Fetched family members:', members);
+        return members;
+      }
+    } catch (error) {
+      console.error('Error fetching family members:', error);
+    }
+    return [];
+  }, []);
+
   // Handle modal actions
   const handleStartButtonClick = () => {
     console.log('Start button clicked - showing duration selection modal');
@@ -1846,10 +1989,36 @@ function TherapyButton({
   const handleDurationSelect = async (duration: 30 | 60) => {
     console.log('Duration selected:', duration);
     
-    // Update both state and ref immediately to ensure consistency
+    // Update duration selection
     setSelectedSessionDuration(duration);
     currentSessionDuration.current = duration;
     setShowDurationModal(false);
+    
+    // For family therapy, show family member selection modal
+    if (therapyType === 'family') {
+      console.log('Family therapy selected - fetching family members for selection');
+      const members = await fetchFamilyMembers();
+      if (members.length > 0) {
+        setShowFamilySelectionModal(true);
+      } else {
+        // No family members found, show error or proceed anyway
+        setErrorMessage('No family members found in your profile. Please update your profile to add family members before starting a family therapy session.');
+        return;
+      }
+    } else {
+      // For non-family therapy, start session immediately
+      startSessionWithDuration(duration);
+    }
+  };
+
+  const startSessionWithDuration = async (duration: 30 | 60, selectedMembers?: Array<{name: string, age: number, relation: string}>) => {
+    console.log(`Starting therapy session process with ${duration} minute duration`);
+    
+    // Store selected family members if provided
+    if (selectedMembers) {
+      setSelectedFamilyMembers(selectedMembers);
+      console.log('Selected family members for session:', selectedMembers);
+    }
     
     // IMMEDIATE UI FEEDBACK - critical for user experience
     // 1. Set window flag FIRST to prevent cleanup
@@ -1878,8 +2047,7 @@ function TherapyButton({
     console.log('Set session active in sound context');
     
     // 6. Start the session initialization process
-    console.log(`Starting therapy session process with ${duration} minute duration`);
-    startTherapySession(undefined, duration).catch(error => {
+    startTherapySession(undefined, duration, selectedMembers).catch(error => {
       console.error('Error starting session:', error);
       setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
       
@@ -1897,6 +2065,31 @@ function TherapyButton({
     console.log('Duration selection modal closed');
     setShowDurationModal(false);
   };
+
+  const handleFamilySelectionClose = () => {
+    console.log('Family selection modal closed');
+    setShowFamilySelectionModal(false);
+    // Reset duration selection since user cancelled
+    setSelectedSessionDuration(60);
+    currentSessionDuration.current = 60;
+  };
+
+  const handleFamilyMembersSelected = (selectedMembers: Array<{name: string, age: number, relation: string}>) => {
+    console.log('Family members selected:', selectedMembers);
+    setShowFamilySelectionModal(false);
+    startSessionWithDuration(selectedSessionDuration, selectedMembers);
+  };
+
+  // Handle family member removal (for future profile updates)
+  const handleRemoveFamilyMember = useCallback((index: number) => {
+    setFamilyMembers(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // Clear cache to force refresh on next fetch
+      sessionStorage.removeItem('family-members-cache');
+      console.log('Removed family member at index:', index);
+      return updated;
+    });
+  }, []);
 
   // Handle real-time timer updates with VAPI assistant integration
   const handleTimeUpdate = useCallback((remainingTimeMinutes: number, remainingTimeSeconds: number) => {
@@ -3066,6 +3259,16 @@ function TherapyButton({
         onClose={handleModalClose}
         onSelectDuration={handleDurationSelect}
         therapyType={therapyType}
+        isLoading={isLoading}
+      />
+
+      {/* Family Member Selection Modal */}
+      <FamilyMemberSelectionModal
+        isOpen={showFamilySelectionModal}
+        onClose={handleFamilySelectionClose}
+        onSelectMembers={handleFamilyMembersSelected}
+        familyMembers={familyMembers}
+        onRemoveMember={handleRemoveFamilyMember}
         isLoading={isLoading}
       />
     </div>

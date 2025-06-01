@@ -48,6 +48,7 @@ npx prisma studio        # Database UI
 - **TailwindCSS 4** with `clsx` + `tailwind-merge` utilities
 - **Framer Motion** for all animations (motion.dev)
 - Custom breakpoint: `xs: "480px"`
+- **Mobile-first approach**: Design for mobile devices first, then scale up to larger screens/desktop
 
 ### Authentication
 - **NextAuth** JWT strategy (30-day sessions)
@@ -244,6 +245,94 @@ Use `/mnt/c/Users/...` for Windows files with absolute paths
 **Root Cause**: `h-screen`/`w-screen` forcing viewport dimensions
 **Solution**: Use `fixed inset-0` with `w-full h-full` instead
 
+## Cost Optimization & Revenue Strategy
+
+### Current State: Free Beta → Sustainable Business Model
+**Problem**: Voice AI costs $0.13/minute (~$4-8 per session) with no revenue controls
+**Solution**: Implement Yuna-style optimization with premium positioning
+
+### Key Implementation Areas
+
+#### 1. Usage Limits & Token System
+```prisma
+// Database additions needed:
+model Subscription {
+  plan              String    @default("free") // free, basic, premium
+  tokensRemaining   Int       @default(3)
+  monthlyLimit      Int       @default(3)
+  resetDate         DateTime
+}
+
+model UsageRecord {
+  durationMinutes  Int
+  tokensUsed       Int       // 1 token = 30min, 2 tokens = 60min
+  costUSD          Float     // Track actual VAPI costs
+  qualityTier      String    // basic/standard/premium
+}
+```
+
+#### 2. Quality Tiers for Cost Control
+```typescript
+// VAPI optimization strategies:
+const QUALITY_TIERS = {
+  basic: {
+    model: 'claude-haiku-20241022',    // 70% cost reduction
+    maxTokens: 500,
+    voiceModel: 'eleven_turbo_v2'
+  },
+  standard: {
+    model: 'claude-sonnet-4-20250514', // Current quality
+    maxTokens: 750,
+    voiceModel: 'eleven_turbo_v2_5'
+  },
+  premium: {
+    model: 'claude-sonnet-4-20250514', // Enhanced features
+    maxTokens: 1000,
+    voiceModel: 'eleven_multilingual_v2'
+  }
+}
+```
+
+#### 3. Session Psychology & Behavioral Controls
+- **Free users**: 30-min sessions only, gentle completion suggestions at 20 minutes
+- **Session limits**: Daily caps (1-4 sessions) based on plan
+- **Smart warnings**: Real-time token usage alerts and upgrade prompts
+- **Natural psychology**: Users self-regulate when shown usage transparently
+
+#### 4. Revenue Model
+```typescript
+// Pricing strategy (competitive with Yuna $19.99/month):
+const PLANS = {
+  free: { price: 0, tokens: 3, sessions: 3, duration: [30] },
+  basic: { price: 24.99, tokens: 8, sessions: 8, duration: [30, 60] },
+  premium: { price: 49.99, tokens: 25, sessions: 25, duration: [30, 60] },
+  enterprise: { price: 99.99, tokens: 100, sessions: 100, duration: [30, 60] }
+}
+```
+
+### Implementation Priority
+1. **Week 1-2**: Database schema + usage limits (`/api/subscriptions`, usage validation)
+2. **Week 3**: Quality tiers + session psychology (VAPI config optimization)
+3. **Week 4**: UI/UX improvements (upgrade prompts, usage dashboard)
+4. **Week 5**: Analytics & cost monitoring (admin dashboard, alerts)
+
+### Key Files to Modify
+- `prisma/schema.prisma` - Add subscription & usage models
+- `src/lib/usage-limits.ts` - New usage validation service
+- `src/components/SessionDurationModal.tsx` - Add plan restrictions
+- `src/app/api/sessions/route.ts` - Pre-session usage checks
+- `src/lib/vapi-config-optimizer.ts` - Quality tier selection
+
+### Cost Reduction Targets
+- **35-50% cost reduction** through quality tiers and session limits
+- **Break-even**: ~500 active users with 15% conversion to paid plans
+- **Risk mitigation**: Automated cost monitoring and usage caps
+
+### Competitive Positioning
+- **vs Yuna ($19.99)**: Position premium voice experience at $24.99-49.99
+- **vs Traditional therapy ($150/session)**: Massive value proposition
+- **vs Text-only AI**: Premium voice interaction justifies higher pricing
+
 ## Critical Reminders
 
 - **Database**: Always use `.env` (never `.env.local`) for Supabase
@@ -253,3 +342,5 @@ Use `/mnt/c/Users/...` for Windows files with absolute paths
 - **Authentication**: Follow NextAuth patterns
 - **Styling**: TailwindCSS + Framer Motion for animations
 - **Error Handling**: Try/catch in API routes with descriptive logs
+- **Cost Control**: Always validate usage limits before starting VAPI sessions
+- **Quality Tiers**: Use appropriate VAPI configs based on user's subscription plan

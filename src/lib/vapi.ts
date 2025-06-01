@@ -45,41 +45,35 @@ export const initVapi = async (
     // Store the connection state for monitoring
     (vapiInstance as any)._transportState = "new";
 
-    // Add additional debug event to track WebRTC transport state
-    // Cast to any since transport-state-change isn't in the official type definitions
+    // Add transport state tracking with minimal logging
     (vapiInstance as any).on("transport-state-change", (data: any) => {
-      console.log(
-        `✶✶✶ VAPI TRANSPORT STATE CHANGE: `,
-        JSON.stringify(data, null, 2)
-      );
-      // Store current transport state for easier access
+      // Only log state changes, not full data dump for performance
+      console.log(`🔄 VAPI TRANSPORT: ${data?.state || 'unknown'}`);
       if (data && data.state) {
         (vapiInstance as any)._transportState = data.state;
       }
     });
 
-    // Add universal event logging for debugging
-    const events = [
-      "call-start",
-      "call-end",
-      "error",
-      "message",
-      "transcript",
-      "transcript-response",
-      "model-output",
-      "status-update",
-      "ice-connection-state-change", // Track ICE connection state changes
-      "connection-state-change", // Track general connection state changes
-      "transport-state-change", // Added to track transport states explicitly
-    ];
+    // Selective event logging - critical events get full logging, others minimal
+    const criticalEvents = ["call-start", "call-end", "error", "ice-connection-state-change", "connection-state-change"];
+    const verboseEvents = ["message", "transcript", "transcript-response", "model-output", "status-update"];
 
-    events.forEach((eventType) => {
-      // Cast to any for events not in the official type definitions
+    // Log critical events in detail
+    criticalEvents.forEach((eventType) => {
       (vapiInstance as any).on(eventType, (data: any) => {
-        console.log(
-          `✶✶✶ VAPI EVENT [${eventType}]: `,
-          JSON.stringify(data, null, 2)
-        );
+        console.log(`🔥 VAPI [${eventType}]:`, data);
+      });
+    });
+
+    // Log verbose events with minimal info to reduce overhead
+    verboseEvents.forEach((eventType) => {
+      (vapiInstance as any).on(eventType, (data: any) => {
+        // Minimal logging for high-frequency events to improve performance
+        if (eventType === "message" && data?.type) {
+          console.log(`📨 VAPI MSG: ${data.type}`);
+        } else {
+          console.log(`📡 VAPI: ${eventType}`);
+        }
       });
     });
 
@@ -1085,71 +1079,79 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     const lastSessionDate = userProfile?.lastSessionDate;
 
     // Create natural family member information for system prompt (avoid robotic data lists)
-    const familyMembers = [];
+    let familyMembers = [];
 
-    // Include partner information in family therapy when present
-    const partnerName = userProfile?.partnerName || null;
-    const partnerAge = userProfile?.partnerAge || null;
-    const relationshipStatus = userProfile?.relationshipStatus || null;
+    // Check if selected family members are provided for this specific session
+    if (userProfile?.selectedFamilyMembers && userProfile.selectedFamilyMembers.length > 0) {
+      // Use only the selected family members for this session
+      familyMembers = userProfile.selectedFamilyMembers;
+      console.log('Using selected family members for session:', familyMembers);
+    } else {
+      // Fall back to all available family members from profile
+      // Include partner information in family therapy when present
+      const partnerName = userProfile?.partnerName || null;
+      const partnerAge = userProfile?.partnerAge || null;
+      const relationshipStatus = userProfile?.relationshipStatus || null;
 
-    if (partnerName) {
-      const partnerRelation =
-        relationshipStatus === "married" ? "spouse" : "partner";
-      familyMembers.push({
-        name: partnerName,
-        age: partnerAge,
-        relation: partnerRelation,
-      });
-    }
+      if (partnerName) {
+        const partnerRelation =
+          relationshipStatus === "married" ? "spouse" : "partner";
+        familyMembers.push({
+          name: partnerName,
+          age: partnerAge,
+          relation: partnerRelation,
+        });
+      }
 
-    if (familyMember1) {
-      familyMembers.push({
-        name: familyMember1,
-        age: familyMember1Age,
-        relation: familyMember1Relation,
-      });
-    }
-    if (familyMember2) {
-      familyMembers.push({
-        name: familyMember2,
-        age: familyMember2Age,
-        relation: familyMember2Relation,
-      });
-    }
-    if (familyMember3) {
-      familyMembers.push({
-        name: familyMember3,
-        age: familyMember3Age,
-        relation: familyMember3Relation,
-      });
-    }
-    if (familyMember4) {
-      familyMembers.push({
-        name: familyMember4,
-        age: familyMember4Age,
-        relation: familyMember4Relation,
-      });
-    }
-    if (familyMember5) {
-      familyMembers.push({
-        name: familyMember5,
-        age: familyMember5Age,
-        relation: familyMember5Relation,
-      });
-    }
-    if (familyMember6) {
-      familyMembers.push({
-        name: familyMember6,
-        age: familyMember6Age,
-        relation: familyMember6Relation,
-      });
-    }
-    if (familyMember7) {
-      familyMembers.push({
-        name: familyMember7,
-        age: familyMember7Age,
-        relation: familyMember7Relation,
-      });
+      if (familyMember1) {
+        familyMembers.push({
+          name: familyMember1,
+          age: familyMember1Age,
+          relation: familyMember1Relation,
+        });
+      }
+      if (familyMember2) {
+        familyMembers.push({
+          name: familyMember2,
+          age: familyMember2Age,
+          relation: familyMember2Relation,
+        });
+      }
+      if (familyMember3) {
+        familyMembers.push({
+          name: familyMember3,
+          age: familyMember3Age,
+          relation: familyMember3Relation,
+        });
+      }
+      if (familyMember4) {
+        familyMembers.push({
+          name: familyMember4,
+          age: familyMember4Age,
+          relation: familyMember4Relation,
+        });
+      }
+      if (familyMember5) {
+        familyMembers.push({
+          name: familyMember5,
+          age: familyMember5Age,
+          relation: familyMember5Relation,
+        });
+      }
+      if (familyMember6) {
+        familyMembers.push({
+          name: familyMember6,
+          age: familyMember6Age,
+          relation: familyMember6Relation,
+        });
+      }
+      if (familyMember7) {
+        familyMembers.push({
+          name: familyMember7,
+          age: familyMember7Age,
+          relation: familyMember7Relation,
+        });
+      }
     }
 
     // Format the family members string naturally (just names for the main description)
@@ -1242,6 +1244,11 @@ ${familyMembers
 REMEMBER: Your goal is natural, therapeutic conversation - not mechanical data recitation.`
         : "";
 
+    // Session-specific member acknowledgment
+    const sessionMemberNote = userProfile?.selectedFamilyMembers && userProfile.selectedFamilyMembers.length > 0
+      ? `\n• SESSION ATTENDEES: Acknowledge early in the session that you see today we have ${familyNames.join(" and ")} joining us\n• Example: "I see today we have ${familyNames.join(" and ")} here with us for our family session"\n• Tailor the session specifically to the dynamics and needs of these present members`
+      : "";
+
     return `You are Dr. Jada Pearson, family therapist specializing in Structural Family Therapy and systems approaches.
 
 FAMILY INFO: Working with ${familyMembersString}.
@@ -1251,7 +1258,7 @@ ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 SESSION CONTEXT:
 ${sessionContext}
 ${milestoneNote}
-${hasPreviousSessions ? "• Returning family with established therapeutic relationship" : "• New family - building initial rapport and trust"}
+${hasPreviousSessions ? "• Returning family with established therapeutic relationship" : "• New family - building initial rapport and trust"}${sessionMemberNote}
 
 ${sessionTimingInstructions}
 

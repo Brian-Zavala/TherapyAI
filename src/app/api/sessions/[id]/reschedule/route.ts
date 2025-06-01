@@ -9,7 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,6 +18,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id: sessionId } = await params;
     const { newDate } = await request.json();
 
     if (!newDate) {
@@ -32,7 +33,7 @@ export async function POST(
     // Find the existing session
     const existingSession = await prisma.session.findUnique({
       where: { 
-        id: params.id,
+        id: sessionId,
         userId: session.user.id
       },
       include: {
@@ -52,7 +53,7 @@ export async function POST(
 
     // Update the session with new date and reset reminder flags
     const updatedSession = await prisma.session.update({
-      where: { id: params.id },
+      where: { id: sessionId },
       data: {
         date: sessionDate,
         status: 'scheduled',

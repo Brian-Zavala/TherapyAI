@@ -304,7 +304,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           {
             key: "countdown-overlay",
             className:
-              "fixed inset-0 flex items-center justify-center z-50 pointer-events-none",
+              "fixed inset-0 flex items-center justify-center z-50 pointer-events-none overflow-visible p-16",
             initial: { opacity: 0 },
             animate: { opacity: 1 },
             exit: { opacity: 0 },
@@ -316,7 +316,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               {
                 key: "countdown-number",
                 className:
-                  "text-white text-7xl sm:text-8xl md:text-9xl font-bold countdown-number",
+                  "text-white text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold countdown-number overflow-visible whitespace-nowrap flex items-center justify-center min-w-[4rem] text-center",
                 initial: { scale: 0.8, opacity: 0 },
                 animate: { scale: 1, opacity: 1 },
                 exit: { scale: 1.2, opacity: 0 },
