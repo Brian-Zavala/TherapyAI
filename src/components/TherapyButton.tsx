@@ -9,7 +9,7 @@ import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi'
 import { useSoundContext } from './SoundProvider'
 import SessionDurationModal from './SessionDurationModal'
 import SessionTimer from './SessionTimer'
-import { RealTimeMetricsCalculator, type IncrementalMetrics } from '@/lib/real-time-metrics'
+import { RealTimeMetricsCalculator, type IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -69,6 +69,13 @@ function TherapyButton({
   // Real-time metrics calculation state
   const [metricsCalculator, setMetricsCalculator] = useState<RealTimeMetricsCalculator | null>(null)
   const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
+  
+  // Session creation guard to prevent duplicate sessions
+  const sessionCreationInProgress = useRef(false)
+  const autoRestartTriggered = useRef(false)
+  const sessionCheckInProgress = useRef(false)
+  const componentMounted = useRef(false)
+  const currentSessionDuration = useRef<30 | 60>(60) // Track the actual session duration being used
   
   // WebSocket client functions for real-time communication
   const sendMetricsUpdate = useCallback(async (userId: string, sessionId: string, metrics: IncrementalMetrics) => {
@@ -132,7 +139,7 @@ function TherapyButton({
       // Ensure we have a metrics calculator
       let calculator = metricsCalculator;
       if (!calculator) {
-        calculator = initializeMetricsCalculator(sessionId, therapyType, userId, selectedSessionDuration);
+        calculator = initializeMetricsCalculator(sessionId, therapyType, userId, currentSessionDuration.current);
       }
       
       if (!calculator) {
@@ -167,7 +174,7 @@ function TherapyButton({
     } catch (error) {
       console.error('Error in calculateAndBroadcastIncrementalMetrics:', error);
     }
-  }, [metricsCalculator, initializeMetricsCalculator, therapyType, userId, selectedSessionDuration]);
+  }, [metricsCalculator, initializeMetricsCalculator, therapyType, userId]);
   
   // Get the sound context to control music playback
   const { stopMusicPlayback, setSessionActive } = useSoundContext()
@@ -294,10 +301,11 @@ function TherapyButton({
         
         // Initialize metrics calculator and broadcast session start
         if (sessionId) {
-          initializeMetricsCalculator(sessionId, therapyType, userId, selectedSessionDuration);
+          const effectiveDuration = currentSessionDuration.current;
+          initializeMetricsCalculator(sessionId, therapyType, userId, effectiveDuration);
           await broadcastSessionStatus(sessionId, 'active', {
             therapyType,
-            duration: selectedSessionDuration,
+            duration: effectiveDuration,
             startTime: vapiStartTime.toISOString()
           });
         }
@@ -320,7 +328,7 @@ function TherapyButton({
           try {
             setTimeout(async () => {
               // Import transcript service
-              const { addTranscriptEntry, getPreviousSessionsTranscript } = await import('@/lib/transcript-service');
+              const { addTranscriptEntry, getPreviousSessionsTranscript } = await import('@/lib/transcript-service-optimized');
               
               try {
                 // First, add system message
@@ -659,7 +667,7 @@ function TherapyButton({
               
               // Add the goodbye message to the transcript
               try {
-                const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
                 await addTranscriptEntry({
                   sessionId: currentSessionId,
                   speaker: 'assistant',
@@ -781,12 +789,12 @@ function TherapyButton({
                 return newChunks;
               });
               
-              // 4. Save transcript to database (critical for session history)
+              // 4. Save transcript to database (critical for session history) - OPTIMIZED BATCHED VERSION
               try {
-                const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
                 const normalizedSpeaker = speaker === 'assistant' ? 'assistant' : 'user';
                 
-                console.log(`🔄 Saving ${normalizedSpeaker} transcript to database...`);
+                console.log(`🔄 BATCHED: Adding ${normalizedSpeaker} transcript to queue...`);
                 const result = await addTranscriptEntry({
                   sessionId: currentSessionId,
                   speaker: normalizedSpeaker,
@@ -795,17 +803,17 @@ function TherapyButton({
                   isFinal: isFinal
                 });
                 
-                console.log(`✅ DB SAVE SUCCESS: ${normalizedSpeaker} transcript saved with ID: ${result?.id || 'unknown'}`);
+                console.log(`✅ QUEUED SUCCESS: ${normalizedSpeaker} transcript queued with ID: ${result?.id || 'queued'}`);
                 
-                // 📊 REAL-TIME METRICS CALCULATION
+                // 📊 REAL-TIME METRICS CALCULATION - DEBOUNCED
                 try {
                   await calculateAndBroadcastIncrementalMetrics(currentSessionId, normalizedSpeaker, text.trim());
                 } catch (metricsError) {
                   console.error('Error calculating incremental metrics:', metricsError);
                 }
               } catch (dbError) {
-                console.error(`❌ DB SAVE FAILED for ${speaker}:`, dbError);
-                console.warn('Transcript preserved in sessionStorage despite DB failure');
+                console.error(`❌ BATCHED SAVE FAILED for ${speaker}:`, dbError);
+                console.warn('Transcript preserved in sessionStorage despite batch failure');
               }
             } catch (storageError: unknown) {
               console.error('💥 ERROR STORING TRANSCRIPT:', (storageError instanceof Error) ? storageError.message : String(storageError));
@@ -891,11 +899,11 @@ function TherapyButton({
                 return newChunks;
               });
               
-              // 4. CRITICAL: Save assistant message to database
+              // 4. CRITICAL: Save assistant message to database - OPTIMIZED BATCHED VERSION
               try {
-                const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
                 
-                console.log(`🔄 Saving assistant response to database...`);
+                console.log(`🔄 BATCHED: Adding assistant response to queue...`);
                 const result = await addTranscriptEntry({
                   sessionId: currentSessionId,
                   speaker: 'assistant',
@@ -904,17 +912,17 @@ function TherapyButton({
                   isFinal: true
                 });
                 
-                console.log(`✅ ASSISTANT DB SAVE SUCCESS: Saved with ID: ${result?.id || 'unknown'}`);
+                console.log(`✅ ASSISTANT QUEUED SUCCESS: Assistant response queued with ID: ${result?.id || 'queued'}`);
                 
-                // 📊 REAL-TIME METRICS CALCULATION
+                // 📊 REAL-TIME METRICS CALCULATION - DEBOUNCED
                 try {
                   await calculateAndBroadcastIncrementalMetrics(currentSessionId, 'assistant', text.trim());
                 } catch (metricsError) {
                   console.error('Error calculating incremental metrics for assistant:', metricsError);
                 }
               } catch (dbError) {
-                console.error(`❌ ASSISTANT DB SAVE FAILED:`, dbError);
-                console.warn('Assistant response preserved in sessionStorage despite DB failure');
+                console.error(`❌ ASSISTANT BATCHED SAVE FAILED:`, dbError);
+                console.warn('Assistant response preserved in sessionStorage despite batch failure');
               }
             } catch (storageError: unknown) {
               console.error('💥 ERROR STORING ASSISTANT RESPONSE:', (storageError instanceof Error) ? storageError.message : String(storageError));
@@ -965,8 +973,8 @@ function TherapyButton({
                   // Update UI
                   setTranscriptChunks(prev => [...prev, `THERAPIST: ${potentialText.trim()}`]);
                   
-                  // Try to save to database
-                  const { addTranscriptEntry } = await import('@/lib/transcript-service');
+                  // Try to save to database - OPTIMIZED BATCHED VERSION
+                  const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
                   await addTranscriptEntry({
                     sessionId: currentSessionId,
                     speaker: 'assistant',
@@ -975,9 +983,9 @@ function TherapyButton({
                     isFinal: true
                   });
                   
-                  console.log(`🆘 CATCH-ALL DB SAVE: Saved unknown assistant message to database`);
+                  console.log(`🆘 CATCH-ALL BATCHED SAVE: Queued unknown assistant message`);
                   
-                  // 📊 REAL-TIME METRICS CALCULATION
+                  // 📊 REAL-TIME METRICS CALCULATION - DEBOUNCED
                   try {
                     await calculateAndBroadcastIncrementalMetrics(currentSessionId, 'assistant', potentialText.trim());
                   } catch (metricsError) {
@@ -1022,18 +1030,30 @@ function TherapyButton({
   
   // Create Vapi instance - MOVED HERE TO FIX HOISTING ISSUE
   // Start therapy session - MOVED HERE TO FIX HOISTING ISSUE
-  const startTherapySession = useCallback(async () => {
-    console.log('⚙️ Starting therapy session initialization...');
-    setErrorMessage(null)
-    setIsLoading(true)
-    
-    // Store a session flag in window object to ensure we don't accidentally clean up
-    if (typeof window !== 'undefined') {
-      (window as any).__therapySessionActive = true;
-      console.log('Setting session active flag in window object');
+  const startTherapySession = useCallback(async (existingSessionId?: string, selectedDuration?: 30 | 60) => {
+    // Prevent duplicate session creation
+    if (sessionCreationInProgress.current) {
+      console.log('⚠️ SESSION CREATION GUARD: Session creation already in progress, skipping duplicate attempt');
+      return;
     }
     
+    sessionCreationInProgress.current = true;
+    
+    // Use provided session ID or fallback to component state
+    const currentSessionId = existingSessionId || sessionId;
+    console.log('⚙️ SESSION CREATION GUARD: Starting therapy session initialization...');
+    console.log(`📋 SESSION STATE: existingSessionId=${existingSessionId}, sessionId=${sessionId}, userId=${userId}, therapyType=${therapyType}`);
+    
     try {
+      setErrorMessage(null)
+      setIsLoading(true)
+      
+      // Store a session flag in window object to ensure we don't accidentally clean up
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = true;
+        console.log('Setting session active flag in window object');
+      }
+      
       // Verify the session-active class is present (double check as this is critical for visuals)
       if (!document.body.classList.contains('session-active')) {
         console.warn('session-active class missing from document.body - adding it');
@@ -1082,9 +1102,47 @@ function TherapyButton({
         console.warn('Audio setup failed, continuing anyway:', err);
       });
       
-      // ULTRA-FAST MODE: Create minimal session record
-      console.log(`⚡ Creating minimal session record for faster startup - Duration: ${selectedSessionDuration} minutes`);
-      console.log(`📊 SESSION DURATION TRACKING: selectedSessionDuration = ${selectedSessionDuration}`);
+      // Check if we already have a session ID (avoid duplicate creation)
+      // But only if it's a valid active session
+      let shouldCreateNewSession = true;
+      
+      if (currentSessionId) {
+        // Check if the existing session is still active/valid
+        try {
+          const sessionCheckResponse = await fetch(`/api/sessions/${currentSessionId}`);
+          if (sessionCheckResponse.ok) {
+            const existingSession = await sessionCheckResponse.json();
+            if (existingSession && existingSession.status === 'active') {
+              console.log(`ℹ️ SESSION CREATION SKIP: Valid active session exists with ID: ${currentSessionId}, skipping creation`);
+              currentSessionDuration.current = existingSession.duration; // Use existing session's duration
+              shouldCreateNewSession = false;
+              // Update component state if we have an existing session ID
+              if (existingSessionId && existingSessionId !== sessionId) {
+                setSessionId(existingSessionId);
+              }
+            } else {
+              console.log(`🔄 EXPIRED SESSION CLEANUP: Session ${currentSessionId} is ${existingSession?.status || 'invalid'}, will create new session`);
+              // Clear the expired session ID from state
+              setSessionId(null);
+            }
+          } else {
+            console.log(`🔄 INVALID SESSION CLEANUP: Session ${currentSessionId} not found, will create new session`);
+            // Clear the invalid session ID from state
+            setSessionId(null);
+          }
+        } catch (error) {
+          console.error(`❌ SESSION CHECK ERROR: Failed to validate session ${currentSessionId}, will create new session:`, error);
+          // Clear the problematic session ID from state
+          setSessionId(null);
+        }
+      }
+      
+      if (shouldCreateNewSession) {
+        // ULTRA-FAST MODE: Create minimal session record
+        const effectiveSessionDuration = selectedDuration || currentSessionDuration.current;
+        currentSessionDuration.current = effectiveSessionDuration; // Store for use by timer and metrics
+        console.log(`⚡ SESSION CREATION START: Creating minimal session record for faster startup - Duration: ${effectiveSessionDuration} minutes`);
+        console.log(`📊 SESSION DURATION TRACKING: effectiveSessionDuration = ${effectiveSessionDuration}`);
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
@@ -1094,12 +1152,12 @@ function TherapyButton({
           startTime: sessionStartTime.toISOString(),
           date: sessionStartTime.toISOString(),
           status: 'active',
-          duration: selectedSessionDuration,
-          theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy (${selectedSessionDuration} min)`,
-          notes: `Session started - ${selectedSessionDuration} minute session`,
+          duration: effectiveSessionDuration,
+          theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy (${effectiveSessionDuration} min)`,
+          notes: `Session started - ${effectiveSessionDuration} minute session`,
           assistantId: assistantConfig.id || '',
           // Minimal context to avoid bloated payloads
-          context: userProfile?.name ? { userName: userProfile.name, therapyType, sessionDuration: selectedSessionDuration } : { therapyType, sessionDuration: selectedSessionDuration }
+          context: userProfile?.name ? { userName: userProfile.name, therapyType, sessionDuration: effectiveSessionDuration } : { therapyType, sessionDuration: effectiveSessionDuration }
         }),
       })
       
@@ -1119,7 +1177,7 @@ function TherapyButton({
       try {
         session = await response.json()
         console.log('✅ Session created successfully:', session)
-        console.log(`📊 SESSION DURATION VERIFICATION: Created session has duration = ${session.duration} minutes (expected: ${selectedSessionDuration})`)
+        console.log(`📊 SESSION DURATION VERIFICATION: Created session has duration = ${session.duration} minutes (expected: ${effectiveSessionDuration})`)
         
         if (!session.id) {
           throw new Error('Session created but no ID returned')
@@ -1131,10 +1189,11 @@ function TherapyButton({
         throw new Error('Failed to parse session data')
       }
       
-      // ULTRA-FAST MODE: Skip expensive session history processing
-      console.log('⚡ ULTRA-FAST MODE: Skipping session history processing for faster startup');
+        // ULTRA-FAST MODE: Skip expensive session history processing
+        console.log('⚡ ULTRA-FAST MODE: Skipping session history processing for faster startup');
+      }
       
-      // Initialize Vapi immediately with minimal profile
+      // Initialize Vapi immediately with minimal profile (common for both new and existing sessions)
       const initialized = await createVapiInstance(userProfile)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
@@ -1144,14 +1203,14 @@ function TherapyButton({
       console.log('⚡ ULTRA-FAST MODE: Skipping network monitoring for faster startup');
       
       // Explicitly set the session ID on the Vapi instance for transcript recording
-      if (vapiInstanceRef.current && session.id) {
-        (vapiInstanceRef.current as any)._sessionId = session.id;
-        console.log(`#### SETTING SESSION ID ${session.id} FOR TRANSCRIPT RECORDING ####`);
+      if (vapiInstanceRef.current && currentSessionId) {
+        (vapiInstanceRef.current as any)._sessionId = currentSessionId;
+        console.log(`#### SETTING SESSION ID ${currentSessionId} FOR TRANSCRIPT RECORDING ####`);
         
         // Also store in sessionStorage for backup
         try {
-          sessionStorage.setItem('current-session-id', session.id);
-          console.log(`Saved session ID to sessionStorage: ${session.id}`);
+          sessionStorage.setItem('current-session-id', currentSessionId);
+          console.log(`Saved session ID to sessionStorage: ${currentSessionId}`);
         } catch (storageError) {
           console.warn('Could not save session ID to sessionStorage:', storageError);
         }
@@ -1228,7 +1287,8 @@ function TherapyButton({
         try {
           // Fetch personalized assistant configuration from API with session timing
           console.log('Fetching personalized assistant configuration with session timing...');
-          const sessionDuration = selectedSessionDuration; // Use selected duration from modal
+          const sessionDuration = selectedDuration || currentSessionDuration.current; // Use passed duration or fallback to ref
+          console.log(`🕒 DURATION DEBUG: selectedDuration=${selectedDuration}, currentSessionDuration.current=${currentSessionDuration.current}, final sessionDuration=${sessionDuration}`);
           const startTimeISO = sessionStartTime.toISOString();
           
           const configResponse = await fetch(`/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${sessionDuration}&startTime=${encodeURIComponent(startTimeISO)}`);
@@ -1307,12 +1367,22 @@ function TherapyButton({
       setSessionActive(false);
     } finally {
       setIsLoading(false);
+      sessionCreationInProgress.current = false;
     }
-  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive, selectedSessionDuration])
+  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive])
   const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
   
   // Check for existing session and recover timer state
   const checkForActiveSession = useCallback(async () => {
+    // Prevent concurrent session checks
+    if (sessionCheckInProgress.current) {
+      console.log('⚠️ SESSION CHECK GUARD: Session check already in progress, skipping duplicate attempt');
+      return;
+    }
+    
+    sessionCheckInProgress.current = true;
+    console.log('🔍 SESSION CHECK GUARD: Starting active session check...');
+    
     try {
       console.log('Checking for active sessions for user:', userId);
       const response = await fetch(`/api/sessions/active?userId=${userId}`)
@@ -1353,7 +1423,8 @@ function TherapyButton({
               }));
               
               // Auto-restart session UI if page was refreshed during active session
-              if (shouldPerformAutoRestart) {
+              if (shouldPerformAutoRestart && !autoRestartTriggered.current) {
+                autoRestartTriggered.current = true;
                 console.log('🚀 Auto-restarting session UI after page refresh')
                 
                 // Set session active immediately
@@ -1374,19 +1445,22 @@ function TherapyButton({
                 
                 // Restart the Vapi session after a brief delay
                 setTimeout(() => {
-                  console.log('🎯 Restarting Vapi session with recovered state')
-                  startTherapySession().catch(error => {
+                  console.log(`🎯 Restarting Vapi session with recovered state using session ID: ${data.id} with ${data.duration} minute duration`)
+                  startTherapySession(data.id, data.duration as 30 | 60).catch(error => {
                     console.error('Error restarting session:', error);
                     setErrorMessage(`Failed to restart session: ${error.message || 'Unknown error'}`);
                     // Reset UI state if restart fails
                     setIsCallActive(false);
                     setSessionActive(false);
+                    autoRestartTriggered.current = false; // Allow retry on error
                     if (main) {
                       main.style.opacity = '1';
                     }
                     document.body.classList.remove('session-active');
                   });
                 }, 500);
+              } else if (shouldPerformAutoRestart && autoRestartTriggered.current) {
+                console.log('⚠️ Auto-restart already triggered, skipping duplicate attempt');
               }
               
               console.log(`✅ Session timer recovered successfully (auto-restart: ${shouldPerformAutoRestart})`);
@@ -1405,6 +1479,8 @@ function TherapyButton({
       }
     } catch (error) {
       console.error('Error checking for active session:', error)
+    } finally {
+      sessionCheckInProgress.current = false;
     }
   }, [userId, setSessionActive, startTherapySession])
   
@@ -1420,6 +1496,13 @@ function TherapyButton({
   }, [isLoading]);
   
   useEffect(() => {
+    // Prevent double execution in React StrictMode
+    if (componentMounted.current) {
+      return;
+    }
+    componentMounted.current = true;
+    
+    console.log('🚀 TherapyButton mounted, checking for active sessions...');
     checkForActiveSession()
     
     // Debug function to check transcriber configuration
@@ -1462,7 +1545,7 @@ function TherapyButton({
         cleanupResources();
       }
     }
-  }, [checkForActiveSession]) // Only depend on checkForActiveSession
+  }, [userId]) // Only depend on userId to prevent frequent re-runs
   
   // Enhanced cleanup function for thoroughly releasing resources
   const cleanupResources = () => {
@@ -1762,7 +1845,10 @@ function TherapyButton({
 
   const handleDurationSelect = async (duration: 30 | 60) => {
     console.log('Duration selected:', duration);
+    
+    // Update both state and ref immediately to ensure consistency
     setSelectedSessionDuration(duration);
+    currentSessionDuration.current = duration;
     setShowDurationModal(false);
     
     // IMMEDIATE UI FEEDBACK - critical for user experience
@@ -1793,7 +1879,7 @@ function TherapyButton({
     
     // 6. Start the session initialization process
     console.log(`Starting therapy session process with ${duration} minute duration`);
-    startTherapySession().catch(error => {
+    startTherapySession(undefined, duration).catch(error => {
       console.error('Error starting session:', error);
       setErrorMessage(`Failed to start session: ${error.message || 'Unknown error'}`);
       
@@ -1816,7 +1902,7 @@ function TherapyButton({
   const handleTimeUpdate = useCallback((remainingTimeMinutes: number, remainingTimeSeconds: number) => {
     if (vapiInstanceRef.current && isCallActive) {
       try {
-        const totalSeconds = selectedSessionDuration * 60;
+        const totalSeconds = currentSessionDuration.current * 60;
         const sessionPercentageRemaining = (remainingTimeSeconds / totalSeconds) * 100;
         
         // Log time updates (throttled)
@@ -1896,7 +1982,7 @@ function TherapyButton({
         console.warn('Error in timer update handling:', error);
       }
     }
-  }, [selectedSessionDuration, isCallActive]);
+  }, [isCallActive]);
 
   // Duplicate function removed - function is now defined earlier
   const endTherapySession = useCallback(async () => {
@@ -1907,6 +1993,13 @@ function TherapyButton({
       (window as any).__therapySessionActive = false;
       console.log('Resetting session active flag - session ending');
     }
+    
+    // Reset session creation and auto-restart flags
+    console.log('🔄 SESSION CLEANUP: Resetting all session guards and flags');
+    sessionCreationInProgress.current = false;
+    autoRestartTriggered.current = false;
+    sessionCheckInProgress.current = false;
+    componentMounted.current = false; // Allow re-initialization
     
     // Immediately reset UI state to improve user experience and ensure UI updates
     setIsCallActive(false);
@@ -1924,6 +2017,16 @@ function TherapyButton({
     
     // Explicitly clean up resources right away for immediate visual feedback
     cleanupResources();
+    
+    // CRITICAL: Flush any pending transcript batches before session ends
+    try {
+      console.log('🚀 FLUSHING: Saving any pending transcript batches...');
+      const { flushTranscriptBatches } = await import('@/lib/transcript-service-optimized');
+      await flushTranscriptBatches();
+      console.log('✅ FLUSH SUCCESS: All pending transcripts saved');
+    } catch (flushError) {
+      console.error('❌ FLUSH ERROR: Failed to save pending transcripts:', flushError);
+    }
     
     // Try to get session ID from multiple sources
     let currentSessionId = null;
@@ -2322,7 +2425,7 @@ function TherapyButton({
       
       // 8a. Import transcript service for adding entries
       try {
-        const { addTranscriptEntry } = await import('@/lib/transcript-service');
+        const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
         let savedCount = 0;
         
         // Save each entry individually
@@ -2462,8 +2565,8 @@ function TherapyButton({
         body: JSON.stringify({
           endTime: sessionEndTime.toISOString(),
           status: 'completed',
-          duration: selectedSessionDuration, // Use the originally selected duration, not the calculated actual duration
-          notes: `Therapy session ${sessionEndTime.toLocaleDateString()} - Selected: ${selectedSessionDuration}min, Actual: ${actualDurationMinutes}min, VAPI Call: ${Math.round(vapiCallDuration/60)}min - ${dedupedEntries.length} transcript entries`,
+          duration: currentSessionDuration.current, // Use the originally selected duration, not the calculated actual duration
+          notes: `Therapy session ${sessionEndTime.toLocaleDateString()} - Selected: ${currentSessionDuration.current}min, Actual: ${actualDurationMinutes}min, VAPI Call: ${Math.round(vapiCallDuration/60)}min - ${dedupedEntries.length} transcript entries`,
           sessionTimingMetadata: JSON.stringify(sessionTimingMetadata)
         }),
       });
@@ -2840,7 +2943,7 @@ function TherapyButton({
             <div className="text-center py-1 sm:py-2">
               {sessionStartTime ? (
                 <SessionTimer 
-                  durationMinutes={selectedSessionDuration}
+                  durationMinutes={currentSessionDuration.current}
                   startTime={sessionStartTime}
                   className="text-white"
                   onTimeUpdate={handleTimeUpdate}
