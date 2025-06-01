@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation";
 import { useButtonSound } from "@/hooks/useButtonSound";
 import RelationshipAssessment from "@/components/RelationshipAssessment";
 import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
-import type { IncrementalMetrics } from "@/lib/real-time-metrics";
+import type { IncrementalMetrics } from "@/lib/real-time-metrics-optimized";
 
 // Define types for the metrics data
 interface MetricDataItem {

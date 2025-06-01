@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import * as url from 'url';
 import { getServerSession } from 'next-auth';
 import { authOptions } from './auth';
-import type { IncrementalMetrics } from './real-time-metrics';
+import type { IncrementalMetrics } from './real-time-metrics-optimized';
 
 // Store active WebSocket connections by user ID and session ID
 const userConnections = new Map<string, Set<WebSocket & { sessionId?: string; userId?: string }>>();

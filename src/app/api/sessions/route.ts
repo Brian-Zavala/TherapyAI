@@ -197,6 +197,24 @@ export async function POST(request: Request) {
       // Always use email for notifications
       const effectiveNotificationPrefs = 'email';
       
+      // Check for existing active session to prevent duplicates
+      if (status === 'active') {
+        const existingActiveSession = await prisma.session.findFirst({
+          where: {
+            userId: user.id,
+            status: 'active'
+          },
+          orderBy: {
+            date: 'desc'
+          }
+        });
+        
+        if (existingActiveSession) {
+          console.log(`🚨 DUPLICATE SESSION PREVENTION: Found existing active session ${existingActiveSession.id}, returning it instead of creating new one`);
+          return NextResponse.json(existingActiveSession);
+        }
+      }
+      
       // Create session using the fields from your schema
       const newSession = await prisma.session.create({
         data: {

@@ -1,7 +1,7 @@
 // metrics-validation.ts
 // Advanced validation and confidence scoring for therapy session metrics
 
-import type { IncrementalMetrics, TranscriptEntry } from '@/lib/real-time-metrics';
+import type { IncrementalMetrics, TranscriptEntry } from '@/lib/real-time-metrics-optimized';
 
 export interface MetricsQualityAssessment {
   overallConfidence: number;

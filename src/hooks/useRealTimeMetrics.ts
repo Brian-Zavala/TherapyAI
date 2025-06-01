@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import type { IncrementalMetrics } from '../lib/real-time-metrics';
+import type { IncrementalMetrics } from '../lib/real-time-metrics-optimized';
 
 interface MetricsUpdate {
   type: 'metrics_update';
