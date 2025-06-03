@@ -29,6 +29,56 @@ interface FormField {
   required?: boolean
 }
 
+// Comprehensive relationship options for more precise family relationships
+const relationshipOptions = [
+  // Children
+  { value: 'son', label: 'Son' },
+  { value: 'daughter', label: 'Daughter' },
+  { value: 'child', label: 'Child (non-binary)' },
+  
+  // Parents
+  { value: 'mother', label: 'Mother' },
+  { value: 'father', label: 'Father' },
+  { value: 'parent', label: 'Parent (non-binary)' },
+  
+  // Siblings
+  { value: 'brother', label: 'Brother' },
+  { value: 'sister', label: 'Sister' },
+  { value: 'sibling', label: 'Sibling (non-binary)' },
+  
+  // Grandparents
+  { value: 'grandmother', label: 'Grandmother' },
+  { value: 'grandfather', label: 'Grandfather' },
+  { value: 'grandparent', label: 'Grandparent (non-binary)' },
+  
+  // Grandchildren
+  { value: 'grandson', label: 'Grandson' },
+  { value: 'granddaughter', label: 'Granddaughter' },
+  { value: 'grandchild', label: 'Grandchild (non-binary)' },
+  
+  // Step-family
+  { value: 'stepson', label: 'Stepson' },
+  { value: 'stepdaughter', label: 'Stepdaughter' },
+  { value: 'stepchild', label: 'Stepchild (non-binary)' },
+  { value: 'stepmother', label: 'Stepmother' },
+  { value: 'stepfather', label: 'Stepfather' },
+  { value: 'stepparent', label: 'Stepparent (non-binary)' },
+  { value: 'stepbrother', label: 'Stepbrother' },
+  { value: 'stepsister', label: 'Stepsister' },
+  { value: 'stepsibling', label: 'Stepsibling (non-binary)' },
+  
+  // Extended family
+  { value: 'aunt', label: 'Aunt' },
+  { value: 'uncle', label: 'Uncle' },
+  { value: 'cousin', label: 'Cousin' },
+  { value: 'niece', label: 'Niece' },
+  { value: 'nephew', label: 'Nephew' },
+  
+  // Other relationships
+  { value: 'friend', label: 'Close Friend' },
+  { value: 'other', label: 'Other' }
+]
+
 const formSteps: FormStep[] = [
   {
     id: 1,
@@ -107,23 +157,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember1Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -144,23 +178,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember2Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -181,23 +199,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember3Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -218,23 +220,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember4Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -255,23 +241,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember5Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -292,23 +262,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember6Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -329,23 +283,7 @@ const formSteps: FormStep[] = [
         name: 'familyMember7Relation',
         label: 'Relationship to you',
         type: 'select',
-        options: [
-          { value: 'child', label: 'Child' },
-          { value: 'parent', label: 'Parent' },
-          { value: 'sibling', label: 'Sibling' },
-          { value: 'grandparent', label: 'Grandparent' },
-          { value: 'grandchild', label: 'Grandchild' },
-          { value: 'aunt', label: 'Aunt' },
-          { value: 'uncle', label: 'Uncle' },
-          { value: 'cousin', label: 'Cousin' },
-          { value: 'niece', label: 'Niece' },
-          { value: 'nephew', label: 'Nephew' },
-          { value: 'stepchild', label: 'Stepchild' },
-          { value: 'stepparent', label: 'Stepparent' },
-          { value: 'stepsibling', label: 'Step-sibling' },
-          { value: 'friend', label: 'Close Friend' },
-          { value: 'other', label: 'Other' }
-        ],
+        options: relationshipOptions,
         required: false
       },
       {
@@ -363,27 +301,27 @@ const formSteps: FormStep[] = [
     subtitle: "What brings you here today?",
     fields: [
       {
-        name: 'therapyType',
-        label: 'What type of therapy are you interested in?',
-        type: 'select',
-        options: [
-          { value: 'individual', label: 'Individual Therapy' },
-          { value: 'couples', label: 'Couples Therapy' },
-          { value: 'family', label: 'Family Therapy' }
-        ],
-        required: true
-      },
-      {
         name: 'goals',
         label: 'What would you like to work on? (Select all that apply)',
         type: 'multiselect',
         options: [
-          { value: 'anxiety', label: 'Anxiety' },
-          { value: 'depression', label: 'Depression' },
-          { value: 'relationships', label: 'Relationships' },
+          { value: 'anxiety', label: 'Anxiety & Panic' },
+          { value: 'depression', label: 'Depression & Mood' },
+          { value: 'relationships', label: 'Relationship Issues' },
+          { value: 'communication', label: 'Communication Skills' },
+          { value: 'conflict', label: 'Conflict Resolution' },
+          { value: 'intimacy', label: 'Intimacy & Connection' },
+          { value: 'trust', label: 'Trust & Betrayal' },
           { value: 'stress', label: 'Stress Management' },
-          { value: 'self-esteem', label: 'Self-esteem' },
-          { value: 'communication', label: 'Communication' },
+          { value: 'self-esteem', label: 'Self-esteem & Confidence' },
+          { value: 'grief', label: 'Grief & Loss' },
+          { value: 'trauma', label: 'Trauma & PTSD' },
+          { value: 'family-dynamics', label: 'Family Dynamics' },
+          { value: 'parenting', label: 'Parenting Challenges' },
+          { value: 'work-life', label: 'Work-Life Balance' },
+          { value: 'addiction', label: 'Addiction & Recovery' },
+          { value: 'anger', label: 'Anger Management' },
+          { value: 'life-transitions', label: 'Life Transitions' },
           { value: 'other', label: 'Other' }
         ]
       }
@@ -406,6 +344,41 @@ const formSteps: FormStep[] = [
         ]
       },
       {
+        name: 'preferredDays',
+        label: 'Which days work best for you? (Select all that apply)',
+        type: 'multiselect',
+        options: [
+          { value: 'monday', label: 'Monday' },
+          { value: 'tuesday', label: 'Tuesday' },
+          { value: 'wednesday', label: 'Wednesday' },
+          { value: 'thursday', label: 'Thursday' },
+          { value: 'friday', label: 'Friday' },
+          { value: 'saturday', label: 'Saturday' },
+          { value: 'sunday', label: 'Sunday' }
+        ]
+      },
+      {
+        name: 'sessionFrequency',
+        label: 'How often would you like to have sessions?',
+        type: 'select',
+        options: [
+          { value: 'daily', label: 'Daily' },
+          { value: 'weekly', label: 'Weekly' },
+          { value: 'biweekly', label: 'Every two weeks' },
+          { value: 'monthly', label: 'Monthly' },
+          { value: 'as-needed', label: 'As needed' }
+        ]
+      },
+      {
+        name: 'recurringSession',
+        label: 'Would you like to set up recurring sessions?',
+        type: 'select',
+        options: [
+          { value: 'yes', label: 'Yes, I prefer regular sessions' },
+          { value: 'no', label: 'No, I\'ll schedule as I go' }
+        ]
+      },
+      {
         name: 'communicationStyle',
         label: 'How do you prefer to communicate?',
         type: 'select',
@@ -424,6 +397,17 @@ const formSteps: FormStep[] = [
           { value: 'none', label: 'No, I don\'t want reminders' }
         ],
         required: true
+      },
+      {
+        name: 'reminderTiming',
+        label: 'When would you like to receive reminders?',
+        type: 'select',
+        options: [
+          { value: '1day', label: '24 hours before' },
+          { value: '2days', label: '48 hours before' },
+          { value: '1week', label: '1 week before' },
+          { value: 'both', label: 'Both 24 hours and 1 hour before' }
+        ]
       }
     ]
   },
@@ -886,27 +870,86 @@ export default function WelcomePage() {
                     )}
                   </motion.div>
                   {index < formSteps.length - 1 && (
-                    <div className="w-3 xs:w-4 sm:w-6 md:w-8 h-0.5 bg-white/20 mx-0.5 xs:mx-1 sm:mx-1.5 flex-shrink-0">
+                    <div className="w-3 xs:w-4 sm:w-6 md:w-8 h-1 bg-white/20 mx-0.5 xs:mx-1 sm:mx-1.5 flex-shrink-0 rounded-full relative overflow-hidden">
+                      {/* Base progress fill */}
                       <motion.div
-                        className="h-full bg-gradient-to-r from-green-500 to-blue-500"
+                        className={`absolute inset-0 h-full ${
+                          index < currentStep 
+                            ? 'bg-green-500' 
+                            : index === currentStep 
+                            ? 'bg-transparent' 
+                            : 'bg-transparent'
+                        }`}
                         initial={{ width: 0 }}
                         animate={{ width: index < currentStep ? '100%' : '0%' }}
                         transition={{ duration: 0.3, type: "tween" }}
                       />
+                      
+                      {/* Wavy flowing animation for current step */}
+                      {index === currentStep && (
+                        <motion.div
+                          className="absolute inset-0 h-full bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 opacity-80"
+                          style={{
+                            background: 'linear-gradient(90deg, transparent 0%, #3b82f6 20%, #06b6d4 50%, #3b82f6 80%, transparent 100%)',
+                            backgroundSize: '200% 100%',
+                            willChange: 'transform'
+                          }}
+                          animate={{
+                            backgroundPosition: ['0% 0%', '200% 0%'],
+                            opacity: [0.6, 1, 0.6]
+                          }}
+                          transition={{
+                            backgroundPosition: {
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: "linear"
+                            },
+                            opacity: {
+                              duration: 1.5,
+                              repeat: Infinity,
+                              ease: "easeInOut"
+                            }
+                          }}
+                        />
+                      )}
+                      
+                      {/* Sparkle effects for current step */}
+                      {index === currentStep && (
+                        <>
+                          <motion.div
+                            className="absolute top-1/2 left-1/4 w-1 h-1 bg-white rounded-full"
+                            style={{ transform: 'translateY(-50%)' }}
+                            animate={{
+                              scale: [0, 1, 0],
+                              opacity: [0, 1, 0]
+                            }}
+                            transition={{
+                              duration: 1.2,
+                              repeat: Infinity,
+                              delay: 0.2,
+                              ease: "easeInOut"
+                            }}
+                          />
+                          <motion.div
+                            className="absolute top-1/2 left-3/4 w-0.5 h-0.5 bg-cyan-300 rounded-full"
+                            style={{ transform: 'translateY(-50%)' }}
+                            animate={{
+                              scale: [0, 1, 0],
+                              opacity: [0, 1, 0]
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Infinity,
+                              delay: 0.8,
+                              ease: "easeInOut"
+                            }}
+                          />
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
               ))}
-            </div>
-            
-            {/* Progress bar */}
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-600"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.3, type: "tween" }}
-              />
             </div>
           </div>
 

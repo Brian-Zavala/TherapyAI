@@ -24,7 +24,7 @@ export const initVapi = async (
 
     // Create Vapi instance by passing the token and API URL directly in the constructor
     // This is the recommended way according to the Vapi API docs
-    let vapiInstance = new Vapi(token, "https://api.vapi.ai");
+    const vapiInstance = new Vapi(token, "https://api.vapi.ai");
     console.log(
       "Created Vapi instance with API URL specified in constructor: https://api.vapi.ai"
     );
@@ -194,6 +194,125 @@ export const formatSessionHistory = (sessions: any[] = []) => {
   }`;
 };
 
+// Natural language formatting for therapy concerns
+export const formatConcernsNaturally = (
+  concerns: string[], 
+  therapyType: string = 'couple',
+  context: 'system' | 'greeting' | 'conversation' = 'system'
+): string => {
+  if (!concerns || concerns.length === 0) {
+    return '';
+  }
+
+  // Map technical concern values to natural phrases
+  const concernsMap: Record<string, string> = {
+    'anxiety': 'anxiety and worry',
+    'depression': 'feelings of depression',
+    'relationships': 'relationship challenges',
+    'communication': 'communication patterns',
+    'conflict': 'conflict resolution',
+    'intimacy': 'emotional and physical intimacy',
+    'trust': 'trust issues',
+    'stress': 'stress management',
+    'self-esteem': 'self-esteem and confidence',
+    'grief': 'grief and loss',
+    'trauma': 'past trauma',
+    'family-dynamics': 'family dynamics',
+    'parenting': 'parenting challenges',
+    'work-life': 'work-life balance',
+    'addiction': 'addiction recovery',
+    'anger': 'anger management',
+    'life-transitions': 'life transitions',
+    'other': 'personal concerns'
+  };
+
+  // Convert concerns to natural phrases
+  const naturalConcerns = concerns.map(c => concernsMap[c] || c);
+
+  // Group related concerns for more natural expression
+  const relationshipConcerns = naturalConcerns.filter(c => 
+    ['relationship challenges', 'communication patterns', 'conflict resolution', 'emotional and physical intimacy', 'trust issues'].includes(c)
+  );
+  const emotionalConcerns = naturalConcerns.filter(c => 
+    ['anxiety and worry', 'feelings of depression', 'stress management', 'self-esteem and confidence', 'anger management'].includes(c)
+  );
+  const lifeConcerns = naturalConcerns.filter(c => 
+    ['grief and loss', 'past trauma', 'life transitions', 'work-life balance', 'addiction recovery'].includes(c)
+  );
+  const familyConcerns = naturalConcerns.filter(c => 
+    ['family dynamics', 'parenting challenges'].includes(c)
+  );
+
+  // Format based on context and therapy type
+  if (context === 'system') {
+    // For system prompt - concise listing
+    return naturalConcerns.join(', ');
+  }
+
+  if (context === 'greeting') {
+    // For first message - warm and welcoming
+    if (therapyType === 'couple') {
+      if (relationshipConcerns.length > 0) {
+        const primary = relationshipConcerns[0];
+        const others = [...relationshipConcerns.slice(1), ...emotionalConcerns, ...lifeConcerns].filter(Boolean);
+        if (others.length > 0) {
+          return `I understand you're here to work on ${primary}, and also explore ${others.slice(0, 2).join(' and ')}${others.length > 2 ? ', among other things' : ''}.`;
+        }
+        return `I see you're both here to work on your relationship, especially when it comes to ${primary}.`;
+      } else if (emotionalConcerns.length > 0 || lifeConcerns.length > 0) {
+        const allPersonal = [...emotionalConcerns, ...lifeConcerns];
+        if (allPersonal.length === 1) {
+          return `I know you're here to work through ${allPersonal[0]}.`;
+        } else {
+          return `I understand you're dealing with ${allPersonal[0]} and exploring ${allPersonal[1]}.`;
+        }
+      }
+    } else if (therapyType === 'solo' || therapyType === 'individual') {
+      if (emotionalConcerns.length > 0 || lifeConcerns.length > 0) {
+        const allPersonal = [...emotionalConcerns, ...lifeConcerns];
+        if (allPersonal.length === 1) {
+          return `I know you're seeking support with ${allPersonal[0]}.`;
+        } else if (allPersonal.length === 2) {
+          return `I understand you're dealing with ${allPersonal[0]} and ${allPersonal[1]}.`;
+        } else {
+          return `I see you're navigating several challenges including ${allPersonal[0]} and ${allPersonal[1]}.`;
+        }
+      } else if (relationshipConcerns.length > 0) {
+        // Individual therapy but with relationship concerns
+        return `I see you're seeking support with ${relationshipConcerns[0]}${relationshipConcerns.length > 1 ? ` and ${relationshipConcerns[1]}` : ''}.`;
+      }
+    } else if (therapyType === 'family') {
+      if (familyConcerns.length > 0 || relationshipConcerns.length > 0) {
+        const allFamily = [...familyConcerns, ...relationshipConcerns];
+        return `I understand your family is working through ${allFamily[0]}${allFamily.length > 1 ? ` and ${allFamily[1]}` : ''}.`;
+      } else if (emotionalConcerns.length > 0) {
+        // Family therapy with emotional concerns
+        return `I see your family is navigating ${emotionalConcerns[0]}${emotionalConcerns.length > 1 ? ` and ${emotionalConcerns[1]}` : ''}.`;
+      }
+    }
+    
+    // Fallback for greeting context - use first few concerns naturally
+    if (naturalConcerns.length === 1) {
+      return `I understand you're here to work on ${naturalConcerns[0]}.`;
+    } else if (naturalConcerns.length === 2) {
+      return `I see you're dealing with ${naturalConcerns[0]} and ${naturalConcerns[1]}.`;
+    } else if (naturalConcerns.length > 2) {
+      return `I understand you're working through ${naturalConcerns[0]}, ${naturalConcerns[1]}, and other important areas.`;
+    }
+  }
+
+  // Default formatting for conversation context
+  if (naturalConcerns.length === 1) {
+    return naturalConcerns[0];
+  } else if (naturalConcerns.length === 2) {
+    return `${naturalConcerns[0]} and ${naturalConcerns[1]}`;
+  } else {
+    const last = naturalConcerns[naturalConcerns.length - 1];
+    const rest = naturalConcerns.slice(0, -1);
+    return `${rest.join(', ')}, and ${last}`;
+  }
+};
+
 // Get personalized system prompt based on user profile
 export const getPersonalizedSystemPrompt = (
   userProfile?: any,
@@ -261,10 +380,10 @@ export const getPersonalizedSystemPrompt = (
       "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for both partners.";
   }
 
-  // Format current concerns
-  const concernsList = Array.isArray(currentConcerns)
-    ? currentConcerns.join(", ")
-    : "relationship wellbeing";
+  // Format current concerns naturally
+  const concernsList = Array.isArray(currentConcerns) && currentConcerns.length > 0
+    ? formatConcernsNaturally(currentConcerns, 'couple', 'system')
+    : "";
 
   // Check if user has previous sessions (don't include full history in prompt)
   const hasPreviousSessions =
@@ -345,7 +464,7 @@ AGE INTEGRATION INSTRUCTIONS:
 CLIENT INFO:
 ${userName}${pronouns ? ` (${pronouns})` : ""} ${userAge} and partner ${partnerName} ${partnerAge}
 Status: ${relationshipStatus}
-${currentConcerns.length > 0 ? `Concerns: ${concernsList}` : ""}
+${concernsList ? `Concerns: ${concernsList}` : ""}
 ${additionalNotes ? `Notes: ${additionalNotes}` : ""}
 
 SESSION CONTEXT:
@@ -391,6 +510,16 @@ FUNCTION CALLING INSTRUCTIONS:
 
 ${ageIntegrationGuidance}
 
+NATURAL CONCERN INTEGRATION:
+• Reference their specific concerns organically throughout the conversation
+• Instead of listing concerns mechanically, weave them into therapeutic insights
+• Examples of natural integration:
+  - "When trust has been broken, as you mentioned..."
+  - "The communication challenges you're experiencing often stem from..."
+  - "Working through intimacy issues takes courage..."
+• Connect their concerns to therapeutic concepts and interventions naturally
+• Avoid robotic listings like "You said you have anxiety, depression, and stress"
+
 Goal: Help them improve communication, develop secure attachment, and build a healthier relationship.`;
 
   return systemPrompt;
@@ -429,12 +558,9 @@ export const getPersonalizedFirstMessage = (
   // Check if we have specific concerns to acknowledge
   let concernsIntro = "";
   if (currentConcerns && currentConcerns.length > 0) {
-    // Format the concerns list
-    const concernsList = Array.isArray(currentConcerns)
-      ? currentConcerns.join(", ")
-      : "";
-    if (concernsList) {
-      concernsIntro = ` You're looking for support with ${concernsList}.`;
+    const formattedConcerns = formatConcernsNaturally(currentConcerns, therapyType, 'greeting');
+    if (formattedConcerns) {
+      concernsIntro = ` ${formattedConcerns}`;
     }
   }
 
@@ -977,10 +1103,10 @@ USER-INITIATED SESSION ENDING:
         "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone.";
     }
 
-    // Format current concerns
-    const concernsList = Array.isArray(currentConcerns)
-      ? currentConcerns.join(", ")
-      : "general wellbeing";
+    // Format current concerns naturally
+    const concernsList = Array.isArray(currentConcerns) && currentConcerns.length > 0
+      ? formatConcernsNaturally(currentConcerns, 'solo', 'system')
+      : "";
 
     // Check for previous sessions
     const hasPreviousSessions =
@@ -1004,7 +1130,7 @@ AGE INTEGRATION INSTRUCTIONS:
     return `You are Dr. Elliot Mackaphy, therapist specializing in CBT, ACT, and mindfulness.
 
 CLIENT INFO: ${userName}${pronounStr}${userProfile?.userAge ? ` (${userProfile.userAge})` : ""}
-${currentConcerns.length > 0 ? `Concerns: ${concernsList}` : ""}
+${concernsList ? `Concerns: ${concernsList}` : ""}
 ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 ${userProfile?.partnerName ? `Partner: ${userProfile.partnerName}${userProfile?.partnerAge ? ` (${userProfile.partnerAge})` : ""}` : ""}
 
@@ -1046,6 +1172,16 @@ FUNCTION CALLING INSTRUCTIONS:
 • Never mention the function or technical details - just naturally end after giving closure
 
 ${ageIntegrationGuidance}
+
+NATURAL CONCERN INTEGRATION:
+• Reference their specific challenges organically throughout the conversation
+• Weave concerns into therapeutic exploration rather than listing them
+• Examples of natural integration:
+  - "The anxiety you mentioned earlier..."
+  - "When dealing with grief, as you are..."
+  - "Your work-life balance concerns connect to..."
+• Use their language and phrasing when possible
+• Avoid clinical or mechanical references to their concerns
 
 Goal: Help ${userName} develop psychological flexibility, emotional regulation skills, and self-compassion.`;
   }
@@ -1180,10 +1316,10 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
         "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for all family members.";
     }
 
-    // Format current concerns
-    const concernsList = Array.isArray(currentConcerns)
-      ? currentConcerns.join(", ")
-      : "family wellbeing";
+    // Format current concerns naturally
+    const concernsList = Array.isArray(currentConcerns) && currentConcerns.length > 0
+      ? formatConcernsNaturally(currentConcerns, 'family', 'system')
+      : "";
 
     // Check for previous sessions
     const hasPreviousSessions =
@@ -1252,7 +1388,7 @@ REMEMBER: Your goal is natural, therapeutic conversation - not mechanical data r
     return `You are Dr. Jada Pearson, family therapist specializing in Structural Family Therapy and systems approaches.
 
 FAMILY INFO: Working with ${familyMembersString}.
-${currentConcerns.length > 0 ? `Concerns: ${concernsList}` : ""}
+${concernsList ? `Concerns: ${concernsList}` : ""}
 ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 
 SESSION CONTEXT:
@@ -1297,6 +1433,16 @@ FUNCTION CALLING INSTRUCTIONS:
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
 • Never mention the function or technical details - just naturally end after giving closure
+
+NATURAL CONCERN INTEGRATION:
+• Reference family concerns organically throughout the session
+• Weave their challenges into family dynamics exploration
+• Examples of natural integration:
+  - "The family dynamics you mentioned..."
+  - "When families work through parenting challenges like yours..."
+  - "Communication patterns within families often..."
+• Connect concerns to family systems and relationships naturally
+• Avoid listing concerns mechanically
 
 Goal: Help improve family communication, strengthen bonds, and develop healthier family dynamics.`;
   }
@@ -1353,11 +1499,9 @@ export const getPersonalizedFirstMessageForType = (
     // Concerns acknowledgment
     let concernsIntro = "";
     if (currentConcerns && currentConcerns.length > 0) {
-      const concernsList = Array.isArray(currentConcerns)
-        ? currentConcerns.join(", ")
-        : "";
-      if (concernsList) {
-        concernsIntro = ` I know you're working on ${concernsList}, and I'm here to support you in that journey.`;
+      const formattedConcerns = formatConcernsNaturally(currentConcerns, 'solo', 'greeting');
+      if (formattedConcerns) {
+        concernsIntro = ` ${formattedConcerns} I'm here to support you in that journey.`;
       }
     }
 
@@ -1427,11 +1571,9 @@ export const getPersonalizedFirstMessageForType = (
     // Concerns acknowledgment for family
     let concernsIntro = "";
     if (currentConcerns && currentConcerns.length > 0) {
-      const concernsList = Array.isArray(currentConcerns)
-        ? currentConcerns.join(", ")
-        : "";
-      if (concernsList) {
-        concernsIntro = ` I know your family is working together on ${concernsList}, and I'm here to support all of you in that journey.`;
+      const formattedConcerns = formatConcernsNaturally(currentConcerns, 'family', 'greeting');
+      if (formattedConcerns) {
+        concernsIntro = ` ${formattedConcerns} I'm here to support all of you in that journey.`;
       }
     }
 
