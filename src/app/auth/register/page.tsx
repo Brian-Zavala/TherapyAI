@@ -169,7 +169,7 @@ export default function Register() {
                     <p>{error}</p>
                     {error.includes('already exists') && (
                       <p className="mt-2">
-                        <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 underline">
+                        <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 underline cursor-pointer">
                           Sign in to your existing account →
                         </Link>
                       </p>
@@ -186,7 +186,7 @@ export default function Register() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => signIn('google', { callbackUrl: '/intro' })}
                 type="button"
-                className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20"
+                className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20 cursor-pointer"
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18.7511 10.1944C18.7511 9.47495 18.6915 8.94995 18.5626 8.40552H10.1797V11.6527H15.1003C15.0011 12.4597 14.4654 13.675 13.2749 14.4916L13.2582 14.6003L15.9087 16.6126L16.0924 16.6305C17.7788 15.1041 18.7511 12.8583 18.7511 10.1944Z" fill="#4285F4"/>
@@ -201,7 +201,7 @@ export default function Register() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => signIn('facebook', { callbackUrl: '/intro' })}
                 type="button"
-                className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20"
+                className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-white transition-all bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 hover:bg-white/20 cursor-pointer"
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20 10.0278C20 4.50278 15.52 0.0277786 10 0.0277786C4.48 0.0277786 0 4.50278 0 10.0278C0 14.9144 3.44 18.9644 8 19.8478V13.0278H6V10.0278H8V7.52778C8 5.61111 9.57 4.02778 11.5 4.02778H14V7.02778H12C11.45 7.02778 11 7.47778 11 8.02778V10.0278H14V13.0278H11V20C16.05 19.5 20 15.2278 20 10.0278Z" fill="#1877F2"/>
@@ -436,11 +436,11 @@ export default function Register() {
                 <div>
                   <label htmlFor="terms" className="text-sm text-white/70 cursor-pointer">
                     By creating an account, I agree to the{' '}
-                    <Link href="/terms" className="text-blue-500 hover:text-blue-400">
+                    <Link href="/terms" className="text-blue-500 hover:text-blue-400 cursor-pointer">
                       Terms and Conditions
                     </Link>{' '}
                     and{' '}
-                    <Link href="/privacy" className="text-blue-500 hover:text-blue-400">
+                    <Link href="/privacy" className="text-blue-500 hover:text-blue-400 cursor-pointer">
                       Privacy Policy
                     </Link>
                   </label>
@@ -454,7 +454,7 @@ export default function Register() {
                   disabled={isLoading}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center">
@@ -472,7 +472,7 @@ export default function Register() {
             <div className="mt-6 text-center">
               <p className="text-sm text-white/70">
                 Already have an account?{' '}
-                <Link href="/auth/login" className="font-medium text-blue-500 hover:text-blue-400">
+                <Link href="/auth/login" className="font-medium text-blue-500 hover:text-blue-400 cursor-pointer">
                   Sign in
                 </Link>
               </p>

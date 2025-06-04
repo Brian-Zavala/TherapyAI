@@ -167,49 +167,55 @@ export default function Navigation() {
                 </b>
 
                 {/* E */}
-                <b>
-                  <a
-                    href="/dashboard/therapy"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsMenuOpen(false);
-                      window.location.href = "/dashboard/therapy";
-                    }}
-                    tabIndex={isMenuOpen ? 0 : -1}
-                  >
-                    Therapy
-                  </a>
-                </b>
+                {isAuthenticated && (
+                  <b>
+                    <a
+                      href="/dashboard/therapy"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsMenuOpen(false);
+                        window.location.href = "/dashboard/therapy";
+                      }}
+                      tabIndex={isMenuOpen ? 0 : -1}
+                    >
+                      Therapy
+                    </a>
+                  </b>
+                )}
 
                 {/* N */}
-                <b>
-                  <a
-                    href="/dashboard/sessions"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsMenuOpen(false);
-                      window.location.href = "/dashboard/sessions";
-                    }}
-                    tabIndex={isMenuOpen ? 0 : -1}
-                  >
-                    Sessions
-                  </a>
-                </b>
+                {isAuthenticated && (
+                  <b>
+                    <a
+                      href="/dashboard/sessions"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsMenuOpen(false);
+                        window.location.href = "/dashboard/sessions";
+                      }}
+                      tabIndex={isMenuOpen ? 0 : -1}
+                    >
+                      Sessions
+                    </a>
+                  </b>
+                )}
 
                 {/* U */}
-                <b>
-                  <a
-                    href="/dashboard"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsMenuOpen(false);
-                      window.location.href = "/dashboard";
-                    }}
-                    tabIndex={isMenuOpen ? 0 : -1}
-                  >
-                    Dashboard
-                  </a>
-                </b>
+                {isAuthenticated && (
+                  <b>
+                    <a
+                      href="/dashboard"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsMenuOpen(false);
+                        window.location.href = "/dashboard";
+                      }}
+                      tabIndex={isMenuOpen ? 0 : -1}
+                    >
+                      Dashboard
+                    </a>
+                  </b>
+                )}
 
                 {!isAuthenticated ? (
                   <>

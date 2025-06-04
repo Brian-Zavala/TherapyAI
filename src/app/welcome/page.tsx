@@ -147,6 +147,15 @@ const formSteps: FormStep[] = [
         required: false
       },
       {
+        name: 'hasFamily',
+        label: 'Do you have family?',
+        type: 'family_toggle',
+        options: [
+          { value: 'yes', label: 'Yes' },
+          { value: 'no', label: 'No' }
+        ]
+      },
+      {
         name: 'familyMember1',
         label: 'Family member 1',
         type: 'text',
@@ -1080,8 +1089,20 @@ export default function WelcomePage() {
                   />
                 ) : (
                   // Render regular form fields for all other steps
-                  formSteps[currentStep].fields.map((field) => (
-                    <div key={field.name}>
+                  formSteps[currentStep].fields.map((field) => {
+                    // Hide partner fields for statuses where no current partner exists
+                    if ((field.name === 'partnerName' || field.name === 'partnerAge') && 
+                        ['Single', 'Divorced', 'Widowed'].includes(formData.relationshipStatus)) {
+                      return null
+                    }
+                    
+                    // Hide family member fields if hasFamily is not "yes"
+                    if (field.name.startsWith('familyMember') && formData.hasFamily !== 'yes') {
+                      return null
+                    }
+                    
+                    return (
+                      <div key={field.name}>
                       <label className="block text-white mb-2">
                         {field.label}
                         {field.required && (
@@ -1241,8 +1262,44 @@ export default function WelcomePage() {
                           className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all resize-none"
                         />
                       )}
+                      
+                      {field.type === 'family_toggle' && (
+                        <div className="flex gap-4">
+                          {field.options?.map((option) => {
+                            const isSelected = formData[field.name] === option.value
+                            return (
+                              <motion.button
+                                key={option.value}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleInputChange(field.name, option.value)}
+                                className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all font-medium cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-blue-500/30 border-blue-400 text-white shadow-lg shadow-blue-500/25'
+                                    : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20 hover:border-white/30'
+                                }`}
+                              >
+                                <span className="flex items-center justify-center">
+                                  {option.label}
+                                  {isSelected && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{ duration: 0.1 }}
+                                      className="ml-2"
+                                    >
+                                      <CheckCircleIcon className="w-5 h-5 text-green-400" />
+                                    </motion.div>
+                                  )}
+                                </span>
+                              </motion.button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
 
