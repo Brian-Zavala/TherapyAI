@@ -28,9 +28,9 @@ export default function SiteMetadata() {
       
       {/* Favicons */}
       <link rel="icon" href="/favicon.ico" />
-      <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
-      <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
-      <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" type="image/png" />
+      <link rel="icon" href="/favicons/favicon-16x16.png" sizes="16x16" type="image/png" />
+      <link rel="icon" href="/favicons/favicon-32x32.png" sizes="32x32" type="image/png" />
+      <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.png" sizes="180x180" type="image/png" />
       <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6" />
       <link rel="manifest" href="/site.webmanifest" />
       
