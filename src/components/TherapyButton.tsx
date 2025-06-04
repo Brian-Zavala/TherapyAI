@@ -1283,7 +1283,7 @@ function TherapyButton({
       
       // Initialize Vapi immediately with minimal profile (common for both new and existing sessions)
       // Pass the current session ID to ensure transcript processing works
-      const currentSessionIdForVapi = sessionId || session?.id || sessionStorage.getItem('current-session-id')
+      const currentSessionIdForVapi = sessionId || sessionStorage.getItem('current-session-id')
       const initialized = await createVapiInstance(userProfile, currentSessionIdForVapi)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
@@ -1993,6 +1993,151 @@ function TherapyButton({
     }
     return [];
   }, []);
+
+  // Listen for session continuation trigger from active session modal
+  useEffect(() => {
+    let processingContinuation = false;
+    
+    const checkForSessionContinuation = () => {
+      try {
+        // Prevent duplicate processing
+        if (processingContinuation) {
+          console.log('⏳ Session continuation already in progress, skipping check');
+          return;
+        }
+        
+        const continueSessionData = sessionStorage.getItem('session-continue-trigger');
+        if (continueSessionData) {
+          const { sessionId: recoveredId, sessionData } = JSON.parse(continueSessionData);
+          console.log('🔔 Session continuation trigger detected:', recoveredId);
+          
+          // Validate trigger data
+          if (!recoveredId || !sessionData) {
+            console.error('❌ Invalid continuation trigger data');
+            sessionStorage.removeItem('session-continue-trigger');
+            return;
+          }
+          
+          // Set processing flag
+          processingContinuation = true;
+          
+          // Clear the trigger to avoid duplicate processing
+          sessionStorage.removeItem('session-continue-trigger');
+          
+          // Trigger the continuation
+          triggerSessionContinuation(recoveredId, sessionData)
+            .catch(error => {
+              console.error('❌ Session continuation failed:', error);
+            })
+            .finally(() => {
+              processingContinuation = false;
+            });
+        }
+        
+        // Failsafe: Also check for direct session ID if trigger method fails
+        const directSessionId = sessionStorage.getItem('current-session-id');
+        if (directSessionId && !isCallActive && !sessionId) {
+          console.log('🔍 Failsafe: Found direct session ID without active call:', directSessionId);
+          
+          // Fetch session data as backup method
+          fetch(`/api/sessions/${directSessionId}`)
+            .then(response => response.json())
+            .then(sessionData => {
+              if (sessionData && sessionData.status === 'active') {
+                console.log('🆘 Failsafe: Triggering session continuation via direct session data');
+                triggerSessionContinuation(directSessionId, sessionData);
+              }
+            })
+            .catch(error => {
+              console.warn('Failsafe session fetch failed:', error);
+            });
+        }
+        
+      } catch (error) {
+        console.warn('Error checking for session continuation trigger:', error);
+        processingContinuation = false;
+      }
+    };
+
+    // Check immediately
+    checkForSessionContinuation();
+    
+    // Also check periodically in case trigger is added later (less frequent to avoid spam)
+    const interval = setInterval(checkForSessionContinuation, 2000);
+    
+    return () => {
+      clearInterval(interval);
+      processingContinuation = false;
+    };
+  }, [triggerSessionContinuation, isCallActive, sessionId]);
+
+  // Handle session recovery trigger
+  const triggerSessionContinuation = useCallback(async (recoveredSessionId: string, sessionData: any) => {
+    console.log('🔄 Triggering session continuation for:', recoveredSessionId);
+    
+    try {
+      // Validate inputs
+      if (!recoveredSessionId || !sessionData) {
+        throw new Error('Invalid session data for continuation');
+      }
+      
+      // Clear any existing error state
+      setErrorMessage(null);
+      setIsLoading(true);
+      
+      // Set the session ID immediately
+      setSessionId(recoveredSessionId);
+      
+      // Set session duration from recovered data
+      if (sessionData.duration) {
+        setSelectedSessionDuration(sessionData.duration);
+        currentSessionDuration.current = sessionData.duration;
+        console.log(`📊 Session duration set to: ${sessionData.duration} minutes`);
+      }
+      
+      // Set session as active immediately for UI
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = true;
+        document.body.classList.add('session-active');
+        console.log('🎨 UI updated: session-active class added');
+      }
+      
+      // Update component states
+      setIsCallActive(true);
+      setSoundContextActive(true);
+      
+      console.log('🚀 Starting VAPI session continuation...');
+      
+      // Start the session with the recovered ID and duration
+      await startTherapySession(recoveredSessionId, sessionData.duration, []);
+      
+      console.log('✅ Session continuation successful');
+      setIsLoading(false);
+      
+    } catch (error) {
+      console.error('❌ Error during session continuation:', error);
+      
+      // Reset to safe state
+      setIsCallActive(false);
+      setSoundContextActive(false);
+      setIsLoading(false);
+      
+      // Remove session-active class if continuation failed
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = false;
+        document.body.classList.remove('session-active');
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to continue session';
+      setErrorMessage(errorMessage);
+      
+      // Clean up stale session storage
+      sessionStorage.removeItem('session-continue-trigger');
+      sessionStorage.removeItem('current-session-id');
+      
+      throw error; // Re-throw for upper-level handling
+    }
+  }, [startTherapySession, setSoundContextActive]);
 
   // Handle modal actions
   const handleStartButtonClick = () => {

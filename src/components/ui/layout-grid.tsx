@@ -46,18 +46,18 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
 
     switch (size) {
       case "small":
-        return "col-span-1 row-span-1 h-40 sm:h-48 md:h-64";
+        return "col-span-1 row-span-1 h-40 sm:h-48 md:h-56 lg:h-64";
       case "medium":
-        return "col-span-1 row-span-1 h-44 sm:h-52 md:h-72";
+        return "col-span-1 row-span-1 h-44 sm:h-52 md:h-60 lg:h-72";
       case "large":
-        return "col-span-1 row-span-1 h-48 sm:h-64 md:h-80";
+        return "col-span-1 row-span-1 h-48 sm:h-64 md:h-72 lg:h-80";
       default:
         return "col-span-1 row-span-1 h-40 sm:h-48 md:h-64";
     }
   };
 
   return (
-    <div className="w-full h-full px-2 sm:px-4 py-2 sm:py-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 max-w-7xl mx-auto gap-3 sm:gap-4 md:gap-6 relative">
+    <div className="w-full h-full px-2 sm:px-4 md:px-6 py-2 sm:py-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 max-w-7xl mx-auto gap-3 sm:gap-4 md:gap-5 lg:gap-6 relative">
       {cards.map((card, i) => {
         const sizeClasses = getSizeClasses(card, i);
         const isFlipped = flippedId === card.id;

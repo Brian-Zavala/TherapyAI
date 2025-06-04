@@ -85,7 +85,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6 bg-gray-900">
+    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6 md:px-8 lg:px-6 bg-gray-900">
       <div className="max-w-7xl mx-auto">
         {/* Dashboard Header with Welcome Message */}
         <motion.div
@@ -222,12 +222,12 @@ export default function Dashboard() {
           variants={container}
           initial="hidden"
           animate="show"
-          className="hidden sm:grid sm:grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 xl:gap-10"
+          className="hidden sm:grid sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-10"
         >
           {/* Session Time Visualization */}
           <motion.div
             variants={item}
-            className="w-full h-full min-h-[500px]"
+            className="w-full h-full min-h-[400px] md:min-h-[450px] lg:min-h-[500px]"
           >
             <SessionTimeChart />
           </motion.div>
@@ -235,7 +235,7 @@ export default function Dashboard() {
           {/* Relationship Progress Card */}
           <motion.div
             variants={item}
-            className="w-full h-full min-h-[500px]"
+            className="w-full h-full min-h-[400px] md:min-h-[450px] lg:min-h-[500px]"
           >
             <RelationshipProgressCard />
           </motion.div>
@@ -243,7 +243,7 @@ export default function Dashboard() {
           {/* Communication Metrics */}
           <motion.div
             variants={item}
-            className="w-full h-full min-h-[500px]"
+            className="w-full h-full min-h-[400px] md:min-h-[450px] lg:min-h-[500px]"
           >
             <CommunicationMetrics />
           </motion.div>
@@ -251,7 +251,7 @@ export default function Dashboard() {
           {/* Upcoming Sessions */}
           <motion.div
             variants={item}
-            className="w-full h-full min-h-[500px]"
+            className="w-full h-full min-h-[400px] md:min-h-[450px] lg:min-h-[500px]"
           >
             <UpcomingSessions />
           </motion.div>
@@ -395,7 +395,7 @@ export default function Dashboard() {
           <h2 className="text-xl font-semibold text-white mb-4">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <Link
               href="/dashboard/therapy"
               className="flex items-center p-4 bg-white/70 rounded-xl hover:bg-white/80 transition-colors shadow-md border border-green-100"

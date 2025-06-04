@@ -1093,172 +1093,230 @@ export default function WelcomePage() {
                             }}
                           />
 
-                          {/* Additional floaty white sparkles */}
-                          {/* Small white sparkle 1 - quick flutter */}
+                          {/* Distributed sparkles for even coverage */}
+                          {/* Left section sparkles */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white rounded-full shadow-sm"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white rounded-full shadow-sm"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-8, 68],
-                              y: [0, -4, 2, -1, 0],
-                              scale: [0, 1, 0.8, 1.2, 0],
-                              opacity: [0, 0.7, 0.4, 0.9, 0],
+                              x: [-8, 25],
+                              y: [0, -2, 1, 0],
+                              scale: [0, 1.2, 0.8, 0],
+                              opacity: [0, 0.8, 0.4, 0],
                             }}
                             transition={{
-                              duration: 3.2,
+                              duration: 2.2,
                               repeat: Infinity,
                               ease: "easeInOut",
-                              delay: 0.8,
+                              delay: 0.2,
                             }}
                           />
 
-                          {/* Small white sparkle 2 - gentle float */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white/80 rounded-full"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/80 rounded-full"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-22, 82],
-                              y: [0, 3, -2, 1, 0],
-                              scale: [0, 0.8, 1.1, 0.9, 0],
-                              opacity: [0, 0.5, 0.8, 0.6, 0],
-                            }}
-                            transition={{
-                              duration: 4.8,
-                              repeat: Infinity,
-                              ease: "easeInOut",
-                              delay: 2.3,
-                            }}
-                          />
-
-                          {/* Tiny white sparkle 1 - rapid twinkle */}
-                          <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white rounded-full shadow-white/50 shadow-sm"
-                            style={{
-                              transform: "translateY(-50%)",
-                              willChange: "transform",
-                            }}
-                            animate={{
-                              x: [-6, 66],
-                              y: [0, -2, 3, -1, 0],
-                              scale: [0, 1.3, 0.7, 1, 0],
-                              opacity: [0, 0.9, 0.3, 0.7, 0],
+                              x: [-5, 28],
+                              y: [0, 2, -1, 0],
+                              scale: [0, 0.9, 1.1, 0],
+                              opacity: [0, 0.6, 0.7, 0],
                             }}
                             transition={{
                               duration: 2.8,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              delay: 1.1,
+                            }}
+                          />
+
+                          {/* Center-left sparkles */}
+                          <motion.div
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/90 rounded-full"
+                            style={{
+                              transform: "translateY(-50%)",
+                              willChange: "transform",
+                            }}
+                            animate={{
+                              x: [15, 48],
+                              y: [0, -3, 2, 0],
+                              scale: [0, 1.3, 0.7, 0],
+                              opacity: [0, 0.9, 0.5, 0],
+                            }}
+                            transition={{
+                              duration: 2.5,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              delay: 0.7,
+                            }}
+                          />
+
+                          <motion.div
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/70 rounded-full"
+                            style={{
+                              transform: "translateY(-50%)",
+                              willChange: "transform",
+                            }}
+                            animate={{
+                              x: [18, 51],
+                              y: [0, 1, -2, 0],
+                              scale: [0, 0.8, 1.0, 0],
+                              opacity: [0, 0.5, 0.8, 0],
+                            }}
+                            transition={{
+                              duration: 3.1,
                               repeat: Infinity,
                               ease: "easeInOut",
                               delay: 1.8,
                             }}
                           />
 
-                          {/* Tiny white sparkle 2 - dancing motion */}
+                          {/* Center-right sparkles */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white/90 rounded-full"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white rounded-full shadow-white/40 shadow-sm"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-10, 70],
-                              y: [0, 2, -3, 1, -1, 0],
-                              scale: [0, 0.9, 1.2, 0.8, 1.1, 0],
-                              opacity: [0, 0.6, 0.9, 0.5, 0.8, 0],
+                              x: [40, 73],
+                              y: [0, -1, 3, 0],
+                              scale: [0, 1.1, 0.9, 0],
+                              opacity: [0, 0.7, 0.3, 0],
                             }}
                             transition={{
-                              duration: 5.2,
+                              duration: 2.6,
                               repeat: Infinity,
                               ease: "easeInOut",
-                              delay: 3.5,
+                              delay: 0.4,
                             }}
                           />
 
-                          {/* Mini white sparkle 1 - subtle drift */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white/70 rounded-full"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/85 rounded-full"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-16, 76],
-                              y: [0, 1, -2, 2, 0],
-                              scale: [0, 0.7, 0.9, 0.8, 0],
-                              opacity: [0, 0.4, 0.7, 0.5, 0],
+                              x: [43, 76],
+                              y: [0, 2, -1, 0],
+                              scale: [0, 0.7, 1.2, 0],
+                              opacity: [0, 0.4, 0.9, 0],
                             }}
                             transition={{
-                              duration: 6.0,
+                              duration: 2.9,
                               repeat: Infinity,
                               ease: "easeInOut",
-                              delay: 0.3,
+                              delay: 1.5,
                             }}
                           />
 
-                          {/* Mini white sparkle 2 - lazy float */}
+                          {/* Right section sparkles */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white/60 rounded-full"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/75 rounded-full"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-26, 86],
-                              y: [0, -1, 2, -2, 1, 0],
-                              scale: [0, 0.6, 1, 0.7, 0.9, 0],
-                              opacity: [0, 0.3, 0.6, 0.4, 0.5, 0],
+                              x: [65, 88],
+                              y: [0, -2, 1, 0],
+                              scale: [0, 1.0, 0.8, 0],
+                              opacity: [0, 0.6, 0.5, 0],
                             }}
                             transition={{
-                              duration: 7.5,
+                              duration: 2.4,
                               repeat: Infinity,
                               ease: "easeInOut",
-                              delay: 4.2,
+                              delay: 0.9,
                             }}
                           />
 
-                          {/* Micro white sparkle - quick shimmer */}
+                          {/* Gap fillers - shorter distance movements */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white rounded-full shadow-white/30 shadow-xs"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/60 rounded-full"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-4, 64],
-                              y: [0, -1, 1, 0],
-                              scale: [0, 1.4, 0.6, 0],
-                              opacity: [0, 1, 0.2, 0],
+                              x: [8, 24],
+                              y: [0, 1, -1, 0],
+                              scale: [0, 0.9, 0.7, 0],
+                              opacity: [0, 0.4, 0.6, 0],
                             }}
                             transition={{
-                              duration: 2.5,
+                              duration: 1.8,
                               repeat: Infinity,
                               ease: "easeInOut",
-                              delay: 5.8,
+                              delay: 0.6,
                             }}
                           />
 
-                          {/* Whisper white sparkle - barely there */}
                           <motion.div
-                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-white/50 rounded-full"
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/65 rounded-full"
                             style={{
                               transform: "translateY(-50%)",
                               willChange: "transform",
                             }}
                             animate={{
-                              x: [-20, 80],
-                              y: [0, 3, -1, 2, -2, 0],
-                              scale: [0, 0.5, 0.8, 0.6, 0.7, 0],
-                              opacity: [0, 0.2, 0.5, 0.3, 0.4, 0],
+                              x: [30, 46],
+                              y: [0, -1, 2, 0],
+                              scale: [0, 0.8, 1.0, 0],
+                              opacity: [0, 0.5, 0.4, 0],
                             }}
                             transition={{
-                              duration: 8.5,
+                              duration: 1.9,
                               repeat: Infinity,
                               ease: "easeInOut",
-                              delay: 6.5,
+                              delay: 1.3,
+                            }}
+                          />
+
+                          <motion.div
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/55 rounded-full"
+                            style={{
+                              transform: "translateY(-50%)",
+                              willChange: "transform",
+                            }}
+                            animate={{
+                              x: [52, 68],
+                              y: [0, 2, -1, 0],
+                              scale: [0, 0.7, 0.9, 0],
+                              opacity: [0, 0.3, 0.7, 0],
+                            }}
+                            transition={{
+                              duration: 2.0,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              delay: 0.1,
+                            }}
+                          />
+
+                          {/* Continuous flow sparkles */}
+                          <motion.div
+                            className="absolute top-1/2 w-0.5 h-0.5 bg-white/50 rounded-full"
+                            style={{
+                              transform: "translateY(-50%)",
+                              willChange: "transform",
+                            }}
+                            animate={{
+                              x: [-5, 85],
+                              y: [0, -1, 2, -1, 0],
+                              scale: [0, 0.6, 0.8, 0.5, 0],
+                              opacity: [0, 0.3, 0.5, 0.2, 0],
+                            }}
+                            transition={{
+                              duration: 4.0,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              delay: 2.0,
                             }}
                           />
                         </>

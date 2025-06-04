@@ -494,7 +494,7 @@ export default function Home() {
           },
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 lg:px-8">
           {" "}
           {/* Original container */}
           {/* Section Heading with Controlled Text Shadow */}
@@ -541,7 +541,7 @@ export default function Home() {
             </motion.span>
           </motion.h2>
           {/* Grid Container */}
-          <div className="grid lg:grid-cols-2 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-16">
             {/* Therapy Costs Card (Left Side) */}
             {/* Use simple whileInView for card entry */}
             <motion.div
@@ -555,7 +555,7 @@ export default function Home() {
               <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 relative z-10 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent drop-shadow-lg">
                 Average Therapy Costs
               </h3>
-              <p className="text-white text-sm sm:text-md md:text:lg mb-6 sm:mb-8 relative z-10">
+              <p className="text-white text-sm sm:text-base md:text-lg mb-6 sm:mb-8 relative z-10">
                 Traditional therapy can be costly and inaccessible for many. We
                 break down these barriers by offering affordable, AI-powered
                 therapy solutions that provide the same quality of care at a
@@ -565,7 +565,7 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
                 {/* Traditional Therapy Box */}
                 <div className="relative">
-                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-white/50 border border-white/30 shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div className="p-4 sm:p-5 md:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-white/50 border border-white/30 shadow-md hover:shadow-lg transition-shadow duration-300">
                     {/* Original Heading */}
                     <h4 className="text-lg font-bold mb-3 flex flex-wrap items-center gap-2 relative z-10">
                       <span className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-3 py-1 rounded-lg shadow-md">
@@ -577,7 +577,7 @@ export default function Home() {
                       </span>
                     </h4>
                     {/* Grid for individual traditional costs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
                       {[
                         { title: "Solo Session", price: "$100-150" },
                         { title: "Couples Session", price: "$150-250" },
@@ -668,7 +668,7 @@ export default function Home() {
                   variants={fadeInUp}
                   className="relative"
                 >
-                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-blue-50/40 border border-blue-200/50 shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div className="p-4 sm:p-5 md:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-blue-50/40 border border-blue-200/50 shadow-md hover:shadow-lg transition-shadow duration-300">
                     {/* Original heading */}
                     <h4 className="text-lg font-bold mb-4 relative z-10 flex flex-wrap items-center gap-2">
                       <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg shadow-md">
@@ -1027,7 +1027,7 @@ export default function Home() {
               </div>
             </motion.div>
 
-            <div className="h-auto min-h-[800px] sm:min-h-[700px] md:min-h-[650px] relative z-10">
+            <div className="h-auto min-h-[800px] sm:min-h-[700px] md:min-h-[600px] lg:min-h-[650px] relative z-10">
               <LayoutGrid
                 cards={[
                   {
@@ -1036,7 +1036,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full h-[246px] lg:h-[320px] object-cover z-0"
+                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[320px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1062,7 +1062,7 @@ export default function Home() {
                         <div className="absolute inset-0 z-20 p-5">
                           {/* Add positioning/centering classes here if needed */}
 
-                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
                             Rebuild trust, improve communication, and rediscover
                             intimacy with our specialized couples therapy. Our
                             AI therapist uses evidence-based techniques from
@@ -1085,7 +1085,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full h-[246px] lg:h-[350px] object-cover z-0"
+                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[350px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1111,7 +1111,7 @@ export default function Home() {
                         <div className="absolute inset-0 z-20 p-5">
                           {/* Add positioning/centering classes here if needed */}
 
-                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
                             Address anxiety, depression, and stress with
                             personalized therapy approaches that promote
                             emotional well-being. Our AI therapist employs
@@ -1134,7 +1134,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full h-[246px] lg:h-[380px] object-cover z-0"
+                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[380px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1160,7 +1160,7 @@ export default function Home() {
                         <div className="absolute inset-0 z-20 p-5">
                           {/* Add positioning/centering classes here if needed */}
 
-                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
                             Heal family dynamics and build stronger connections
                             through our systemic family therapy approach.
                             Address intergenerational patterns, resolve
@@ -1183,7 +1183,7 @@ export default function Home() {
                       <div className="relative w-full h-full overflow-hidden">
                         {/* Adjust height as needed (e.g., h-[500px]) */}
                         <video
-                          className="absolute w-full h-[246px] lg:h-[320px] object-cover z-0"
+                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[320px] object-cover z-0"
                           autoPlay
                           loop
                           muted
@@ -1209,7 +1209,7 @@ export default function Home() {
                         <div className="absolute inset-0 z-20 p-5">
                           {/* Add positioning/centering classes here if needed */}
 
-                          <p className="text-white/80 text-xs sm:text-md md:text-xl mt-4 lg:mt-14">
+                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
                             Embark on a personal growth journey with our
                             individualized solo therapy. Enhance your mental
                             wellbeing, develop effective coping strategies, and
@@ -1279,7 +1279,7 @@ export default function Home() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-6 lg:px-8">
           {" "}
           {/* Original container */}
           {/* Section Heading - simple whileInView */}
@@ -1300,7 +1300,7 @@ export default function Home() {
           </motion.h2>
           {/* Feature Card Grid - Apply stagger directly */}
           <motion.div
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8" // Original classes
+            className="grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-6 lg:gap-8" // Enhanced tablet responsiveness
             initial="hidden" // Parent controls children
             whileInView="visible"
             viewport={{ once: true, amount: getOptimizedThreshold(0.1) }} // Trigger earlier for container
@@ -1937,7 +1937,7 @@ export default function Home() {
         </motion.div>{" "}
         {/* End Overlay Container */}
         {/* CTA Content */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-6 lg:px-8 relative z-10">
           {" "}
           {/* Original container + z-10 */}
           <div className="text-center relative z-10 mb-6">
@@ -1988,7 +1988,7 @@ export default function Home() {
       <footer className="w-full py-10 text-white">
         {" "}
         {/* Original classes */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 lg:px-8">
           {" "}
           {/* Original container */}
           <div className="text-center">

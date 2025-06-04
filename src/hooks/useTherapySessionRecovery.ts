@@ -82,6 +82,21 @@ export function useTherapySessionRecovery() {
             })
 
             console.log('✅ Valid session found - ready for auto-restart')
+            
+            // Store recovery info for the UI to use
+            const recoveryInfo = {
+              sessionId: activeSession.id,
+              originalStart: activeSession.startTime,
+              recoveredAt: new Date().toISOString(),
+              elapsedMinutes: elapsedMinutes,
+              remainingMinutes: remainingMinutes,
+              autoRestarted: false, // Will be updated when session actually restarts
+              sessionData: activeSession
+            }
+            
+            sessionStorage.setItem('session-recovery-pending', JSON.stringify(recoveryInfo))
+            console.log('💾 Session recovery info stored for UI')
+            
             return activeSession
           } else {
             console.log('⚠️ Session expired - not recovering')

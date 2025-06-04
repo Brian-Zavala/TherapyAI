@@ -5,6 +5,7 @@ import Image from "next/image";
 import TherapyButton from "@/components/TherapyButton";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
 import SessionRecoveryNotification from "@/components/SessionRecoveryNotification";
+import ActiveSessionFoundModal from "@/components/ActiveSessionFoundModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -260,6 +261,113 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     setShowTypeSelector(true);
   };
 
+  // Handle continuing an active session
+  const handleContinueActiveSession = async (sessionData: any) => {
+    console.log('🔄 Continuing active session:', sessionData.id)
+    
+    try {
+      // Validate session data
+      if (!sessionData || !sessionData.id) {
+        throw new Error('Invalid session data provided')
+      }
+      
+      // Verify session is still active on server
+      console.log('🔍 Verifying session is still active on server...')
+      const sessionCheck = await fetch(`/api/sessions/${sessionData.id}`)
+      if (!sessionCheck.ok) {
+        throw new Error('Session no longer exists on server')
+      }
+      
+      const currentSessionData = await sessionCheck.json()
+      if (currentSessionData.status !== 'active') {
+        throw new Error(`Session is ${currentSessionData.status}, cannot continue`)
+      }
+      
+      // Determine session type from theme or therapy type
+      let detectedType = 'couple' // default
+      if (sessionData.theme) {
+        if (sessionData.theme.toLowerCase().includes('individual') || sessionData.theme.toLowerCase().includes('solo')) {
+          detectedType = 'solo'
+        } else if (sessionData.theme.toLowerCase().includes('family')) {
+          detectedType = 'family'
+        }
+      }
+      
+      console.log(`🎯 Detected session type: ${detectedType}`)
+      
+      // Set the session type and assistant
+      setSessionType(detectedType)
+      let assistant
+      switch (detectedType) {
+        case 'solo':
+          assistant = INDIVIDUAL_THERAPY_ASSISTANT_CONFIG
+          break
+        case 'family':
+          assistant = FAMILY_THERAPY_ASSISTANT_CONFIG
+          break
+        case 'couple':
+        default:
+          assistant = COUPLE_THERAPY_ASSISTANT_CONFIG
+          break
+      }
+      setSelectedAssistant(assistant)
+      
+      // CRITICAL: Hide type selector and ensure UI transitions to active session view
+      setShowTypeSelector(false)
+      setMeditationStep('done')
+      
+      // Additional state synchronization to ensure UI shows active session
+      console.log('🔄 Synchronizing UI state for active session...')
+      
+      // Small delay to ensure state changes propagate
+      setTimeout(() => {
+        // Double-check that session-active class is present
+        if (!document.body.classList.contains('session-active')) {
+          console.log('⚠️ session-active class missing, adding it manually')
+          document.body.classList.add('session-active')
+        }
+        
+        // Verify UI is in correct state
+        const isSessionActiveSet = document.body.classList.contains('session-active')
+        console.log(`🔍 UI State Check: session-active class=${isSessionActiveSet}, showTypeSelector=${false}, meditationStep=done`)
+      }, 100)
+      
+      console.log(`✅ Session recovery setup complete - ${detectedType} therapy with ${assistant.name}`)
+      console.log('👉 User should now see active session interface')
+      
+    } catch (error) {
+      console.error('❌ Error continuing active session:', error)
+      
+      // Show user-friendly error and provide fallback options
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      
+      // Reset to safe state
+      setSessionType(null)
+      setShowTypeSelector(true)
+      setMeditationStep('none')
+      
+      // Clean up any stale session data
+      sessionStorage.removeItem('session-recovery-pending')
+      sessionStorage.removeItem('session-continue-trigger')
+      sessionStorage.removeItem('current-session-id')
+      
+      // Notify user
+      alert(`Failed to continue session: ${errorMessage}\n\nYou'll need to start a new session. Any previous session has been safely ended.`)
+      
+      throw error // Re-throw so modal can handle it too
+    }
+  }
+
+  // Handle starting new session (ends previous)
+  const handleStartNewSession = () => {
+    console.log('🆕 Starting new session, previous session ended')
+    // Reset all state and show type selector
+    setSessionType(null)
+    setShowTypeSelector(true)
+    setMeditationStep('none')
+    setIsSessionActive(false)
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -496,7 +604,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           {
             key: "main-content",
             className:
-              "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-6 md:pt-8 pb-32 sm:pb-24 md:pb-32 relative z-10",
+              "w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-7 lg:px-8 xl:px-12 pt-4 sm:pt-6 md:pt-8 pb-32 sm:pb-24 md:pb-32 relative z-10",
           },
           [
             // Date/Time Header - reduced bottom margin
@@ -528,7 +636,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     key: "digital-clock",
                     className: `digital-clock-container ${
                       isSessionActive ? "text-white" : "text-black/80"
-                    } transition-all duration-500 opacity-0 animate-[fadeIn_0.4s_ease-in-out_0.1s_forwards] mx-auto md:mx-0 scale-75 sm:scale-90 md:scale-100`,
+                    } transition-all duration-500 opacity-0 animate-[fadeIn_0.4s_ease-in-out_0.1s_forwards] mx-auto md:mx-0 scale-75 sm:scale-90 md:scale-95 lg:scale-100`,
                   },
                   [
                     // Digital time display
@@ -610,7 +718,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               {
                 key: "main-card",
                 className:
-                  "grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl backdrop-blur-xs bg-transparent mt-6 sm:mt-3 md:mt-4",
+                  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rounded-xl backdrop-blur-xs bg-transparent mt-6 sm:mt-3 md:mt-4",
               },
               [
                 // Card session with enhanced styling
@@ -649,7 +757,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   {
                                     key: "action-buttons",
                                     className:
-                                      "w-full flex justify-between items-center mt-0 mb-4 px-2 sm:px-4 md:px-6",
+                                      "w-full flex justify-between items-center mt-0 mb-4 px-2 sm:px-4 md:px-5 lg:px-6",
                                   },
                                   [
                                     // Quick Actions Menu Button and Popup
@@ -1410,7 +1518,14 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       ]
     ),
 
-    // Session Recovery Notification
+    // Active Session Found Modal (appears immediately when active session detected)
+    React.createElement(ActiveSessionFoundModal, {
+      key: "active-session-found-modal",
+      onContinueSession: handleContinueActiveSession,
+      onStartNewSession: handleStartNewSession
+    }),
+
+    // Session Recovery Notification (appears after session is successfully recovered)
     React.createElement(SessionRecoveryNotification, {
       key: "session-recovery-notification"
     }),

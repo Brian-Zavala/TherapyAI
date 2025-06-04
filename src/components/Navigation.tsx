@@ -34,7 +34,7 @@ export default function Navigation() {
     const checkIfMobile = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth < 768); // Tailwind's md breakpoint
+        setIsMobile(window.innerWidth < 1024); // Tailwind's lg breakpoint - includes tablets
       }, 100); // Throttle resize events
     };
 
@@ -103,7 +103,7 @@ export default function Navigation() {
       {!isMenuOpen && (
         <div
           id="menu-tab"
-          className="hidden md:block cursor-pointer"
+          className="hidden lg:block cursor-pointer"
           onMouseOver={() => {
             setIsMenuOpen(true);
             playSound();
@@ -311,8 +311,8 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Mobile Menu Button - only visible on mobile */}
-      <div className="md:hidden top-2 right-2 absolute z-50">
+      {/* Mobile Menu Button - visible on mobile and tablet */}
+      <div className="lg:hidden top-2 right-2 absolute z-50">
         <button
           ref={menuBtnRef}
           className="focus:outline-none cursor-pointer"
@@ -356,12 +356,12 @@ export default function Navigation() {
         </button>
       </div>
 
-      {/* Mobile Menu - covers entire screen (only for mobile) - Framer Motion Optimized */}
+      {/* Mobile Menu - covers entire screen (for mobile and tablet) - Framer Motion Optimized */}
       <AnimatePresence mode="wait">
         {isMenuOpen && (
           <motion.div
             ref={mobileMenuRef}
-            className="md:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto"
+            className="lg:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
