@@ -335,6 +335,7 @@ const PLANS = {
 
 ## Critical Reminders
 
+- **Think and Double Check**: Always think through your approach and double check all output/work before finalizing
 - **Database**: Always use `.env` (never `.env.local`) for Supabase
 - **Meta Speech**: Avoid "I see we have..." patterns in AI prompts
 - **JSX Errors**: Check parentheses in `.map()` functions

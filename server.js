@@ -73,11 +73,25 @@ app.prepare().then(() => {
       
       // Handle metrics WebSocket upgrade
       if (pathname === '/api/ws/metrics') {
-        // Dynamically import the WebSocket handler
-        const { getMetricsWebSocketServer } = await import('./src/lib/websocket-real-time-metrics.js');
-        const wsServer = getMetricsWebSocketServer();
-        wsServer.handleUpgrade(request, socket, head);
-        console.log('📡 WebSocket upgrade handled for metrics endpoint');
+        try {
+          // Import the WebSocket handler - using JavaScript wrapper for compatibility
+          console.log('🔍 Importing WebSocket handler (JavaScript version)...');
+          const { getMetricsWebSocketServer } = require('./websocket-server.js');
+          
+          if (!getMetricsWebSocketServer) {
+            throw new Error('WebSocket server function not found in imported module');
+          }
+          
+          const wsServer = getMetricsWebSocketServer();
+          wsServer.handleUpgrade(request, socket, head);
+          console.log('📡 WebSocket upgrade handled for metrics endpoint');
+        } catch (importError) {
+          console.error('💥 Failed to import WebSocket handler:', importError);
+          console.error('💥 Import error details:', importError.message);
+          console.error('💥 Stack trace:', importError.stack);
+          socket.write('HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nWebSocket server initialization failed');
+          socket.destroy();
+        }
       } else {
         // For other WebSocket routes, destroy the connection
         socket.destroy();

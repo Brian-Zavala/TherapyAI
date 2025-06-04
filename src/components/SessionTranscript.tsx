@@ -531,7 +531,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   }
 
   // Process entries - extract all actual conversation parts
-  let initialFiltered = [];
+  const initialFiltered = [];
   
   console.log(`Processing ${transcriptEntries.length} transcript entries`);
   
@@ -602,7 +602,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   })
   
   // Simplified deduplication - only remove exact duplicates and obvious progressions
-  let filteredEntriesArray: TranscriptEntry[] = [];
+  const filteredEntriesArray: TranscriptEntry[] = [];
   const seenTexts = new Set<string>();
   
   // Helper function for text normalization

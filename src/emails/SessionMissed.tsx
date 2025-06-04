@@ -10,6 +10,7 @@ interface SessionMissedEmailProps {
     date: string;
     time: string;
   }>;
+  baseUrl: string;
 }
 
 export const SessionMissedEmail: React.FC<SessionMissedEmailProps> = ({
@@ -19,6 +20,7 @@ export const SessionMissedEmail: React.FC<SessionMissedEmailProps> = ({
   therapistName,
   sessionType,
   nextAvailableSlots,
+  baseUrl,
 }) => {
   return (
     <html>
@@ -202,7 +204,7 @@ export const SessionMissedEmail: React.FC<SessionMissedEmailProps> = ({
 
                     <div style={{ textAlign: 'center', marginTop: '40px' }}>
                       <a
-                        href="https://therapy.ai/schedule"
+                        href={`${baseUrl}/schedule`}
                         style={{
                           display: 'inline-block',
                           backgroundColor: '#6366f1',
@@ -224,7 +226,7 @@ export const SessionMissedEmail: React.FC<SessionMissedEmailProps> = ({
                           margin: '15px 0 0 0',
                         }}
                       >
-                        Or log in to your <a href="https://therapy.ai/dashboard" style={{ color: '#6366f1', textDecoration: 'none' }}>dashboard</a> to manage your sessions
+                        Or log in to your <a href={`${baseUrl}/dashboard`} style={{ color: '#6366f1', textDecoration: 'none' }}>dashboard</a> to manage your sessions
                       </p>
                     </div>
                   </td>

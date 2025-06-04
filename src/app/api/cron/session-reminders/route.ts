@@ -60,6 +60,7 @@ export async function GET(request: Request) {
         // Send email reminder if needed
         if (!session.emailReminderSent && session.user.email) {
           try {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
             await resend.emails.send({
               from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
               to: session.user.email,
@@ -69,6 +70,7 @@ export async function GET(request: Request) {
                 sessionDate: session.date,
                 duration: session.duration,
                 notes: session.notes || '',
+                baseUrl: baseUrl,
               }),
             });
             updates.emailReminderSent = true;
@@ -95,6 +97,7 @@ export async function GET(request: Request) {
       upcomingSessions1h.map(async (session) => {
         if (!session.oneHourReminderSent && session.user.email) {
           try {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
             await resend.emails.send({
               from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
               to: session.user.email,
@@ -105,6 +108,7 @@ export async function GET(request: Request) {
                 duration: session.duration,
                 notes: session.notes || '',
                 isOneHourReminder: true, // Add this to customize the email template
+                baseUrl: baseUrl,
               }),
             });
             
@@ -166,6 +170,7 @@ export async function GET(request: Request) {
           }));
 
           // Send missed session email
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
           await resend.emails.send({
             from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
             to: session.user.email,
@@ -177,6 +182,7 @@ export async function GET(request: Request) {
               therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
               sessionType: session.theme || 'Therapy Session',
               nextAvailableSlots: formattedSlots.length > 0 ? formattedSlots : undefined,
+              baseUrl: baseUrl,
             }),
           });
           console.log(`Missed session email sent for session ${session.id}`);

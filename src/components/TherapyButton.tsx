@@ -196,7 +196,7 @@ function TherapyButton({
   const audioStreamRef = useRef<MediaStream | null>(null)
 
 
-  const createVapiInstance = useCallback(async (userProfile?: any) => {
+  const createVapiInstance = useCallback(async (userProfile?: any, currentSessionId?: string) => {
     try {
       // Dispose of any existing instance
       if (vapiInstanceRef.current) {
@@ -268,14 +268,15 @@ function TherapyButton({
       }
       
       // Store session ID in the Vapi instance for message handling
-      if (vapiInstanceRef.current && sessionId) {
-        (vapiInstanceRef.current as any)._sessionId = sessionId;
-        console.log(`#### SETTING SESSION ID ${sessionId} FOR TRANSCRIPT RECORDING ####`);
+      const sessionIdToUse = currentSessionId || sessionId;
+      if (vapiInstanceRef.current && sessionIdToUse) {
+        (vapiInstanceRef.current as any)._sessionId = sessionIdToUse;
+        console.log(`#### SETTING SESSION ID ${sessionIdToUse} FOR TRANSCRIPT RECORDING ####`);
         
         // Also store in sessionStorage for backup
         try {
-          sessionStorage.setItem('current-session-id', sessionId);
-          console.log(`Saved session ID to sessionStorage: ${sessionId}`);
+          sessionStorage.setItem('current-session-id', sessionIdToUse);
+          console.log(`Saved session ID to sessionStorage: ${sessionIdToUse}`);
         } catch (storageError) {
           console.warn('Could not save session ID to sessionStorage:', storageError);
         }
@@ -568,7 +569,8 @@ function TherapyButton({
             try {
               // Create hash of conversation content to detect duplicates
               const conversationContent = JSON.stringify(message.conversation || message.messages || []);
-              const conversationHash = btoa(conversationContent).substring(0, 32); // Simple hash
+              // Use a safer hash that handles Unicode characters
+              const conversationHash = btoa(encodeURIComponent(conversationContent)).substring(0, 32);
               
               // Handle session ID changes with session recovery awareness
               if (lastConversationSessionId.current !== sessionId) {
@@ -1260,6 +1262,16 @@ function TherapyButton({
         }
         
         setSessionId(session.id)
+        
+        // Store session ID in sessionStorage for reliable access
+        sessionStorage.setItem('current-session-id', session.id)
+        console.log(`💾 Session ID stored in sessionStorage: ${session.id}`)
+        
+        // Set session ID on Vapi instance if it exists
+        if (vapiInstanceRef.current) {
+          (vapiInstanceRef.current as any)._sessionId = session.id
+          console.log(`💾 Session ID set on Vapi instance: ${session.id}`)
+        }
       } catch (parseError) {
         console.error('Error parsing session response:', parseError)
         throw new Error('Failed to parse session data')
@@ -1270,7 +1282,9 @@ function TherapyButton({
       }
       
       // Initialize Vapi immediately with minimal profile (common for both new and existing sessions)
-      const initialized = await createVapiInstance(userProfile)
+      // Pass the current session ID to ensure transcript processing works
+      const currentSessionIdForVapi = sessionId || session?.id || sessionStorage.getItem('current-session-id')
+      const initialized = await createVapiInstance(userProfile, currentSessionIdForVapi)
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
       }

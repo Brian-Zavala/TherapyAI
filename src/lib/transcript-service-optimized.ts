@@ -3,6 +3,8 @@
  * and prevent VAPI session timeouts caused by excessive API calls
  */
 
+import { RealTimeMetricsCalculator, type IncrementalMetrics } from './real-time-metrics-optimized';
+
 export type TranscriptEntry = {
   id?: string
   sessionId: string
@@ -18,10 +20,30 @@ export type TranscriptEntry = {
  */
 class BatchedTranscriptManager {
   private queue: Map<string, TranscriptEntry[]> = new Map()
-  private batchSize = 10 // Increased from 5 to reduce database write frequency
-  private batchTimeout = 60000 // Increased to 60 seconds to reduce timeout-based saves
+  private batchSize = 50 // Increased to handle more entries efficiently
+  private maxBatchSize = 90 // Stay under API limit of 100
+  private batchTimeout = 30000 // 30 seconds - balanced between frequency and responsiveness
   private timeouts: Map<string, NodeJS.Timeout> = new Map()
   private saving: Set<string> = new Set()
+  
+  // Real-time metrics calculators for active sessions
+  private metricsCalculators: Map<string, RealTimeMetricsCalculator> = new Map()
+
+  /**
+   * Initialize metrics calculator for a session
+   */
+  initializeMetricsCalculator(sessionId: string, userId: string, therapyType: 'couple' | 'family' | 'solo', sessionDurationMinutes?: number): void {
+    if (!this.metricsCalculators.has(sessionId)) {
+      const calculator = new RealTimeMetricsCalculator({
+        sessionId,
+        therapyType,
+        sessionDurationMinutes,
+        userId
+      });
+      this.metricsCalculators.set(sessionId, calculator);
+      console.log(`📊 METRICS: Initialized calculator for session ${sessionId} (${therapyType})`);
+    }
+  }
 
   /**
    * Add entry to batch queue instead of immediate save
@@ -43,6 +65,9 @@ class BatchedTranscriptManager {
 
     // Save to session storage immediately as backup
     this.saveToSessionStorage(completedEntry)
+
+    // Calculate real-time metrics if calculator is available
+    await this.calculateAndBroadcastMetrics(completedEntry)
 
     // Add to batch queue
     if (!this.queue.has(sessionId)) {
@@ -66,6 +91,64 @@ class BatchedTranscriptManager {
   }
 
   /**
+   * Calculate metrics and broadcast to real-time dashboard
+   */
+  private async calculateAndBroadcastMetrics(entry: TranscriptEntry): Promise<void> {
+    const calculator = this.metricsCalculators.get(entry.sessionId);
+    if (!calculator) {
+      return; // No calculator means metrics not enabled for this session
+    }
+
+    try {
+      // Add transcript entry to calculator
+      const metrics = calculator.addTranscriptEntry({
+        speaker: entry.speaker as 'user' | 'assistant',
+        text: entry.text,
+        timestamp: entry.timestamp || new Date().toISOString()
+      });
+
+      // Check if this update should trigger a broadcast
+      if (RealTimeMetricsCalculator.shouldTriggerUpdate(metrics)) {
+        console.log(`📊 METRICS TRIGGER: Broadcasting update for session ${entry.sessionId} (confidence: ${metrics.confidence}%)`);
+        
+        // Send metrics to the HTTP endpoint which will broadcast via WebSocket
+        await this.sendMetricsToAPI(entry.sessionId, calculator.getUserId, metrics);
+      }
+    } catch (error) {
+      console.error(`Error calculating metrics for session ${entry.sessionId}:`, error);
+    }
+  }
+
+  /**
+   * Send metrics to API endpoint for WebSocket broadcasting
+   */
+  private async sendMetricsToAPI(sessionId: string, userId: string, metrics: IncrementalMetrics): Promise<void> {
+    try {
+      const response = await fetch('/api/ws/metrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'metrics_update',
+          userId,
+          sessionId,
+          metrics,
+          timestamp: new Date().toISOString()
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn(`Failed to send metrics to API: ${response.status}`);
+      } else {
+        console.log(`✅ METRICS API: Successfully sent metrics for session ${sessionId}`);
+      }
+    } catch (error) {
+      console.error('Error sending metrics to API:', error);
+    }
+  }
+
+  /**
    * Save a batch of entries for a session
    */
   private async saveBatch(sessionId: string): Promise<void> {
@@ -85,41 +168,74 @@ class BatchedTranscriptManager {
     // Mark as saving
     this.saving.add(sessionId)
     
-    const entriesToSave = [...sessionQueue]
+    // Handle large batches by splitting them
+    const allEntries = [...sessionQueue]
     this.queue.set(sessionId, []) // Clear queue
 
-    console.log(`💾 BATCH SAVE: Saving ${entriesToSave.length} entries for session ${sessionId}`)
+    console.log(`💾 BATCH SAVE: Processing ${allEntries.length} entries for session ${sessionId}`)
 
     try {
-      // Single API call to save all entries
-      const response = await fetch(`/api/sessions/${sessionId}/transcript/batch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          entries: entriesToSave.map(entry => ({
-            speaker: entry.speaker,
-            text: entry.text,
-            timestamp: entry.timestamp,
-            isFinal: entry.isFinal,
-          }))
-        }),
-      })
-
-      if (response.ok) {
-        console.log(`✅ BATCH SUCCESS: Saved ${entriesToSave.length} entries`)
-      } else {
-        console.warn(`❌ BATCH FAILED: ${response.status}`)
-        // Re-queue entries for retry
-        const currentQueue = this.queue.get(sessionId) || []
-        this.queue.set(sessionId, [...entriesToSave, ...currentQueue])
+      // Split into chunks if necessary
+      const chunks = []
+      for (let i = 0; i < allEntries.length; i += this.maxBatchSize) {
+        chunks.push(allEntries.slice(i, i + this.maxBatchSize))
       }
+
+      console.log(`📦 BATCH: Split into ${chunks.length} chunks`)
+
+      // Save each chunk
+      let failedEntries: TranscriptEntry[] = []
+      
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i]
+        console.log(`💾 Saving chunk ${i + 1}/${chunks.length} with ${chunk.length} entries`)
+        
+        try {
+          const response = await fetch(`/api/sessions/${sessionId}/transcript/batch`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              entries: chunk.map(entry => ({
+                speaker: entry.speaker,
+                text: entry.text,
+                timestamp: entry.timestamp,
+                isFinal: entry.isFinal,
+              }))
+            }),
+          })
+
+          if (response.ok) {
+            console.log(`✅ CHUNK ${i + 1}/${chunks.length} SUCCESS: Saved ${chunk.length} entries`)
+          } else {
+            const errorText = await response.text()
+            console.warn(`❌ CHUNK ${i + 1}/${chunks.length} FAILED: ${response.status} - ${errorText}`)
+            failedEntries.push(...chunk)
+          }
+        } catch (error) {
+          console.error(`💥 CHUNK ${i + 1}/${chunks.length} ERROR:`, error)
+          failedEntries.push(...chunk)
+        }
+        
+        // Small delay between chunks to avoid overwhelming the server
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      }
+
+      // Re-queue failed entries for retry
+      if (failedEntries.length > 0) {
+        console.warn(`⚠️ Re-queuing ${failedEntries.length} failed entries`)
+        const currentQueue = this.queue.get(sessionId) || []
+        this.queue.set(sessionId, [...failedEntries, ...currentQueue])
+      }
+      
     } catch (error) {
       console.error('💥 BATCH ERROR:', error)
-      // Re-queue entries for retry
+      // Re-queue all entries for retry
       const currentQueue = this.queue.get(sessionId) || []
-      this.queue.set(sessionId, [...entriesToSave, ...currentQueue])
+      this.queue.set(sessionId, [...allEntries, ...currentQueue])
     } finally {
       this.saving.delete(sessionId)
     }
@@ -155,6 +271,18 @@ class BatchedTranscriptManager {
   async flushAll(): Promise<void> {
     const sessionIds = Array.from(this.queue.keys())
     await Promise.all(sessionIds.map(sessionId => this.saveBatch(sessionId)))
+  }
+
+  /**
+   * Cleanup metrics calculator for a session
+   */
+  cleanupMetricsCalculator(sessionId: string): void {
+    const calculator = this.metricsCalculators.get(sessionId);
+    if (calculator) {
+      calculator.cleanupSession();
+      this.metricsCalculators.delete(sessionId);
+      console.log(`🧹 METRICS: Cleaned up calculator for session ${sessionId}`);
+    }
   }
 
   /**
@@ -475,6 +603,20 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
     console.error('Error getting previous sessions transcript:', error);
     return '';
   }
+}
+
+/**
+ * Initialize real-time metrics for a session
+ */
+export function initializeSessionMetrics(sessionId: string, userId: string, therapyType: 'couple' | 'family' | 'solo', sessionDurationMinutes?: number): void {
+  batchManager.initializeMetricsCalculator(sessionId, userId, therapyType, sessionDurationMinutes);
+}
+
+/**
+ * Cleanup real-time metrics for a session
+ */
+export function cleanupSessionMetrics(sessionId: string): void {
+  batchManager.cleanupMetricsCalculator(sessionId);
 }
 
 // Export batch manager for advanced usage

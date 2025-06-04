@@ -25,6 +25,16 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid entries array' }, { status: 400 });
     }
 
+    // Limit batch size to prevent timeouts
+    const MAX_BATCH_SIZE = 100;
+    if (entries.length > MAX_BATCH_SIZE) {
+      return NextResponse.json({ 
+        error: `Batch size too large. Maximum ${MAX_BATCH_SIZE} entries allowed.`,
+        maxSize: MAX_BATCH_SIZE,
+        receivedSize: entries.length
+      }, { status: 400 });
+    }
+
     // Validate session exists and belongs to user
     const existingSession = await prisma.session.findFirst({
       where: {
@@ -52,33 +62,47 @@ export async function POST(
 
     console.log(`💾 BATCH SAVE: Processing ${validEntries.length} entries for session ${sessionId}`);
 
-    // Use a transaction to save all entries atomically
+    // Use a transaction with increased timeout for large batches
     const savedEntries = await prisma.$transaction(async (tx) => {
-      // Create all transcript entries in a single transaction
-      const transcriptEntries = await Promise.all(
-        validEntries.map(entry => 
-          tx.transcriptEntry.create({
-            data: {
-              sessionId,
-              speaker: entry.speaker,
-              text: entry.text,
-              timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(),
-              isFinal: entry.isFinal !== undefined ? entry.isFinal : true,
-            },
-          })
-        )
-      );
+      // Prepare data for batch creation
+      const transcriptData = validEntries.map(entry => ({
+        sessionId,
+        speaker: entry.speaker,
+        text: entry.text,
+        timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(),
+        isFinal: entry.isFinal !== undefined ? entry.isFinal : true,
+      }));
 
-      // Update session metadata in the same transaction
+      // Use createMany for better performance with large batches
+      await tx.transcriptEntry.createMany({
+        data: transcriptData,
+        skipDuplicates: true, // Skip any duplicate entries
+      });
+
+      // Update session's last activity timestamp
       await tx.session.update({
         where: { id: sessionId },
         data: {
-          // Update existing field instead of non-existent updatedAt
-          status: existingSession.status, // Keep existing status
+          endedAt: new Date(), // Update the last activity time
         },
       });
 
+      // Fetch the created entries for the response
+      const transcriptEntries = await tx.transcriptEntry.findMany({
+        where: {
+          sessionId,
+          timestamp: {
+            gte: transcriptData[0].timestamp,
+          }
+        },
+        orderBy: { timestamp: 'desc' },
+        take: transcriptData.length,
+      });
+
       return transcriptEntries;
+    }, {
+      maxWait: 10000, // Maximum time to wait for a transaction slot (10s)
+      timeout: 30000, // Maximum time for the transaction to complete (30s)
     });
 
     console.log(`✅ BATCH SUCCESS: Saved ${savedEntries.length} entries in transaction`);

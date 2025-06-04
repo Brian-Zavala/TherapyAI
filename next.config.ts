@@ -19,7 +19,6 @@ const nextConfig: NextConfig = {
     },
     resolveAlias: {
       // Map server-only packages to empty modules for client-side
-      "bcrypt": "@/lib/empty-module",
       "@mapbox/node-pre-gyp": "@/lib/empty-module", 
       "aws-sdk": "@/lib/empty-module",
       "mock-aws-s3": "@/lib/empty-module",

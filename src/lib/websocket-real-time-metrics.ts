@@ -11,9 +11,9 @@ const userConnections = new Map<string, Set<WebSocket & { sessionId?: string; us
 const sessionConnections = new Map<string, Set<WebSocket & { userId?: string }>>();
 
 export interface MetricsWebSocketServer {
-  handleUpgrade: (request: IncomingMessage, socket: any, head: Buffer) => void;
+  handleUpgrade: (request: IncomingMessage, socket: unknown, head: Buffer) => void;
   broadcastMetricsUpdate: (userId: string, sessionId: string, metrics: IncrementalMetrics) => void;
-  broadcastSessionUpdate: (userId: string, sessionId: string, status: string, data?: any) => void;
+  broadcastSessionUpdate: (userId: string, sessionId: string, status: string, data?: unknown) => void;
   getConnectionCount: (userId: string) => number;
   cleanup: () => void;
 }
@@ -114,7 +114,7 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
     });
 
     // Handle connection close
-    ws.on('close', (code, reason) => {
+    ws.on('close', (code) => {
       console.log(`🔌 METRICS WebSocket disconnected for user: ${userId} (code: ${code})`);
       
       // Remove from user connections
@@ -145,7 +145,7 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
   });
 
   // Handle HTTP upgrade to WebSocket
-  const handleUpgrade = async (request: IncomingMessage, socket: any, head: Buffer) => {
+  const handleUpgrade = async (request: IncomingMessage, socket: unknown, head: Buffer) => {
     try {
       const pathname = url.parse(request.url || '').pathname;
       
@@ -190,7 +190,6 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
 
     const messageString = JSON.stringify(message);
     let successCount = 0;
-    let errorCount = 0;
 
     // Send to all connections for this user
     const userWs = userConnections.get(userId);
@@ -202,12 +201,10 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
             successCount++;
           } else {
             userWs.delete(ws);
-            errorCount++;
           }
         } catch (error) {
           console.error(`Error sending metrics to WebSocket:`, error);
           userWs.delete(ws);
-          errorCount++;
         }
       });
     }
@@ -225,7 +222,6 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
         } catch (error) {
           console.error(`Error sending metrics to session WebSocket:`, error);
           sessionWs.delete(ws);
-          errorCount++;
         }
       });
     }
@@ -236,7 +232,7 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
   };
 
   // Broadcast session status updates
-  const broadcastSessionUpdate = (userId: string, sessionId: string, status: string, data?: any) => {
+  const broadcastSessionUpdate = (userId: string, sessionId: string, status: string, data?: unknown) => {
     const message = {
       type: 'session_update',
       sessionId,
@@ -287,7 +283,7 @@ export function createMetricsWebSocketServer(): MetricsWebSocketServer {
 
   // Cleanup all connections
   const cleanup = () => {
-    userConnections.forEach((connections, userId) => {
+    userConnections.forEach((connections) => {
       connections.forEach(ws => {
         try {
           ws.close();
@@ -315,27 +311,53 @@ async function authenticateWebSocketRequest(request: IncomingMessage): Promise<s
   try {
     // Extract cookies from request
     const cookies = request.headers.cookie;
+    console.log('🔐 WEBSOCKET AUTH: Cookie header:', cookies ? 'Present' : 'Missing');
+    
     if (!cookies) {
+      console.log('🔐 WEBSOCKET AUTH: No cookies found in request');
       return null;
     }
 
-    // Create a mock request object for NextAuth
-    const mockReq = {
-      headers: request.headers,
-      cookies: parseCookies(cookies)
-    } as any;
+    const parsedCookies = parseCookies(cookies);
+    console.log('🔐 WEBSOCKET AUTH: Parsed cookies:', Object.keys(parsedCookies));
 
-    // Create a mock response object
+    // Create a more complete mock request object for NextAuth
+    const mockReq = {
+      headers: {
+        ...request.headers,
+        // Ensure cookies are properly formatted
+        cookie: cookies
+      },
+      cookies: parsedCookies,
+      url: request.url,
+      method: 'GET'
+    } as unknown;
+
+    // Create a mock response object with all required methods
     const mockRes = {
       getHeader: () => null,
+      setHeader: () => {},
+      removeHeader: () => {},
       setCookie: () => {},
-      setHeader: () => {}
-    } as any;
+      cookies: {},
+      status: () => mockRes,
+      json: () => mockRes,
+      redirect: () => mockRes,
+      end: () => mockRes
+    } as unknown;
 
+    console.log('🔐 WEBSOCKET AUTH: Attempting to get server session...');
     const session = await getServerSession(mockReq, mockRes, authOptions);
-    return session?.user?.id || null;
+    
+    if (session?.user?.id) {
+      console.log(`🔐 WEBSOCKET AUTH: Successfully authenticated user: ${session.user.id}`);
+      return session.user.id;
+    } else {
+      console.log('🔐 WEBSOCKET AUTH: No valid session found');
+      return null;
+    }
   } catch (error) {
-    console.error('Error authenticating WebSocket request:', error);
+    console.error('🔐 WEBSOCKET AUTH: Error authenticating WebSocket request:', error);
     return null;
   }
 }
@@ -343,12 +365,30 @@ async function authenticateWebSocketRequest(request: IncomingMessage): Promise<s
 // Parse cookies from cookie header
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
-  cookieHeader.split(';').forEach(cookie => {
-    const [name, value] = cookie.trim().split('=');
-    if (name && value) {
-      cookies[name] = decodeURIComponent(value);
-    }
-  });
+  
+  try {
+    cookieHeader.split(';').forEach(cookie => {
+      const trimmed = cookie.trim();
+      const equalIndex = trimmed.indexOf('=');
+      
+      if (equalIndex > 0) {
+        const name = trimmed.substring(0, equalIndex);
+        const value = trimmed.substring(equalIndex + 1);
+        
+        if (name && value) {
+          try {
+            cookies[name] = decodeURIComponent(value);
+          } catch {
+            // If decoding fails, use the raw value
+            cookies[name] = value;
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('🔐 WEBSOCKET AUTH: Error parsing cookies:', error);
+  }
+  
   return cookies;
 }
 

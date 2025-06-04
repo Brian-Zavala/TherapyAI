@@ -39,6 +39,8 @@ interface UseRealTimeMetricsReturn {
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
+  connectionAttempts: number;
+  maxAttempts: number;
   
   // Current metrics
   currentMetrics: IncrementalMetrics | null;
@@ -47,6 +49,7 @@ interface UseRealTimeMetricsReturn {
   // Connection control
   connect: () => void;
   disconnect: () => void;
+  retry: () => void;
   subscribeToSession: (sessionId: string) => void;
   unsubscribeFromSession: () => void;
   
@@ -86,12 +89,19 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
 
   // Connect to WebSocket
   const connect = useCallback(() => {
-    if (!session?.user?.id || isConnecting || isConnected) {
+    if (!session?.user?.id) {
+      console.log('📡 METRICS: Cannot connect - no user session');
+      setError('User not authenticated');
       return;
     }
 
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('📡 METRICS WebSocket already connected');
+    if (isConnecting) {
+      console.log('📡 METRICS: Connection already in progress');
+      return;
+    }
+
+    if (isConnected && wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log('📡 METRICS: WebSocket already connected');
       return;
     }
 
@@ -102,12 +112,23 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/api/ws/metrics`;
       
-      console.log(`📡 METRICS: Connecting to WebSocket at ${wsUrl}`);
+      console.log(`📡 METRICS: Connecting to WebSocket at ${wsUrl} (attempt ${reconnectAttempts.current + 1})`);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      // Set a connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          console.error('📡 METRICS: Connection timeout');
+          ws.close();
+          setError('Connection timeout');
+          setIsConnecting(false);
+        }
+      }, 10000); // 10 second timeout
+
       ws.onopen = () => {
-        console.log('📡 METRICS WebSocket connected');
+        clearTimeout(connectionTimeout);
+        console.log('📡 METRICS WebSocket connected successfully');
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
@@ -189,40 +210,75 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
       };
 
       ws.onclose = (event) => {
-        console.log(`📡 METRICS WebSocket closed: ${event.code} ${event.reason}`);
+        clearTimeout(connectionTimeout);
+        
+        const isNormalClosure = event.code === 1000;
+        const closeReasons: Record<number, string> = {
+          1001: 'Browser navigating away',
+          1006: 'Connection lost unexpectedly',
+          1008: 'Authentication failed',
+          1011: 'Server error',
+          1012: 'Server restarting'
+        };
+        
+        const reason = closeReasons[event.code] || event.reason || 'Unknown reason';
+        console.log(`📡 METRICS WebSocket closed: ${event.code} (${reason})`);
+        
         setIsConnected(false);
         setIsConnecting(false);
         setSubscribedSessionId(null);
         onConnectionChange?.(false);
 
-        // Attempt reconnection if not a normal closure
-        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
+        // Don't reconnect if it was a normal closure or authentication failed
+        if (isNormalClosure || event.code === 1008) {
+          if (event.code === 1008) {
+            setError('Authentication failed - please refresh the page');
+            onError?.('Authentication failed - please refresh the page');
+          }
+          return;
+        }
+
+        // Attempt reconnection for unexpected closures
+        if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
-          reconnectDelay.current = Math.min(reconnectDelay.current * 2, 10000); // Max 10 seconds
+          reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000); // Max 30 seconds
           
-          console.log(`📡 METRICS: Reconnecting in ${reconnectDelay.current}ms (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          const attemptInfo = `${reconnectAttempts.current}/${maxReconnectAttempts}`;
+          console.log(`📡 METRICS: Reconnecting in ${reconnectDelay.current}ms (attempt ${attemptInfo}) due to: ${reason}`);
+          setError(`Connection lost: ${reason}. Reconnecting... (${attemptInfo})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
+            if (reconnectAttempts.current < maxReconnectAttempts) {
+              connect();
+            }
           }, reconnectDelay.current);
-        } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-          setError('Max reconnection attempts reached');
-          onError?.('Max reconnection attempts reached');
+        } else {
+          const finalError = `Max reconnection attempts reached after ${maxReconnectAttempts} tries. Please refresh the page.`;
+          setError(finalError);
+          onError?.(finalError);
+          console.error('📡 METRICS:', finalError);
         }
       };
 
       ws.onerror = (error) => {
+        clearTimeout(connectionTimeout);
         console.error('📡 METRICS WebSocket error:', error);
-        setError('WebSocket connection error');
+        
+        const errorMessage = reconnectAttempts.current > 0 
+          ? `Connection error (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`
+          : 'WebSocket connection error';
+          
+        setError(errorMessage);
         setIsConnecting(false);
-        onError?.('WebSocket connection error');
+        onError?.(errorMessage);
       };
 
     } catch (connectError) {
       console.error('Error creating WebSocket connection:', connectError);
-      setError('Failed to create WebSocket connection');
+      const errorMessage = 'Failed to create WebSocket connection - please check your network';
+      setError(errorMessage);
       setIsConnecting(false);
-      onError?.('Failed to create WebSocket connection');
+      onError?.(errorMessage);
     }
   }, [session?.user?.id, isConnecting, isConnected, sessionId, onConnectionChange, onMetricsUpdate, onSessionUpdate, onError]);
 
@@ -294,6 +350,24 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
     return sessionMetricsRef.current.get(targetSessionId) || null;
   }, []);
 
+  // Manual retry function - resets attempts and tries to connect
+  const retry = useCallback(() => {
+    console.log('📡 METRICS: Manual retry requested');
+    reconnectAttempts.current = 0;
+    reconnectDelay.current = 1000;
+    setError(null);
+    
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    disconnect();
+    setTimeout(() => {
+      connect();
+    }, 500); // Small delay to ensure disconnect is complete
+  }, [connect, disconnect]);
+
   // Auto-connect on mount if enabled and user is authenticated
   useEffect(() => {
     if (autoConnect && session?.user?.id && !isConnected && !isConnecting) {
@@ -324,6 +398,8 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
     isConnected,
     isConnecting,
     error,
+    connectionAttempts: reconnectAttempts.current,
+    maxAttempts: maxReconnectAttempts,
     
     // Current metrics
     currentMetrics,
@@ -332,6 +408,7 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
     // Connection control
     connect,
     disconnect,
+    retry,
     subscribeToSession,
     unsubscribeFromSession,
     

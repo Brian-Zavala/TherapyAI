@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
 import { sendSessionConfirmation } from '@/lib/sms-service'; // Currently using mock implementation
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
+import { validateEmailEnvironment } from '@/lib/env-validation';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -160,7 +161,9 @@ export async function POST(request: Request) {
       notes = '',
       notificationPrefs,
       assistantId = '', // New field to capture assistant ID
-      context = {} // Capture but ignore context data (it doesn't go in the DB)
+      context = {}, // Capture but ignore context data (it doesn't go in the DB)
+      isRecurring = false,
+      recurringFrequency = null
     } = body;
     
     // Validate date input
@@ -194,8 +197,14 @@ export async function POST(request: Request) {
     });
     
     try {
-      // Always use email for notifications
-      const effectiveNotificationPrefs = 'email';
+      // Get user's notification preferences from their profile
+      const userProfile = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { notificationPrefs: true }
+      });
+      
+      // Use user's preference or default to 'email' if not set
+      const effectiveNotificationPrefs = userProfile?.notificationPrefs || 'email';
       
       // Check for existing active session to prevent duplicates
       if (status === 'active') {
@@ -242,21 +251,75 @@ export async function POST(request: Request) {
       
       if (!isImmediateSession && status === 'scheduled') {
         try {
-          await resend.emails.send({
-            from: `Therapy Support <${process.env.EMAIL_FROM}>`,
-            to: user.email,
-            subject: 'Your Therapy Session is Scheduled',
-            react: SessionConfirmationEmail({
-              username: user.name || 'Valued Client',
-              sessionDate: sessionDate,
-              duration: Number(duration),
-              theme: theme,
-              notes: notes,
-            }),
-          });
-          console.log('Scheduling confirmation email sent successfully');
+          // Validate email environment before sending
+          const emailValidation = validateEmailEnvironment();
+          if (!emailValidation.isValid) {
+            console.error('Email environment validation failed, skipping email send:', emailValidation.missingVars);
+          } else {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            await resend.emails.send({
+              from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+              to: user.email,
+              subject: 'Your Therapy Session is Scheduled',
+              react: SessionConfirmationEmail({
+                username: user.name || 'Valued Client',
+                sessionDate: sessionDate,
+                duration: Number(duration),
+                theme: theme,
+                notes: notes,
+                baseUrl: baseUrl,
+              }),
+            });
+            console.log('Scheduling confirmation email sent successfully');
+          }
         } catch (emailError) {
           console.error('Error sending scheduling confirmation email:', emailError);
+        }
+      }
+      
+      // Handle recurring sessions
+      if (isRecurring && recurringFrequency && status === 'scheduled') {
+        try {
+          const recurringSession: { message: string; sessionsCreated: number } = { message: '', sessionsCreated: 0 };
+          const nextDate = new Date(sessionDate);
+          
+          // Create up to 4 future sessions based on frequency
+          for (let i = 0; i < 4; i++) {
+            switch (recurringFrequency) {
+              case 'weekly':
+                nextDate.setDate(nextDate.getDate() + 7);
+                break;
+              case 'biweekly':
+                nextDate.setDate(nextDate.getDate() + 14);
+                break;
+              case 'monthly':
+                nextDate.setMonth(nextDate.getMonth() + 1);
+                break;
+              default:
+                break;
+            }
+            
+            // Create the recurring session
+            const recurringSessionData = await prisma.session.create({
+              data: {
+                userId: user.id,
+                date: new Date(nextDate),
+                duration: Number(duration),
+                theme,
+                notes: notes + ' (Recurring session)',
+                status: 'scheduled',
+                notificationPrefs: effectiveNotificationPrefs,
+                assistantId: assistantId || null
+              }
+            });
+            
+            recurringSession.sessionsCreated++;
+          }
+          
+          console.log(`Created ${recurringSession.sessionsCreated} recurring sessions`);
+        } catch (recurringError) {
+          console.error('Error creating recurring sessions:', recurringError);
+          // Don't fail the main session creation if recurring sessions fail
         }
       }
       

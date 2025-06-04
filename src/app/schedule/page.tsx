@@ -8,6 +8,14 @@ import { useRouter } from 'next/navigation';
 import { CalendarIcon, Clock, MessageSquare, Bookmark, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+interface UserPreferences {
+  sessionPreference?: string;
+  preferredDays?: string[];
+  sessionFrequency?: string;
+  recurringSession?: string;
+  reminderTiming?: string;
+}
+
 export default function SchedulePage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
@@ -19,6 +27,10 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<boolean>(false);
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>({});
+  const [showRecurringOptions, setShowRecurringOptions] = useState<boolean>(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<string>('weekly');
+  const [suggestedSlots, setSuggestedSlots] = useState<Date[]>([]);
   
   // Enable smooth scrolling for this page
   useEffect(() => {
@@ -28,7 +40,72 @@ export default function SchedulePage() {
     };
   }, []);
 
-  // Note: User profile fetching removed as it's not currently used
+  // Fetch user preferences
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          const prefs: UserPreferences = {
+            sessionPreference: data.sessionPreference,
+            preferredDays: data.preferredDays,
+            sessionFrequency: data.sessionFrequency,
+            recurringSession: data.recurringSession,
+            reminderTiming: data.reminderTiming
+          };
+          setUserPreferences(prefs);
+          
+          // Set recurring options based on user preference
+          if (data.recurringSession === 'yes') {
+            setShowRecurringOptions(true);
+            setRecurringFrequency(data.sessionFrequency || 'weekly');
+          }
+        })
+        .catch(error => console.error('Error fetching user preferences:', error));
+    }
+  }, [authStatus]);
+  
+  // Generate suggested time slots based on user preferences
+  useEffect(() => {
+    if (userPreferences.sessionPreference && userPreferences.preferredDays) {
+      const slots: Date[] = [];
+      const today = new Date();
+      
+      // Look ahead 2 weeks
+      for (let i = 0; i < 14; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        
+        // Check if this day is preferred
+        if (userPreferences.preferredDays.includes(dayName)) {
+          // Set time based on preference
+          switch (userPreferences.sessionPreference) {
+            case 'morning':
+              date.setHours(9, 0, 0, 0);
+              break;
+            case 'afternoon':
+              date.setHours(14, 0, 0, 0);
+              break;
+            case 'evening':
+              date.setHours(18, 0, 0, 0);
+              break;
+            default:
+              date.setHours(10, 0, 0, 0);
+          }
+          
+          // Only add future slots
+          if (date > new Date()) {
+            slots.push(new Date(date));
+          }
+        }
+      }
+      
+      // Limit to first 3 suggestions
+      setSuggestedSlots(slots.slice(0, 3));
+    }
+  }, [userPreferences]);
 
   // Redirect if not authenticated
   if (authStatus === 'unauthenticated') {
@@ -68,7 +145,9 @@ export default function SchedulePage() {
           duration,
           theme,
           notes,
-          notificationPrefs
+          notificationPrefs,
+          isRecurring: showRecurringOptions,
+          recurringFrequency: showRecurringOptions ? recurringFrequency : null
         }),
       });
       
@@ -388,6 +467,22 @@ export default function SchedulePage() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-5xl mx-auto"
       >
+        {/* User preferences hint */}
+        {userPreferences.sessionPreference && userPreferences.sessionPreference !== 'flexible' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg backdrop-blur-sm"
+          >
+            <p className="text-green-400 text-sm flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              Based on your preferences, we suggest scheduling during {userPreferences.sessionPreference} hours
+              {userPreferences.preferredDays && userPreferences.preferredDays.length > 0 && 
+                ` on ${userPreferences.preferredDays.map(day => day.charAt(0).toUpperCase() + day.slice(1)).join(', ')}`
+              }
+            </p>
+          </motion.div>
+        )}
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl overflow-hidden">
           <div className="lg:flex">
            {/* Left Column - Illustration and Info */}
@@ -478,6 +573,42 @@ export default function SchedulePage() {
                 Enter Session Details
               </motion.h3>
               
+              {/* Suggested time slots */}
+              {suggestedSlots.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                  className="mb-6"
+                >
+                  <p className="text-sm text-white/70 mb-3">Quick select from your preferred times:</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {suggestedSlots.map((slot, index) => (
+                      <motion.button
+                        key={index}
+                        type="button"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.4 + index * 0.05 }}
+                        onClick={() => setSelectedDate(slot)}
+                        className={`p-3 text-left rounded-lg border transition-all ${
+                          selectedDate?.getTime() === slot.getTime()
+                            ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                            : 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="text-xs font-medium">
+                          {slot.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </div>
+                        <div className="text-sm mt-1">
+                          {slot.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+              
               <AnimatePresence>
                 {error && (
                   <motion.div 
@@ -525,6 +656,25 @@ export default function SchedulePage() {
                       withPortal
                       showPopperArrow={false}
                       calendarClassName="custom-calendar"
+                      filterTime={(time: Date) => {
+                        // Highlight preferred times based on user preferences
+                        if (!userPreferences.sessionPreference || userPreferences.sessionPreference === 'flexible') return true;
+                        
+                        const hours = time.getHours();
+                        switch (userPreferences.sessionPreference) {
+                          case 'morning': return hours >= 6 && hours < 12;
+                          case 'afternoon': return hours >= 12 && hours < 17;
+                          case 'evening': return hours >= 17 && hours < 21;
+                          default: return true;
+                        }
+                      }}
+                      filterDate={(date: Date) => {
+                        // Highlight preferred days
+                        if (!userPreferences.preferredDays || userPreferences.preferredDays.length === 0) return true;
+                        
+                        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                        return userPreferences.preferredDays.includes(dayName);
+                      }}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">
                       <CalendarIcon className="h-5 w-5" />
@@ -622,10 +772,70 @@ export default function SchedulePage() {
                   <div className="flex items-center bg-white/10 border border-white/20 rounded-lg p-3 backdrop-blur-sm">
                     <Mail className="h-4 w-4 mr-2 text-green-400" />
                     <p className="text-white/70 text-sm">
-                      You'll receive an email reminder 24 hours before your session
+                      {userPreferences.reminderTiming === 'both' 
+                        ? "You'll receive email reminders 24 hours and 1 hour before your session"
+                        : userPreferences.reminderTiming === '2days'
+                        ? "You'll receive an email reminder 48 hours before your session"
+                        : userPreferences.reminderTiming === '1week'
+                        ? "You'll receive an email reminder 1 week before your session"
+                        : "You'll receive an email reminder 24 hours before your session"
+                      }
                     </p>
                   </div>
                 </motion.div>
+                
+                {/* Recurring session options */}
+                {userPreferences.recurringSession === 'yes' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.85 }}
+                  >
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Recurring Sessions
+                    </label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-white/10 border border-white/20 rounded-lg p-3 backdrop-blur-sm">
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showRecurringOptions}
+                            onChange={(e) => setShowRecurringOptions(e.target.checked)}
+                            className="mr-3 w-4 h-4 text-green-500 bg-white/10 border-white/30 rounded focus:ring-green-500 focus:ring-2"
+                          />
+                          <span className="text-white/80 text-sm">Make this a recurring session</span>
+                        </label>
+                      </div>
+                      
+                      {showRecurringOptions && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-white/5 border border-white/10 rounded-lg p-4"
+                        >
+                          <p className="text-white/70 text-sm mb-3">This will automatically schedule sessions:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {['weekly', 'biweekly', 'monthly'].map((freq) => (
+                              <button
+                                key={freq}
+                                type="button"
+                                onClick={() => setRecurringFrequency(freq)}
+                                className={`py-2 px-3 text-sm rounded-lg transition-all ${
+                                  recurringFrequency === freq
+                                    ? 'bg-green-500/20 border border-green-500/50 text-green-400'
+                                    : 'bg-white/10 border border-white/20 text-white/70 hover:bg-white/20'
+                                }`}
+                              >
+                                {freq === 'biweekly' ? 'Every 2 weeks' : freq.charAt(0).toUpperCase() + freq.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
                 
                 <motion.div 
                   className="pt-2"

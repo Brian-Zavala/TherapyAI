@@ -22,6 +22,21 @@ export default function Login() {
     setIsLoading(true)
     setError('')
 
+    // Client-side validation
+    if (!email || !password) {
+      setError('Please enter both email and password')
+      setIsLoading(false)
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const result = await signIn('credentials', {
         redirect: false,
@@ -30,7 +45,9 @@ export default function Login() {
       })
 
       if (result?.error) {
-        setError('Invalid email or password')
+        // For security, NextAuth always returns 'CredentialsSignin' for credential errors
+        // We'll provide a helpful message with options
+        setError('Invalid email or password. Please check your credentials and try again.')
       } else {
         router.push('/welcome')
         router.refresh()
@@ -67,7 +84,22 @@ export default function Login() {
                 animate={{ opacity: 1, x: 0 }}
                 className="mb-6 bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-100 px-4 py-3 rounded-xl text-sm"
               >
-                {error}
+                <div className="flex items-start">
+                  <svg className="flex-shrink-0 h-5 w-5 text-red-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <div className="ml-3">
+                    <p>{error}</p>
+                    {error.includes('Invalid email or password') && (
+                      <p className="mt-2 text-sm">
+                        Don't have an account?{' '}
+                        <Link href="/auth/register" className="text-blue-400 hover:text-blue-300 underline">
+                          Sign up here →
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
 

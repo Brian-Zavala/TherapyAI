@@ -208,7 +208,7 @@ export class TranscriptionService extends EventEmitter {
       if (!textBuffer) continue;
       
       // Process the text to create complete sentences when possible
-      let cleanedText = textBuffer;
+      const cleanedText = textBuffer;
       
       // Check if we have at least one complete sentence (with punctuation at the end)
       const hasCompleteEndingRegex = /[.!?]\s*$/;

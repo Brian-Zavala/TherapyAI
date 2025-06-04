@@ -862,7 +862,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       
       // Calculate Y position:
       // 1. Start with data point Y position
-      let pointY = chartWrapperRect.top + e.activeCoordinate.y;
+      const pointY = chartWrapperRect.top + e.activeCoordinate.y;
       
       // 2. Add a base offset below the point
       let offset = 30;

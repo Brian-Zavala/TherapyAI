@@ -20,11 +20,63 @@ export default function Register() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  // Email validation
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email) {
+      setEmailError('Email is required')
+      return false
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address')
+      return false
+    }
+    setEmailError('')
+    return true
+  }
+
+  // Password validation
+  const validatePassword = (password: string) => {
+    if (!password) {
+      setPasswordError('Password is required')
+      return false
+    }
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters long')
+      return false
+    }
+    if (!/(?=.*[a-z])/.test(password)) {
+      setPasswordError('Password must contain at least one lowercase letter')
+      return false
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      setPasswordError('Password must contain at least one uppercase letter')
+      return false
+    }
+    if (!/(?=.*\d)/.test(password)) {
+      setPasswordError('Password must contain at least one number')
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
+
+    // Validate all fields
+    const isEmailValid = validateEmail(email)
+    const isPasswordValid = validatePassword(password)
+
+    if (!isEmailValid || !isPasswordValid) {
+      setIsLoading(false)
+      return
+    }
 
     // Validate form
     if (!acceptTerms) {
@@ -33,7 +85,7 @@ export default function Register() {
       return
     }
 
-    // Password validation
+    // Password matching validation
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       setIsLoading(false)
@@ -217,8 +269,12 @@ export default function Register() {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-white/50"
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (emailError) validateEmail(e.target.value)
+                    }}
+                    onBlur={() => validateEmail(email)}
+                    className={`w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border ${emailError ? 'border-red-500/50' : 'border-white/20'} focus:ring-blue-500 focus:border-blue-500 text-white placeholder-white/50`}
                     placeholder="your.email@example.com"
                   />
                   <span className="absolute right-3 top-3 text-white/50">
@@ -228,6 +284,15 @@ export default function Register() {
                     </svg>
                   </span>
                 </div>
+                {emailError && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-xs text-red-400"
+                  >
+                    {emailError}
+                  </motion.p>
+                )}
               </div>
 
               {/* Password */}
@@ -243,8 +308,12 @@ export default function Register() {
                     required
                     minLength={8}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-white/50"
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (passwordError || e.target.value.length >= 8) validatePassword(e.target.value)
+                    }}
+                    onBlur={() => validatePassword(password)}
+                    className={`w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border ${passwordError ? 'border-red-500/50' : 'border-white/20'} focus:ring-blue-500 focus:border-blue-500 text-white placeholder-white/50`}
                     placeholder="••••••••"
                   />
                   <motion.span
@@ -267,27 +336,53 @@ export default function Register() {
                   </motion.span>
                 </div>
                 {/* Password strength indicator */}
-                <div className="mt-2 flex space-x-1">
-                  <motion.div 
-                    className={`h-1 flex-1 rounded-full transition-colors ${password.length > 0 ? 'bg-red-400' : 'bg-white/20'}`}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  <motion.div 
-                    className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 6 ? 'bg-yellow-400' : 'bg-white/20'}`}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: password.length >= 6 ? 1 : 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  <motion.div 
-                    className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-green-400' : 'bg-white/20'}`}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: password.length >= 8 ? 1 : 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
+                <div className="mt-2">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs text-white/50">Password strength</span>
+                    <span className="text-xs text-white/70">
+                      {password.length === 0 ? '' : 
+                       password.length < 8 ? 'Weak' : 
+                       !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password) ? 'Fair' : 'Strong'}
+                    </span>
+                  </div>
+                  <div className="flex space-x-1">
+                    <motion.div 
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        password.length > 0 ? 'bg-red-400' : 'bg-white/20'
+                      }`}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    <motion.div 
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        password.length >= 8 ? 'bg-yellow-400' : 'bg-white/20'
+                      }`}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: password.length >= 8 ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    <motion.div 
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password) ? 'bg-green-400' : 'bg-white/20'
+                      }`}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password) ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-white/50">Must be at least 8 characters</p>
+                {passwordError ? (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-xs text-red-400"
+                  >
+                    {passwordError}
+                  </motion.p>
+                ) : (
+                  <p className="mt-1 text-xs text-white/50">Must contain uppercase, lowercase, and numbers</p>
+                )}
               </div>
 
               {/* Confirm Password */}

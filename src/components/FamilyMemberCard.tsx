@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle, User, Trash2 } from 'lucide-react';
 import { memo } from 'react';
+import { formatRelationLabel } from '@/lib/utils';
 
 interface FamilyMember {
   name: string;
@@ -76,7 +77,7 @@ const FamilyMemberCard = memo(({
               {member.name}
             </h4>
             <p className="text-sm text-gray-300">
-              {member.relation}, {member.age} years old
+              {formatRelationLabel(member.relation)}, {member.age} years old
             </p>
           </div>
         </div>

@@ -128,8 +128,6 @@ export default function SessionsPage() {
   
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden py-6 px-4 sm:px-6 lg:px-8">
-      {/* Background gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/20" />
       <div className="max-w-7xl mx-auto relative z-10">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}

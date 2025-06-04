@@ -19,6 +19,7 @@ interface SessionConfirmationProps {
   duration: number;
   theme?: string;
   notes?: string;
+  baseUrl: string;
 }
 
 export default function SessionConfirmationEmail({
@@ -27,6 +28,7 @@ export default function SessionConfirmationEmail({
   duration,
   theme,
   notes,
+  baseUrl,
 }: SessionConfirmationProps) {
   const formattedDate = new Date(sessionDate).toLocaleString('en-US', {
     weekday: 'long',
@@ -66,7 +68,7 @@ export default function SessionConfirmationEmail({
             </Section>
           )}
           
-          <Button href="https://yourplatform.com/sessions" style={buttonStyle}>
+          <Button href={`${baseUrl}/dashboard/sessions`} style={buttonStyle}>
             View Your Sessions
           </Button>
           
@@ -80,7 +82,7 @@ export default function SessionConfirmationEmail({
             Need to reschedule? Please do so at least 24 hours in advance.
           </Text>
           
-          <Link href="https://yourplatform.com/schedule" style={linkStyle}>
+          <Link href={`${baseUrl}/schedule`} style={linkStyle}>
             Manage Your Schedule
           </Link>
         </Container>

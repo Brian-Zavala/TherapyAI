@@ -19,6 +19,7 @@ interface SessionReminderProps {
   duration: number;
   notes?: string;
   isOneHourReminder?: boolean;
+  baseUrl: string;
 }
 
 export default function SessionReminderEmail({
@@ -27,6 +28,7 @@ export default function SessionReminderEmail({
   duration,
   notes,
   isOneHourReminder = false,
+  baseUrl,
 }: SessionReminderProps) {
   const formattedDate = new Date(sessionDate).toLocaleString('en-US', {
     weekday: 'long',
@@ -67,7 +69,7 @@ export default function SessionReminderEmail({
             </Section>
           )}
           
-          <Button href="https://yourplatform.com/dashboard" style={buttonStyle}>
+          <Button href={`${baseUrl}/dashboard`} style={buttonStyle}>
             View Your Dashboard
           </Button>
           
@@ -77,7 +79,7 @@ export default function SessionReminderEmail({
             Need to reschedule? Please do so at least 24 hours in advance.
           </Text>
           
-          <Link href="https://yourplatform.com/reschedule" style={linkStyle}>
+          <Link href={`${baseUrl}/schedule`} style={linkStyle}>
             Reschedule Here
           </Link>
         </Container>

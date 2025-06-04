@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     `;
 
     // Format for the chart
-    let formattedData = sessionData.map((item) => ({
+    const formattedData = sessionData.map((item) => ({
       month: `${item.month} ${item.year}`,
       sessionTime: parseInt(item.sessiontime),
       sessionCount: parseInt(item.sessioncount)

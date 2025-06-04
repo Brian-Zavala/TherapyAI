@@ -871,77 +871,180 @@ export default function WelcomePage() {
                   </motion.div>
                   {index < formSteps.length - 1 && (
                     <div className="w-3 xs:w-4 sm:w-6 md:w-8 h-1 bg-white/20 mx-0.5 xs:mx-1 sm:mx-1.5 flex-shrink-0 rounded-full relative overflow-hidden">
-                      {/* Base progress fill */}
-                      <motion.div
-                        className={`absolute inset-0 h-full ${
-                          index < currentStep 
-                            ? 'bg-green-500' 
-                            : index === currentStep 
-                            ? 'bg-transparent' 
-                            : 'bg-transparent'
-                        }`}
-                        initial={{ width: 0 }}
-                        animate={{ width: index < currentStep ? '100%' : '0%' }}
-                        transition={{ duration: 0.3, type: "tween" }}
-                      />
-                      
-                      {/* Wavy flowing animation for current step */}
+                      {/* Subtle glow for active line */}
                       {index === currentStep && (
                         <motion.div
-                          className="absolute inset-0 h-full bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 opacity-80"
-                          style={{
-                            background: 'linear-gradient(90deg, transparent 0%, #3b82f6 20%, #06b6d4 50%, #3b82f6 80%, transparent 100%)',
-                            backgroundSize: '200% 100%',
-                            willChange: 'transform'
-                          }}
+                          className="absolute inset-0 h-1 rounded-full bg-cyan-400/30 blur-sm"
                           animate={{
-                            backgroundPosition: ['0% 0%', '200% 0%'],
-                            opacity: [0.6, 1, 0.6]
+                            scale: [1, 1.2, 1],
+                            opacity: [0.3, 0.6, 0.3]
                           }}
                           transition={{
-                            backgroundPosition: {
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: "linear"
-                            },
-                            opacity: {
-                              duration: 1.5,
-                              repeat: Infinity,
-                              ease: "easeInOut"
-                            }
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut"
                           }}
                         />
                       )}
                       
-                      {/* Sparkle effects for current step */}
+                      {/* Base progress fill with smooth transition */}
+                      <motion.div
+                        className={`absolute inset-0 h-full rounded-full ${
+                          index < currentStep 
+                            ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                            : 'bg-transparent'
+                        }`}
+                        initial={{ width: 0 }}
+                        animate={{ 
+                          width: index < currentStep ? '100%' : '0%',
+                          boxShadow: index < currentStep ? '0 0 8px rgba(34, 197, 94, 0.4)' : 'none'
+                        }}
+                        transition={{ 
+                          duration: 0.5, 
+                          type: "spring",
+                          damping: 25,
+                          stiffness: 200
+                        }}
+                      />
+                      
+                      {/* Enhanced flowing liquid animation for current step */}
+                      {index === currentStep && (
+                        <>
+                          {/* Primary flow */}
+                          <motion.div
+                            className="absolute inset-0 h-full rounded-full"
+                            style={{
+                              background: 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.8) 25%, rgba(6, 182, 212, 1) 50%, rgba(59, 130, 246, 0.8) 75%, transparent 100%)',
+                              willChange: 'transform'
+                            }}
+                            animate={{
+                              x: ['-100%', '200%']
+                            }}
+                            transition={{
+                              duration: 2.5,
+                              repeat: Infinity,
+                              ease: [0.4, 0.0, 0.2, 1]
+                            }}
+                          />
+                          
+                          {/* Secondary wave for more fluid effect */}
+                          <motion.div
+                            className="absolute inset-0 h-full rounded-full"
+                            style={{
+                              background: 'linear-gradient(90deg, transparent 0%, rgba(6, 182, 212, 0.6) 30%, rgba(14, 165, 233, 0.8) 50%, rgba(6, 182, 212, 0.6) 70%, transparent 100%)',
+                              willChange: 'transform'
+                            }}
+                            animate={{
+                              x: ['-150%', '250%']
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              ease: [0.4, 0.0, 0.2, 1],
+                              delay: 0.5
+                            }}
+                          />
+                        </>
+                      )}
+                      
+                      {/* Enhanced sparkle constellation for current step - seamless loops */}
                       {index === currentStep && (
                         <>
                           <motion.div
-                            className="absolute top-1/2 left-1/4 w-1 h-1 bg-white rounded-full"
-                            style={{ transform: 'translateY(-50%)' }}
+                            className="absolute top-1/2 left-0 w-1 h-1 bg-white rounded-full shadow-sm"
+                            style={{ 
+                              transform: 'translateY(-50%)',
+                              willChange: 'transform'
+                            }}
                             animate={{
-                              scale: [0, 1, 0],
-                              opacity: [0, 1, 0]
+                              x: ['-20%', '120%'],
+                              scale: [0, 1, 1, 1, 0],
+                              opacity: [0, 0, 1, 1, 0]
                             }}
                             transition={{
-                              duration: 1.2,
+                              duration: 2,
                               repeat: Infinity,
-                              delay: 0.2,
-                              ease: "easeInOut"
+                              delay: 0.3,
+                              ease: "linear",
+                              times: [0, 0.1, 0.2, 0.8, 1]
                             }}
                           />
                           <motion.div
-                            className="absolute top-1/2 left-3/4 w-0.5 h-0.5 bg-cyan-300 rounded-full"
-                            style={{ transform: 'translateY(-50%)' }}
+                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-cyan-300 rounded-full shadow-sm"
+                            style={{ 
+                              transform: 'translateY(-50%)',
+                              willChange: 'transform'
+                            }}
                             animate={{
-                              scale: [0, 1, 0],
-                              opacity: [0, 1, 0]
+                              x: ['-25%', '125%'],
+                              scale: [0, 1.2, 1.2, 1.2, 0],
+                              opacity: [0, 0, 0.8, 0.8, 0]
                             }}
                             transition={{
-                              duration: 1.5,
+                              duration: 2.5,
                               repeat: Infinity,
                               delay: 0.8,
-                              ease: "easeInOut"
+                              ease: "linear",
+                              times: [0, 0.15, 0.25, 0.75, 1]
+                            }}
+                          />
+                          <motion.div
+                            className="absolute top-1/2 left-0 w-0.5 h-0.5 bg-blue-300 rounded-full shadow-sm"
+                            style={{ 
+                              transform: 'translateY(-50%)',
+                              willChange: 'transform'
+                            }}
+                            animate={{
+                              x: ['-30%', '130%'],
+                              scale: [0, 0.8, 0.8, 0.8, 0],
+                              opacity: [0, 0, 0.6, 0.6, 0]
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              delay: 1.5,
+                              ease: "linear",
+                              times: [0, 0.1, 0.2, 0.8, 1]
+                            }}
+                          />
+                          
+                          {/* Micro sparkles for extra detail - seamless loops */}
+                          <motion.div
+                            className="absolute top-1/2 left-0 w-px h-px bg-white rounded-full"
+                            style={{ 
+                              transform: 'translateY(-50%)',
+                              willChange: 'transform'
+                            }}
+                            animate={{
+                              x: ['-15%', '115%'],
+                              scale: [0, 1, 1, 0],
+                              opacity: [0, 0, 0.7, 0]
+                            }}
+                            transition={{
+                              duration: 1.8,
+                              repeat: Infinity,
+                              delay: 0.6,
+                              ease: "linear",
+                              times: [0, 0.2, 0.8, 1]
+                            }}
+                          />
+                          <motion.div
+                            className="absolute top-1/2 left-0 w-px h-px bg-cyan-200 rounded-full"
+                            style={{ 
+                              transform: 'translateY(-50%)',
+                              willChange: 'transform'
+                            }}
+                            animate={{
+                              x: ['-20%', '120%'],
+                              scale: [0, 1, 1, 0],
+                              opacity: [0, 0, 0.5, 0]
+                            }}
+                            transition={{
+                              duration: 2.2,
+                              repeat: Infinity,
+                              delay: 1.2,
+                              ease: "linear",
+                              times: [0, 0.25, 0.75, 1]
                             }}
                           />
                         </>

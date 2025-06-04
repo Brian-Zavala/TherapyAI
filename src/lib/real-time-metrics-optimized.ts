@@ -50,6 +50,11 @@ export class RealTimeMetricsCalculator {
     this.lastUpdateTime = new Date();
   }
 
+  // Getter for userId (needed for API calls)
+  public get getUserId(): string {
+    return this.userId;
+  }
+
   // Add transcript entry with optimized calculation
   public addTranscriptEntry(entry: TranscriptEntry): IncrementalMetrics {
     this.transcriptEntries.push(entry);
