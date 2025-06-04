@@ -156,6 +156,20 @@ const formSteps: FormStep[] = [
         ]
       },
       {
+        name: 'familyMemberCount',
+        label: 'How many family members would you like to add?',
+        type: 'select',
+        options: [
+          { value: '1', label: '1 family member' },
+          { value: '2', label: '2 family members' },
+          { value: '3', label: '3 family members' },
+          { value: '4', label: '4 family members' },
+          { value: '5', label: '5 family members' },
+          { value: '6', label: '6 family members' },
+          { value: '7', label: '7 family members' }
+        ]
+      },
+      {
         name: 'familyMember1',
         label: 'Family member 1',
         type: 'text',
@@ -1096,8 +1110,22 @@ export default function WelcomePage() {
                       return null
                     }
                     
-                    // Hide family member fields if hasFamily is not "yes"
-                    if (field.name.startsWith('familyMember') && formData.hasFamily !== 'yes') {
+                    // Hide family member count field if hasFamily is not "yes"
+                    if (field.name === 'familyMemberCount' && formData.hasFamily !== 'yes') {
+                      return null
+                    }
+                    
+                    // Hide family member fields if hasFamily is not "yes" or if the field exceeds the selected count
+                    if (field.name.startsWith('familyMember') && formData.hasFamily === 'yes') {
+                      // Extract the family member number from the field name (e.g., "familyMember1" -> 1)
+                      const memberNumber = parseInt(field.name.match(/\d+/)?.[0] || '0')
+                      const selectedCount = parseInt(formData.familyMemberCount || '0')
+                      
+                      // Hide if no count is selected yet or if this field is beyond the selected count
+                      if (!formData.familyMemberCount || memberNumber > selectedCount) {
+                        return null
+                      }
+                    } else if (field.name.startsWith('familyMember') && formData.hasFamily !== 'yes') {
                       return null
                     }
                     
