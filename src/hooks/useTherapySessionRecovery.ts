@@ -25,22 +25,68 @@ export function useTherapySessionRecovery() {
     sessionData: null,
     shouldAutoRestart: false
   })
+  
+  // Deduplication tracking with session key to handle HMR/Fast Refresh
+  const sessionKey = session?.user?.id || 'no-session'
+  const [hasCheckedThisSession, setHasCheckedThisSession] = useState(false)
+  const [lastSessionKey, setLastSessionKey] = useState<string | null>(null)
+  
+  // Reset check status when session changes (handles HMR/Fast Refresh)
+  useEffect(() => {
+    if (sessionKey !== lastSessionKey) {
+      setHasCheckedThisSession(false)
+      setLastSessionKey(sessionKey)
+      console.log('🔄 Session key changed, resetting recovery check status')
+    }
+  }, [sessionKey, lastSessionKey])
 
   const checkForActiveSession = useCallback(async () => {
     // Only check if user is authenticated and we're specifically on the therapy page
     if (status !== 'authenticated' || !session?.user?.id) {
+      console.log('🔍 Session recovery: Not authenticated or no user ID')
+      return null
+    }
+    
+    // More lenient deduplication: Allow re-checking if previous attempt failed or if enough time has passed
+    const timeSinceLastCheck = Date.now() - (window.sessionStorage.getItem('last-recovery-check-time') ? parseInt(window.sessionStorage.getItem('last-recovery-check-time')!) : 0)
+    const RECOVERY_CHECK_COOLDOWN = 5000 // 5 seconds cooldown between checks
+    
+    if (hasCheckedThisSession && timeSinceLastCheck < RECOVERY_CHECK_COOLDOWN) {
+      console.log('🔄 Session recovery check on cooldown - skipping duplicate check')
       return null
     }
 
-    // Check if there's already an active session indicator
+    // Less restrictive session active check - only skip if we have a valid current session ID
+    const currentSessionId = sessionStorage.getItem('current-session-id')
     const hasSessionActiveClass = document.body.classList.contains('session-active')
-    if (hasSessionActiveClass) {
-      console.log('Session already active - skipping recovery check')
+    if (hasSessionActiveClass && currentSessionId) {
+      console.log('Session already active with valid session ID - skipping recovery check')
       return null
     }
+    
+    // Check if recovery is already pending, but allow if it's stale (older than 30 seconds)
+    const existingRecovery = sessionStorage.getItem('session-recovery-pending')
+    if (existingRecovery) {
+      try {
+        const recoveryData = JSON.parse(existingRecovery)
+        const recoveryAge = Date.now() - new Date(recoveryData.recoveredAt).getTime()
+        if (recoveryAge < 30000) { // 30 seconds
+          console.log('🔄 Recent session recovery already pending - skipping duplicate check')
+          return null
+        } else {
+          console.log('🧹 Clearing stale session recovery data (age:', Math.round(recoveryAge/1000), 'seconds)')
+          sessionStorage.removeItem('session-recovery-pending')
+        }
+      } catch (error) {
+        console.warn('Error parsing existing recovery data, clearing it:', error)
+        sessionStorage.removeItem('session-recovery-pending')
+      }
+    }
 
-    console.log('🔍 Checking for active therapy session on therapy page...')
+    console.log('🔍 Checking for active therapy session...')
     setRecoveryState(prev => ({ ...prev, isChecking: true }))
+    setHasCheckedThisSession(true) // Mark as checked to prevent duplicate runs
+    sessionStorage.setItem('last-recovery-check-time', Date.now().toString())
 
     try {
       const response = await fetch(`/api/sessions/active?userId=${session.user.id}`)
@@ -133,11 +179,11 @@ export function useTherapySessionRecovery() {
       setRecoveryState(prev => ({ ...prev, isChecking: false }))
       return null
     }
-  }, [session?.user?.id, status])
+  }, [session?.user?.id, status, hasCheckedThisSession])
 
   // Only check for sessions when component mounts on therapy page
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && !hasCheckedThisSession) {
       // Small delay to ensure page is fully loaded
       const timer = setTimeout(() => {
         checkForActiveSession()
@@ -145,7 +191,7 @@ export function useTherapySessionRecovery() {
       
       return () => clearTimeout(timer)
     }
-  }, [status, checkForActiveSession])
+  }, [status]) // Removed checkForActiveSession dependency to prevent infinite loops
 
   // Reset state when session becomes active to avoid duplicate checking
   useEffect(() => {

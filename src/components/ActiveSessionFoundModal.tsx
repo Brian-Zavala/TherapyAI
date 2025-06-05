@@ -36,27 +36,72 @@ export default function ActiveSessionFoundModal({
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    let hasProcessedRecovery = false // Deduplication flag
+    let intervalId: NodeJS.Timeout | null = null
+    
     const checkForPendingRecovery = () => {
       try {
         const pendingRecovery = sessionStorage.getItem('session-recovery-pending')
-        if (pendingRecovery) {
+        console.log('🔍 ActiveSessionFoundModal: Checking for pending recovery:', !!pendingRecovery)
+        
+        if (pendingRecovery && !hasProcessedRecovery) {
           const data: ActiveSessionData = JSON.parse(pendingRecovery)
+          
+          // Prevent duplicate processing
+          hasProcessedRecovery = true
+          
+          console.log('🔔 Active session found modal triggered (once):', {
+            sessionId: data.sessionId,
+            conversationTime: data.conversationTimeMinutes,
+            remaining: data.remainingMinutes,
+            theme: data.sessionData?.theme
+          })
+          
           setSessionData(data)
           setShowModal(true)
-          console.log('🔔 Active session found modal triggered:', data.sessionId)
+          
+          // Don't clear the recovery data immediately - let the user action handle it
+          console.log('💾 Keeping session-recovery-pending until user action')
         }
       } catch (error) {
         console.warn('Error checking for pending session recovery:', error)
+        // Clear corrupted data
+        sessionStorage.removeItem('session-recovery-pending')
       }
     }
 
     // Check immediately
     checkForPendingRecovery()
     
-    // Also check periodically in case recovery info is added later
-    const interval = setInterval(checkForPendingRecovery, 1000)
+    // Also poll every 2 seconds for the first 10 seconds to catch any timing issues
+    let pollCount = 0
+    intervalId = setInterval(() => {
+      pollCount++
+      if (pollCount <= 5 && !hasProcessedRecovery) { // Poll 5 times (10 seconds total)
+        console.log('🔄 ActiveSessionFoundModal: Polling for recovery data, attempt', pollCount)
+        checkForPendingRecovery()
+      } else if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
+    }, 2000)
     
-    return () => clearInterval(interval)
+    // Listen for storage changes (works across tabs but not same-tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'session-recovery-pending' && e.newValue && !hasProcessedRecovery) {
+        console.log('📡 ActiveSessionFoundModal: Storage event detected')
+        checkForPendingRecovery()
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
   }, [])
 
   const handleContinueSession = async () => {
@@ -253,18 +298,32 @@ export default function ActiveSessionFoundModal({
 
               {/* Content */}
               <div className="px-6 py-5 space-y-4">
-                {/* Warning message */}
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="text-sm text-red-700">
-                      <p className="font-medium">Session is running in background!</p>
-                      <p>You're being charged while disconnected. Please choose an option below.</p>
+                {/* Warning message - conditional based on conversation activity */}
+                {(sessionData.conversationTimeMinutes || sessionData.elapsedMinutes || 0) > 0 ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-sm text-red-700">
+                        <p className="font-medium">Session was in progress!</p>
+                        <p>You have conversation time used. Continue to avoid losing progress.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-sm text-blue-700">
+                        <p className="font-medium">Session is ready to continue!</p>
+                        <p>No time has been used yet. Your session is paused and waiting.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Session info */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
