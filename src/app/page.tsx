@@ -541,7 +541,7 @@ export default function Home() {
             </motion.span>
           </motion.h2>
           {/* Grid Container */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-6 lg:gap-8 mb-16 max-w-5xl mx-auto">
             {/* Therapy Costs Card (Left Side) */}
             {/* Use simple whileInView for card entry */}
             <motion.div
@@ -549,7 +549,7 @@ export default function Home() {
               whileInView="visible"
               viewport={{ once: true, amount: getOptimizedThreshold(0.1) }}
               variants={fadeInUp}
-              className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-white/20 to-white/10 border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className="relative rounded-3xl p-6 sm:p-8 md:p-6 lg:p-8 bg-gradient-to-br from-white/20 to-white/10 border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300"
             >
               {/* Original content */}
               <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 relative z-10 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent drop-shadow-lg">
@@ -577,7 +577,7 @@ export default function Home() {
                       </span>
                     </h4>
                     {/* Grid for individual traditional costs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6 max-w-lg mx-auto sm:max-w-none">
                       {[
                         { title: "Solo Session", price: "$100-150" },
                         { title: "Couples Session", price: "$150-250" },
@@ -680,7 +680,7 @@ export default function Home() {
                       </span>
                     </h4>
                     {/* Grid for AI costs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 relative z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 mb-5 relative z-10 max-w-md mx-auto sm:max-w-none">
                       {/* 30 Min Session Card */}
                       {/* Simple fade-in for this inner card */}
                       <motion.div

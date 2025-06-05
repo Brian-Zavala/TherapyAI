@@ -7,7 +7,9 @@ interface ActiveSessionData {
   sessionId: string
   originalStart: string
   recoveredAt: string
-  elapsedMinutes: number
+  conversationTimeMinutes?: number // New conversation-based timing
+  conversationTimeSeconds?: number
+  elapsedMinutes?: number // Keep for backward compatibility
   remainingMinutes: number
   autoRestarted: boolean
   sessionData: {
@@ -267,8 +269,8 @@ export default function ActiveSessionFoundModal({
                 {/* Session info */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-blue-50 rounded-lg px-3 py-2">
-                    <div className="text-blue-600 font-medium">Time Elapsed</div>
-                    <div className="text-blue-800 font-semibold">{formatTime(sessionData.elapsedMinutes)}</div>
+                    <div className="text-blue-600 font-medium">Conversation Time</div>
+                    <div className="text-blue-800 font-semibold">{formatTime(sessionData.conversationTimeMinutes || sessionData.elapsedMinutes || 0)}</div>
                   </div>
                   <div className="bg-green-50 rounded-lg px-3 py-2">
                     <div className="text-green-600 font-medium">Time Remaining</div>

@@ -66,23 +66,26 @@ model User {
 }
 
 model Session {
-  id                  String            @id @default(uuid())
-  userId              String
-  date                DateTime
-  duration            Int
-  theme               String            @default("AI Therapy Session")
-  notes               String?           @default("")
-  status              String            @default("scheduled")
-  reminderSent        Boolean           @default(false)
-  transcript          String?
-  notificationPrefs   String?           @default("email")
-  smsReminderSent     Boolean?          @default(false)
-  emailReminderSent   Boolean?          @default(false)
-  assistantId         String?
-  oneHourReminderSent Boolean?          @default(false)
-  startTime           DateTime?
-  user                User              @relation(fields: [userId], references: [id])
-  transcriptEntries   TranscriptEntry[]
+  id                     String            @id @default(uuid())
+  userId                 String
+  date                   DateTime
+  duration               Int
+  theme                  String            @default("AI Therapy Session")
+  notes                  String?           @default("")
+  status                 String            @default("scheduled")
+  reminderSent           Boolean           @default(false)
+  transcript             String?
+  notificationPrefs      String?           @default("email")
+  smsReminderSent        Boolean?          @default(false)
+  emailReminderSent      Boolean?          @default(false)
+  assistantId            String?
+  oneHourReminderSent    Boolean?          @default(false)
+  startTime              DateTime?
+  conversationTimeSeconds Int              @default(0)  // Accumulated actual conversation time
+  lastConversationStart   DateTime?                     // When current conversation segment started
+  isPaused               Boolean           @default(false) // Whether conversation is currently paused
+  user                   User              @relation(fields: [userId], references: [id])
+  transcriptEntries      TranscriptEntry[]
 
   @@index([userId])
   @@index([assistantId])

@@ -51,20 +51,21 @@ export function useTherapySessionRecovery() {
         if (activeSession && activeSession.id) {
           console.log('🎯 Active therapy session found:', activeSession.id)
           
-          // Check if session is still valid (within duration limits)
+          // Check if session is still valid (using conversation time, not wall clock)
           let isSessionValid = false
           let remainingMinutes = 0
+          let conversationTimeSeconds = 0
+          let conversationTimeMinutes = 0
           
-          if (activeSession.startTime && activeSession.duration) {
-            const sessionStart = new Date(activeSession.startTime)
-            const sessionDuration = activeSession.duration
-            const now = new Date()
-            const elapsedMs = now.getTime() - sessionStart.getTime()
-            const elapsedMinutes = Math.floor(elapsedMs / 60000)
-            remainingMinutes = sessionDuration - elapsedMinutes
+          if (activeSession.duration) {
+            const sessionDurationMinutes = activeSession.duration
+            conversationTimeSeconds = activeSession.conversationTimeSeconds || 0
+            conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60)
+            remainingMinutes = sessionDurationMinutes - conversationTimeMinutes
             
             isSessionValid = remainingMinutes > 0
-            console.log(`📊 Session timing: ${elapsedMinutes}/${sessionDuration} minutes elapsed, ${remainingMinutes} remaining`)
+            console.log(`📊 Session timing (conversation-based): ${conversationTimeMinutes}/${sessionDurationMinutes} minutes used, ${remainingMinutes} remaining`)
+            console.log(`🕒 Total conversation time: ${conversationTimeSeconds} seconds`)
           }
           
           if (isSessionValid) {
@@ -88,7 +89,8 @@ export function useTherapySessionRecovery() {
               sessionId: activeSession.id,
               originalStart: activeSession.startTime,
               recoveredAt: new Date().toISOString(),
-              elapsedMinutes: elapsedMinutes,
+              conversationTimeMinutes: conversationTimeMinutes,
+              conversationTimeSeconds: conversationTimeSeconds,
               remainingMinutes: remainingMinutes,
               autoRestarted: false, // Will be updated when session actually restarts
               sessionData: activeSession

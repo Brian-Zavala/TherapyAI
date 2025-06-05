@@ -5,7 +5,10 @@ import { motion } from 'framer-motion'
 
 interface SessionTimerProps {
   durationMinutes: number
-  startTime: Date
+  startTime?: Date // Keep for backward compatibility, but prefer conversation-based timing
+  conversationTimeSeconds?: number // Current accumulated conversation time
+  isConversationActive?: boolean // Whether conversation is currently active
+  conversationStartTime?: Date // When current conversation segment started
   onTimeUpdate?: (remainingTimeMinutes: number, remainingTimeSeconds: number) => void
   className?: string
   showRecoveredIndicator?: boolean
@@ -16,6 +19,9 @@ interface SessionTimerProps {
 export default function SessionTimer({ 
   durationMinutes, 
   startTime, 
+  conversationTimeSeconds = 0,
+  isConversationActive = false,
+  conversationStartTime,
   onTimeUpdate,
   className = "",
   showRecoveredIndicator = false,
@@ -27,11 +33,18 @@ export default function SessionTimer({
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date()
-      const elapsedMs = now.getTime() - startTime.getTime()
-      const elapsedSeconds = Math.floor(elapsedMs / 1000)
+      let currentConversationTime = conversationTimeSeconds
+      
+      // Add current active segment time if conversation is active
+      if (isConversationActive && conversationStartTime) {
+        const now = new Date()
+        const currentSegmentMs = now.getTime() - conversationStartTime.getTime()
+        const currentSegmentSeconds = Math.floor(currentSegmentMs / 1000)
+        currentConversationTime += currentSegmentSeconds
+      }
+      
       const totalSeconds = durationMinutes * 60
-      const remaining = Math.max(0, totalSeconds - elapsedSeconds)
+      const remaining = Math.max(0, totalSeconds - currentConversationTime)
       
       setRemainingSeconds(remaining)
       
@@ -47,7 +60,7 @@ export default function SessionTimer({
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [durationMinutes, startTime, onTimeUpdate, isExpired])
+  }, [durationMinutes, conversationTimeSeconds, isConversationActive, conversationStartTime, onTimeUpdate, isExpired])
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -92,7 +105,12 @@ export default function SessionTimer({
           {formatTime(remainingSeconds)}
         </div>
         <div className="text-xs text-gray-400 mt-1">
-          {isExpired ? 'Session Complete' : 'Time Remaining'}
+          {isExpired ? 'Session Complete' : 'Conversation Time Left'}
+          {!isConversationActive && !isExpired && (
+            <div className="text-xs text-yellow-400 mt-1">
+              ⏸️ Paused
+            </div>
+          )}
           {showRecoveredIndicator && !isExpired && (
             <div className="text-xs text-blue-400 mt-1 animate-pulse">
               Session Restored

@@ -7,7 +7,9 @@ interface SessionRecoveryInfo {
   sessionId: string
   originalStart: string
   recoveredAt: string
-  elapsedMinutes: number
+  conversationTimeMinutes?: number // New conversation-based timing
+  conversationTimeSeconds?: number
+  elapsedMinutes?: number // Keep for backward compatibility
   remainingMinutes: number
   autoRestarted: boolean
 }
@@ -117,8 +119,8 @@ export default function SessionRecoveryNotification() {
               
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="bg-white/10 rounded px-2 py-1">
-                  <div className="text-white/70">Session Time</div>
-                  <div className="font-semibold">{recoveryInfo.elapsedMinutes} min elapsed</div>
+                  <div className="text-white/70">Conversation Time</div>
+                  <div className="font-semibold">{recoveryInfo.conversationTimeMinutes || recoveryInfo.elapsedMinutes || 0} min used</div>
                 </div>
                 <div className="bg-white/10 rounded px-2 py-1">
                   <div className="text-white/70">Remaining</div>

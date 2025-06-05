@@ -74,6 +74,10 @@ function TherapyButton({
   const [metricsCalculator, setMetricsCalculator] = useState<RealTimeMetricsCalculator | null>(null)
   const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
   
+  // Conversation time tracking
+  const [conversationTimeSeconds, setConversationTimeSeconds] = useState(0)
+  const [conversationStartTime, setConversationStartTime] = useState<Date | null>(null)
+  
   // Session creation guard to prevent duplicate sessions
   const sessionCreationInProgress = useRef(false)
   const autoRestartTriggered = useRef(false)
@@ -306,7 +310,25 @@ function TherapyButton({
         // Track VAPI call start time for real-time timing
         const vapiStartTime = new Date();
         setVapiCallStartTime(vapiStartTime);
+        setConversationStartTime(vapiStartTime);
         console.log('📞 VAPI Call timing started:', vapiStartTime.toISOString());
+        
+        // Update session with conversation start time (resume conversation timing)
+        if (sessionId) {
+          try {
+            await fetch(`/api/sessions/${sessionId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                lastConversationStart: vapiStartTime.toISOString(),
+                isPaused: false
+              })
+            });
+            console.log('📊 Session conversation timing resumed');
+          } catch (error) {
+            console.error('Error updating session conversation start:', error);
+          }
+        }
         
         // Initialize metrics calculator and broadcast session start
         if (sessionId) {
@@ -439,13 +461,35 @@ function TherapyButton({
         setIsCallActive(false);
         setIsLoading(false); // Ensure loading is stopped
         
-        // Calculate VAPI call duration
+        // Calculate VAPI call duration and update session conversation time
+        let vapiDurationSeconds = 0;
         if (vapiCallStartTime) {
           const vapiEndTime = new Date();
           const vapiDurationMs = vapiEndTime.getTime() - vapiCallStartTime.getTime();
-          const vapiDurationSeconds = Math.floor(vapiDurationMs / 1000);
+          vapiDurationSeconds = Math.floor(vapiDurationMs / 1000);
           setVapiCallDuration(vapiDurationSeconds);
           console.log(`📞 VAPI Call duration: ${Math.round(vapiDurationSeconds / 60)} minutes (${vapiDurationSeconds} seconds)`);
+          
+          // Update local conversation time state and session database
+          setConversationTimeSeconds(prev => prev + vapiDurationSeconds);
+          setConversationStartTime(null);
+          
+          if (sessionId) {
+            try {
+              await fetch(`/api/sessions/${sessionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  conversationTimeSeconds: `ADD_${vapiDurationSeconds}`, // Special instruction to add to existing time
+                  isPaused: true,
+                  lastConversationStart: null
+                })
+              });
+              console.log(`📊 Session conversation time updated: +${vapiDurationSeconds} seconds`);
+            } catch (error) {
+              console.error('Error updating session conversation time:', error);
+            }
+          }
         }
         
         // Show a user-friendly message about the call ending
@@ -1503,22 +1547,34 @@ function TherapyButton({
             const elapsedMs = now.getTime() - sessionStart.getTime();
             const elapsedMinutes = Math.floor(elapsedMs / 60000);
             
-            // Only recover if session is still within duration
-            if (elapsedMinutes < sessionDuration) {
-              console.log(`📚 RECOVERING SESSION: Started ${elapsedMinutes} minutes ago, ${sessionDuration - elapsedMinutes} minutes remaining`);
+            // Check if session is still valid using conversation time, not wall clock
+            const conversationTimeSeconds = data.conversationTimeSeconds || 0;
+            const conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60);
+            const remainingMinutes = sessionDuration - conversationTimeMinutes;
+            
+            // Only recover if session still has conversation time remaining  
+            if (remainingMinutes > 0) {
+              console.log(`📚 RECOVERING SESSION: ${conversationTimeMinutes} conversation minutes used, ${remainingMinutes} minutes remaining`);
               
               // Restore timer state
               setSessionStartTime(sessionStart);
               setSelectedSessionDuration(sessionDuration as 30 | 60);
               setSessionRecovered(true);
               
+              // Restore conversation time if available
+              if (data.conversationTimeSeconds !== undefined) {
+                setConversationTimeSeconds(data.conversationTimeSeconds);
+                console.log(`📊 Restored conversation time: ${data.conversationTimeSeconds} seconds`);
+              }
+              
               // Store recovery info for user awareness
               sessionStorage.setItem('session-recovered', JSON.stringify({
                 sessionId: data.id,
                 originalStart: data.startTime,
                 recoveredAt: now.toISOString(),
-                elapsedMinutes,
-                remainingMinutes: sessionDuration - elapsedMinutes,
+                conversationTimeMinutes,
+                conversationTimeSeconds,
+                remainingMinutes,
                 autoRestarted: shouldPerformAutoRestart
               }));
               
@@ -1565,7 +1621,14 @@ function TherapyButton({
               
               console.log(`✅ Session timer recovered successfully (auto-restart: ${shouldPerformAutoRestart})`);
             } else {
-              console.log(`⚠️ Session has expired (${elapsedMinutes} minutes elapsed, duration was ${sessionDuration} minutes)`);
+              console.log(`⚠️ Session has expired (${conversationTimeMinutes} conversation minutes used, duration was ${sessionDuration} minutes)`);
+              
+              // Clean up expired session data to prevent failsafe auto-restart
+              console.log('🧹 Cleaning up expired session data from storage');
+              sessionStorage.removeItem('current-session-id');
+              sessionStorage.removeItem('session-recovery-pending');
+              sessionStorage.removeItem('session-continue-trigger');
+              sessionStorage.removeItem('session-recovered');
             }
           }
           
@@ -1575,6 +1638,12 @@ function TherapyButton({
           }
         } else {
           console.log('No active session found for user');
+          
+          // Clean up any stale session storage data when no session exists
+          console.log('🧹 Cleaning up stale session data - no active session found');
+          sessionStorage.removeItem('current-session-id');
+          sessionStorage.removeItem('session-recovery-pending');
+          sessionStorage.removeItem('session-continue-trigger');
         }
       }
     } catch (error) {
@@ -1994,6 +2063,74 @@ function TherapyButton({
     return [];
   }, []);
 
+  // Handle session recovery trigger - defined before the useEffect that uses it
+  const triggerSessionContinuation = useCallback(async (recoveredSessionId: string, sessionData: any) => {
+    console.log('🔄 Triggering session continuation for:', recoveredSessionId);
+    
+    try {
+      // Validate inputs
+      if (!recoveredSessionId || !sessionData) {
+        throw new Error('Invalid session data for continuation');
+      }
+      
+      // Clear any existing error state
+      setErrorMessage(null);
+      setIsLoading(true);
+      
+      // Set the session ID immediately
+      setSessionId(recoveredSessionId);
+      
+      // Set session duration from recovered data
+      if (sessionData.duration) {
+        setSelectedSessionDuration(sessionData.duration);
+        currentSessionDuration.current = sessionData.duration;
+        console.log(`📊 Session duration set to: ${sessionData.duration} minutes`);
+      }
+      
+      // Set session as active immediately for UI
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = true;
+        document.body.classList.add('session-active');
+        console.log('🎨 UI updated: session-active class added');
+      }
+      
+      // Update component states
+      setIsCallActive(true);
+      setSessionActive(true);
+      
+      console.log('🚀 Starting VAPI session continuation...');
+      
+      // Start the session with the recovered ID and duration
+      await startTherapySession(recoveredSessionId, sessionData.duration, []);
+      
+      console.log('✅ Session continuation successful');
+      setIsLoading(false);
+      
+    } catch (error) {
+      console.error('❌ Error during session continuation:', error);
+      
+      // Reset to safe state
+      setIsCallActive(false);
+      setSessionActive(false);
+      setIsLoading(false);
+      
+      // Remove session-active class if continuation failed
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = false;
+        document.body.classList.remove('session-active');
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to continue session';
+      setErrorMessage(errorMessage);
+      
+      // Clean up stale session storage
+      sessionStorage.removeItem('session-continue-trigger');
+      sessionStorage.removeItem('current-session-id');
+      
+      throw error; // Re-throw for upper-level handling
+    }
+  }, [startTherapySession, setSessionActive]);
+
   // Listen for session continuation trigger from active session modal
   useEffect(() => {
     let processingContinuation = false;
@@ -2039,18 +2176,14 @@ function TherapyButton({
         if (directSessionId && !isCallActive && !sessionId) {
           console.log('🔍 Failsafe: Found direct session ID without active call:', directSessionId);
           
-          // Fetch session data as backup method
-          fetch(`/api/sessions/${directSessionId}`)
-            .then(response => response.json())
-            .then(sessionData => {
-              if (sessionData && sessionData.status === 'active') {
-                console.log('🆘 Failsafe: Triggering session continuation via direct session data');
-                triggerSessionContinuation(directSessionId, sessionData);
-              }
-            })
-            .catch(error => {
-              console.warn('Failsafe session fetch failed:', error);
-            });
+          // DISABLED: Failsafe auto-continuation to prevent unwanted session restarts
+          console.log('🔍 Failsafe found session ID but auto-continuation disabled');
+          console.log('⚠️ User must explicitly choose to continue sessions via modal');
+          
+          // Clean up stale session storage to prevent repeated failsafe triggers
+          sessionStorage.removeItem('current-session-id');
+          sessionStorage.removeItem('session-recovery-pending');
+          sessionStorage.removeItem('session-continue-trigger');
         }
         
       } catch (error) {
@@ -2070,74 +2203,6 @@ function TherapyButton({
       processingContinuation = false;
     };
   }, [triggerSessionContinuation, isCallActive, sessionId]);
-
-  // Handle session recovery trigger
-  const triggerSessionContinuation = useCallback(async (recoveredSessionId: string, sessionData: any) => {
-    console.log('🔄 Triggering session continuation for:', recoveredSessionId);
-    
-    try {
-      // Validate inputs
-      if (!recoveredSessionId || !sessionData) {
-        throw new Error('Invalid session data for continuation');
-      }
-      
-      // Clear any existing error state
-      setErrorMessage(null);
-      setIsLoading(true);
-      
-      // Set the session ID immediately
-      setSessionId(recoveredSessionId);
-      
-      // Set session duration from recovered data
-      if (sessionData.duration) {
-        setSelectedSessionDuration(sessionData.duration);
-        currentSessionDuration.current = sessionData.duration;
-        console.log(`📊 Session duration set to: ${sessionData.duration} minutes`);
-      }
-      
-      // Set session as active immediately for UI
-      if (typeof window !== 'undefined') {
-        (window as any).__therapySessionActive = true;
-        document.body.classList.add('session-active');
-        console.log('🎨 UI updated: session-active class added');
-      }
-      
-      // Update component states
-      setIsCallActive(true);
-      setSoundContextActive(true);
-      
-      console.log('🚀 Starting VAPI session continuation...');
-      
-      // Start the session with the recovered ID and duration
-      await startTherapySession(recoveredSessionId, sessionData.duration, []);
-      
-      console.log('✅ Session continuation successful');
-      setIsLoading(false);
-      
-    } catch (error) {
-      console.error('❌ Error during session continuation:', error);
-      
-      // Reset to safe state
-      setIsCallActive(false);
-      setSoundContextActive(false);
-      setIsLoading(false);
-      
-      // Remove session-active class if continuation failed
-      if (typeof window !== 'undefined') {
-        (window as any).__therapySessionActive = false;
-        document.body.classList.remove('session-active');
-      }
-      
-      const errorMessage = error instanceof Error ? error.message : 'Failed to continue session';
-      setErrorMessage(errorMessage);
-      
-      // Clean up stale session storage
-      sessionStorage.removeItem('session-continue-trigger');
-      sessionStorage.removeItem('current-session-id');
-      
-      throw error; // Re-throw for upper-level handling
-    }
-  }, [startTherapySession, setSoundContextActive]);
 
   // Handle modal actions
   const handleStartButtonClick = () => {
@@ -3297,6 +3362,9 @@ function TherapyButton({
                 <SessionTimer 
                   durationMinutes={currentSessionDuration.current}
                   startTime={sessionStartTime}
+                  conversationTimeSeconds={conversationTimeSeconds}
+                  isConversationActive={isCallActive}
+                  conversationStartTime={conversationStartTime}
                   className="text-white"
                   onTimeUpdate={handleTimeUpdate}
                   showRecoveredIndicator={sessionRecovered}

@@ -160,7 +160,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const { status, notes, transcript, transcriptEntry, duration } = await request.json()
+    const { status, notes, transcript, transcriptEntry, duration, conversationTimeSeconds, lastConversationStart, isPaused } = await request.json()
     
     const updateData: Record<string, unknown> = {}
     
@@ -186,6 +186,29 @@ export async function PATCH(
     // Update duration if provided
     if (duration !== undefined) {
       updateData.duration = duration
+    }
+    
+    // Handle conversation time tracking
+    if (conversationTimeSeconds !== undefined) {
+      if (typeof conversationTimeSeconds === 'string' && conversationTimeSeconds.startsWith('ADD_')) {
+        // Special instruction to add to existing conversation time
+        const additionalSeconds = parseInt(conversationTimeSeconds.substring(4))
+        const currentTime = existingSession.conversationTimeSeconds || 0
+        updateData.conversationTimeSeconds = currentTime + additionalSeconds
+        console.log(`📊 Adding ${additionalSeconds}s to conversation time. New total: ${currentTime + additionalSeconds}s`)
+      } else {
+        // Direct set of conversation time
+        updateData.conversationTimeSeconds = conversationTimeSeconds
+      }
+    }
+    
+    // Update conversation timing fields
+    if (lastConversationStart !== undefined) {
+      updateData.lastConversationStart = lastConversationStart ? new Date(lastConversationStart) : null
+    }
+    
+    if (isPaused !== undefined) {
+      updateData.isPaused = isPaused
     }
     
     // Handle new transcript entry if provided

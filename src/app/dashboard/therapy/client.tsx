@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import TherapyButton from "@/components/TherapyButton";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
-import SessionRecoveryNotification from "@/components/SessionRecoveryNotification";
+// import SessionRecoveryNotification from "@/components/SessionRecoveryNotification"; // Removed - using only ActiveSessionFoundModal
 import ActiveSessionFoundModal from "@/components/ActiveSessionFoundModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,9 +22,16 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sessionType, setSessionType] = useState<string | null>(null);
-  const [selectedAssistant, setSelectedAssistant] = useState(
-    COUPLE_THERAPY_ASSISTANT_CONFIG
-  );
+  const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
+
+  // Set default assistant when no session recovery is happening
+  useEffect(() => {
+    if (!isCheckingForSession && !hasActiveSession && !selectedAssistant) {
+      console.log('📝 No session recovery, setting default couples therapist');
+      setSelectedAssistant(COUPLE_THERAPY_ASSISTANT_CONFIG);
+      setSessionType('couple');
+    }
+  }, [isCheckingForSession, hasActiveSession, selectedAssistant]);
   // Default to show the selector - user must explicitly choose session type
   const [showTypeSelector, setShowTypeSelector] = useState(true);
   // Countdown overlay state
@@ -283,14 +290,55 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         throw new Error(`Session is ${currentSessionData.status}, cannot continue`)
       }
       
-      // Determine session type from theme or therapy type
-      let detectedType = 'couple' // default
-      if (sessionData.theme) {
-        if (sessionData.theme.toLowerCase().includes('individual') || sessionData.theme.toLowerCase().includes('solo')) {
+          // Determine session type from assistantId first, then theme as fallback
+      let detectedType = null // Changed: Don't default to any type
+      
+      // First, try to determine type from assistantId (most reliable)
+      if (sessionData.assistantId || currentSessionData.assistantId) {
+        const assistantId = sessionData.assistantId || currentSessionData.assistantId
+        console.log(`🔍 Detecting session type from assistantId: "${assistantId}"`)
+        console.log(`🔍 Available assistant IDs:`);
+        console.log(`  - Individual: "${INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id}"`);
+        console.log(`  - Family: "${FAMILY_THERAPY_ASSISTANT_CONFIG.id}"`);
+        console.log(`  - Couple: "${COUPLE_THERAPY_ASSISTANT_CONFIG.id}"`);
+        
+        if (assistantId === INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id) {
           detectedType = 'solo'
-        } else if (sessionData.theme.toLowerCase().includes('family')) {
+          console.log(`✅ Matched Individual therapy assistant`);
+        } else if (assistantId === FAMILY_THERAPY_ASSISTANT_CONFIG.id) {
           detectedType = 'family'
+          console.log(`✅ Matched Family therapy assistant`);
+        } else if (assistantId === COUPLE_THERAPY_ASSISTANT_CONFIG.id) {
+          detectedType = 'couple'
+          console.log(`✅ Matched Couple therapy assistant`);
+        } else {
+          console.log(`⚠️ AssistantId "${assistantId}" did not match any known assistant configs`);
         }
+      } else {
+        console.log(`⚠️ No assistantId found in session data`);
+      }
+      
+      // Fallback to theme detection if assistantId didn't match
+      if (!detectedType && (sessionData.theme || currentSessionData.theme)) {
+        const theme = sessionData.theme || currentSessionData.theme
+        console.log(`🔍 Fallback: Detecting session type from theme: "${theme}"`);
+        
+        if (theme.toLowerCase().includes('individual') || theme.toLowerCase().includes('solo')) {
+          detectedType = 'solo'
+          console.log(`✅ Detected Solo therapy from theme`);
+        } else if (theme.toLowerCase().includes('family')) {
+          detectedType = 'family'
+          console.log(`✅ Detected Family therapy from theme`);
+        } else if (theme.toLowerCase().includes('couple')) {
+          detectedType = 'couple'
+          console.log(`✅ Detected Couple therapy from theme`);
+        }
+      }
+      
+      // Final fallback if no type detected
+      if (!detectedType) {
+        console.log(`⚠️ Could not detect session type, defaulting to 'couple'`);
+        detectedType = 'couple';
       }
       
       console.log(`🎯 Detected session type: ${detectedType}`)
@@ -1202,7 +1250,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                   : sessionType === "solo"
                                                     ? "/images/dr-elliot-mackaphy.jpg"
                                                     : "/images/dr-jada-pearson.jpg",
-                                              alt: selectedAssistant.name,
+                                              alt: selectedAssistant?.name || "Therapist",
                                               className:
                                                 "w-full h-full object-cover",
                                               onError: (e) => {
@@ -1273,7 +1321,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         key: "therapist-name",
                                         className: `text-xl font-bold transition-colors duration-500 ${isSessionActive ? "text-white" : "text-black/90"}`,
                                       },
-                                      selectedAssistant.name
+                                      selectedAssistant?.name || "Loading..."
                                     ),
                                     React.createElement(
                                       "p",
@@ -1438,7 +1486,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                             className:
                                               "text-sm sm:text-base font-medium text-black/90 bg-blue-50/80 px-2 py-0.5 rounded-md inline-block",
                                           },
-                                          `I'm ${selectedAssistant.name}`
+                                          selectedAssistant?.name ? `I'm ${selectedAssistant.name}` : "Loading therapist..."
                                         ),
                                       ]
                                     ),
@@ -1495,13 +1543,16 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                     key: "button-wrapper-persistent",
                                     className: "flex justify-center items-center w-full mt-1 mb-4 pb-8",
                                   },
-                                  React.createElement(TherapyButton, {
+                                  selectedAssistant ? React.createElement(TherapyButton, {
                                     key: "therapy-button-main", // Add stable key to prevent remounting
                                     userId: userId,
                                     assistantConfig: selectedAssistant,
                                     therapyType: sessionType || "couple",
                                     shouldAutoRestart: shouldAutoRestart, // Pass session recovery state
-                                  })
+                                  }) : React.createElement("div", {
+                                    key: "loading-button",
+                                    className: "flex items-center justify-center p-4 rounded-lg bg-gray-300 text-gray-600"
+                                  }, "Loading therapist...")
                                 ),
                               ]
                             ),
@@ -1525,10 +1576,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       onStartNewSession: handleStartNewSession
     }),
 
-    // Session Recovery Notification (appears after session is successfully recovered)
-    React.createElement(SessionRecoveryNotification, {
-      key: "session-recovery-notification"
-    }),
+    // Session Recovery Notification - REMOVED to eliminate duplicate modals
+    // User will see only the ActiveSessionFoundModal which has better UX
+    // React.createElement(SessionRecoveryNotification, {
+    //   key: "session-recovery-notification"
+    // }),
 
     // Session Recovery Checking Indicator - Only on therapy page when actually checking
     isCheckingForSession && 

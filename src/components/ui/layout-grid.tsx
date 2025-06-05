@@ -20,7 +20,7 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
   // Check if we're on mobile when the component mounts
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      setIsMobile(window.innerWidth < 768); // Include tablets in mobile-like behavior
     };
 
     // Initial check
