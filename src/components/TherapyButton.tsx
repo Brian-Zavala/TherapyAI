@@ -11,6 +11,14 @@ import SessionDurationModal from './SessionDurationModal'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
 import SessionTimer from './SessionTimer'
 import { RealTimeMetricsCalculator, type IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
+import { 
+  VapiMessage, 
+  isTranscriptMessage, 
+  isModelOutputMessage, 
+  isConversationUpdateMessage,
+  isFunctionCallMessage,
+  isSpeechUpdateMessage
+} from '@/types/vapi'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -186,7 +194,7 @@ function TherapyButton({
     } catch (error) {
       console.error('Error in calculateAndBroadcastIncrementalMetrics:', error);
     }
-  }, [metricsCalculator, initializeMetricsCalculator, therapyType, userId]);
+  }, [metricsCalculator, initializeMetricsCalculator, therapyType, userId, sendMetricsUpdate]);
   
   // Get the sound context to control music playback
   const { stopMusicPlayback, setSessionActive } = useSoundContext()
@@ -603,16 +611,16 @@ function TherapyButton({
       
       
       // 🎯 COMPREHENSIVE MESSAGE HANDLER - CATCHES ALL VAPI MESSAGE TYPES
-      vapiInstanceRef.current.on('message', async (message: any) => {
+      vapiInstanceRef.current.on('message', async (message: VapiMessage) => {
         try {
           // 🔍 MINIMAL DEBUG LOGGING - Reduced verbose logging for performance
           console.log(`📨 VAPI MSG: ${message.type}${message.role ? ` (${message.role})` : ''}`);
           
           // 🚫 CONVERSATION-UPDATE DEDUPLICATION - Prevent processing duplicate conversation states
-          if (message.type === 'conversation-update') {
+          if (isConversationUpdateMessage(message)) {
             try {
               // Create hash of conversation content to detect duplicates
-              const conversationContent = JSON.stringify(message.conversation || message.messages || []);
+              const conversationContent = JSON.stringify(message.conversation || []);
               // Use a safer hash that handles Unicode characters
               const conversationHash = btoa(encodeURIComponent(conversationContent)).substring(0, 32);
               
@@ -775,7 +783,7 @@ function TherapyButton({
           }
           
           // 🔧 FUNCTION CALL HANDLING - USER-INITIATED SESSION ENDING
-          if (message.type === 'function-call' && message.functionCall?.name === 'end_therapy_session') {
+          if (isFunctionCallMessage(message) && message.functionCall?.name === 'end_therapy_session') {
             console.log('🔚 FUNCTION CALL: User requested to end therapy session');
             console.log('Function call details:', JSON.stringify(message.functionCall, null, 2));
             
@@ -820,7 +828,7 @@ function TherapyButton({
           
           // 🚀 ENHANCED TRANSCRIPT HANDLING - FIXED FOR COMPLETENESS AND ASSISTANT CAPTURE
           // Critical: Only save FINAL transcripts to prevent fragmented sentences
-          if (message.type === 'transcript') {
+          if (isTranscriptMessage(message)) {
             const text = message.transcript;
             const isFinal = message.transcriptType === 'final' || message.isFinal === true;
             
@@ -943,29 +951,30 @@ function TherapyButton({
           }
           // 🤖 ENHANCED ASSISTANT MESSAGE CAPTURE - PRIORITIZING CONFIGURED CLIENT MESSAGES
           else if (
-            // Priority: clientMessages types we configured
-            message.type === 'model-output' ||  // AI assistant responses (primary)
-            message.type === 'assistant-request' ||  // Assistant API calls
-            message.type === 'conversation-update' ||  // Conversation updates
-            message.type === 'speech-update' ||  // Speech processing
-            message.type === 'voice-input' ||  // Voice input processing
-            // Fallback: other assistant message patterns
-            message.type === 'transcript-response' || 
-            message.type === 'assistant-response' ||
-            (message.role === 'assistant' && (message.content || message.transcript)) ||
-            (message.speaker === 'assistant') ||
-            (message.from === 'assistant') ||
+            isModelOutputMessage(message) ||  // AI assistant responses (primary)
+            isSpeechUpdateMessage(message) ||  // Speech processing
+            // Fallback: other assistant message patterns for backward compatibility
+            (message.type === 'assistant-request') ||  // Assistant API calls
+            (message.type === 'voice-input') ||  // Voice input processing
+            (message.type === 'transcript-response') || 
+            (message.type === 'assistant-response') ||
+            ('role' in message && message.role === 'assistant') ||
+            ('speaker' in message && (message as any).speaker === 'assistant') ||
+            ('from' in message && (message as any).from === 'assistant') ||
             // Legacy patterns for backward compatibility
-            (message.type === 'message' && message.role === 'assistant')
+            (message.type === 'message' && 'role' in message && message.role === 'assistant')
           ) {
             // Enhanced text extraction for different message types
             let text = '';
-            if (message.type === 'model-output') {
-              // model-output messages may have different structure
-              text = message.output || message.response || message.content || message.text || '';
+            if (isModelOutputMessage(message)) {
+              // model-output messages have specific structure
+              text = message.output || '';
+            } else if (isTranscriptMessage(message)) {
+              // transcript messages have specific structure
+              text = message.transcript || '';
             } else {
-              // Standard text extraction for other message types
-              text = message.transcript || message.content || message.text || message.message || '';
+              // Fallback for other message types - need to use type assertion
+              text = (message as any).content || (message as any).text || (message as any).message || '';
             }
             
             if (!text || text.trim() === '') {
@@ -974,7 +983,7 @@ function TherapyButton({
             }
             
             // Enhanced logging for different message types
-            if (message.type === 'model-output') {
+            if (isModelOutputMessage(message)) {
               console.log(`🎯 MODEL OUTPUT CAPTURED: ${text.substring(0, 100)}... (AI RESPONSE)`);
             } else {
               console.log(`🤖 ASSISTANT MESSAGE CAPTURED: ${text.substring(0, 100)}... (type: ${message.type})`);
@@ -1151,8 +1160,11 @@ function TherapyButton({
   }, [metricsCalculator, setMetricsCalculator, setCurrentMetrics])
   
   // Create Vapi instance - MOVED HERE TO FIX HOISTING ISSUE
-  // Start therapy session - MOVED HERE TO FIX HOISTING ISSUE
-  const startTherapySession = useCallback(async (existingSessionId?: string, selectedDuration?: 30 | 60, selectedMembers?: Array<{name: string, age: number, relation: string}>) => {
+  // Start therapy session with specific therapy type override - for session recovery
+  const startTherapySessionWithType = useCallback(async (existingSessionId?: string, selectedDuration?: 30 | 60, selectedMembers?: Array<{name: string, age: number, relation: string}>, overrideTherapyType?: string) => {
+    const effectiveTherapyType = overrideTherapyType || therapyType;
+    console.log(`🎯 startTherapySessionWithType called with therapyType: ${effectiveTherapyType} (override: ${overrideTherapyType}, original: ${therapyType})`);
+    
     // Prevent duplicate session creation
     if (sessionCreationInProgress.current) {
       console.log('⚠️ SESSION CREATION GUARD: Session creation already in progress, skipping duplicate attempt');
@@ -1164,7 +1176,7 @@ function TherapyButton({
     // Use provided session ID or fallback to component state
     const currentSessionId = existingSessionId || sessionId;
     console.log('⚙️ SESSION CREATION GUARD: Starting therapy session initialization...');
-    console.log(`📋 SESSION STATE: existingSessionId=${existingSessionId}, sessionId=${sessionId}, userId=${userId}, therapyType=${therapyType}`);
+    console.log(`📋 SESSION STATE: existingSessionId=${existingSessionId}, sessionId=${sessionId}, userId=${userId}, therapyType=${effectiveTherapyType}`);
     
     try {
       setErrorMessage(null)
@@ -1358,17 +1370,17 @@ function TherapyButton({
         id: assistantConfig?.id,
         name: assistantConfig?.name,
         type: assistantConfig?.type,
-        therapyType
+        therapyType: effectiveTherapyType
       }));
       
       // Check for assistantId based on therapy type
-      if (therapyType === 'couple') {
+      if (effectiveTherapyType === 'couple') {
         assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
         console.log('Using couple therapy assistant ID:', assistantId);
-      } else if (therapyType === 'solo') {
+      } else if (effectiveTherapyType === 'solo') {
         assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
         console.log('Using solo therapy assistant ID:', assistantId);
-      } else if (therapyType === 'family') {
+      } else if (effectiveTherapyType === 'family') {
         assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
         console.log('Using family therapy assistant ID:', assistantId);
       } else if (assistantConfig && assistantConfig.id) {
@@ -1384,7 +1396,7 @@ function TherapyButton({
         throw new Error('No assistant ID available')
       }
       
-      console.log(`Starting ${therapyType} therapy session with assistant: ${assistantConfig?.name || 'Unknown'} (ID: ${assistantId})`);
+      console.log(`Starting ${effectiveTherapyType} therapy session with assistant: ${assistantConfig?.name || 'Unknown'} (ID: ${assistantId})`);
       console.log(`Voice configuration: ${JSON.stringify(assistantConfig?.voice || 'default')}`);
       
       // Ensure we have a session-active class on the body - this is critical for the starry night visualization
@@ -1399,7 +1411,7 @@ function TherapyButton({
       try {
         console.log('🚀 Starting enhanced therapy session with personalization');
         console.log('Using assistant ID:', assistantId);
-        console.log('Therapy type:', therapyType);
+        console.log('Therapy type:', effectiveTherapyType);
         
         // Ensure we have a clean state
         if (vapiInstanceRef.current) {
@@ -1426,10 +1438,10 @@ function TherapyButton({
           const startTimeISO = sessionStartTime.toISOString();
           
           // Build URL with selected family members for family therapy
-          let configUrl = `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${sessionDuration}&startTime=${encodeURIComponent(startTimeISO)}`;
+          let configUrl = `/api/vapi/assistant?personalized=true&therapyType=${effectiveTherapyType}&duration=${sessionDuration}&startTime=${encodeURIComponent(startTimeISO)}`;
           
           // Add selected family members to the request for family therapy
-          if (therapyType === 'family' && selectedMembers && selectedMembers.length > 0) {
+          if (effectiveTherapyType === 'family' && selectedMembers && selectedMembers.length > 0) {
             const familyMembersParam = encodeURIComponent(JSON.stringify(selectedMembers));
             configUrl += `&selectedFamilyMembers=${familyMembersParam}`;
             console.log('Adding selected family members to configuration:', selectedMembers);
@@ -1513,7 +1525,13 @@ function TherapyButton({
       setIsLoading(false);
       sessionCreationInProgress.current = false;
     }
-  }, [userId, createVapiInstance, sessionId, therapyType, assistantConfig, stopMusicPlayback, setSessionActive])
+  }, [userId, createVapiInstance, sessionId, assistantConfig, stopMusicPlayback, setSessionActive, therapyType])
+
+  // Wrapper function that uses the current therapyType prop as default
+  const startTherapySession = useCallback(async (existingSessionId?: string, selectedDuration?: 30 | 60, selectedMembers?: Array<{name: string, age: number, relation: string}>) => {
+    return startTherapySessionWithType(existingSessionId, selectedDuration, selectedMembers, therapyType);
+  }, [startTherapySessionWithType, therapyType]);
+
   const audioTrackRef = useRef<MediaStreamTrack | null>(null) // Reference to audio track for muting
   
   // Check for existing session and recover timer state
@@ -1561,10 +1579,45 @@ function TherapyButton({
               setSelectedSessionDuration(sessionDuration as 30 | 60);
               setSessionRecovered(true);
               
-              // Restore conversation time if available
-              if (data.conversationTimeSeconds !== undefined) {
-                setConversationTimeSeconds(data.conversationTimeSeconds);
-                console.log(`📊 Restored conversation time: ${data.conversationTimeSeconds} seconds`);
+              // Restore conversation time if available, checking backup first
+              let restoredConversationTime = data.conversationTimeSeconds || 0;
+              
+              // Check for backup time data from beforeunload saves
+              const backupTimeKey = `session-${data.id}-backup-time`;
+              const backupTimeData = sessionStorage.getItem(backupTimeKey);
+              if (backupTimeData) {
+                try {
+                  const backup = JSON.parse(backupTimeData);
+                  if (backup.conversationTimeSeconds > restoredConversationTime) {
+                    console.log(`📊 BACKUP RECOVERY: Using backup time ${backup.conversationTimeSeconds}s instead of database time ${restoredConversationTime}s`);
+                    restoredConversationTime = backup.conversationTimeSeconds;
+                    
+                    // Save the more accurate backup time to the database
+                    try {
+                      await fetch(`/api/sessions/${data.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          conversationTimeSeconds: restoredConversationTime,
+                          lastConversationStart: backup.lastConversationStart
+                        })
+                      });
+                      console.log(`📊 Updated database with backup time: ${restoredConversationTime}s`);
+                    } catch (updateError) {
+                      console.warn('Failed to update database with backup time:', updateError);
+                    }
+                  }
+                  
+                  // Clear the backup after successful recovery
+                  sessionStorage.removeItem(backupTimeKey);
+                } catch (backupError) {
+                  console.warn('Error parsing backup time data:', backupError);
+                }
+              }
+              
+              if (restoredConversationTime > 0) {
+                setConversationTimeSeconds(restoredConversationTime);
+                console.log(`📊 Restored conversation time: ${restoredConversationTime} seconds`);
               }
               
               // Store recovery info for user awareness
@@ -2080,11 +2133,49 @@ function TherapyButton({
       // Set the session ID immediately
       setSessionId(recoveredSessionId);
       
+      // CRITICAL FIX: Fetch fresh session data to get correct assistantId
+      console.log('🔍 Fetching fresh session data to determine correct therapy type...');
+      const sessionResponse = await fetch(`/api/sessions/${recoveredSessionId}`);
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to fetch session data for recovery');
+      }
+      
+      const freshSessionData = await sessionResponse.json();
+      console.log('📊 Fresh session data:', {
+        assistantId: freshSessionData.assistantId,
+        theme: freshSessionData.theme,
+        duration: freshSessionData.duration
+      });
+      
+      // Determine correct therapy type from assistantId
+      let detectedTherapyType = therapyType; // fallback to prop
+      if (freshSessionData.assistantId) {
+        const assistantId = freshSessionData.assistantId;
+        console.log(`🔍 Detecting therapy type from assistantId: "${assistantId}"`);
+        
+        // Check against known assistant IDs
+        if (assistantId === process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID) {
+          detectedTherapyType = 'solo';
+          console.log('✅ Detected Solo therapy from assistantId');
+        } else if (assistantId === process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID) {
+          detectedTherapyType = 'family';
+          console.log('✅ Detected Family therapy from assistantId');
+        } else if (assistantId === process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID) {
+          detectedTherapyType = 'couple';
+          console.log('✅ Detected Couple therapy from assistantId');
+        } else {
+          console.log(`⚠️ Unknown assistantId "${assistantId}", using fallback therapy type: ${detectedTherapyType}`);
+        }
+      }
+      
+      console.log(`🎯 Final therapy type for session continuation: ${detectedTherapyType}`);
+      
       // Set session duration from recovered data
-      if (sessionData.duration) {
-        setSelectedSessionDuration(sessionData.duration);
-        currentSessionDuration.current = sessionData.duration;
-        console.log(`📊 Session duration set to: ${sessionData.duration} minutes`);
+      const sessionDuration = freshSessionData.duration || sessionData.duration;
+      if (sessionDuration) {
+        setSelectedSessionDuration(sessionDuration);
+        currentSessionDuration.current = sessionDuration;
+        console.log(`📊 Session duration set to: ${sessionDuration} minutes`);
       }
       
       // Set session as active immediately for UI
@@ -2100,8 +2191,8 @@ function TherapyButton({
       
       console.log('🚀 Starting VAPI session continuation...');
       
-      // Start the session with the recovered ID and duration
-      await startTherapySession(recoveredSessionId, sessionData.duration, []);
+      // Start the session with the recovered ID, duration, and detected therapy type
+      await startTherapySessionWithType(recoveredSessionId, sessionDuration, [], detectedTherapyType);
       
       console.log('✅ Session continuation successful');
       setIsLoading(false);
@@ -2129,7 +2220,7 @@ function TherapyButton({
       
       throw error; // Re-throw for upper-level handling
     }
-  }, [startTherapySession, setSessionActive]);
+  }, [therapyType, setSessionActive, startTherapySessionWithType]);
 
   // Listen for session continuation trigger from active session modal
   useEffect(() => {
@@ -2203,6 +2294,85 @@ function TherapyButton({
       processingContinuation = false;
     };
   }, [triggerSessionContinuation, isCallActive, sessionId]);
+
+  // Periodic conversation time saving during active sessions
+  useEffect(() => {
+    if (!isCallActive || !sessionId || !conversationStartTime) {
+      return;
+    }
+
+    const saveConversationTime = async (isBeforeUnload = false) => {
+      try {
+        const now = new Date();
+        const currentSegmentSeconds = Math.floor((now.getTime() - conversationStartTime.getTime()) / 1000);
+        const totalConversationTime = conversationTimeSeconds + currentSegmentSeconds;
+
+        // Save if we have accumulated time or if this is a beforeunload event
+        if (currentSegmentSeconds > 5 || isBeforeUnload) {
+          console.log(`💾 ${isBeforeUnload ? 'BEFOREUNLOAD' : 'PERIODIC'} SAVE: Updating conversation time to ${totalConversationTime} seconds`);
+          
+          // Always save to sessionStorage as backup
+          if (isBeforeUnload) {
+            sessionStorage.setItem(`session-${sessionId}-backup-time`, JSON.stringify({
+              conversationTimeSeconds: totalConversationTime,
+              lastConversationStart: conversationStartTime.toISOString(),
+              timestamp: now.toISOString(),
+              isPaused: true
+            }));
+          }
+          
+          // For beforeunload, use sendBeacon for reliability, otherwise use fetch
+          if (isBeforeUnload && navigator.sendBeacon) {
+            const data = JSON.stringify({
+              conversationTimeSeconds: totalConversationTime,
+              lastConversationStart: conversationStartTime.toISOString(),
+              isPaused: true // Mark as paused when user leaves
+            });
+            
+            navigator.sendBeacon(`/api/sessions/${sessionId}`, new Blob([data], {
+              type: 'application/json'
+            }));
+          } else {
+            await fetch(`/api/sessions/${sessionId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversationTimeSeconds: totalConversationTime,
+                lastConversationStart: conversationStartTime.toISOString(),
+                isPaused: isBeforeUnload
+              })
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('Error during conversation time save:', error);
+      }
+    };
+
+    // Periodic saves every 30 seconds
+    const interval = setInterval(() => saveConversationTime(false), 30000);
+
+    // Save on page unload to capture latest conversation time
+    const handleBeforeUnload = () => {
+      saveConversationTime(true);
+    };
+
+    // Save on visibility change (tab switch, minimize, etc.)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveConversationTime(true);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isCallActive, sessionId, conversationStartTime, conversationTimeSeconds]);
 
   // Handle modal actions
   const handleStartButtonClick = () => {
@@ -2498,7 +2668,7 @@ function TherapyButton({
     try {
       // Process transcript in background
       console.log('🔍 BEGINNING COMPREHENSIVE TRANSCRIPT RECOVERY');
-      console.log(`Session ${sessionId} ending - recovering all transcripts from all sources`);
+      console.log(`Session ${currentSessionId} ending - recovering all transcripts from all sources`);
       
       // Create master list of all recovered transcript entries
       const allRecoveredEntries: Array<{speaker: string, text: string, timestamp: string}> = [];
@@ -2540,7 +2710,7 @@ function TherapyButton({
       // 2. Check the main transcript storage in sessionStorage
       console.log('STEP 2: Checking main transcript storage in sessionStorage');
       try {
-        const storageKey = `transcript-${sessionId}`;
+        const storageKey = `transcript-${currentSessionId}`;
         const storedTranscripts = sessionStorage.getItem(storageKey);
         
         if (storedTranscripts) {
@@ -2661,7 +2831,7 @@ function TherapyButton({
       // 5. Try to get entries from database
       console.log('STEP 5: Retrieving entries from database');
       try {
-        const entriesResponse = await fetch(`/api/sessions/${sessionId}/transcript`);
+        const entriesResponse = await fetch(`/api/sessions/${currentSessionId}/transcript`);
         
         if (entriesResponse.ok) {
           const entries = await entriesResponse.json();
@@ -2703,7 +2873,7 @@ function TherapyButton({
       // 6. Check legacy transcript field
       console.log('STEP 6: Checking legacy transcript field');
       try {
-        const sessionResponse = await fetch(`/api/sessions/${sessionId}`);
+        const sessionResponse = await fetch(`/api/sessions/${currentSessionId}`);
         
         if (sessionResponse.ok) {
           const sessionData = await sessionResponse.json();
@@ -2851,9 +3021,9 @@ function TherapyButton({
             // Skip system entries for the database
             if (entry.speaker === 'system') continue;
             
-            if (sessionId) {
+            if (currentSessionId) {
               await addTranscriptEntry({
-                sessionId,
+                sessionId: currentSessionId,
                 speaker: entry.speaker,
                 text: entry.text,
                 timestamp: entry.timestamp,
@@ -2875,7 +3045,7 @@ function TherapyButton({
       // 8b. Also update the legacy transcript field for backward compatibility
       try {
         // In a separate try block in case individual entry saving failed
-        await fetch(`/api/sessions/${sessionId}`, {
+        await fetch(`/api/sessions/${currentSessionId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -2900,8 +3070,8 @@ function TherapyButton({
         let startTimeStr = sessionStorage.getItem('session-start-time');
         
         // Try session-specific start time as fallback
-        if (!startTimeStr && sessionId) {
-          startTimeStr = sessionStorage.getItem(`session-${sessionId}-start-time`);
+        if (!startTimeStr && currentSessionId) {
+          startTimeStr = sessionStorage.getItem(`session-${currentSessionId}-start-time`);
           if (startTimeStr) {
             console.log('Using session-specific start time as fallback');
           }
@@ -2974,7 +3144,7 @@ function TherapyButton({
         console.log(`📊 DUAL TIMING: Session ${actualDurationMinutes}min, VAPI Call ${Math.round(vapiCallDuration/60)}min`);
       }
       
-      const response = await fetch(`/api/sessions/${sessionId}`, {
+      const response = await fetch(`/api/sessions/${currentSessionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
