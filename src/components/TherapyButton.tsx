@@ -529,7 +529,8 @@ function TherapyButton({
       } catch (initError) {
         console.error('🔴 Error initializing Vapi:', initError);
         // Re-throw the error after logging it
-        throw new Error(`Failed to initialize Vapi: ${initError.message}`);
+        const errorMessage = initError instanceof Error ? initError.message : String(initError);
+        throw new Error(`Failed to initialize Vapi: ${errorMessage}`);
       }
       
       // Store session ID in the Vapi instance for message handling
@@ -554,7 +555,7 @@ function TherapyButton({
       
       // Only store minimal data for transcript recording
       if (userProfile && vapiInstanceRef.current) {
-        vapiInstanceRef.current._customData = {
+        (vapiInstanceRef.current as any)._customData = {
           userName: userProfile.name || 'client',
           therapyType: therapyType
         };
@@ -867,7 +868,8 @@ function TherapyButton({
       vapiInstanceRef.current.on('message', async (message: VapiMessage) => {
         try {
           // 🔍 MINIMAL DEBUG LOGGING - Reduced verbose logging for performance
-          console.log(`📨 VAPI MSG: ${message.type}${message.role ? ` (${message.role})` : ''}`);
+          const messageRole = isTranscriptMessage(message) || isModelOutputMessage(message) ? message.role : undefined;
+          console.log(`📨 VAPI MSG: ${message.type}${messageRole ? ` (${messageRole})` : ''}`);
           
           // 🚫 CONVERSATION-UPDATE DEDUPLICATION - Prevent processing duplicate conversation states
           if (isConversationUpdateMessage(message)) {
@@ -975,13 +977,13 @@ function TherapyButton({
             console.error('⚠️ CRITICAL: Processing transcript without session ID - transcripts will NOT be saved to database!');
             console.log('Available session references:', {
               sessionId,
-              vapiSessionId: vapiInstanceRef.current?._sessionId,
+              vapiSessionId: (vapiInstanceRef.current as any)?._sessionId,
               storageSessionId: sessionStorage.getItem('current-session-id')
             });
             
             // Try to recover session ID from alternative sources
             const recoveredSessionId = sessionId || 
-                                     vapiInstanceRef.current?._sessionId || 
+                                     (vapiInstanceRef.current as any)?._sessionId || 
                                      sessionStorage.getItem('current-session-id');
             
             if (recoveredSessionId) {
@@ -993,8 +995,10 @@ function TherapyButton({
               console.error('💥 FATAL: Cannot recover session ID - creating emergency session');
               
               // Add this transcript to UI state at minimum
-              const text = message.transcript || message.content || message.text || '';
-              const speaker = message.role || 'user';
+              const text = isTranscriptMessage(message) ? message.transcript : 
+                          isModelOutputMessage(message) ? message.output : 
+                          (message as any).content || (message as any).text || '';
+              const speaker = (isTranscriptMessage(message) || isModelOutputMessage(message)) ? message.role : 'user';
               
               if (text && text.trim() !== '') {
                 const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
@@ -1083,7 +1087,7 @@ function TherapyButton({
           // Critical: Only save FINAL transcripts to prevent fragmented sentences
           if (isTranscriptMessage(message)) {
             const text = message.transcript;
-            const isFinal = message.transcriptType === 'final' || message.isFinal === true;
+            const isFinal = message.transcriptType === 'final';
             
             if (!text || text.trim() === '') {
               console.log('⏭️ Skipping empty transcript message');
@@ -1091,7 +1095,7 @@ function TherapyButton({
             }
             
             // 🔥 CRITICAL FIX: Intelligent speaker detection instead of defaulting to 'user'
-            let speaker = message.role || message.speaker || null;
+            let speaker = message.role || (message as any).speaker || null;
             
             // If no speaker specified, use content analysis to determine speaker
             if (!speaker) {
@@ -1209,26 +1213,21 @@ function TherapyButton({
           // 🤖 LEGACY ASSISTANT MESSAGE CAPTURE - FOR NON-MODEL-OUTPUT MESSAGES
           else if (
             isSpeechUpdateMessage(message) ||  // Speech processing
-            // Fallback: other assistant message patterns for backward compatibility
-            (message.type === 'assistant-request') ||  // Assistant API calls
-            (message.type === 'voice-input') ||  // Voice input processing
-            (message.type === 'transcript-response') || 
-            (message.type === 'assistant-response') ||
-            ('role' in message && message.role === 'assistant') ||
+            // Check for custom message types that might not be in our union
+            ((message as any).type === 'assistant-request') ||  // Assistant API calls
+            ((message as any).type === 'voice-input') ||  // Voice input processing
+            ((message as any).type === 'transcript-response') || 
+            ((message as any).type === 'assistant-response') ||
+            ('role' in message && (message as any).role === 'assistant') ||
             ('speaker' in message && (message as any).speaker === 'assistant') ||
             ('from' in message && (message as any).from === 'assistant') ||
             // Legacy patterns for backward compatibility
-            (message.type === 'message' && 'role' in message && message.role === 'assistant')
+            ((message as any).type === 'message' && 'role' in message && (message as any).role === 'assistant')
           ) {
             // Enhanced text extraction for different message types
             let text = '';
-            if (isTranscriptMessage(message)) {
-              // transcript messages have specific structure
-              text = message.transcript || '';
-            } else {
-              // Fallback for other message types - need to use type assertion
-              text = (message as any).content || (message as any).text || (message as any).message || '';
-            }
+            // Extract text from various message formats
+            text = (message as any).transcript || (message as any).content || (message as any).text || (message as any).message || '';
             
             if (!text || text.trim() === '') {
               console.log('⏭️ Skipping empty assistant message');
@@ -1261,15 +1260,15 @@ function TherapyButton({
           // 🚨 CATCH-ALL HANDLER - Captures any messages we might have missed
           else {
             // Check if this message contains text content that might be an assistant response
-            const potentialText = message.transcript || message.content || message.text || message.message || '';
+            const potentialText = (message as any).transcript || (message as any).content || (message as any).text || (message as any).message || '';
             
             if (potentialText && potentialText.trim() !== '' && potentialText.length > 10) {
-              console.log(`🔍 UNKNOWN MESSAGE TYPE with content: type="${message.type}", role="${message.role}", content="${potentialText.substring(0, 100)}..."`);
+              console.log(`🔍 UNKNOWN MESSAGE TYPE with content: type="${message.type}", role="${(message as any).role}", content="${potentialText.substring(0, 100)}..."`);
               
               // If this looks like it could be an assistant message, log it for analysis
-              if (message.role === 'assistant' || 
-                  message.speaker === 'assistant' || 
-                  message.from === 'assistant' ||
+              if ((message as any).role === 'assistant' || 
+                  (message as any).speaker === 'assistant' || 
+                  (message as any).from === 'assistant' ||
                   message.type?.includes('assistant') ||
                   message.type?.includes('response') ||
                   message.type?.includes('model')) {
@@ -1405,7 +1404,7 @@ function TherapyButton({
         console.log('Saved session start time:', sessionStartTime.toISOString());
         
         // Also store session ID for recovery
-        sessionStorage.setItem('active-session-id', sessionId);
+        sessionStorage.setItem('active-session-id', sessionId || '');
       } catch (err) {
         console.warn('Could not save session start time to sessionStorage', err);
       }
@@ -1422,8 +1421,8 @@ function TherapyButton({
           new Promise((_, reject) => setTimeout(() => reject(new Error('Profile fetch timeout')), 2000))
         ]);
         
-        if (profileResponse.ok) {
-          userProfile = await profileResponse.json();
+        if ((profileResponse as Response).ok) {
+          userProfile = await (profileResponse as Response).json();
           console.log('✅ Got user profile quickly');
         }
       } catch (err) {
@@ -1538,8 +1537,8 @@ function TherapyButton({
       
       // Initialize Vapi immediately with minimal profile (common for both new and existing sessions)
       // Pass the current session ID to ensure transcript processing works
-      const currentSessionIdForVapi = sessionId || sessionStorage.getItem('current-session-id')
-      const initialized = await createVapiInstance(userProfile, currentSessionIdForVapi)
+      const currentSessionIdForVapi = sessionId || sessionStorage.getItem('current-session-id') || undefined;
+      const initialized = await createVapiInstance(userProfile, currentSessionIdForVapi);
       if (!initialized) {
         throw new Error('Failed to initialize Vapi')
       }
