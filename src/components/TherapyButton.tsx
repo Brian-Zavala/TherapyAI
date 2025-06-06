@@ -3653,12 +3653,12 @@ function TherapyButton({
         // PAUSE SESSION
         console.log('⏸️ PAUSING: Stopping VAPI session to save billing');
         
-        // Stop VAPI call to save costs
-        await vapiInstanceRef.current.stop();
-        
-        // Update pause state
+        // CRITICAL: Set pause state BEFORE stopping VAPI to prevent session ending
         setIsSessionPaused(true);
         setPauseStartTime(new Date());
+        
+        // Stop VAPI call to save costs
+        await vapiInstanceRef.current.stop();
         
         // Save pause state to sessionStorage for recovery
         sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
@@ -3699,11 +3699,13 @@ function TherapyButton({
   // Handle call end and errors
   useEffect(() => {
     // If call is no longer active but we still have a session ID, end the session
-    if (sessionId && !isCallActive && document.body.classList.contains('session-active')) {
-      // Call has ended, clean up the session
+    // IMPORTANT: Don't end the session if it's just paused
+    if (sessionId && !isCallActive && document.body.classList.contains('session-active') && !isSessionPaused) {
+      // Call has ended and not just paused, clean up the session
+      console.log('📞 CALL END DETECTED: Session is not paused, ending session');
       handleCallEndRef.current();
     }
-  }, [isCallActive, sessionId]);
+  }, [isCallActive, sessionId, isSessionPaused]);
 
   // 🧹 Cleanup timeouts on unmount to prevent memory leaks (Phase 2 completion)
   useEffect(() => {
