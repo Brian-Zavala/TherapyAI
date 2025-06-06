@@ -20,6 +20,12 @@ export async function GET(request: Request) {
       where: {
         userId: userId,
         status: 'active',
+        // Additional safeguard: exclude any sessions that might be marked as completed elsewhere
+        NOT: {
+          notes: {
+            contains: 'Session completed'
+          }
+        }
       },
       orderBy: {
         // Order by startTime if available, otherwise by date
@@ -37,6 +43,12 @@ export async function GET(request: Request) {
 
     if (!activeSession) {
       console.log('📭 No active sessions found for userId:', userId);
+      return NextResponse.json(null);
+    }
+
+    // ADDITIONAL SAFEGUARD: Double-check session status in case of race conditions
+    if (activeSession.status !== 'active') {
+      console.log(`🚫 Session ${activeSession.id} has status "${activeSession.status}" instead of "active" - not returning for recovery`);
       return NextResponse.json(null);
     }
 

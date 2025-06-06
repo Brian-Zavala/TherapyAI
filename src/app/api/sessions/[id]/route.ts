@@ -8,7 +8,7 @@ import { sessionCache, cacheKeys } from '@/lib/session-cache'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   
@@ -17,7 +17,7 @@ export async function GET(
   }
   
   try {
-    const { id: sessionId } = await params.params
+    const { id: sessionId } = await params
     
     console.log('Fetching session ID:', sessionId)
     
@@ -109,7 +109,7 @@ const RATE_LIMIT_MS = 5000; // 5 seconds between updates per session
 // POST is used by sendBeacon for beforeunload saves
 async function handleSessionUpdate(
   request: Request,
-  params: { params: { id: string } }
+  params: Promise<{ id: string }>
 ) {
   const session = await getServerSession(authOptions)
 
@@ -117,7 +117,7 @@ async function handleSessionUpdate(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { id: sessionId } = await params.params
+  const { id: sessionId } = await params
   
   // Rate limiting for conversation time updates to prevent database hammering
   const now = Date.now();
@@ -505,14 +505,14 @@ async function handleSessionUpdate(
 
 export async function PATCH(
   request: Request,
-  params: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return handleSessionUpdate(request, params);
 }
 
 export async function POST(
   request: Request,
-  params: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return handleSessionUpdate(request, params);
 }

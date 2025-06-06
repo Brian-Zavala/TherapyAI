@@ -97,6 +97,19 @@ export function useTherapySessionRecovery() {
         if (activeSession && activeSession.id) {
           console.log('🎯 Active therapy session found:', activeSession.id)
           
+          // CRITICAL SAFEGUARD: Double-check session status to prevent completed sessions from being recovered
+          if (activeSession.status === 'completed') {
+            console.log('🚫 Session status is "completed" - cannot recover completed sessions')
+            setRecoveryState(prev => ({ 
+              ...prev, 
+              isChecking: false,
+              hasActiveSession: false,
+              sessionData: null,
+              shouldAutoRestart: false
+            }))
+            return null
+          }
+          
           // Check if session is still valid (using conversation time, not wall clock)
           let isSessionValid = false
           let remainingMinutes = 0

@@ -1418,7 +1418,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                               },
                               [
                                 // Session info - Enhanced styling
-                                isSessionActive
+                                (isSessionActive || hasActiveSession)
                                   ? React.createElement(
                                       "div",
                                       {

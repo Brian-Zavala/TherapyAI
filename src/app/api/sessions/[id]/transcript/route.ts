@@ -9,7 +9,7 @@ import { sessionCache, cacheKeys } from '@/lib/session-cache'
 // POST endpoint to add a new transcript entry to a session
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions) as NextAuthSession | null
   
@@ -18,7 +18,7 @@ export async function POST(
   }
   
   try {
-    const { id: sessionId } = await params.params
+    const { id: sessionId } = await params
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
@@ -193,7 +193,7 @@ export async function POST(
 // GET endpoint to fetch all transcript entries for a session
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions) as NextAuthSession | null
   
@@ -202,7 +202,7 @@ export async function GET(
   }
   
   try {
-    const { id: sessionId } = await params.params
+    const { id: sessionId } = await params
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
@@ -321,7 +321,7 @@ export async function GET(
 // DELETE endpoint to remove a transcript entry
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions) as NextAuthSession | null
   
@@ -330,7 +330,7 @@ export async function DELETE(
   }
   
   try {
-    const { id: sessionId } = await params.params
+    const { id: sessionId } = await params
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })

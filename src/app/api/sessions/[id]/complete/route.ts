@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   
@@ -19,7 +19,7 @@ export async function POST(
   }
   
   try {
-    const { id: sessionId } = await params.params;
+    const { id: sessionId } = await params;
     
     const therapySession = await prisma.session.findUnique({
       where: { id: sessionId },

@@ -81,6 +81,7 @@ function TherapyButton({
   
   // 🚀 PAUSE FUNCTIONALITY: Track session pause state for billing optimization
   const [isSessionPaused, setIsSessionPaused] = useState(false)
+  const [isResuming, setIsResuming] = useState(false) // Prevent race condition during resume
   const [pauseStartTime, setPauseStartTime] = useState<Date | null>(null)
   const [totalPausedTimeSeconds, setTotalPausedTimeSeconds] = useState(0)
   
@@ -449,7 +450,17 @@ function TherapyButton({
             console.log('🔄 PAUSE RECOVERY: Restoring paused session state');
             setIsSessionPaused(true);
             setPauseStartTime(new Date(parsed.pausedAt));
-            setTotalPausedTimeSeconds(parsed.totalPausedTimeSeconds || 0);
+            
+            // CRITICAL: Restore accumulated conversation time
+            if (typeof parsed.conversationTimeSeconds === 'number' && parsed.conversationTimeSeconds > 0) {
+              setConversationTimeSeconds(parsed.conversationTimeSeconds);
+              console.log(`📊 PAUSE RECOVERY: Restored conversation time: ${parsed.conversationTimeSeconds} seconds (${Math.floor(parsed.conversationTimeSeconds / 60)}:${(parsed.conversationTimeSeconds % 60).toString().padStart(2, '0')})`);
+            }
+            
+            // Restore total paused time
+            if (typeof parsed.totalPausedTimeSeconds === 'number') {
+              setTotalPausedTimeSeconds(parsed.totalPausedTimeSeconds);
+            }
           } else if (parsed.totalPausedTimeSeconds) {
             // Session has pause history
             setTotalPausedTimeSeconds(parsed.totalPausedTimeSeconds);
@@ -567,6 +578,7 @@ function TherapyButton({
         console.log('✅ Vapi call started - call-start event fired');
         setIsCallActive(true);
         setIsLoading(false); // Stop loading animation when call actually starts
+        setIsResuming(false); // Clear resuming state when call starts successfully
         setErrorMessage(null);
         
         // Track VAPI call start time for real-time timing
@@ -732,8 +744,29 @@ function TherapyButton({
           setVapiCallDuration(vapiDurationSeconds);
           console.log(`📞 VAPI Call duration: ${Math.round(vapiDurationSeconds / 60)} minutes (${vapiDurationSeconds} seconds)`);
           
-          // Update local conversation time state and session database
-          setConversationTimeSeconds(prev => prev + vapiDurationSeconds);
+          // Update local conversation time state and session database  
+          setConversationTimeSeconds(prev => {
+            const newTotal = prev + vapiDurationSeconds;
+            console.log(`📊 VAPI ACTUAL TIME: Added ${vapiDurationSeconds}s, total now ${newTotal}s (${Math.floor(newTotal / 60)}:${(newTotal % 60).toString().padStart(2, '0')})`);
+            
+            // Update pause state with real conversation time if session is paused
+            if (isSessionPaused && sessionId) {
+              try {
+                const pauseStateKey = `session-${sessionId}-pause-state`;
+                const pauseState = sessionStorage.getItem(pauseStateKey);
+                if (pauseState) {
+                  const parsed = JSON.parse(pauseState);
+                  parsed.conversationTimeSeconds = newTotal; // Update with real VAPI time
+                  sessionStorage.setItem(pauseStateKey, JSON.stringify(parsed));
+                  console.log(`💾 PAUSE STATE UPDATED: Real conversation time ${newTotal}s saved to sessionStorage`);
+                }
+              } catch (error) {
+                console.warn('Error updating pause state with real conversation time:', error);
+              }
+            }
+            
+            return newTotal;
+          });
           setConversationStartTime(null);
           
           if (sessionId) {
@@ -3625,6 +3658,9 @@ function TherapyButton({
         // RESUME SESSION
         console.log('▶️ RESUMING: Restarting VAPI session and billing');
         
+        // Set resuming state to prevent race condition
+        setIsResuming(true);
+        
         // Calculate total paused time
         if (pauseStartTime) {
           const pauseDuration = Math.floor((Date.now() - pauseStartTime.getTime()) / 1000);
@@ -3632,38 +3668,58 @@ function TherapyButton({
           console.log(`⏸️ PAUSE DURATION: ${pauseDuration} seconds saved from billing`);
         }
         
-        // Save pause state to sessionStorage for recovery
+        // Update pause state to mark as resumed
         sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
           totalPausedTimeSeconds: totalPausedTimeSeconds,
+          conversationTimeSeconds: conversationTimeSeconds, // Preserve accumulated conversation time
           resumedAt: new Date().toISOString(),
           sessionId: sessionId
         }));
         
-        // Resume VAPI call - restart if needed
-        await vapiInstanceRef.current.start();
+        // Resume VAPI call - restart if needed with proper assistant configuration
+        let assistantId;
+        if (therapyType === 'couple') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
+        } else if (therapyType === 'solo') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
+        } else if (therapyType === 'family') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
+        } else if (assistantConfig && assistantConfig.id) {
+          assistantId = assistantConfig.id;
+        } else {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+        }
         
-        // Update state
+        console.log(`🔄 RESUMING with assistantId: ${assistantId} (therapyType: ${therapyType})`);
+        await vapiInstanceRef.current.start(assistantId);
+        
+        // Update state - but wait for call-start event to clear isResuming
         setIsSessionPaused(false);
         setPauseStartTime(null);
-        setConversationStartTime(new Date()); // Reset conversation timer
+        setConversationStartTime(new Date()); // Start new conversation segment (accumulated time preserved)
         
-        console.log('✅ SESSION RESUMED: VAPI active, billing resumed');
+        const totalSessionSeconds = selectedSessionDuration * 60;
+        const remainingSeconds = Math.max(0, totalSessionSeconds - conversationTimeSeconds);
+        console.log(`✅ SESSION RESUMED: VAPI active, billing resumed. Accumulated time: ${conversationTimeSeconds}s (${Math.floor(conversationTimeSeconds / 60)}:${(conversationTimeSeconds % 60).toString().padStart(2, '0')}), Remaining: ${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')}`);
         
       } else {
         // PAUSE SESSION
         console.log('⏸️ PAUSING: Stopping VAPI session to save billing');
+        
+        // NOTE: Don't manually calculate time here - VAPI call-end event will provide accurate billing time
+        console.log(`⏱️ PAUSE: VAPI will calculate actual billing time when call-end event fires`);
         
         // CRITICAL: Set pause state BEFORE stopping VAPI to prevent session ending
         setIsSessionPaused(true);
         setPauseStartTime(new Date());
         
         // Stop VAPI call to save costs
-        await vapiInstanceRef.current.stop();
+        vapiInstanceRef.current.stop();
         
         // Save pause state to sessionStorage for recovery
         sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
           pausedAt: new Date().toISOString(),
-          conversationTimeSeconds: conversationTimeSeconds,
+          conversationTimeSeconds: conversationTimeSeconds, // Will be updated by VAPI call-end event
           totalPausedTimeSeconds: totalPausedTimeSeconds,
           sessionId: sessionId
         }));
@@ -3685,6 +3741,7 @@ function TherapyButton({
       // Reset pause state on error
       setIsSessionPaused(false);
       setPauseStartTime(null);
+      setIsResuming(false); // Clear resuming state on error
     }
   }, [isSessionPaused, sessionId, pauseStartTime, totalPausedTimeSeconds, conversationTimeSeconds]);
   
@@ -3699,13 +3756,13 @@ function TherapyButton({
   // Handle call end and errors
   useEffect(() => {
     // If call is no longer active but we still have a session ID, end the session
-    // IMPORTANT: Don't end the session if it's just paused
-    if (sessionId && !isCallActive && document.body.classList.contains('session-active') && !isSessionPaused) {
+    // IMPORTANT: Don't end the session if it's just paused OR if we're in the process of resuming
+    if (sessionId && !isCallActive && document.body.classList.contains('session-active') && !isSessionPaused && !isResuming) {
       // Call has ended and not just paused, clean up the session
       console.log('📞 CALL END DETECTED: Session is not paused, ending session');
       handleCallEndRef.current();
     }
-  }, [isCallActive, sessionId, isSessionPaused]);
+  }, [isCallActive, sessionId, isSessionPaused, isResuming]);
 
   // 🧹 Cleanup timeouts on unmount to prevent memory leaks (Phase 2 completion)
   useEffect(() => {
@@ -3731,7 +3788,7 @@ function TherapyButton({
       position: 'relative', 
       zIndex: 10000, 
       overflow: 'visible',
-      minHeight: isCallActive ? '600px' : 'auto'
+      minHeight: (isCallActive || isSessionPaused) ? '600px' : 'auto'
     }}>
       {/* Error messages */}
       {errorMessage && (
@@ -3744,8 +3801,8 @@ function TherapyButton({
       
       {/* Animate presence to handle intro and session transitions */}
       <AnimatePresence mode="wait">
-        {/* Intro content - only visible when call is not active */}
-        {!isCallActive && (
+        {/* Intro content - only visible when call is not active and not paused */}
+        {!isCallActive && !isSessionPaused && (
           <motion.div 
             key="intro"
             className="max-w-md text-center mb-8"
@@ -3760,13 +3817,13 @@ function TherapyButton({
       
       {/* Apple Phone Call Style UI - with animations */}
       <motion.div 
-        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-visible relative mx-auto border-zinc-700 ${isCallActive ? 'mt-0' : 'mt-8'}`}
+        className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-visible relative mx-auto border-zinc-700 ${(isCallActive || isSessionPaused) ? 'mt-0' : 'mt-8'}`}
         animate={{ 
-          height: isCallActive ? 'auto' : '80px',
-          y: isCallActive ? 0 : 0,
+          height: (isCallActive || isSessionPaused) ? 'auto' : '80px',
+          y: (isCallActive || isSessionPaused) ? 0 : 0,
           opacity: 1,
-          scale: isCallActive ? 1 : 0.95,
-          top: isCallActive ? '0px' : '0px',
+          scale: (isCallActive || isSessionPaused) ? 1 : 0.95,
+          top: (isCallActive || isSessionPaused) ? '0px' : '0px',
         }}
         initial={{ 
           height: '80px',
@@ -3780,11 +3837,11 @@ function TherapyButton({
           stiffness: 100
         }}
         style={{
-          height: isCallActive ? 'auto' : '80px',
-          minHeight: isCallActive ? '520px' : '80px',
-          boxShadow: isCallActive ? '0 0 50px rgba(0, 0, 0, 0.5)' : 'none',
-          background: isCallActive ? 'rgba(0, 0, 0, 0.95)' : 'transparent',
-          border: isCallActive ? '2px solid rgba(255, 255, 255, 0.3)' : 'none',
+          height: (isCallActive || isSessionPaused) ? 'auto' : '80px',
+          minHeight: (isCallActive || isSessionPaused) ? '520px' : '80px',
+          boxShadow: (isCallActive || isSessionPaused) ? '0 0 50px rgba(0, 0, 0, 0.5)' : 'none',
+          background: (isCallActive || isSessionPaused) ? 'rgba(0, 0, 0, 0.95)' : 'transparent',
+          border: (isCallActive || isSessionPaused) ? '2px solid rgba(255, 255, 255, 0.3)' : 'none',
           borderRadius: '28px',
           zIndex: 9999, // Increase z-index to ensure visibility
           position: 'relative', // Ensure positioning context
@@ -3793,16 +3850,18 @@ function TherapyButton({
         }}
       >
         
-        {/* Call Header - Only visible when call is active and not loading */}
+        {/* Call Header - Only visible when call is active or paused and not loading */}
         <div className="px-4 sm:px-6 pt-5 pb-3 flex flex-col items-center justify-center relative">
-          {isCallActive && !isLoading && (
+          {(isCallActive || isSessionPaused) && !isLoading && (
             <div className="text-white text-center bg-black px-6 py-3 rounded-t-[28px] shadow-inner w-full border-t border-x border-gray-800">
               <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
                 {assistantConfig?.name || 'AI Therapist'}
               </h3>
-              <p className="text-xs sm:text-sm text-blue-300 font-medium flex items-center justify-center">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span>
-                Connected
+              <p className="text-xs sm:text-sm font-medium flex items-center justify-center">
+                <span className={`inline-block w-2 h-2 rounded-full mr-2 ${isSessionPaused ? 'bg-orange-400' : 'bg-green-400 animate-pulse'}`}></span>
+                <span className={isSessionPaused ? 'text-orange-300' : 'text-blue-300'}>
+                  {isSessionPaused ? 'Paused' : 'Connected'}
+                </span>
               </p>
             </div>
           )}
@@ -3976,7 +4035,7 @@ function TherapyButton({
         )}
         
         {/* Call Active Content */}
-        {isCallActive && !isLoading && (
+        {(isCallActive || isSessionPaused) && !isLoading && (
           <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto rounded-b-[28px] bg-black">
             {/* Timer & Status */}
             <div className="text-center py-2 text-gray-300 text-xs sm:text-sm">
@@ -4044,15 +4103,12 @@ function TherapyButton({
               {sessionStartTime ? (
                 <SessionTimer 
                   durationMinutes={currentSessionDuration.current}
-                  startTime={sessionStartTime}
                   conversationTimeSeconds={conversationTimeSeconds}
-                  isConversationActive={isCallActive}
+                  isConversationActive={isCallActive && !isSessionPaused}
                   conversationStartTime={conversationStartTime || undefined}
                   className="text-white"
                   onTimeUpdate={handleTimeUpdate}
                   showRecoveredIndicator={sessionRecovered}
-                  vapiCallTime={vapiCallDuration}
-                  showDualTiming={isCallActive && vapiCallDuration > 0}
                 />
               ) : (
                 <p className="text-white font-mono text-base sm:text-lg">
@@ -4132,8 +4188,8 @@ function TherapyButton({
           </div>
         )}
         
-        {/* Start Therapy Button - Only visible when call is not active and modal is closed */}
-        {!isCallActive && !showDurationModal && (
+        {/* Start Therapy Button - Only visible when call is not active, not paused, and modal is closed */}
+        {!isCallActive && !isSessionPaused && !showDurationModal && (
           <motion.div 
             className="absolute inset-0 flex items-center justify-center z-20"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -4175,9 +4231,9 @@ function TherapyButton({
       </motion.div>
       
       {/* Session status message */}
-      {isCallActive && (
-        <p className="mt-4 text-green-600 font-medium text-sm sm:text-base opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] text-center">
-          Session active - speak with our AI therapist
+      {(isCallActive || isSessionPaused) && (
+        <p className={`mt-4 font-medium text-sm sm:text-base opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] text-center ${isSessionPaused ? 'text-orange-500' : 'text-green-600'}`}>
+          {isSessionPaused ? 'Session paused - click Resume to continue' : 'Session active - speak with our AI therapist'}
         </p>
       )}
 

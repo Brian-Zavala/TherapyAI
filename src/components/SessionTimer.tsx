@@ -5,28 +5,22 @@ import { motion } from 'framer-motion'
 
 interface SessionTimerProps {
   durationMinutes: number
-  startTime?: Date // Keep for backward compatibility, but prefer conversation-based timing
-  conversationTimeSeconds?: number // Current accumulated conversation time
-  isConversationActive?: boolean // Whether conversation is currently active
-  conversationStartTime?: Date // When current conversation segment started
+  conversationTimeSeconds: number // VAPI-tracked billing time (single source of truth)
+  isConversationActive: boolean // Whether VAPI call is active
+  conversationStartTime?: Date // When current VAPI call segment started
   onTimeUpdate?: (remainingTimeMinutes: number, remainingTimeSeconds: number) => void
   className?: string
   showRecoveredIndicator?: boolean
-  vapiCallTime?: number // VAPI call duration in seconds for comparison
-  showDualTiming?: boolean // Whether to show both session and call timing
 }
 
 export default function SessionTimer({ 
   durationMinutes, 
-  startTime, 
-  conversationTimeSeconds = 0,
-  isConversationActive = false,
+  conversationTimeSeconds,
+  isConversationActive,
   conversationStartTime,
   onTimeUpdate,
   className = "",
-  showRecoveredIndicator = false,
-  vapiCallTime = 0,
-  showDualTiming = false
+  showRecoveredIndicator = false
 }: SessionTimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState(durationMinutes * 60)
   const [isExpired, setIsExpired] = useState(false)
@@ -45,6 +39,11 @@ export default function SessionTimer({
       
       const totalSeconds = durationMinutes * 60
       const remaining = Math.max(0, totalSeconds - currentConversationTime)
+      
+      // Log timer calculation for debugging (every 10 seconds to avoid spam)
+      if (currentConversationTime % 10 === 0 || remaining <= 60) {
+        console.log(`⏱️ TIMER: ${Math.floor(currentConversationTime / 60)}:${(currentConversationTime % 60).toString().padStart(2, '0')} used, ${Math.floor(remaining / 60)}:${(remaining % 60).toString().padStart(2, '0')} remaining (${durationMinutes}min session)`);
+      }
       
       setRemainingSeconds(remaining)
       
