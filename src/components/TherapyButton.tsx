@@ -19,6 +19,7 @@ import {
   isFunctionCallMessage,
   isSpeechUpdateMessage
 } from '@/types/vapi'
+import { addTranscriptEntry } from '@/lib/transcript-service-optimized'
 
 // Dynamically import VoiceWaveform with no SSR to avoid hydration issues
 const VoiceWaveform = dynamic(() => import('./VoiceWaveform'), { 
@@ -78,6 +79,11 @@ function TherapyButton({
   const [vapiCallStartTime, setVapiCallStartTime] = useState<Date | null>(null)
   const [vapiCallDuration, setVapiCallDuration] = useState(0)
   
+  // 🚀 PAUSE FUNCTIONALITY: Track session pause state for billing optimization
+  const [isSessionPaused, setIsSessionPaused] = useState(false)
+  const [pauseStartTime, setPauseStartTime] = useState<Date | null>(null)
+  const [totalPausedTimeSeconds, setTotalPausedTimeSeconds] = useState(0)
+  
   // Real-time metrics calculation state
   const [metricsCalculator, setMetricsCalculator] = useState<RealTimeMetricsCalculator | null>(null)
   const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
@@ -96,6 +102,18 @@ function TherapyButton({
   // Conversation deduplication to prevent processing same conversation-update multiple times
   const lastConversationHash = useRef<string | null>(null)
   const lastConversationSessionId = useRef<string | null>(null)
+  
+  // Unified transcript debouncing to prevent VAPI interruption from ALL fragments
+  const [assistantBuffer, setAssistantBuffer] = useState<string>('')
+  const assistantTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isProcessingAssistant, setIsProcessingAssistant] = useState(false)
+  
+  // User transcript debouncing for partial speech fragments
+  const [userBuffer, setUserBuffer] = useState<string>('')
+  const userTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isProcessingUser, setIsProcessingUser] = useState(false)
+  
+  const TRANSCRIPT_DEBOUNCE_MS = 1500 // Wait 1.5s for fragments to complete before processing
   
   // WebSocket client functions for real-time communication
   const sendMetricsUpdate = useCallback(async (userId: string, sessionId: string, metrics: IncrementalMetrics) => {
@@ -153,6 +171,133 @@ function TherapyButton({
     return metricsCalculator;
   }, [metricsCalculator]);
 
+  // Process consolidated assistant message after debouncing
+  const processConsolidatedAssistantMessage = useCallback(async (consolidatedText: string, currentSessionId: string) => {
+    if (!consolidatedText.trim() || isProcessingAssistant) return;
+    
+    setIsProcessingAssistant(true);
+    
+    try {
+      console.log(`🎯 CONSOLIDATED ASSISTANT MESSAGE: ${consolidatedText.substring(0, 100)}... (${consolidatedText.length} chars)`);
+      
+      // Enhanced assistant message storage
+      const storageKey = `transcript-${currentSessionId}`;
+      let existingTranscripts = [];
+      
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        existingTranscripts = stored ? JSON.parse(stored) : [];
+      } catch (parseError: unknown) {
+        console.warn('Error parsing existing transcripts, starting fresh:', (parseError instanceof Error) ? parseError.message : String(parseError));
+        existingTranscripts = [];
+      }
+      
+      // Create enhanced assistant entry
+      const assistantEntry = {
+        speaker: 'assistant',
+        text: consolidatedText.trim(),
+        timestamp: new Date().toISOString(),
+        isFinal: true,
+        messageType: 'model-output-consolidated'
+      };
+      
+      existingTranscripts.push(assistantEntry);
+      
+      // Save back to storage
+      sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
+      console.log(`✅ Saved consolidated assistant response to storage (${existingTranscripts.length} total entries)`);
+      
+      // Enhanced backup for assistant messages
+      const backupKey = `assistant-${currentSessionId}-${Date.now()}`;
+      sessionStorage.setItem(backupKey, JSON.stringify(assistantEntry));
+      console.log(`✅ Saved assistant backup: ${backupKey}`);
+      
+      // Single UI update for complete thought
+      setTranscriptChunks(prev => {
+        const newChunks = [...prev, `THERAPIST: ${consolidatedText.trim()}`];
+        console.log(`✅ Updated UI with consolidated assistant response (${newChunks.length} total)`);
+        return newChunks;
+      });
+      
+      // CRITICAL: Save assistant message to database - OPTIMIZED BATCHED VERSION
+      try {
+        const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
+        
+        console.log(`🔄 BATCHED: Adding consolidated assistant response to queue...`);
+        const result = await addTranscriptEntry({
+          sessionId: currentSessionId,
+          speaker: 'assistant',
+          text: consolidatedText.trim(),
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        });
+        
+        console.log(`✅ CONSOLIDATED ASSISTANT QUEUED SUCCESS: Response queued with ID: ${result?.id || 'queued'}`);
+        
+        // 📊 REAL-TIME METRICS DISABLED - Will calculate after session ends
+        // Phase 1 Fix: Removed real-time metrics to prevent VAPI interruptions
+        // Metrics will be calculated in /api/sessions/[id]/complete for better accuracy
+        console.log('📊 METRICS: Deferred until session completion for consolidated assistant message');
+      } catch (dbError) {
+        console.error(`❌ CONSOLIDATED ASSISTANT BATCHED SAVE FAILED:`, dbError);
+        console.warn('Consolidated assistant response preserved in sessionStorage despite batch failure');
+      }
+    } catch (storageError: unknown) {
+      console.error('💥 ERROR STORING CONSOLIDATED ASSISTANT RESPONSE:', (storageError instanceof Error) ? storageError.message : String(storageError));
+    } finally {
+      setIsProcessingAssistant(false);
+    }
+  }, [isProcessingAssistant]);
+
+  // Consolidated user transcript processing with debouncing
+  const processConsolidatedUserMessage = useCallback(async (consolidatedText: string, currentSessionId: string) => {
+    if (!consolidatedText.trim() || isProcessingUser) return;
+    
+    setIsProcessingUser(true);
+    
+    try {
+      console.log(`🎯 CONSOLIDATED USER MESSAGE: ${consolidatedText.substring(0, 100)}... (${consolidatedText.length} chars)`);
+      
+      // Single UI update for complete user thought
+      setTranscriptChunks(prev => {
+        const newChunks = [...prev, `USER: ${consolidatedText.trim()}`];
+        return newChunks;
+      });
+      
+      // Single database call for complete user message
+      await addTranscriptEntry({
+        sessionId: currentSessionId,
+        speaker: 'user',
+        text: consolidatedText.trim(),
+        timestamp: new Date().toISOString(),
+        isFinal: true
+      });
+      
+      // Session storage for backup (reduced frequency)
+      const storageKey = `transcript-${currentSessionId}`;
+      try {
+        const stored = sessionStorage.getItem(storageKey) || '[]';
+        const existingTranscripts = JSON.parse(stored);
+        existingTranscripts.push({
+          speaker: 'user',
+          text: consolidatedText.trim(),
+          timestamp: new Date().toISOString(),
+          isFinal: true,
+          messageType: 'consolidated-user'
+        });
+        sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
+        console.log(`✅ CONSOLIDATED USER: Saved to storage (${existingTranscripts.length} total entries)`);
+      } catch (storageError) {
+        console.warn('User transcript storage failed:', storageError);
+      }
+      
+    } catch (error) {
+      console.error('Error processing consolidated user message:', error);
+    } finally {
+      setIsProcessingUser(false);
+    }
+  }, [isProcessingUser]);
+  
   // Calculate and broadcast incremental metrics
   const calculateAndBroadcastIncrementalMetrics = useCallback(async (sessionId: string, speaker: 'user' | 'assistant', text: string) => {
     try {
@@ -207,6 +352,114 @@ function TherapyButton({
   const animationFrameRef = useRef<number | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
 
+  // 🚀 SESSION RECOVERY: Restore session from sessionStorage backup
+  const recoverSessionFromStorage = useCallback(() => {
+    try {
+      console.log('🔍 RECOVERY: Checking for session backups in sessionStorage...');
+      
+      // Get all session backup keys
+      const backupKeys = Object.keys(sessionStorage).filter(key => 
+        key.startsWith('session-') && key.includes('-backup-time')
+      );
+      
+      if (backupKeys.length === 0) {
+        console.log('📁 RECOVERY: No session backups found');
+        return null;
+      }
+      
+      // Find the most recent backup
+      let mostRecentBackup = null;
+      let mostRecentTime = 0;
+      
+      for (const key of backupKeys) {
+        try {
+          const backup = JSON.parse(sessionStorage.getItem(key) || '{}');
+          const backupTime = new Date(backup.timestamp).getTime();
+          
+          if (backupTime > mostRecentTime) {
+            mostRecentTime = backupTime;
+            mostRecentBackup = { key, ...backup };
+          }
+        } catch (error) {
+          console.warn(`Failed to parse backup ${key}:`, error);
+        }
+      }
+      
+      if (mostRecentBackup && mostRecentBackup.sessionId) {
+        const timeSinceBackup = Date.now() - mostRecentTime;
+        const minutesAgo = Math.floor(timeSinceBackup / 60000);
+        
+        console.log(`🎯 RECOVERY: Found session backup from ${minutesAgo} minutes ago:`, {
+          sessionId: mostRecentBackup.sessionId,
+          conversationTime: mostRecentBackup.conversationTimeSeconds,
+          therapyType: mostRecentBackup.therapyType,
+          isPaused: mostRecentBackup.isPaused
+        });
+        
+        // Check if backup is recent enough (within 2 hours)
+        if (timeSinceBackup < 2 * 60 * 60 * 1000) {
+          // Try to restore transcript backup as well
+          const transcriptKey = `session-${mostRecentBackup.sessionId}-transcript-backup`;
+          const transcriptBackup = sessionStorage.getItem(transcriptKey);
+          
+          if (transcriptBackup) {
+            try {
+              const parsedTranscript = JSON.parse(transcriptBackup);
+              console.log(`📝 RECOVERY: Found transcript backup with ${parsedTranscript.transcriptChunks?.length || 0} entries`);
+              mostRecentBackup.transcriptChunks = parsedTranscript.transcriptChunks || [];
+            } catch (error) {
+              console.warn('Failed to parse transcript backup:', error);
+            }
+          }
+          
+          return mostRecentBackup;
+        } else {
+          console.log('⏰ RECOVERY: Backup is too old (>2 hours), ignoring');
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error during session recovery:', error);
+      return null;
+    }
+  }, []);
+  
+  // 🚀 SESSION RECOVERY: Check for and offer session recovery on component mount
+  useEffect(() => {
+    const recoveredSession = recoverSessionFromStorage();
+    if (recoveredSession && !isCallActive) {
+      console.log('🔄 RECOVERY: Session recovery available - user can resume:', recoveredSession.sessionId);
+      // Store recovery data for user decision
+      sessionStorage.setItem('available-session-recovery', JSON.stringify(recoveredSession));
+    }
+  }, []); // Only run on mount
+  
+  // 🚀 PAUSE RECOVERY: Restore pause state from sessionStorage
+  useEffect(() => {
+    if (sessionId) {
+      const pauseStateKey = `session-${sessionId}-pause-state`;
+      const pauseState = sessionStorage.getItem(pauseStateKey);
+      
+      if (pauseState) {
+        try {
+          const parsed = JSON.parse(pauseState);
+          if (parsed.pausedAt && !parsed.resumedAt) {
+            // Session was paused and never resumed
+            console.log('🔄 PAUSE RECOVERY: Restoring paused session state');
+            setIsSessionPaused(true);
+            setPauseStartTime(new Date(parsed.pausedAt));
+            setTotalPausedTimeSeconds(parsed.totalPausedTimeSeconds || 0);
+          } else if (parsed.totalPausedTimeSeconds) {
+            // Session has pause history
+            setTotalPausedTimeSeconds(parsed.totalPausedTimeSeconds);
+          }
+        } catch (error) {
+          console.warn('Error parsing pause state:', error);
+        }
+      }
+    }
+  }, [sessionId]);
 
   const createVapiInstance = useCallback(async (userProfile?: any, currentSessionId?: string) => {
     try {
@@ -863,95 +1116,98 @@ function TherapyButton({
               console.log(`🤖 SPEAKER DETECTION: Determined speaker as '${speaker}' for text: "${text.substring(0, 60)}..." (length: ${text.length})`);
             }
             
-            // 🔥 CRITICAL FIX: Process assistant messages even if not final (they might not be marked as final)
-            if (!isFinal && speaker === 'user') {
-              console.log(`⏳ PARTIAL user transcript (not saving): [${speaker}] ${text.substring(0, 50)}...`);
-              return; // Only skip partial user transcripts
+            // 🚀 PHASE 2: UNIFIED DEBOUNCING FOR ALL TRANSCRIPT PROCESSING
+            
+            // USER TRANSCRIPT DEBOUNCING: Consolidate fragments to prevent interruption
+            if (speaker === 'user') {
+              console.log(`📝 USER TRANSCRIPT FRAGMENT: "${text}" (isFinal: ${isFinal}, buffering...)`);
+              
+              // Add fragment to user buffer
+              setUserBuffer(prev => prev + (prev ? ' ' : '') + text);
+              
+              // Clear existing timeout
+              if (userTimeoutRef.current) {
+                clearTimeout(userTimeoutRef.current);
+              }
+              
+              // Set new timeout to process consolidated buffer
+              userTimeoutRef.current = setTimeout(() => {
+                setUserBuffer(currentBuffer => {
+                  if (currentBuffer.trim()) {
+                    processConsolidatedUserMessage(currentBuffer, currentSessionId);
+                  }
+                  return ''; // Clear buffer
+                });
+              }, TRANSCRIPT_DEBOUNCE_MS);
+              
+              return; // Don't process immediately - wait for debounce
             }
             
-            // Always process assistant messages regardless of final status
-            if (speaker === 'assistant' || isFinal) {
-              console.log(`✨ PROCESSING TRANSCRIPT: [${speaker}] "${text.substring(0, 100)}..." (isFinal: ${isFinal}, sessionId: ${currentSessionId})`);
-            } else {
-              console.log(`⏳ PARTIAL transcript (not saving): [${speaker}] "${text.substring(0, 50)}..." (isFinal: ${isFinal})`);
+            // ASSISTANT TRANSCRIPT DEBOUNCING: Handle assistant messages not already caught by model-output
+            if (speaker === 'assistant') {
+              console.log(`📝 ASSISTANT TRANSCRIPT: "${text}" (processing via existing assistant debouncing)`);
+              
+              // Add to assistant buffer (will be processed by existing debouncing)
+              setAssistantBuffer(prev => prev + (prev ? ' ' : '') + text);
+              
+              // Clear existing timeout
+              if (assistantTimeoutRef.current) {
+                clearTimeout(assistantTimeoutRef.current);
+              }
+              
+              // Set new timeout to process consolidated buffer
+              assistantTimeoutRef.current = setTimeout(() => {
+                setAssistantBuffer(currentBuffer => {
+                  if (currentBuffer.trim()) {
+                    processConsolidatedAssistantMessage(currentBuffer, currentSessionId);
+                  }
+                  return ''; // Clear buffer
+                });
+              }, TRANSCRIPT_DEBOUNCE_MS);
+              
+              return; // Don't process immediately - wait for debounce
+            }
+            
+            // 🚨 FALLBACK: This code should not be reached due to debouncing above
+            // All user and assistant messages are now handled by unified debouncing
+            console.warn(`⚠️ UNEXPECTED: Transcript message reached fallback handler - speaker: ${speaker}, text: "${text.substring(0, 50)}...", type: ${message.type}`);
+            console.warn('This suggests the debouncing logic above may need adjustment.');
+          }
+          // 🤖 ENHANCED ASSISTANT MESSAGE CAPTURE - DEBOUNCED TO PREVENT VAPI INTERRUPTION
+          else if (isModelOutputMessage(message)) {
+            // MODEL-OUTPUT DEBOUNCING: Consolidate fragments to prevent interruption
+            const text = message.output || '';
+            
+            if (!text || text.trim() === '') {
+              console.log('⏭️ Skipping empty model-output fragment');
               return;
             }
             
-            // Enhanced storage for processed transcripts
-            try {
-              // 1. Store in main transcript array
-              const storageKey = `transcript-${currentSessionId}`;
-              let existingTranscripts = [];
-              
-              try {
-                const stored = sessionStorage.getItem(storageKey);
-                existingTranscripts = stored ? JSON.parse(stored) : [];
-              } catch (parseError: unknown) {
-                console.warn('Error parsing existing transcripts, starting fresh:', (parseError instanceof Error) ? parseError.message : String(parseError));
-                existingTranscripts = [];
-              }
-              
-              // Add new entry with enhanced metadata
-              const transcriptEntry = {
-                speaker: speaker === 'assistant' ? 'assistant' : 'user',
-                text: text.trim(),
-                timestamp: new Date().toISOString(),
-                isFinal: isFinal,
-                messageType: message.type
-              };
-              
-              existingTranscripts.push(transcriptEntry);
-              
-              // Save back to storage
-              sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
-              console.log(`✅ Saved ${speaker} transcript to storage (${existingTranscripts.length} total entries)`);
-              
-              // 2. Enhanced backup 
-              const backupKey = `transcript-${speaker}-${currentSessionId}-${Date.now()}`;
-              sessionStorage.setItem(backupKey, JSON.stringify(transcriptEntry));
-              console.log(`✅ Saved transcript backup: ${backupKey}`);
-              
-              // 3. Update UI state with transcript content
-              const displaySpeaker = speaker === 'assistant' ? 'THERAPIST' : 'USER';
-              setTranscriptChunks(prev => {
-                const newChunks = [...prev, `${displaySpeaker}: ${text.trim()}`];
-                console.log(`✅ Updated UI with ${speaker} transcript (${newChunks.length} total)`);
-                return newChunks;
-              });
-              
-              // 4. Save transcript to database (critical for session history) - OPTIMIZED BATCHED VERSION
-              try {
-                const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
-                const normalizedSpeaker = speaker === 'assistant' ? 'assistant' : 'user';
-                
-                console.log(`🔄 BATCHED: Adding ${normalizedSpeaker} transcript to queue...`);
-                const result = await addTranscriptEntry({
-                  sessionId: currentSessionId,
-                  speaker: normalizedSpeaker,
-                  text: text.trim(),
-                  timestamp: new Date().toISOString(),
-                  isFinal: isFinal
-                });
-                
-                console.log(`✅ QUEUED SUCCESS: ${normalizedSpeaker} transcript queued with ID: ${result?.id || 'queued'}`);
-                
-                // 📊 REAL-TIME METRICS CALCULATION - DEBOUNCED
-                try {
-                  await calculateAndBroadcastIncrementalMetrics(currentSessionId, normalizedSpeaker, text.trim());
-                } catch (metricsError) {
-                  console.error('Error calculating incremental metrics:', metricsError);
-                }
-              } catch (dbError) {
-                console.error(`❌ BATCHED SAVE FAILED for ${speaker}:`, dbError);
-                console.warn('Transcript preserved in sessionStorage despite batch failure');
-              }
-            } catch (storageError: unknown) {
-              console.error('💥 ERROR STORING TRANSCRIPT:', (storageError instanceof Error) ? storageError.message : String(storageError));
+            console.log(`📝 MODEL OUTPUT FRAGMENT: "${text}" (buffering...)`);
+            
+            // Add fragment to buffer
+            setAssistantBuffer(prev => prev + text);
+            
+            // Clear existing timeout
+            if (assistantTimeoutRef.current) {
+              clearTimeout(assistantTimeoutRef.current);
             }
+            
+            // Set new timeout to process consolidated buffer
+            assistantTimeoutRef.current = setTimeout(() => {
+              // Access current buffer value via callback
+              setAssistantBuffer(currentBuffer => {
+                if (currentBuffer.trim()) {
+                  processConsolidatedAssistantMessage(currentBuffer, currentSessionId);
+                }
+                return ''; // Clear buffer
+              });
+            }, TRANSCRIPT_DEBOUNCE_MS);
+            
+            return; // Don't process immediately - wait for debounce
           }
-          // 🤖 ENHANCED ASSISTANT MESSAGE CAPTURE - PRIORITIZING CONFIGURED CLIENT MESSAGES
+          // 🤖 LEGACY ASSISTANT MESSAGE CAPTURE - FOR NON-MODEL-OUTPUT MESSAGES
           else if (
-            isModelOutputMessage(message) ||  // AI assistant responses (primary)
             isSpeechUpdateMessage(message) ||  // Speech processing
             // Fallback: other assistant message patterns for backward compatibility
             (message.type === 'assistant-request') ||  // Assistant API calls
@@ -966,10 +1222,7 @@ function TherapyButton({
           ) {
             // Enhanced text extraction for different message types
             let text = '';
-            if (isModelOutputMessage(message)) {
-              // model-output messages have specific structure
-              text = message.output || '';
-            } else if (isTranscriptMessage(message)) {
+            if (isTranscriptMessage(message)) {
               // transcript messages have specific structure
               text = message.transcript || '';
             } else {
@@ -982,82 +1235,28 @@ function TherapyButton({
               return;
             }
             
-            // Enhanced logging for different message types
-            if (isModelOutputMessage(message)) {
-              console.log(`🎯 MODEL OUTPUT CAPTURED: ${text.substring(0, 100)}... (AI RESPONSE)`);
-            } else {
-              console.log(`🤖 ASSISTANT MESSAGE CAPTURED: ${text.substring(0, 100)}... (type: ${message.type})`);
+            console.log(`🤖 LEGACY ASSISTANT MESSAGE CAPTURED: ${text.substring(0, 100)}... (type: ${message.type})`);
+            
+            // 🚀 PHASE 2: DEBOUNCE LEGACY ASSISTANT MESSAGES TOO
+            console.log(`📝 LEGACY ASSISTANT FRAGMENT: "${text}" (buffering for debounced processing...)`);
+            
+            // Add to assistant buffer (will be processed by existing debouncing)
+            setAssistantBuffer(prev => prev + (prev ? ' ' : '') + text);
+            
+            // Clear existing timeout
+            if (assistantTimeoutRef.current) {
+              clearTimeout(assistantTimeoutRef.current);
             }
             
-            // Enhanced assistant message storage
-            try {
-              // 1. Store in main transcript array
-              const storageKey = `transcript-${currentSessionId}`;
-              let existingTranscripts = [];
-              
-              try {
-                const stored = sessionStorage.getItem(storageKey);
-                existingTranscripts = stored ? JSON.parse(stored) : [];
-              } catch (parseError: unknown) {
-                console.warn('Error parsing existing transcripts, starting fresh:', (parseError instanceof Error) ? parseError.message : String(parseError));
-                existingTranscripts = [];
-              }
-              
-              // Create enhanced assistant entry
-              const assistantEntry = {
-                speaker: 'assistant',
-                text: text.trim(),
-                timestamp: new Date().toISOString(),
-                isFinal: true,
-                messageType: message.type
-              };
-              
-              existingTranscripts.push(assistantEntry);
-              
-              // Save back to storage
-              sessionStorage.setItem(storageKey, JSON.stringify(existingTranscripts));
-              console.log(`✅ Saved assistant response to storage (${existingTranscripts.length} total entries)`);
-              
-              // 2. Enhanced backup for assistant messages
-              const backupKey = `assistant-${currentSessionId}-${Date.now()}`;
-              sessionStorage.setItem(backupKey, JSON.stringify(assistantEntry));
-              console.log(`✅ Saved assistant backup: ${backupKey}`);
-              
-              // 3. Update UI state
-              setTranscriptChunks(prev => {
-                const newChunks = [...prev, `THERAPIST: ${text.trim()}`];
-                console.log(`✅ Updated UI with assistant response (${newChunks.length} total)`);
-                return newChunks;
-              });
-              
-              // 4. CRITICAL: Save assistant message to database - OPTIMIZED BATCHED VERSION
-              try {
-                const { addTranscriptEntry } = await import('@/lib/transcript-service-optimized');
-                
-                console.log(`🔄 BATCHED: Adding assistant response to queue...`);
-                const result = await addTranscriptEntry({
-                  sessionId: currentSessionId,
-                  speaker: 'assistant',
-                  text: text.trim(),
-                  timestamp: new Date().toISOString(),
-                  isFinal: true
-                });
-                
-                console.log(`✅ ASSISTANT QUEUED SUCCESS: Assistant response queued with ID: ${result?.id || 'queued'}`);
-                
-                // 📊 REAL-TIME METRICS CALCULATION - DEBOUNCED
-                try {
-                  await calculateAndBroadcastIncrementalMetrics(currentSessionId, 'assistant', text.trim());
-                } catch (metricsError) {
-                  console.error('Error calculating incremental metrics for assistant:', metricsError);
+            // Set new timeout to process consolidated buffer
+            assistantTimeoutRef.current = setTimeout(() => {
+              setAssistantBuffer(currentBuffer => {
+                if (currentBuffer.trim()) {
+                  processConsolidatedAssistantMessage(currentBuffer, currentSessionId);
                 }
-              } catch (dbError) {
-                console.error(`❌ ASSISTANT BATCHED SAVE FAILED:`, dbError);
-                console.warn('Assistant response preserved in sessionStorage despite batch failure');
-              }
-            } catch (storageError: unknown) {
-              console.error('💥 ERROR STORING ASSISTANT RESPONSE:', (storageError instanceof Error) ? storageError.message : String(storageError));
-            }
+                return ''; // Clear buffer
+              });
+            }, TRANSCRIPT_DEBOUNCE_MS);
           }
           // 🚨 CATCH-ALL HANDLER - Captures any messages we might have missed
           else {
@@ -1631,46 +1830,44 @@ function TherapyButton({
                 autoRestarted: shouldPerformAutoRestart
               }));
               
-              // Auto-restart session UI if page was refreshed during active session
-              if (shouldPerformAutoRestart && !autoRestartTriggered.current) {
-                autoRestartTriggered.current = true;
-                console.log('🚀 Auto-restarting session UI after page refresh')
-                
-                // Set session active immediately
-                if (typeof window !== 'undefined') {
-                  (window as any).__therapySessionActive = true;
-                  document.body.classList.add('session-active');
+              // 🚀 UNIFIED RECOVERY: Always use modal for session recovery (no auto-restart)
+              console.log('📝 UNIFIED RECOVERY: Setting up session recovery modal for user choice');
+              
+              // Check if session was paused
+              const pauseStateKey = `session-${data.id}-pause-state`;
+              const pauseState = sessionStorage.getItem(pauseStateKey);
+              let pauseInfo = null;
+              
+              if (pauseState) {
+                try {
+                  pauseInfo = JSON.parse(pauseState);
+                  console.log('⏸️ PAUSE STATE FOUND: Session was paused before page leave');
+                } catch (error) {
+                  console.warn('Error parsing pause state:', error);
                 }
-                
-                setIsCallActive(true);
-                setSessionActive(true);
-                
-                // Apply visual effects
-                const main = document.querySelector('main');
-                if (main) {
-                  main.style.transition = 'all 0.3s ease-in-out';
-                  main.style.opacity = '0.95';
-                }
-                
-                // Restart the Vapi session after a brief delay
-                setTimeout(() => {
-                  console.log(`🎯 Restarting Vapi session with recovered state using session ID: ${data.id} with ${data.duration} minute duration`)
-                  startTherapySession(data.id, data.duration as 30 | 60).catch(error => {
-                    console.error('Error restarting session:', error);
-                    setErrorMessage(`Failed to restart session: ${error.message || 'Unknown error'}`);
-                    // Reset UI state if restart fails
-                    setIsCallActive(false);
-                    setSessionActive(false);
-                    autoRestartTriggered.current = false; // Allow retry on error
-                    if (main) {
-                      main.style.opacity = '1';
-                    }
-                    document.body.classList.remove('session-active');
-                  });
-                }, 500);
-              } else if (shouldPerformAutoRestart && autoRestartTriggered.current) {
-                console.log('⚠️ Auto-restart already triggered, skipping duplicate attempt');
               }
+              
+              // Prepare data for the ActiveSessionFoundModal
+              const recoveryData = {
+                sessionId: data.id,
+                originalStart: data.startTime,
+                recoveredAt: now.toISOString(),
+                conversationTimeMinutes,
+                conversationTimeSeconds,
+                remainingMinutes,
+                autoRestarted: false, // Will be set to true when user chooses to continue
+                sessionData: data,
+                pauseInfo: pauseInfo // Include pause info for recovery
+              };
+              
+              // Store for ActiveSessionFoundModal to pick up
+              sessionStorage.setItem('session-recovery-pending', JSON.stringify(recoveryData));
+              
+              console.log('🔔 RECOVERY MODAL: Session recovery modal will show - user can choose to continue or cancel');
+              
+              // NO AUTO-RESTART - Let user decide via modal
+                
+              // User will make the decision via ActiveSessionFoundModal
               
               console.log(`✅ Session timer recovered successfully (auto-restart: ${shouldPerformAutoRestart})`);
             } else {
@@ -2191,8 +2388,69 @@ function TherapyButton({
       
       console.log('🚀 Starting VAPI session continuation...');
       
+      // 🚀 PAUSE STATE RECOVERY: Check if session was paused before page refresh
+      const pauseStateKey = `session-${recoveredSessionId}-pause-state`;
+      const pauseState = sessionStorage.getItem(pauseStateKey);
+      let wasPaused = false;
+      let pauseData = null;
+      
+      if (pauseState) {
+        try {
+          pauseData = JSON.parse(pauseState);
+          wasPaused = true;
+          console.log('⏸️ PAUSE STATE RECOVERY: Session was paused before page refresh');
+          console.log('📊 Pause data:', pauseData);
+          
+          // Restore pause timing data
+          if (pauseData.totalPausedTimeSeconds) {
+            setTotalPausedTimeSeconds(pauseData.totalPausedTimeSeconds);
+            console.log(`⏸️ Restored total paused time: ${pauseData.totalPausedTimeSeconds} seconds`);
+          }
+          
+          // Clear the pause state from storage since we're handling it
+          sessionStorage.removeItem(pauseStateKey);
+          
+        } catch (error) {
+          console.warn('Error parsing pause state:', error);
+        }
+      }
+      
       // Start the session with the recovered ID, duration, and detected therapy type
       await startTherapySessionWithType(recoveredSessionId, sessionDuration, [], detectedTherapyType);
+      
+      // 🚀 AUTO-PAUSE AFTER RECOVERY: If session was paused, restore pause state
+      if (wasPaused && pauseData) {
+        console.log('⏸️ AUTO-PAUSE: Session was paused before refresh, restoring pause state...');
+        
+        // Small delay to ensure VAPI session is fully started before pausing
+        setTimeout(async () => {
+          try {
+            // Set pause state without calling VAPI stop (since session should start paused)
+            setIsSessionPaused(true);
+            setPauseStartTime(new Date());
+            
+            // Stop VAPI to restore paused state
+            if (vapiInstanceRef.current) {
+              await vapiInstanceRef.current.stop();
+              console.log('⏸️ AUTO-PAUSE: VAPI stopped to restore paused state');
+            }
+            
+            // Save current pause state for future recovery
+            sessionStorage.setItem(`session-${recoveredSessionId}-pause-state`, JSON.stringify({
+              pausedAt: new Date().toISOString(),
+              conversationTimeSeconds: pauseData.conversationTimeSeconds || 0,
+              totalPausedTimeSeconds: pauseData.totalPausedTimeSeconds || 0,
+              sessionId: recoveredSessionId,
+              restoredFromRefresh: true
+            }));
+            
+            console.log('✅ AUTO-PAUSE: Session restored in paused state - user can resume when ready');
+            
+          } catch (error) {
+            console.error('Error restoring pause state:', error);
+          }
+        }, 2000); // 2 second delay to ensure session is fully initialized
+      }
       
       console.log('✅ Session continuation successful');
       setIsLoading(false);
@@ -2301,7 +2559,8 @@ function TherapyButton({
       return;
     }
 
-    const saveConversationTime = async (isBeforeUnload = false) => {
+    // 🚀 SESSION RECOVERY: sessionStorage-only saves to prevent VAPI interruptions
+    const saveConversationTimeToStorage = (isBeforeUnload = false) => {
       try {
         const now = new Date();
         const currentSegmentSeconds = Math.floor((now.getTime() - conversationStartTime.getTime()) / 1000);
@@ -2309,58 +2568,137 @@ function TherapyButton({
 
         // Save if we have accumulated time or if this is a beforeunload event
         if (currentSegmentSeconds > 5 || isBeforeUnload) {
-          console.log(`💾 ${isBeforeUnload ? 'BEFOREUNLOAD' : 'PERIODIC'} SAVE: Updating conversation time to ${totalConversationTime} seconds`);
+          console.log(`💾 ${isBeforeUnload ? 'EMERGENCY' : 'RECOVERY'} BACKUP: Saving to sessionStorage (${totalConversationTime}s) - NO database calls during active session`);
           
-          // Always save to sessionStorage as backup
-          if (isBeforeUnload) {
-            sessionStorage.setItem(`session-${sessionId}-backup-time`, JSON.stringify({
-              conversationTimeSeconds: totalConversationTime,
-              lastConversationStart: conversationStartTime.toISOString(),
+          // ALWAYS save to sessionStorage for emergency recovery (instant, no network calls)
+          sessionStorage.setItem(`session-${sessionId}-backup-time`, JSON.stringify({
+            conversationTimeSeconds: totalConversationTime,
+            lastConversationStart: conversationStartTime.toISOString(),
+            timestamp: now.toISOString(),
+            isPaused: isBeforeUnload,
+            sessionId: sessionId,
+            assistantId: assistantConfig?.id,
+            therapyType: assistantConfig?.type
+          }));
+          
+          // Save transcript backup to sessionStorage as well
+          if (transcriptChunks.length > 0) {
+            sessionStorage.setItem(`session-${sessionId}-transcript-backup`, JSON.stringify({
+              transcriptChunks: transcriptChunks,
               timestamp: now.toISOString(),
-              isPaused: true
+              sessionId: sessionId
             }));
           }
           
-          // For beforeunload, use sendBeacon for reliability, otherwise use fetch
-          if (isBeforeUnload && navigator.sendBeacon) {
-            const data = JSON.stringify({
-              conversationTimeSeconds: totalConversationTime,
-              lastConversationStart: conversationStartTime.toISOString(),
-              isPaused: true // Mark as paused when user leaves
-            });
+          // 🚀 UNIFIED PAUSE LOGIC: Always pause VAPI on page leave to stop billing
+          if (isBeforeUnload) {
+            // Automatically pause the session when user leaves page
+            try {
+              if (vapiInstanceRef.current && !isSessionPaused) {
+                console.log('🚨 AUTO-PAUSE: Stopping VAPI billing due to page leave');
+                vapiInstanceRef.current.stop();
+                
+                // Mark as paused in sessionStorage
+                sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
+                  pausedAt: now.toISOString(),
+                  conversationTimeSeconds: totalConversationTime,
+                  totalPausedTimeSeconds: totalPausedTimeSeconds,
+                  sessionId: sessionId,
+                  reason: 'page_leave'
+                }));
+              }
+            } catch (error) {
+              console.warn('Error auto-pausing VAPI on page leave:', error);
+            }
             
-            navigator.sendBeacon(`/api/sessions/${sessionId}`, new Blob([data], {
-              type: 'application/json'
-            }));
-          } else {
-            await fetch(`/api/sessions/${sessionId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            // Send database update
+            if (navigator.sendBeacon) {
+              const data = JSON.stringify({
                 conversationTimeSeconds: totalConversationTime,
                 lastConversationStart: conversationStartTime.toISOString(),
-                isPaused: isBeforeUnload
-              })
-            });
+                isPaused: true // Always mark as paused when user leaves
+              });
+              
+              navigator.sendBeacon(`/api/sessions/${sessionId}`, new Blob([data], {
+                type: 'application/json'
+              }));
+              console.log('📡 AUTO-PAUSE: Database updated with paused state');
+            }
           }
         }
       } catch (error) {
-        console.warn('Error during conversation time save:', error);
+        console.warn('Error during session storage backup:', error);
       }
     };
 
-    // Periodic saves every 30 seconds
-    const interval = setInterval(() => saveConversationTime(false), 30000);
+    // 🚀 RECOVERY BACKUPS: sessionStorage-only every 15 seconds (no database calls = no VAPI interruption)
+    const interval = setInterval(() => saveConversationTimeToStorage(false), 15000);
 
-    // Save on page unload to capture latest conversation time
+    // 🚀 AUTO-PAUSE ON PAGE LEAVE: Save conversation time AND pause VAPI to prevent billing
     const handleBeforeUnload = () => {
-      saveConversationTime(true);
+      // Save conversation time to storage
+      saveConversationTimeToStorage(true);
+      
+      // 🚀 AUTO-PAUSE: Stop VAPI session to prevent billing during page refresh/leave
+      if (vapiInstanceRef.current && !isSessionPaused) {
+        try {
+          console.log('⏸️ AUTO-PAUSE ON PAGE LEAVE: Stopping VAPI to prevent billing');
+          
+          // Stop VAPI synchronously (beforeunload must be synchronous)
+          vapiInstanceRef.current.stop();
+          
+          // Save pause state to sessionStorage
+          if (sessionId) {
+            const pauseData = {
+              pausedAt: new Date().toISOString(),
+              conversationTimeSeconds: conversationTimeSeconds,
+              totalPausedTimeSeconds: totalPausedTimeSeconds,
+              sessionId: sessionId,
+              autoPausedOnPageLeave: true // Flag to indicate this was auto-paused
+            };
+            
+            sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify(pauseData));
+            console.log('💾 AUTO-PAUSE: Saved pause state for session recovery');
+          }
+          
+        } catch (error) {
+          console.warn('Error auto-pausing session on page leave:', error);
+        }
+      }
     };
 
-    // Save on visibility change (tab switch, minimize, etc.)
+    // 🚀 AUTO-PAUSE ON TAB HIDE: Save conversation time AND pause VAPI when tab becomes hidden
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        saveConversationTime(true);
+        // Save conversation time to storage
+        saveConversationTimeToStorage(true);
+        
+        // 🚀 AUTO-PAUSE: Stop VAPI session to prevent billing when tab is hidden/minimized
+        if (vapiInstanceRef.current && !isSessionPaused) {
+          try {
+            console.log('⏸️ AUTO-PAUSE ON TAB HIDE: Stopping VAPI to prevent billing');
+            
+            // Stop VAPI session
+            vapiInstanceRef.current.stop();
+            
+            // Save pause state to sessionStorage
+            if (sessionId) {
+              const pauseData = {
+                pausedAt: new Date().toISOString(),
+                conversationTimeSeconds: conversationTimeSeconds,
+                totalPausedTimeSeconds: totalPausedTimeSeconds,
+                sessionId: sessionId,
+                autoPausedOnTabHide: true // Flag to indicate this was auto-paused on tab hide
+              };
+              
+              sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify(pauseData));
+              console.log('💾 AUTO-PAUSE: Saved pause state for tab hide recovery');
+            }
+            
+          } catch (error) {
+            console.warn('Error auto-pausing session on tab hide:', error);
+          }
+        }
       }
     };
 
@@ -3207,6 +3545,150 @@ function TherapyButton({
     }
   }, [isMuted]);
   
+  // 🚀 UNIFIED SESSION CONTINUATION: Handle modal "Continue Session" choice
+  const continueSessionFromModal = useCallback(async (sessionData: any) => {
+    try {
+      console.log('🔄 MODAL CONTINUE: User chose to continue session:', sessionData.id);
+      
+      // Restore session state
+      setSessionId(sessionData.id);
+      setSelectedSessionDuration(sessionData.duration);
+      currentSessionDuration.current = sessionData.duration;
+      setSessionStartTime(new Date(sessionData.startTime));
+      
+      // Check for pause state
+      const pauseStateKey = `session-${sessionData.id}-pause-state`;
+      const pauseState = sessionStorage.getItem(pauseStateKey);
+      let wasPaused = false;
+      
+      if (pauseState) {
+        try {
+          const pauseInfo = JSON.parse(pauseState);
+          if (pauseInfo.pausedAt && !pauseInfo.resumedAt) {
+            wasPaused = true;
+            console.log('⏸️ CONTINUE PAUSED: Session was paused, restoring pause state');
+            
+            // Restore pause state
+            setIsSessionPaused(true);
+            setPauseStartTime(new Date(pauseInfo.pausedAt));
+            setTotalPausedTimeSeconds(pauseInfo.totalPausedTimeSeconds || 0);
+          }
+        } catch (error) {
+          console.warn('Error parsing pause state during continuation:', error);
+        }
+      }
+      
+      // Set session as active in UI
+      setIsCallActive(true);
+      setSessionActive(true);
+      
+      // Apply visual effects
+      if (typeof window !== 'undefined') {
+        (window as any).__therapySessionActive = true;
+        document.body.classList.add('session-active');
+      }
+      
+      const main = document.querySelector('main');
+      if (main) {
+        main.style.transition = 'all 0.3s ease-in-out';
+        main.style.opacity = '0.95';
+      }
+      
+      if (wasPaused) {
+        console.log('⏸️ CONTINUE AS PAUSED: Session restored in paused state - user can manually resume');
+        // Don't start VAPI - let user manually resume with pause button
+      } else {
+        console.log('▶️ CONTINUE ACTIVE: Session was active, auto-resuming VAPI');
+        // Auto-start VAPI since session wasn't paused
+        setTimeout(() => {
+          startTherapySession(sessionData.id, sessionData.duration).catch(error => {
+            console.error('Error resuming active session:', error);
+            setErrorMessage(`Failed to resume session: ${error.message}`);
+          });
+        }, 500);
+      }
+      
+    } catch (error) {
+      console.error('Error continuing session from modal:', error);
+      throw error;
+    }
+  }, [startTherapySession]);
+  
+  // 🚀 PAUSE/RESUME FUNCTIONALITY: Save billing time and allow breaks
+  const pauseResumeSession = useCallback(async () => {
+    if (!sessionId || !vapiInstanceRef.current) {
+      console.warn('Cannot pause: No active session or VAPI instance');
+      return;
+    }
+    
+    try {
+      if (isSessionPaused) {
+        // RESUME SESSION
+        console.log('▶️ RESUMING: Restarting VAPI session and billing');
+        
+        // Calculate total paused time
+        if (pauseStartTime) {
+          const pauseDuration = Math.floor((Date.now() - pauseStartTime.getTime()) / 1000);
+          setTotalPausedTimeSeconds(prev => prev + pauseDuration);
+          console.log(`⏸️ PAUSE DURATION: ${pauseDuration} seconds saved from billing`);
+        }
+        
+        // Save pause state to sessionStorage for recovery
+        sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
+          totalPausedTimeSeconds: totalPausedTimeSeconds,
+          resumedAt: new Date().toISOString(),
+          sessionId: sessionId
+        }));
+        
+        // Resume VAPI call - restart if needed
+        await vapiInstanceRef.current.start();
+        
+        // Update state
+        setIsSessionPaused(false);
+        setPauseStartTime(null);
+        setConversationStartTime(new Date()); // Reset conversation timer
+        
+        console.log('✅ SESSION RESUMED: VAPI active, billing resumed');
+        
+      } else {
+        // PAUSE SESSION
+        console.log('⏸️ PAUSING: Stopping VAPI session to save billing');
+        
+        // Stop VAPI call to save costs
+        await vapiInstanceRef.current.stop();
+        
+        // Update pause state
+        setIsSessionPaused(true);
+        setPauseStartTime(new Date());
+        
+        // Save pause state to sessionStorage for recovery
+        sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
+          pausedAt: new Date().toISOString(),
+          conversationTimeSeconds: conversationTimeSeconds,
+          totalPausedTimeSeconds: totalPausedTimeSeconds,
+          sessionId: sessionId
+        }));
+        
+        // Flush any pending transcripts before pausing
+        try {
+          const { flushSessionTranscripts } = await import('@/lib/transcript-service-optimized');
+          await flushSessionTranscripts(sessionId);
+          console.log('💾 PAUSE: Saved all pending transcripts');
+        } catch (error) {
+          console.warn('Error flushing transcripts during pause:', error);
+        }
+        
+        console.log('✅ SESSION PAUSED: VAPI stopped, billing paused, progress saved');
+      }
+      
+    } catch (error) {
+      console.error('Error during pause/resume:', error);
+      // Reset pause state on error
+      setIsSessionPaused(false);
+      setPauseStartTime(null);
+    }
+  }, [isSessionPaused, sessionId, pauseStartTime, totalPausedTimeSeconds, conversationTimeSeconds]);
+  
   // Use a ref to avoid circular dependencies with the callbacks
   const handleCallEndRef = useRef(endTherapySession);
   
@@ -3223,6 +3705,25 @@ function TherapyButton({
       handleCallEndRef.current();
     }
   }, [isCallActive, sessionId]);
+
+  // 🧹 Cleanup timeouts on unmount to prevent memory leaks (Phase 2 completion)
+  useEffect(() => {
+    return () => {
+      // Clean up assistant debouncing timeout
+      if (assistantTimeoutRef.current) {
+        clearTimeout(assistantTimeoutRef.current);
+        assistantTimeoutRef.current = null;
+      }
+      
+      // Clean up user debouncing timeout
+      if (userTimeoutRef.current) {
+        clearTimeout(userTimeoutRef.current);
+        userTimeoutRef.current = null;
+      }
+      
+      console.log('🧹 CLEANUP: Cleared all debouncing timeouts');
+    };
+  }, []);
   
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-full sm:max-w-lg mx-auto px-2" style={{ 
@@ -3516,11 +4017,22 @@ function TherapyButton({
             
             {/* Voice Waveform */}
             <div className="w-full my-2 sm:my-3 opacity-100 relative" style={{ minHeight: '80px' }}>
-              <VoiceWaveform audioLevel={isMuted ? 0 : audioLevel} />
+              <VoiceWaveform audioLevel={isMuted || isSessionPaused ? 0 : audioLevel} />
               {isMuted && (
                 <div className="absolute inset-0 flex items-center justify-center z-20">
                   <div className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full animate-pulse shadow-md">
                     Microphone Muted
+                  </div>
+                </div>
+              )}
+              {/* 🚀 PAUSE INDICATOR */}
+              {isSessionPaused && (
+                <div className="absolute inset-0 flex items-center justify-center z-20">
+                  <div className="bg-orange-500 text-white text-xs font-medium px-3 py-2 rounded-full animate-pulse shadow-md flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                    <span>Session Paused • 💰 Billing Stopped</span>
                   </div>
                 </div>
               )}
@@ -3534,7 +4046,7 @@ function TherapyButton({
                   startTime={sessionStartTime}
                   conversationTimeSeconds={conversationTimeSeconds}
                   isConversationActive={isCallActive}
-                  conversationStartTime={conversationStartTime}
+                  conversationStartTime={conversationStartTime || undefined}
                   className="text-white"
                   onTimeUpdate={handleTimeUpdate}
                   showRecoveredIndicator={sessionRecovered}
@@ -3588,14 +4100,32 @@ function TherapyButton({
                 <span className="text-white text-xs">End Call</span>
               </div>
               
-              {/* Speaker Button */}
+              {/* 🚀 PAUSE/RESUME BUTTON - Replaces Speaker button for cost savings */}
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center mb-1 sm:mb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 007.072 0m-9.9-2.828a9 9 0 0112.728 0" />
-                  </svg>
-                </div>
-                <span className="text-white text-xs">Speaker</span>
+                <button 
+                  onClick={pauseResumeSession}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${isSessionPaused ? 'bg-green-600' : 'bg-orange-500'} flex items-center justify-center mb-1 sm:mb-2 transition-colors duration-300 hover:bg-opacity-90 cursor-pointer`}
+                  aria-label={isSessionPaused ? "Resume session" : "Pause session"}
+                >
+                  {isSessionPaused ? (
+                    // Resume icon (play button)
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  ) : (
+                    // Pause icon
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                  )}
+                </button>
+                <span className="text-white text-xs">{isSessionPaused ? "Resume" : "Pause"}</span>
+                {/* Show pause time saved indicator */}
+                {isSessionPaused && totalPausedTimeSeconds > 0 && (
+                  <span className="text-green-400 text-[10px] mt-1">
+                    💰 {Math.floor(totalPausedTimeSeconds / 60)}m saved
+                  </span>
+                )}
               </div>
             </div>
           </div>

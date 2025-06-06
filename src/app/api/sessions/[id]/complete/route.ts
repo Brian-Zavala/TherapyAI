@@ -35,13 +35,31 @@ export async function POST(
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
     
-    // Mark session as completed
+    // 🚀 PHASE 3: COMPREHENSIVE SESSION-END PROCESSING
+    
+    // 1. Flush any pending transcript batches before completion
+    try {
+      console.log('📦 PHASE 3: Flushing all pending transcript batches...');
+      const { flushSessionTranscripts, cleanupSessionMetrics } = await import('@/lib/transcript-service-optimized');
+      
+      // Force flush any remaining batched transcripts
+      await flushSessionTranscripts(sessionId);
+      console.log('✅ PHASE 3: All transcript batches flushed successfully');
+      
+      // Clean up any real-time metrics calculators
+      cleanupSessionMetrics(sessionId);
+      console.log('✅ PHASE 3: Session metrics cleaned up');
+    } catch (flushError) {
+      console.error('⚠️ PHASE 3: Error flushing transcripts, but continuing with completion:', flushError);
+    }
+
+    // 2. Mark session as completed
     await prisma.session.update({
       where: { id: sessionId },
       data: { status: 'completed' },
     });
     
-    // Generate metrics based on the session
+    // 3. Generate comprehensive metrics based on the complete session (formerly real-time)
     try {
       // Determine therapy type from session theme
       let therapyType = 'couple';
@@ -61,9 +79,30 @@ export async function POST(
         therapySession.assistantId
       );
       
-      console.log(`Generated ${therapyType} metrics for session ${sessionId}`);
+      console.log(`✅ PHASE 3: Generated comprehensive ${therapyType} metrics for session ${sessionId}`);
+      
+      // 4. Additional post-session analysis (now that we have time)
+      try {
+        // Get final transcript count for verification
+        const transcriptEntries = await prisma.transcriptEntry.count({
+          where: { sessionId: sessionId }
+        });
+        console.log(`📊 PHASE 3: Session ${sessionId} completed with ${transcriptEntries} transcript entries`);
+        
+        // Update session with final transcript count
+        await prisma.session.update({
+          where: { id: sessionId },
+          data: { 
+            notes: `Session completed with ${transcriptEntries} transcript entries. Metrics generated successfully.`
+          }
+        });
+        
+      } catch (analysisError) {
+        console.error('⚠️ PHASE 3: Error in post-session analysis:', analysisError);
+      }
+      
     } catch (metricsError) {
-      console.error('Error generating metrics, but continuing:', metricsError);
+      console.error('❌ PHASE 3: Error generating comprehensive metrics, but continuing:', metricsError);
     }
     
     // Send SessionCompleted email

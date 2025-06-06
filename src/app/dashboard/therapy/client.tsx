@@ -19,6 +19,33 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   
   // Session recovery hook - only runs on therapy page
   const { isChecking: isCheckingForSession, hasActiveSession, shouldAutoRestart } = useTherapySessionRecovery();
+  
+  // Clean up any stale recovery data on component mount (prevents HMR issues)
+  useEffect(() => {
+    const cleanupStaleRecoveryData = () => {
+      try {
+        // During development, Fast Refresh can leave stale data
+        // Only clean up if we're not actively in a session
+        const hasActiveSession = document.body.classList.contains('session-active')
+        if (!hasActiveSession) {
+          const staleKeys = ['session-recovery-pending', 'session-continue-trigger']
+          staleKeys.forEach(key => {
+            const value = sessionStorage.getItem(key)
+            if (value) {
+              console.log(`🧹 Cleaning up stale recovery data: ${key}`)
+              sessionStorage.removeItem(key)
+            }
+          })
+        }
+      } catch (error) {
+        console.warn('Error cleaning up stale recovery data:', error)
+      }
+    }
+    
+    // Small delay to allow other components to initialize first
+    const timer = setTimeout(cleanupStaleRecoveryData, 100)
+    return () => clearTimeout(timer)
+  }, []) // Only run once on mount
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sessionType, setSessionType] = useState<string | null>(null);
@@ -26,12 +53,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Set default assistant when no session recovery is happening
   useEffect(() => {
-    if (!isCheckingForSession && !hasActiveSession && !selectedAssistant) {
+    if (!isCheckingForSession && !hasActiveSession && !selectedAssistant && !sessionType) {
       console.log('📝 No session recovery, setting default couples therapist');
       setSelectedAssistant(COUPLE_THERAPY_ASSISTANT_CONFIG);
       setSessionType('couple');
     }
-  }, [isCheckingForSession, hasActiveSession, selectedAssistant]);
+  }, [isCheckingForSession, hasActiveSession, selectedAssistant, sessionType]);
   // Default to show the selector - user must explicitly choose session type
   const [showTypeSelector, setShowTypeSelector] = useState(true);
   // Countdown overlay state
