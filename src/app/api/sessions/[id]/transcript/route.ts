@@ -18,7 +18,7 @@ export async function POST(
   }
   
   try {
-    const { id: sessionId } = await params
+    const { id: sessionId } = await params.params
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
@@ -202,7 +202,7 @@ export async function GET(
   }
   
   try {
-    const { id: sessionId } = await params
+    const { id: sessionId } = await params.params
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })
@@ -330,7 +330,7 @@ export async function DELETE(
   }
   
   try {
-    const { id: sessionId } = await params
+    const { id: sessionId } = await params.params
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Invalid session ID' }, { status: 400 } as { status: number })

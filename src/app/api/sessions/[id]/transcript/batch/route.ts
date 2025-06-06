@@ -83,7 +83,7 @@ export async function POST(
       await tx.session.update({
         where: { id: sessionId },
         data: {
-          endedAt: new Date(), // Update the last activity time
+          lastConversationStart: new Date(), // Update the last activity time
         },
       });
 
