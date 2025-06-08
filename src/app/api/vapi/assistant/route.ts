@@ -15,6 +15,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Check if this is a personalized assistant request (from query params)
+    const { searchParams } = new URL(req.url);
+    if (searchParams.get('personalized') === 'true') {
+      // Handle personalized assistant configuration with conversation history
+      const body = await req.json();
+      const conversationHistory = body.conversationHistory || '';
+      const transcriptChunks = body.transcriptChunks || [];
+      
+      // Delegate to GET handler logic but with POST body data
+      searchParams.set('conversationHistory', conversationHistory);
+      
+      // Create a new request with the conversation history in searchParams
+      const modifiedUrl = new URL(req.url);
+      modifiedUrl.searchParams.set('conversationHistory', conversationHistory);
+      
+      // Call the GET handler with modified URL
+      const getRequest = new NextRequest(modifiedUrl, {
+        method: 'GET',
+        headers: req.headers
+      });
+      
+      return GET(getRequest);
+    }
+    
+    // Original POST logic for creating new assistants
     const config = await req.json();
     const assistant = await createAssistant(config);
 
@@ -247,6 +272,52 @@ export async function GET(req: NextRequest) {
             };
           } catch (e) {
             console.error('Failed to parse session context:', e);
+          }
+        }
+        
+        // Handle conversation resumption context
+        const isResuming = searchParams.get('resuming') === 'true';
+        const conversationHistory = searchParams.get('conversationHistory');
+        const sessionId = searchParams.get('sessionId');
+        
+        if (isResuming && conversationHistory) {
+          try {
+            const decodedHistory = decodeURIComponent(conversationHistory);
+            console.log(`📚 Processing resume context for session ${sessionId}`);
+            
+            // Extract key topics from conversation history
+            const conversationLines = decodedHistory.split('\n').filter(line => line.trim());
+            const therapistLines = conversationLines.filter(line => line.startsWith('THERAPIST:'));
+            const userLines = conversationLines.filter(line => line.startsWith('USER:'));
+            
+            // Create a summary of topics discussed
+            const topicsDiscussed = userLines.slice(-3).map(line => 
+              line.replace('USER:', '').trim()
+            ).filter(Boolean).join(', ');
+            
+            // Enhance the first message to acknowledge the pause
+            personalizedConfig.firstMessage = `Welcome back, ${userProfile.userName || userProfile.name}. I see we were just discussing ${topicsDiscussed || 'your concerns'}. Let's continue where we left off. How are you feeling right now?`;
+            
+            // Add conversation context to variable values
+            personalizedConfig.variableValues = {
+              ...personalizedConfig.variableValues,
+              previousConversation: decodedHistory,
+              isResumedSession: 'true',
+              lastTopics: topicsDiscussed || 'previous discussion',
+              sessionResumed: new Date().toISOString()
+            };
+            
+            // Update the system prompt to include conversation context
+            if (personalizedConfig.model && personalizedConfig.model.messages) {
+              const systemMessage = personalizedConfig.model.messages.find((msg: any) => msg.role === 'system');
+              if (systemMessage) {
+                systemMessage.content = `${systemMessage.content}\n\nIMPORTANT: This is a resumed session. The user paused and is now continuing. Previous conversation:\n${decodedHistory}\n\nAcknowledge that you're continuing the session naturally. Reference what was being discussed if relevant, but don't overly focus on the pause itself. Continue the therapeutic flow.`;
+              }
+            }
+            
+            console.log(`✅ Enhanced config for resumed session with ${conversationLines.length} conversation lines`);
+          } catch (e) {
+            console.error('Failed to process conversation history:', e);
           }
         }
         

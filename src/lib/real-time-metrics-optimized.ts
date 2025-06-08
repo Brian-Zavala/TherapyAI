@@ -1,6 +1,8 @@
 // real-time-metrics-optimized.ts
 // Optimized real-time metrics calculation with debouncing and reduced regex operations
 
+import { broadcastMetrics } from './metrics-broadcaster';
+
 interface TranscriptEntry {
   speaker: 'user' | 'assistant';
   text: string;
@@ -56,7 +58,7 @@ export class RealTimeMetricsCalculator {
   }
 
   // Add transcript entry with optimized calculation
-  public addTranscriptEntry(entry: TranscriptEntry): IncrementalMetrics {
+  public async addTranscriptEntry(entry: TranscriptEntry): Promise<IncrementalMetrics> {
     this.transcriptEntries.push(entry);
     this.lastUpdateTime = new Date();
     
@@ -90,8 +92,19 @@ export class RealTimeMetricsCalculator {
     // Debounce calculations to prevent excessive compute
     this.debouncedCalculate();
     
-    // Return immediate metrics from cache or quick calculation
-    return this.getQuickMetrics();
+    // Get immediate metrics
+    const metrics = this.getQuickMetrics();
+    
+    // Broadcast immediately if it's a significant update
+    if (RealTimeMetricsCalculator.shouldTriggerUpdate(metrics)) {
+      await broadcastMetrics({
+        userId: this.userId,
+        sessionId: this.sessionId,
+        metrics
+      });
+    }
+    
+    return metrics;
   }
 
   // Debounced calculation
@@ -132,11 +145,20 @@ export class RealTimeMetricsCalculator {
   }
 
   // Full calculation (debounced)
-  private performCalculation(): void {
+  private async performCalculation(): Promise<void> {
     const metrics = this.calculateOptimizedMetrics();
     metricsCache.set(this.sessionId, metrics);
     
     console.log(`📊 OPTIMIZED METRICS: Session ${this.sessionId} - ${metrics.entryCount} entries - Confidence: ${metrics.confidence}%`);
+    
+    // Broadcast metrics if they meet update criteria
+    if (RealTimeMetricsCalculator.shouldTriggerUpdate(metrics)) {
+      await broadcastMetrics({
+        userId: this.userId,
+        sessionId: this.sessionId,
+        metrics
+      });
+    }
   }
 
   // Optimized metrics calculation with reduced regex operations
@@ -257,9 +279,17 @@ export class RealTimeMetricsCalculator {
   }
 
   // Force immediate calculation (bypass debouncing)
-  public forceCalculation(): IncrementalMetrics {
+  public async forceCalculation(): Promise<IncrementalMetrics> {
     const metrics = this.calculateOptimizedMetrics();
     metricsCache.set(this.sessionId, metrics);
+    
+    // Always broadcast forced calculations
+    await broadcastMetrics({
+      userId: this.userId,
+      sessionId: this.sessionId,
+      metrics
+    });
+    
     return metrics;
   }
 

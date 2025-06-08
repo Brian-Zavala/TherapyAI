@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import SessionTimer from './SessionTimer'
 
 interface ActiveSessionData {
   sessionId: string
@@ -34,6 +35,7 @@ export default function ActiveSessionFoundModal({
   const [showModal, setShowModal] = useState(false)
   const [sessionData, setSessionData] = useState<ActiveSessionData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [currentRemainingMinutes, setCurrentRemainingMinutes] = useState<number>(0)
 
   useEffect(() => {
     let hasProcessedRecovery = false // Deduplication flag
@@ -59,6 +61,8 @@ export default function ActiveSessionFoundModal({
           
           setSessionData(data)
           setShowModal(true)
+          // Initialize current remaining minutes
+          setCurrentRemainingMinutes(data.remainingMinutes)
           
           // Don't clear the recovery data immediately - let the user action handle it
           console.log('💾 Keeping session-recovery-pending until user action')
@@ -325,15 +329,22 @@ export default function ActiveSessionFoundModal({
                   </div>
                 )}
 
-                {/* Session info */}
+                {/* Session info with live timer */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-blue-50 rounded-lg px-3 py-2">
                     <div className="text-blue-600 font-medium">Conversation Time</div>
                     <div className="text-blue-800 font-semibold">{formatTime(sessionData.conversationTimeMinutes || sessionData.elapsedMinutes || 0)}</div>
                   </div>
                   <div className="bg-green-50 rounded-lg px-3 py-2">
-                    <div className="text-green-600 font-medium">Time Remaining</div>
-                    <div className="text-green-800 font-semibold">{formatTime(sessionData.remainingMinutes)}</div>
+                    <div className="text-green-600 font-medium text-center mb-1">Time Remaining</div>
+                    <SessionTimer
+                      durationMinutes={sessionData.sessionData.duration}
+                      conversationTimeSeconds={sessionData.conversationTimeSeconds || (sessionData.conversationTimeMinutes || sessionData.elapsedMinutes || 0) * 60}
+                      isConversationActive={false} // Session is paused while modal is open
+                      className="scale-90"
+                      showRecoveredIndicator={false}
+                      onTimeUpdate={(remainingMinutes) => setCurrentRemainingMinutes(remainingMinutes)}
+                    />
                   </div>
                 </div>
 
@@ -363,7 +374,7 @@ export default function ActiveSessionFoundModal({
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>Continue Session ({formatTime(sessionData.remainingMinutes)} left)</span>
+                      <span>Continue Session ({formatTime(currentRemainingMinutes || sessionData.remainingMinutes)} left)</span>
                     </>
                   )}
                 </motion.button>

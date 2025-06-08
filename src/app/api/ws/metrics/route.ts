@@ -29,8 +29,20 @@ export async function POST(req: NextRequest) {
       // Handle metrics update
       console.log(`📊 METRICS: Session ${sessionId} - Confidence: ${metrics.confidence}%`);
       
-      // Log the metrics update (WebSocket broadcasting handled by custom server)
-      console.log(`🔄 METRICS: Would broadcast to WebSocket clients for session ${sessionId}`);
+      // Broadcast to WebSocket clients via the global WebSocket server
+      try {
+        // Access the global WebSocket server from the custom server.js
+        const { getMetricsWebSocketServer } = require('../../../../../websocket-server.js');
+        const wsServer = getMetricsWebSocketServer();
+        
+        // Broadcast the metrics update
+        const broadcastUserId = userId || 'dev-user'; // Fallback for testing
+        wsServer.broadcastMetricsUpdate(broadcastUserId, sessionId, metrics);
+        
+        console.log(`✅ METRICS: Broadcasted update for session ${sessionId}`);
+      } catch (broadcastError) {
+        console.error('Failed to broadcast metrics:', broadcastError);
+      }
       
       return NextResponse.json({ 
         success: true, 
@@ -43,8 +55,20 @@ export async function POST(req: NextRequest) {
       // Handle session status update
       console.log(`📱 SESSION: ${sessionId} status changed to ${status}`);
       
-      // Log the session update (WebSocket broadcasting handled by custom server)
-      console.log(`🔄 SESSION: Would broadcast to WebSocket clients for session ${sessionId}`);
+      // Broadcast to WebSocket clients via the global WebSocket server
+      try {
+        // Access the global WebSocket server from the custom server.js
+        const { getMetricsWebSocketServer } = require('../../../../../websocket-server.js');
+        const wsServer = getMetricsWebSocketServer();
+        
+        // Broadcast the session update
+        const broadcastUserId = userId || 'dev-user'; // Fallback for testing
+        wsServer.broadcastSessionUpdate(broadcastUserId, sessionId, status, data);
+        
+        console.log(`✅ SESSION: Broadcasted ${status} update for session ${sessionId}`);
+      } catch (broadcastError) {
+        console.error('Failed to broadcast session update:', broadcastError);
+      }
       
       return NextResponse.json({ 
         success: true, 

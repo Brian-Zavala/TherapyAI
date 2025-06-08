@@ -20,6 +20,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Session recovery hook - only runs on therapy page
   const { isChecking: isCheckingForSession, hasActiveSession, shouldAutoRestart } = useTherapySessionRecovery();
   
+  // Track if initial check is complete
+  const [initialCheckComplete, setInitialCheckComplete] = useState(false);
+  
   // Clean up any stale recovery data on component mount (prevents HMR issues)
   useEffect(() => {
     const cleanupStaleRecoveryData = () => {
@@ -51,16 +54,28 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
 
-  // Set default assistant when no session recovery is happening
+  // Track when initial session check is complete
   useEffect(() => {
-    if (!isCheckingForSession && !hasActiveSession && !selectedAssistant && !sessionType) {
-      console.log('📝 No session recovery, setting default couples therapist');
+    if (!isCheckingForSession && !initialCheckComplete) {
+      console.log('🔍 Initial session check complete');
+      setInitialCheckComplete(true);
+    }
+  }, [isCheckingForSession, initialCheckComplete]);
+
+  // Set default assistant when no session recovery is happening AND initial check is complete
+  useEffect(() => {
+    if (initialCheckComplete && !hasActiveSession && !selectedAssistant && !sessionType) {
+      console.log('📝 No session recovery found after check, setting default couples therapist');
       setSelectedAssistant(COUPLE_THERAPY_ASSISTANT_CONFIG);
       setSessionType('couple');
+      // Show the therapist selector since no active session was found
+      setShowTypeSelector(true);
     }
-  }, [isCheckingForSession, hasActiveSession, selectedAssistant, sessionType]);
-  // Default to show the selector - user must explicitly choose session type
-  const [showTypeSelector, setShowTypeSelector] = useState(true);
+  }, [initialCheckComplete, hasActiveSession, selectedAssistant, sessionType]);
+  
+  // CRITICAL FIX: Only show therapist selector AFTER checking for active sessions
+  // This prevents the modal from appearing before session recovery
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
   // Countdown overlay state
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
@@ -292,7 +307,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Function to open therapist selection modal
   const openTherapistSelector = () => {
-    setShowTypeSelector(true);
+    // Only allow opening if initial check is complete
+    if (initialCheckComplete) {
+      setShowTypeSelector(true);
+    } else {
+      console.log('⏳ Cannot open therapist selector - still checking for active sessions');
+    }
   };
 
   // Handle continuing an active session
@@ -571,10 +591,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         )
     ),
 
-    // Therapy Type Selector Popup - removed onClose functionality
+    // Therapy Type Selector Popup - only show after initial check
+    // This ensures session recovery modal appears first if needed
     React.createElement(TherapyTypeSelector, {
       key: "therapy-selector",
-      isOpen: showTypeSelector,
+      isOpen: showTypeSelector && initialCheckComplete && !hasActiveSession,
       onClose: () => {
         /* No-op: User must select a therapist */
       },
@@ -826,7 +847,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                           },
                           [
                             // Navigation buttons at the top with enhanced styling
-                            !isSessionActive
+                            !isSessionActive && initialCheckComplete
                               ? React.createElement(
                                   "div",
                                   {
@@ -1173,8 +1194,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         ),
                                       ]
                                     ),
-                                    // Switch therapist button - only visible when session is not active
-                                    !isSessionActive &&
+                                    // Switch therapist button - only visible when session is not active and initial check is complete
+                                    !isSessionActive && initialCheckComplete &&
                                       React.createElement(
                                         motion.button,
                                         {
@@ -1418,7 +1439,44 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                               },
                               [
                                 // Session info - Enhanced styling
-                                (isSessionActive || hasActiveSession)
+                                !initialCheckComplete
+                                  ? React.createElement(
+                                      "div",
+                                      {
+                                        key: "checking-sessions",
+                                        className:
+                                          "space-y-3 mb-2 mt-4 sm:mt-6 text-center max-w-xl mx-auto p-3 sm:p-5 rounded-xl backdrop-blur-sm bg-gradient-to-b from-white/70 to-white/50 shadow-lg border border-white/60",
+                                      },
+                                      [
+                                        React.createElement(
+                                          "div",
+                                          {
+                                            key: "checking-content",
+                                            className: "flex flex-col items-center space-y-4 py-8"
+                                          },
+                                          [
+                                            React.createElement(
+                                              motion.div,
+                                              {
+                                                key: "spinner",
+                                                className: "w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full",
+                                                animate: { rotate: 360 },
+                                                transition: { duration: 1, repeat: Infinity, ease: "linear" }
+                                              }
+                                            ),
+                                            React.createElement(
+                                              "p",
+                                              {
+                                                key: "checking-text",
+                                                className: "text-base text-black/80 font-medium"
+                                              },
+                                              "Checking for active sessions..."
+                                            )
+                                          ]
+                                        )
+                                      ]
+                                    )
+                                  : (isSessionActive || hasActiveSession)
                                   ? React.createElement(
                                       "div",
                                       {
@@ -1563,8 +1621,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   ]
                                 ),
                                 
-                                // Always render the therapy button
-                                React.createElement(
+                                // Show therapy button only after initial check
+                                initialCheckComplete && React.createElement(
                                   "div",
                                   {
                                     key: "button-wrapper-persistent",

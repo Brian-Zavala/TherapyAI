@@ -115,11 +115,6 @@ export default function SessionTimer({
               Session Restored
             </div>
           )}
-          {showDualTiming && vapiCallTime > 0 && !isExpired && (
-            <div className="text-xs text-gray-500 mt-1">
-              Call: {Math.floor(vapiCallTime / 60)}:{(vapiCallTime % 60).toString().padStart(2, '0')}
-            </div>
-          )}
         </div>
       </div>
     </motion.div>

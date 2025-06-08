@@ -796,22 +796,33 @@ function TherapyButton({
         }
         
         if (sessionId) {
-          // Broadcast session end to dashboard
-          await broadcastSessionStatus(sessionId, 'completed', {
-            endTime: new Date().toISOString(),
-            duration: vapiDurationSeconds || 0,
-            reason: reason !== 'No reason provided' ? reason : 'normal'
-          });
-          
-          // Cleanup metrics calculator
-          if (metricsCalculator) {
-            metricsCalculator.cleanupSession();
-            setMetricsCalculator(null);
-            setCurrentMetrics(null);
+          // CRITICAL: Only broadcast completion if session is NOT paused
+          if (!isSessionPaused) {
+            // Broadcast session end to dashboard
+            await broadcastSessionStatus(sessionId, 'completed', {
+              endTime: new Date().toISOString(),
+              duration: vapiDurationSeconds || 0,
+              reason: reason !== 'No reason provided' ? reason : 'normal'
+            });
+            
+            // Cleanup metrics calculator
+            if (metricsCalculator) {
+              metricsCalculator.cleanupSession();
+              setMetricsCalculator(null);
+              setCurrentMetrics(null);
+            }
+            
+            // Directly use the current ref value to avoid circular dependencies
+            handleCallEndRef.current();
+          } else {
+            console.log('📞 CALL END: Session is paused, not ending session');
+            
+            // Broadcast pause status instead
+            await broadcastSessionStatus(sessionId, 'paused', {
+              pausedAt: new Date().toISOString(),
+              conversationTimeSeconds: conversationTimeSeconds + vapiDurationSeconds
+            });
           }
-          
-          // Directly use the current ref value to avoid circular dependencies
-          handleCallEndRef.current();
         }
       })
       
@@ -891,8 +902,13 @@ function TherapyButton({
         }
         
         if (sessionId) {
-          // Directly use the current ref value to avoid circular dependencies
-          handleCallEndRef.current();
+          // Check if session is paused before ending
+          if (!isSessionPaused) {
+            // Directly use the current ref value to avoid circular dependencies
+            handleCallEndRef.current();
+          } else {
+            console.log('📞 ERROR: Session is paused, not ending session');
+          }
         }
       })
       
@@ -2439,6 +2455,12 @@ function TherapyButton({
             console.log(`⏸️ Restored total paused time: ${pauseData.totalPausedTimeSeconds} seconds`);
           }
           
+          // CRITICAL: Restore conversation time to maintain billing accuracy
+          if (typeof pauseData.conversationTimeSeconds === 'number') {
+            setConversationTimeSeconds(pauseData.conversationTimeSeconds);
+            console.log(`📊 PAUSE RECOVERY: Restored conversation time: ${pauseData.conversationTimeSeconds}s (${Math.floor(pauseData.conversationTimeSeconds / 60)}:${(pauseData.conversationTimeSeconds % 60).toString().padStart(2, '0')})`);
+          }
+          
           // Clear the pause state from storage since we're handling it
           sessionStorage.removeItem(pauseStateKey);
           
@@ -3029,7 +3051,10 @@ function TherapyButton({
       } catch (err) {
         console.warn('Error stopping Vapi call:', err)
       }
-      vapiInstanceRef.current = null
+      // Only null the instance if session is truly ending (not paused)
+      if (!isSessionPaused) {
+        vapiInstanceRef.current = null
+      }
     }
     
     // Explicitly clean up resources
@@ -3433,27 +3458,35 @@ function TherapyButton({
       // 9. FINALIZE SESSION
       console.log('STEP 9: Finalizing session');
       
-      // Calculate actual duration based on start and end time
+      // Calculate actual duration based on CONVERSATION TIME (not wall clock time)
       let sessionDuration = 1; // default 1 minute minimum
       try {
-        const endTime = new Date();
-        let startTimeStr = sessionStorage.getItem('session-start-time');
-        
-        // Try session-specific start time as fallback
-        if (!startTimeStr && currentSessionId) {
-          startTimeStr = sessionStorage.getItem(`session-${currentSessionId}-start-time`);
-          if (startTimeStr) {
-            console.log('Using session-specific start time as fallback');
+        // CRITICAL: Use conversation time for accurate billing
+        if (conversationTimeSeconds > 0) {
+          // Round up to nearest minute for billing (minimum 1 minute)
+          sessionDuration = Math.max(1, Math.ceil(conversationTimeSeconds / 60));
+          console.log(`Session duration from CONVERSATION TIME: ${sessionDuration} minutes (${conversationTimeSeconds} seconds of actual conversation)`);
+          console.log(`IMPORTANT: This duration (${sessionDuration} min) is based on ACTUAL CONVERSATION TIME for accurate billing.`);
+        } else {
+          // Fallback to wall clock time if no conversation time tracked
+          const endTime = new Date();
+          let startTimeStr = sessionStorage.getItem('session-start-time');
+          
+          // Try session-specific start time as fallback
+          if (!startTimeStr && currentSessionId) {
+            startTimeStr = sessionStorage.getItem(`session-${currentSessionId}-start-time`);
+            if (startTimeStr) {
+              console.log('Using session-specific start time as fallback');
+            }
           }
-        }
-        
-        if (startTimeStr) {
-          const startTime = new Date(startTimeStr);
-          // Calculate duration in minutes and round to nearest minute
-          const durationMs = endTime.getTime() - startTime.getTime();
-          sessionDuration = Math.max(1, Math.round(durationMs / (1000 * 60)));
-          console.log(`Session duration calculated: ${sessionDuration} minutes (${Math.round(durationMs/1000)} seconds)`);
-          console.log(`IMPORTANT: This duration (${sessionDuration} min) will be sent to the API for updating the session record.`);
+          
+          if (startTimeStr) {
+            const startTime = new Date(startTimeStr);
+            // Calculate duration in minutes and round to nearest minute
+            const durationMs = endTime.getTime() - startTime.getTime();
+            sessionDuration = Math.max(1, Math.round(durationMs / (1000 * 60)));
+            console.log(`Session duration from WALL CLOCK: ${sessionDuration} minutes (${Math.round(durationMs/1000)} seconds)`);
+            console.log(`WARNING: Using wall clock time instead of conversation time - may not reflect actual usage.`);
         } else {
           // If no start time in sessionStorage, try to use session creation time
           console.warn('No session-start-time found in sessionStorage, using fallback calculation');
@@ -3472,6 +3505,7 @@ function TherapyButton({
           sessionDuration = Math.max(1, Math.max(estimatedMinutes, minTimeByExchanges));
           console.log(`Estimated session duration: ${sessionDuration} minutes (${entryCount} entries, ${totalWords} words)`);
         }
+      }
       } catch (timeError) {
         console.error('Error calculating duration:', timeError);
         // Final fallback to a reasonable estimate based on transcript length
@@ -3550,7 +3584,7 @@ function TherapyButton({
       // Clear transcript chunks to free memory
       setTranscriptChunks([]);
     }
-  }, [sessionId, transcriptChunks, setSessionActive, cleanupMetricsCalculator])
+  }, [sessionId, transcriptChunks, setSessionActive, cleanupMetricsCalculator]);
   
   // Toggle mute function
   const toggleMute = useCallback(() => {
@@ -3604,6 +3638,12 @@ function TherapyButton({
             setIsSessionPaused(true);
             setPauseStartTime(new Date(pauseInfo.pausedAt));
             setTotalPausedTimeSeconds(pauseInfo.totalPausedTimeSeconds || 0);
+            
+            // CRITICAL: Restore conversation time to maintain billing accuracy
+            if (typeof pauseInfo.conversationTimeSeconds === 'number') {
+              setConversationTimeSeconds(pauseInfo.conversationTimeSeconds);
+              console.log(`📊 CONTINUE PAUSED: Restored conversation time: ${pauseInfo.conversationTimeSeconds}s (${Math.floor(pauseInfo.conversationTimeSeconds / 60)}:${(pauseInfo.conversationTimeSeconds % 60).toString().padStart(2, '0')})`);
+            }
           }
         } catch (error) {
           console.warn('Error parsing pause state during continuation:', error);
@@ -3650,8 +3690,18 @@ function TherapyButton({
   const pauseResumeSession = useCallback(async () => {
     if (!sessionId || !vapiInstanceRef.current) {
       console.warn('Cannot pause: No active session or VAPI instance');
+      setErrorMessage('Unable to pause/resume: No active session');
       return;
     }
+    
+    // Check if session has already ended
+    if (!isCallActive && !isSessionPaused) {
+      console.warn('Cannot pause/resume: Session has already ended');
+      setErrorMessage('Session has already ended');
+      return;
+    }
+    
+    let resumeTimeout: NodeJS.Timeout | undefined;
     
     try {
       if (isSessionPaused) {
@@ -3660,6 +3710,23 @@ function TherapyButton({
         
         // Set resuming state to prevent race condition
         setIsResuming(true);
+        
+        // CRITICAL: Ensure we have the vapiInstanceRef
+        if (!vapiInstanceRef.current) {
+          console.log('📱 RESUME: Creating new VAPI instance as none exists');
+          const Vapi = (await import('@vapi-ai/web')).default;
+          vapiInstanceRef.current = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY!);
+          setupVapiEventHandlers(); // Re-attach event handlers
+        }
+        
+        // Set a timeout to clear resuming state if VAPI doesn't start
+        resumeTimeout = setTimeout(() => {
+          if (isResuming) {
+            console.warn('Resume timeout: VAPI did not start within 10 seconds');
+            setIsResuming(false);
+            setErrorMessage('Session resume timeout. Please try again.');
+          }
+        }, 10000);
         
         // Calculate total paused time
         if (pauseStartTime) {
@@ -3676,27 +3743,95 @@ function TherapyButton({
           sessionId: sessionId
         }));
         
-        // Resume VAPI call - restart if needed with proper assistant configuration
-        let assistantId;
-        if (therapyType === 'couple') {
-          assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
-        } else if (therapyType === 'solo') {
-          assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
-        } else if (therapyType === 'family') {
-          assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
-        } else if (assistantConfig && assistantConfig.id) {
-          assistantId = assistantConfig.id;
-        } else {
-          assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+        // Retrieve saved conversation context
+        const pauseState = sessionStorage.getItem(`session-${sessionId}-pause-state`);
+        let savedTranscriptChunks: string[] = [];
+        if (pauseState) {
+          const pauseData = JSON.parse(pauseState);
+          savedTranscriptChunks = pauseData.transcriptChunks || [];
+          
+          // Restore transcript chunks for visual continuity
+          if (savedTranscriptChunks.length > 0) {
+            setTranscriptChunks(savedTranscriptChunks);
+            console.log(`📚 RESUME: Restored ${savedTranscriptChunks.length} transcript chunks`);
+          }
         }
         
-        console.log(`🔄 RESUMING with assistantId: ${assistantId} (therapyType: ${therapyType})`);
-        await vapiInstanceRef.current.start(assistantId);
+        // Get personalized assistant configuration with conversation context
+        try {
+          const effectiveTherapyType = therapyType || 'solo';
+          
+          // Create conversation summary for context
+          const conversationSummary = savedTranscriptChunks.slice(-10).join('\n'); // Last 10 exchanges
+          
+          // Use POST to avoid URL length limits with conversation history
+          const assistantResponse = await fetch(
+            `/api/vapi/assistant?personalized=true&therapyType=${effectiveTherapyType}&duration=${selectedSessionDuration}&resuming=true&sessionId=${sessionId}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                conversationHistory: conversationSummary,
+                transcriptChunks: savedTranscriptChunks
+              })
+            }
+          );
+          
+          if (!assistantResponse.ok) {
+            throw new Error('Failed to get personalized assistant configuration');
+          }
+          
+          const personalizedConfig = await assistantResponse.json();
+          console.log('📋 RESUME: Got personalized assistant config with conversation context');
+          
+          // Start VAPI with the personalized configuration
+          try {
+            await vapiInstanceRef.current.start(personalizedConfig.id);
+            console.log(`🔄 RESUMED with personalized assistant: ${personalizedConfig.id}`);
+          } catch (vapiError) {
+            console.error('Error starting VAPI with personalized config:', vapiError);
+            throw new Error('Failed to start voice session');
+          }
+          
+        } catch (error) {
+          console.error('Error getting personalized config, falling back to default:', error);
+          
+          // Fallback to default assistant ID
+          let assistantId;
+          if (therapyType === 'couple') {
+            assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
+          } else if (therapyType === 'solo') {
+            assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
+          } else if (therapyType === 'family') {
+            assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
+          } else {
+            assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+          }
+          
+          try {
+            await vapiInstanceRef.current.start(assistantId);
+            console.log(`🔄 RESUMED with fallback assistant: ${assistantId}`);
+          } catch (vapiError) {
+            console.error('Error starting VAPI with fallback assistant:', vapiError);
+            setErrorMessage('Failed to resume voice session. Please try again.');
+            throw vapiError;
+          }
+        }
         
         // Update state - but wait for call-start event to clear isResuming
         setIsSessionPaused(false);
         setPauseStartTime(null);
         setConversationStartTime(new Date()); // Start new conversation segment (accumulated time preserved)
+        
+        // CRITICAL: Restore transcript chunks for UI continuity
+        if (savedTranscriptChunks.length > 0) {
+          setTranscriptChunks(savedTranscriptChunks);
+        }
+        
+        // Clear the resume timeout on success
+        clearTimeout(resumeTimeout);
         
         const totalSessionSeconds = selectedSessionDuration * 60;
         const remainingSeconds = Math.max(0, totalSessionSeconds - conversationTimeSeconds);
@@ -3713,16 +3848,26 @@ function TherapyButton({
         setIsSessionPaused(true);
         setPauseStartTime(new Date());
         
-        // Stop VAPI call to save costs
-        vapiInstanceRef.current.stop();
-        
-        // Save pause state to sessionStorage for recovery
+        // Save pause state to sessionStorage BEFORE stopping VAPI for recovery
         sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
           pausedAt: new Date().toISOString(),
           conversationTimeSeconds: conversationTimeSeconds, // Will be updated by VAPI call-end event
           totalPausedTimeSeconds: totalPausedTimeSeconds,
-          sessionId: sessionId
+          sessionId: sessionId,
+          transcriptChunks: transcriptChunks, // Save conversation history
+          therapyType: therapyType,
+          selectedSessionDuration: selectedSessionDuration
         }));
+        
+        // Stop VAPI call to save costs - but DON'T null the instance
+        if (vapiInstanceRef.current) {
+          try {
+            await vapiInstanceRef.current.stop();
+          } catch (stopError) {
+            console.warn('Error stopping VAPI during pause:', stopError);
+          }
+          // IMPORTANT: Keep vapiInstanceRef.current alive for resume
+        }
         
         // Flush any pending transcripts before pausing
         try {
@@ -3738,10 +3883,36 @@ function TherapyButton({
       
     } catch (error) {
       console.error('Error during pause/resume:', error);
-      // Reset pause state on error
+      
+      // Clear resume timeout if it exists
+      if (resumeTimeout) {
+        clearTimeout(resumeTimeout);
+      }
+      
+      // Show user-friendly error message
+      if (isSessionPaused) {
+        setErrorMessage('Failed to resume session. Please refresh and try again.');
+      } else {
+        setErrorMessage('Failed to pause session. Your progress has been saved.');
+      }
+      
+      // Reset all relevant states on error
       setIsSessionPaused(false);
       setPauseStartTime(null);
-      setIsResuming(false); // Clear resuming state on error
+      setIsResuming(false);
+      
+      // If we were trying to resume, restore the paused state
+      if (isSessionPaused && sessionId) {
+        sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify({
+          pausedAt: new Date().toISOString(),
+          conversationTimeSeconds: conversationTimeSeconds,
+          totalPausedTimeSeconds: totalPausedTimeSeconds,
+          sessionId: sessionId,
+          transcriptChunks: transcriptChunks,
+          therapyType: therapyType,
+          selectedSessionDuration: selectedSessionDuration
+        }));
+      }
     }
   }, [isSessionPaused, sessionId, pauseStartTime, totalPausedTimeSeconds, conversationTimeSeconds]);
   

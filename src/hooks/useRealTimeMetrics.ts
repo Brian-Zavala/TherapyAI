@@ -89,7 +89,10 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
 
   // Connect to WebSocket
   const connect = useCallback(() => {
-    if (!session?.user?.id) {
+    // In development, allow connection without authentication
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    if (!isDevelopment && !session?.user?.id) {
       console.log('📡 METRICS: Cannot connect - no user session');
       setError('User not authenticated');
       return;
@@ -368,9 +371,12 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
     }, 500); // Small delay to ensure disconnect is complete
   }, [connect, disconnect]);
 
-  // Auto-connect on mount if enabled and user is authenticated
+  // Auto-connect on mount if enabled and user is authenticated (or in development)
   useEffect(() => {
-    if (autoConnect && session?.user?.id && !isConnected && !isConnecting) {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const canConnect = isDevelopment || session?.user?.id;
+    
+    if (autoConnect && canConnect && !isConnected && !isConnecting) {
       connect();
     }
 

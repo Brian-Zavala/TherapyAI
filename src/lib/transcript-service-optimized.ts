@@ -101,19 +101,14 @@ class BatchedTranscriptManager {
 
     try {
       // Add transcript entry to calculator
-      const metrics = calculator.addTranscriptEntry({
+      const metrics = await calculator.addTranscriptEntry({
         speaker: entry.speaker as 'user' | 'assistant',
         text: entry.text,
         timestamp: entry.timestamp || new Date().toISOString()
       });
 
-      // Check if this update should trigger a broadcast
-      if (RealTimeMetricsCalculator.shouldTriggerUpdate(metrics)) {
-        console.log(`📊 METRICS TRIGGER: Broadcasting update for session ${entry.sessionId} (confidence: ${metrics.confidence}%)`);
-        
-        // Send metrics to the HTTP endpoint which will broadcast via WebSocket
-        await this.sendMetricsToAPI(entry.sessionId, calculator.getUserId, metrics);
-      }
+      // Metrics broadcasting is now handled within the calculator itself
+      console.log(`📊 METRICS CALCULATED: Session ${entry.sessionId} - Confidence: ${metrics.confidence}%`);
     } catch (error) {
       console.error(`Error calculating metrics for session ${entry.sessionId}:`, error);
     }
