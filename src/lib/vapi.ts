@@ -24,9 +24,9 @@ export const initVapi = async (
 
     // Create Vapi instance by passing the token and API URL directly in the constructor
     // This is the recommended way according to the Vapi API docs
-    const vapiInstance = new Vapi(token, "https://api.vapi.ai");
+    const vapiInstance = new Vapi(token);
     console.log(
-      "Created Vapi instance with API URL specified in constructor: https://api.vapi.ai"
+      "Created Vapi instance with token:", token ? token.substring(0, 8) + "..." : "NO TOKEN"
     );
 
     // Double-check that window.fetch isn't modified in a way that could cause issues
@@ -741,11 +741,11 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     "transcript", // User speech transcripts
     "model-output", // AI assistant responses
     "hang", // Call end events
-    "function-call", // Function calling events
+    "function-call-result", // Function calling result events
     "tool-calls", // Tool usage
+    "tool-calls-result", // Tool usage results
     "speech-update", // Speech processing updates
     "conversation-update", // Conversation state changes
-    "assistant-request", // Assistant API calls
     "voice-input", // Voice input processing
   ],
   firstMessage:
@@ -866,19 +866,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     "transcript", // User speech transcripts
     "model-output", // AI assistant responses
     "hang", // Call end events
-    "function-call", // Function calling events
+    "function-call-result", // Function calling result events
     "tool-calls", // Tool usage
+    "tool-calls-result", // Tool usage results
     "speech-update", // Speech processing updates
     "conversation-update", // Conversation state changes
-    "assistant-request", // Assistant API calls
     "voice-input", // Voice input processing
   ],
   firstMessage:
     "Hello {{userName}}, I'm Dr. Elliot Mackaphy. Welcome to our first session together. You know, I've been thinking about this moment since we scheduled our time, and I want you to know that reaching out and being here today takes real courage. That's not something I say lightly - I truly mean it. This space is completely yours. It's a place where you can explore your thoughts and feelings without any judgment whatsoever. I'm here to listen deeply, to understand your world, and to support you as we work together toward whatever feels most important for your well-being. I'm really glad you're here. So tell me, how are you feeling right now in this moment?",
   silenceTimeoutSeconds: 120, // Extended to allow for natural therapeutic pauses
-  responseDelaySeconds: 1.0,
-  llmRequestDelaySeconds: 0.5,
-  numWordsToInterruptAssistant: 2,
+  // NOTE: Removed invalid VAPI fields:
+  // responseDelaySeconds, llmRequestDelaySeconds, numWordsToInterruptAssistant
 };
 
 // Configuration for the family therapy assistant
@@ -993,19 +992,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     "transcript", // User speech transcripts
     "model-output", // AI assistant responses
     "hang", // Call end events
-    "function-call", // Function calling events
+    "function-call-result", // Function calling result events
     "tool-calls", // Tool usage
+    "tool-calls-result", // Tool usage results
     "speech-update", // Speech processing updates
     "conversation-update", // Conversation state changes
-    "assistant-request", // Assistant API calls
     "voice-input", // Voice input processing
   ],
   firstMessage:
     "Hello everyone, I'm Dr. Jada Pearson. Welcome to our very first family session together. You know, I've been working with families for eighteen years, and I want to acknowledge something really important - choosing to come together like this as a family takes genuine courage and love. It shows how much you all care about each other and about your family. This space belongs to all of you. It's a place where every single voice matters, where every perspective is valued, and where we'll work together at whatever pace feels right for everyone. We're going to focus on understanding each other better and building even stronger connections. I'm truly honored to be part of this journey with your family. So, let me start by asking - how is everyone feeling about being here today?",
   silenceTimeoutSeconds: 120, // Extended to accommodate family processing dynamics
-  responseDelaySeconds: 0.9,
-  llmRequestDelaySeconds: 0.45,
-  numWordsToInterruptAssistant: 3,
+  // NOTE: Removed invalid VAPI fields:
+  // responseDelaySeconds, llmRequestDelaySeconds, numWordsToInterruptAssistant
 };
 
 // Helper to get the appropriate assistant config based on type
@@ -1796,8 +1794,9 @@ export const getPersonalizedAssistantConfig = (
     sessionOptions
   );
 
-  return {
-    ...baseConfig,
+  // Create the final configuration following VAPI structure exactly
+  const finalConfig = {
+    // Core required fields for VAPI
     model: {
       ...baseConfig.model,
       messages: [
@@ -1807,49 +1806,65 @@ export const getPersonalizedAssistantConfig = (
         },
       ],
     },
+    voice: baseConfig.voice,
+    transcriber: baseConfig.transcriber,
     firstMessage: getPersonalizedFirstMessageForType(therapyType, userProfile),
+    
+    // Session timing configuration - only include valid VAPI fields
+    maxDurationSeconds: sessionDurationSeconds,
+    silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 120,
+    backgroundSound: "off",
+    
+    // Client messages configuration (important for transcript capture)
+    clientMessages: baseConfig.clientMessages || [
+      "transcript",
+      "model-output", 
+      "hang",
+      "function-call-result",
+      "tool-calls",
+      "tool-calls-result",
+      "speech-update",
+      "conversation-update",
+      "voice-input"
+    ],
+    
+    // Variable values for personalization (NOTE: May not be valid for inline config)
     variableValues: variableValues,
+    
+    // Function calling for user-initiated session ending
+    functions: [
+      {
+        type: "function",
+        function: {
+          name: "end_therapy_session",
+          description: "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
+          parameters: {
+            type: "object",
+            properties: {
+              reason: {
+                type: "string",
+                description: "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
+              },
+              goodbye_message: {
+                type: "string",
+                description: "Final goodbye message to give before ending",
+              },
+            },
+            required: ["reason"],
+          },
+        },
+      },
+    ],
+    
+    // Metadata for debugging and client use
     metadata: {
       therapyType,
       hasUserProfile: !!userProfile,
       userId: userProfile?.id,
       sessionDuration: sessionDurationMinutes,
-    },
-    // Session timing configuration for VAPI
-    maxDurationSeconds: sessionDurationSeconds, // VAPI will automatically end the call after this duration
-    silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 120, // Use extended silence timeout from base config
-
-    // Enhanced settings for natural conversation
-    recordingEnabled: true,
-    hipaaEnabled: false, // Disabled HIPAA compliance
-    backgroundSound: "off", // Disable background office sounds for cleaner audio
-    // Settings that are valid for assistant configuration
-    modelOutputInMessagesEnabled: true,
-
-    // Note: clientMessages inherited from baseConfig - configured in base assistant configs
-
-    // Function calling for user-initiated session ending
-    functions: [
-      {
-        name: "end_therapy_session",
-        description:
-          "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
-        parameters: {
-          type: "object",
-          properties: {
-            reason: {
-              type: "string",
-              description:
-                "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
-            },
-            goodbye_message: {
-              type: "string",
-              description: "Final goodbye message to give before ending",
-            },
-          },
-          required: ["reason"],
-        },
-      },
-    ],
+      generatedAt: new Date().toISOString()
+    }
   };
+
+  return finalConfig;
 };

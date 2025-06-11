@@ -72,6 +72,13 @@ export function useTherapySessionRecovery() {
         const recoveryAge = Date.now() - new Date(recoveryData.recoveredAt).getTime()
         if (recoveryAge < 30000) { // 30 seconds
           console.log('🔄 Recent session recovery already pending - skipping duplicate check')
+          // Set flag that we found pending recovery
+          setRecoveryState({
+            isChecking: false,
+            hasActiveSession: true,
+            sessionData: recoveryData.sessionData,
+            shouldAutoRestart: false // Let modal handle it
+          })
           return null
         } else {
           console.log('🧹 Clearing stale session recovery data (age:', Math.round(recoveryAge/1000), 'seconds)')
@@ -82,6 +89,14 @@ export function useTherapySessionRecovery() {
         sessionStorage.removeItem('session-recovery-pending')
       }
     }
+    
+    // Set flag that we're checking to prevent modal from checking simultaneously
+    sessionStorage.setItem('recovery-check-in-progress', 'true')
+    
+    // Set a timeout to clear the flag in case something goes wrong
+    const flagTimeout = setTimeout(() => {
+      sessionStorage.removeItem('recovery-check-in-progress')
+    }, 10000) // 10 second safety timeout
 
     console.log('🔍 Checking for active therapy session...')
     setRecoveryState(prev => ({ ...prev, isChecking: true }))
@@ -158,6 +173,10 @@ export function useTherapySessionRecovery() {
             sessionStorage.setItem('session-recovery-pending', JSON.stringify(recoveryInfo))
             console.log('💾 Session recovery info stored for UI')
             
+            // Dispatch custom event to notify ActiveSessionFoundModal immediately
+            window.dispatchEvent(new Event('session-recovery-ready'))
+            console.log('📢 Dispatched session-recovery-ready event')
+            
             return activeSession
           } else {
             console.log('⚠️ Session expired - not recovering')
@@ -191,13 +210,17 @@ export function useTherapySessionRecovery() {
       console.error('❌ Error checking for active sessions:', error)
       setRecoveryState(prev => ({ ...prev, isChecking: false }))
       return null
+    } finally {
+      // Always clear the in-progress flag
+      sessionStorage.removeItem('recovery-check-in-progress')
+      clearTimeout(flagTimeout)
     }
   }, [session?.user?.id, status, hasCheckedThisSession])
 
   // Only check for sessions when component mounts on therapy page
   useEffect(() => {
     if (status === 'authenticated' && !hasCheckedThisSession) {
-      // Small delay to ensure page is fully loaded
+      // Small delay to ensure page is fully loaded AND allow ActiveSessionFoundModal to check first
       const timer = setTimeout(() => {
         checkForActiveSession()
       }, 500)

@@ -83,6 +83,7 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectDelay = useRef(1000); // Start with 1 second
+  const lastConnectionAttempt = useRef(0); // Track last connection attempt time
 
   // Session-specific metrics cache
   const sessionMetricsRef = useRef<Map<string, IncrementalMetrics>>(new Map());
@@ -98,21 +99,40 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
       return;
     }
 
+    // Check if we already have a WebSocket in any state
+    if (wsRef.current) {
+      const state = wsRef.current.readyState;
+      if (state === WebSocket.CONNECTING) {
+        console.log('📡 METRICS: Connection already in progress');
+        return;
+      }
+      if (state === WebSocket.OPEN) {
+        console.log('📡 METRICS: WebSocket already connected');
+        return;
+      }
+      // If CLOSING or CLOSED, allow new connection
+    }
+
     if (isConnecting) {
-      console.log('📡 METRICS: Connection already in progress');
+      console.log('📡 METRICS: Connection state shows already connecting');
       return;
     }
 
-    if (isConnected && wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('📡 METRICS: WebSocket already connected');
+    // Prevent rapid reconnection attempts
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastConnectionAttempt.current;
+    if (timeSinceLastAttempt < 500) {
+      console.log('📡 METRICS: Too soon since last connection attempt, skipping');
       return;
     }
+    lastConnectionAttempt.current = now;
 
     setIsConnecting(true);
     setError(null);
 
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // Updated to match server-side WebSocket path
       const wsUrl = `${protocol}//${window.location.host}/api/ws/metrics`;
       
       console.log(`📡 METRICS: Connecting to WebSocket at ${wsUrl} (attempt ${reconnectAttempts.current + 1})`);
@@ -179,7 +199,7 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
               break;
 
             case 'connection_established':
-              console.log('📡 METRICS: Connection established');
+              console.log('📡 METRICS: Connection established with server');
               break;
 
             case 'subscription_confirmed':
@@ -251,7 +271,11 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
           setError(`Connection lost: ${reason}. Reconnecting... (${attemptInfo})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
-            if (reconnectAttempts.current < maxReconnectAttempts) {
+            // Check if we're still disconnected and not manually connecting
+            if (reconnectAttempts.current < maxReconnectAttempts && 
+                !isConnected && 
+                !isConnecting &&
+                (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
               connect();
             }
           }, reconnectDelay.current);
@@ -293,7 +317,11 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
     }
 
     if (wsRef.current) {
-      wsRef.current.close(1000, 'Client disconnect');
+      // Only close if the WebSocket is connected
+      if (wsRef.current.readyState === WebSocket.OPEN || 
+          wsRef.current.readyState === WebSocket.CONNECTING) {
+        wsRef.current.close(1000, 'Client disconnect');
+      }
       wsRef.current = null;
     }
 
@@ -375,15 +403,25 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
   useEffect(() => {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const canConnect = isDevelopment || session?.user?.id;
+    let mounted = true;
     
-    if (autoConnect && canConnect && !isConnected && !isConnecting) {
-      connect();
-    }
+    // Delay connection slightly to avoid React StrictMode double-mount issues
+    const connectTimer = setTimeout(() => {
+      if (mounted && autoConnect && canConnect && !isConnected && !isConnecting && !wsRef.current) {
+        connect();
+      }
+    }, 100);
 
+    // Cleanup only on unmount or dependency changes
     return () => {
-      disconnect();
+      mounted = false;
+      clearTimeout(connectTimer);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     };
-  }, [session?.user?.id, autoConnect]); // Only depend on essential values
+  }, [session?.user?.id, autoConnect]); // Remove connect from deps to avoid loops
 
   // Subscribe to sessionId changes
   useEffect(() => {
@@ -392,12 +430,13 @@ export function useRealTimeMetrics(options: UseRealTimeMetricsOptions = {}): Use
     }
   }, [sessionId, isConnected, subscribedSessionId, subscribeToSession]);
 
-  // Cleanup on unmount
+  // Cleanup WebSocket on unmount
   useEffect(() => {
     return () => {
+      // Disconnect only on component unmount
       disconnect();
     };
-  }, []);
+  }, [disconnect]);
 
   return {
     // Connection state

@@ -71,19 +71,25 @@ app.prepare().then(() => {
     try {
       const { pathname } = parse(request.url);
       
+      // Handle Next.js HMR WebSocket in development
+      if (dev && pathname === '/_next/webpack-hmr') {
+        // Let Next.js handle its own WebSocket
+        return;
+      }
+      
       // Handle metrics WebSocket upgrade
       if (pathname === '/api/ws/metrics') {
         try {
           // Import the WebSocket handler - using JavaScript wrapper for compatibility
           console.log('🔍 Importing WebSocket handler (JavaScript version)...');
-          const { getMetricsWebSocketServer } = require('./websocket-server.js');
+          const { getMetricsWebSocketServer, handleUpgrade } = require('./websocket-server.js');
           
-          if (!getMetricsWebSocketServer) {
-            throw new Error('WebSocket server function not found in imported module');
+          if (!handleUpgrade) {
+            throw new Error('WebSocket handleUpgrade function not found in imported module');
           }
           
-          const wsServer = getMetricsWebSocketServer();
-          wsServer.handleUpgrade(request, socket, head);
+          // Use the handleUpgrade function directly
+          handleUpgrade(request, socket, head);
           console.log('📡 WebSocket upgrade handled for metrics endpoint');
         } catch (importError) {
           console.error('💥 Failed to import WebSocket handler:', importError);

@@ -322,21 +322,123 @@ export async function GET(req: NextRequest) {
         }
         
 
-        // Return the personalized config without creating an actual assistant
-        return NextResponse.json({
-          id: assistantId,
-          ...personalizedConfig,
-          personalized: true,
-          userProfile: userProfile,
-          // Include important metadata for the client
-          metadata: {
-            ...personalizedConfig.metadata,
-            assistantVersion: '2.0',
-            enhancedPersonalization: true,
-            onboardingData: userProfile.onboardingCompleted,
-            sessionCount: userProfile.sessionsCompleted
+        // Check if we should use inline configuration
+        const useInlineConfig = process.env.NEXT_PUBLIC_USE_INLINE_ASSISTANT === 'true'
+        
+        if (useInlineConfig) {
+          // Return the personalized config as inline configuration (no assistant ID)
+          console.log(`🎭 Returning inline assistant configuration for ${therapyType} therapy`)
+          
+          // Clean the config for VAPI - only include valid CreateAssistantDto fields
+          // First, handle function calling by moving functions to model.tools
+          const modelWithTools = personalizedConfig.functions && personalizedConfig.functions.length > 0 
+            ? {
+                ...personalizedConfig.model,
+                tools: personalizedConfig.functions
+              }
+            : personalizedConfig.model;
+            
+          // Ensure model has required provider field for VAPI schema compliance
+          if (modelWithTools && !modelWithTools.provider) {
+            // Detect provider from model name
+            if (modelWithTools.model && modelWithTools.model.startsWith('claude-')) {
+              modelWithTools.provider = 'anthropic';
+            } else if (modelWithTools.model && (modelWithTools.model.startsWith('gpt-') || modelWithTools.model.startsWith('o1-'))) {
+              modelWithTools.provider = 'openai';
+            }
           }
-        });
+          
+          // Ensure voice has required provider field
+          if (personalizedConfig.voice && !personalizedConfig.voice.provider) {
+            // Detect voice provider from voiceId or other properties
+            if (personalizedConfig.voice.voiceId) {
+              personalizedConfig.voice.provider = '11labs'; // Default to 11labs if not specified
+            }
+          }
+          
+          // Ensure transcriber has required provider field  
+          if (personalizedConfig.transcriber && !personalizedConfig.transcriber.provider) {
+            personalizedConfig.transcriber.provider = 'deepgram'; // Default to deepgram if not specified
+          }
+            
+          const cleanConfig = {
+            // Core VAPI configuration - these are the only valid fields per VAPI schema
+            model: modelWithTools,
+            voice: personalizedConfig.voice,
+            transcriber: personalizedConfig.transcriber,
+            firstMessage: personalizedConfig.firstMessage,
+            
+            // Valid VAPI session settings only
+            maxDurationSeconds: personalizedConfig.maxDurationSeconds,
+            silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
+            backgroundSound: personalizedConfig.backgroundSound || "off",
+            modelOutputInMessagesEnabled: personalizedConfig.modelOutputInMessagesEnabled || false,
+            
+            // Client messages configuration  
+            clientMessages: Array.isArray(personalizedConfig.clientMessages) 
+              ? personalizedConfig.clientMessages 
+              : ["transcript", "model-output", "hang", "function-call-result", "tool-calls", "tool-calls-result", "speech-update", "conversation-update"]
+            
+            // Removed all non-VAPI fields that were causing 400 errors:
+            // - variableValues (not in VAPI schema)
+            // - metadata (not in VAPI schema)  
+            // - recordingEnabled (not in VAPI schema)
+            // - hipaaEnabled (not in VAPI schema)
+            // - responseDelaySeconds (not in VAPI schema)
+            // - llmRequestDelaySeconds (not in VAPI schema)  
+            // - numWordsToInterruptAssistant (not in VAPI schema)
+            // - functions (moved to model.tools instead)
+            // - backgroundDenoisingEnabled (not in VAPI schema)
+          };
+          
+          // Debug logging for VAPI configuration validation
+          console.log('🔍 VAPI Configuration Debug:', {
+            modelProvider: cleanConfig.model?.provider,
+            modelName: cleanConfig.model?.model,
+            voiceProvider: cleanConfig.voice?.provider,
+            voiceId: cleanConfig.voice?.voiceId,
+            transcriberProvider: cleanConfig.transcriber?.provider,
+            hasFirstMessage: !!cleanConfig.firstMessage,
+            maxDuration: cleanConfig.maxDurationSeconds,
+            toolsCount: cleanConfig.model?.tools?.length || 0,
+            clientMessagesCount: cleanConfig.clientMessages?.length || 0
+          });
+          
+          // Validate configuration before sending to client
+          const { validateVapiInlineConfig, logVapiValidationResult } = await import('@/lib/vapi-config-validator');
+          const validationResult = validateVapiInlineConfig(cleanConfig);
+          logVapiValidationResult(validationResult);
+          
+          if (!validationResult.isValid) {
+            console.error('❌ VAPI configuration validation failed, returning error');
+            return NextResponse.json(
+              { 
+                error: 'Invalid VAPI configuration', 
+                validationErrors: validationResult.errors 
+              }, 
+              { status: 400 }
+            );
+          }
+          
+          return NextResponse.json(cleanConfig);
+        } else {
+          // Return the personalized config with assistant ID
+          return NextResponse.json({
+            id: assistantId,
+            ...personalizedConfig,
+            personalized: true,
+            userProfile: userProfile,
+            // Include important metadata for the client
+            metadata: {
+              ...personalizedConfig.metadata,
+              assistantVersion: '2.0',
+              enhancedPersonalization: true,
+              onboardingData: userProfile.onboardingCompleted,
+              sessionCount: userProfile.sessionsCompleted,
+              configType: 'assistant-id'
+            }
+          });
+        }
       }
     }
 

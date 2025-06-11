@@ -112,3 +112,8 @@ ehthumbs.db
 test-email.js
 test-support-email.js
 CLAUDE.md
+
+# VAPI SDK directories
+/server-sdk-typescript-main/
+/client-sdk-web-main/
+/example-client-javascript-react-master/

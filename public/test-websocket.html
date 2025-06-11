@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test Client</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        #log {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #0f0;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #0a0;
+        }
+        button:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #0f0;
+        }
+        .connected { border-color: #0f0; color: #0f0; }
+        .disconnected { border-color: #f00; color: #f00; }
+        .connecting { border-color: #ff0; color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Test Client</h1>
+    
+    <div id="status" class="status disconnected">
+        Status: <span id="statusText">Disconnected</span>
+    </div>
+    
+    <div>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        <button id="sendPingBtn" onclick="sendPing()" disabled>Send Ping</button>
+        <button id="sendMetricsBtn" onclick="sendMetrics()" disabled>Send Metrics</button>
+        <button id="clearLogBtn" onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <h3>Connection Log:</h3>
+    <div id="log"></div>
+    
+    <script>
+        let ws = null;
+        let reconnectTimeout = null;
+        let pingInterval = null;
+        const log = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        
+        function updateStatus(status, className) {
+            statusText.textContent = status;
+            statusEl.className = 'status ' + className;
+        }
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            log.textContent += `${timestamp} ${prefix} ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addLog('Already connected', 'error');
+                return;
+            }
+            
+            addLog('Attempting to connect...');
+            updateStatus('Connecting...', 'connecting');
+            
+            // Add query parameters for testing
+            const userId = 'test-user-' + Math.random().toString(36).substr(2, 9);
+            const sessionId = 'test-session-' + Date.now();
+            // Use the correct path that matches the server
+            const wsUrl = `ws://localhost:3000/api/ws/metrics?userId=${userId}&sessionId=${sessionId}`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    addLog('WebSocket connected!', 'success');
+                    updateStatus('Connected', 'connected');
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('sendPingBtn').disabled = false;
+                    document.getElementById('sendMetricsBtn').disabled = false;
+                    
+                    // Start client-side ping
+                    startPing();
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        addLog(`Received: ${JSON.stringify(data, null, 2)}`, 'success');
+                    } catch (e) {
+                        addLog(`Received (raw): ${event.data}`);
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    addLog(`WebSocket error: ${error.type}`, 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+                ws.onclose = (event) => {
+                    addLog(`WebSocket closed - Code: ${event.code}, Reason: ${event.reason || 'No reason'}`, 'error');
+                    updateStatus(`Disconnected (Code: ${event.code})`, 'disconnected');
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('sendPingBtn').disabled = true;
+                    document.getElementById('sendMetricsBtn').disabled = true;
+                    
+                    stopPing();
+                    
+                    // Log close code meanings
+                    const closeCodeMeanings = {
+                        1000: 'Normal closure',
+                        1001: 'Going away',
+                        1002: 'Protocol error',
+                        1003: 'Unsupported data',
+                        1005: 'No status received',
+                        1006: 'Abnormal closure',
+                        1007: 'Invalid frame payload data',
+                        1008: 'Policy violation',
+                        1009: 'Message too big',
+                        1010: 'Mandatory extension',
+                        1011: 'Internal server error',
+                        1015: 'TLS handshake'
+                    };
+                    
+                    if (closeCodeMeanings[event.code]) {
+                        addLog(`Close code meaning: ${closeCodeMeanings[event.code]}`);
+                    }
+                };
+                
+            } catch (error) {
+                addLog(`Failed to create WebSocket: ${error.message}`, 'error');
+                updateStatus('Failed to connect', 'disconnected');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                addLog('Closing connection...');
+                ws.close(1000, 'User requested disconnect');
+            }
+        }
+        
+        function sendPing() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = { type: 'ping', timestamp: Date.now() };
+                ws.send(JSON.stringify(message));
+                addLog(`Sent: ${JSON.stringify(message)}`);
+            } else {
+                addLog('Cannot send - not connected', 'error');
+            }
+        }
+        
+        function sendMetrics() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: 'metrics',
+                    data: {
+                        sessionDuration: Math.floor(Math.random() * 3600),
+                        messagesCount: Math.floor(Math.random() * 100),
+                        timestamp: Date.now()
+                    }
+                };
+                ws.send(JSON.stringify(message));
+                addLog(`Sent: ${JSON.stringify(message, null, 2)}`);
+            } else {
+                addLog('Cannot send - not connected', 'error');
+            }
+        }
+        
+        function startPing() {
+            // Send ping every 20 seconds
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendPing();
+                }
+            }, 20000);
+        }
+        
+        function stopPing() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+        }
+        
+        function clearLog() {
+            log.textContent = '';
+            addLog('Log cleared');
+        }
+        
+        // Initial log message
+        addLog('WebSocket test client ready');
+        addLog('Click "Connect" to establish WebSocket connection');
+    </script>
+</body>
+</html>

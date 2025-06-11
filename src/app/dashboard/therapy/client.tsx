@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import TherapyButton from "@/components/TherapyButton";
+import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
 // import SessionRecoveryNotification from "@/components/SessionRecoveryNotification"; // Removed - using only ActiveSessionFoundModal
 import ActiveSessionFoundModal from "@/components/ActiveSessionFoundModal";
@@ -23,20 +23,34 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Track if initial check is complete
   const [initialCheckComplete, setInitialCheckComplete] = useState(false);
   
+  // Add minimum wait time for session check to prevent UI flash
+  const [minimumWaitComplete, setMinimumWaitComplete] = useState(false);
+  
   // Clean up any stale recovery data on component mount (prevents HMR issues)
   useEffect(() => {
     const cleanupStaleRecoveryData = () => {
       try {
         // During development, Fast Refresh can leave stale data
-        // Only clean up if we're not actively in a session
+        // Only clean up if we're not actively in a session and data is old
         const hasActiveSession = document.body.classList.contains('session-active')
         if (!hasActiveSession) {
           const staleKeys = ['session-recovery-pending', 'session-continue-trigger']
           staleKeys.forEach(key => {
             const value = sessionStorage.getItem(key)
             if (value) {
-              console.log(`🧹 Cleaning up stale recovery data: ${key}`)
-              sessionStorage.removeItem(key)
+              try {
+                const data = JSON.parse(value)
+                const dataAge = Date.now() - new Date(data.recoveredAt || data.timestamp || 0).getTime()
+                // Only clean up if data is older than 60 seconds
+                if (dataAge > 60000) {
+                  console.log(`🧹 Cleaning up stale recovery data: ${key} (age: ${Math.round(dataAge/1000)}s)`)
+                  sessionStorage.removeItem(key)
+                }
+              } catch {
+                // If can't parse, it's likely corrupted, so remove it
+                console.log(`🧹 Cleaning up corrupted recovery data: ${key}`)
+                sessionStorage.removeItem(key)
+              }
             }
           })
         }
@@ -54,24 +68,74 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
 
-  // Track when initial session check is complete
+  // Track when initial session check is complete with minimum wait time
   useEffect(() => {
     if (!isCheckingForSession && !initialCheckComplete) {
       console.log('🔍 Initial session check complete');
       setInitialCheckComplete(true);
     }
   }, [isCheckingForSession, initialCheckComplete]);
-
-  // Set default assistant when no session recovery is happening AND initial check is complete
+  
+  // Ensure minimum wait time before showing UI (prevents flash)
   useEffect(() => {
-    if (initialCheckComplete && !hasActiveSession && !selectedAssistant && !sessionType) {
-      console.log('📝 No session recovery found after check, setting default couples therapist');
-      setSelectedAssistant(COUPLE_THERAPY_ASSISTANT_CONFIG);
-      setSessionType('couple');
-      // Show the therapist selector since no active session was found
-      setShowTypeSelector(true);
+    const timer = setTimeout(() => {
+      console.log('⏱️ Minimum wait time complete');
+      setMinimumWaitComplete(true);
+    }, 1500); // Wait 1.5 seconds minimum to allow recovery modal to catch up
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show therapy type selector when no active session is found - let USER choose, don't default
+  useEffect(() => {
+    // Wait for BOTH initial check AND minimum wait time to prevent UI flash
+    if (initialCheckComplete && minimumWaitComplete && !isCheckingForSession && !selectedAssistant && !sessionType) {
+      // Check if there's pending recovery data that modal should handle
+      const checkRecoveryData = () => {
+        const pendingRecovery = sessionStorage.getItem('session-recovery-pending');
+        const recoveryInProgress = sessionStorage.getItem('recovery-check-in-progress');
+        
+        if (pendingRecovery || recoveryInProgress === 'true') {
+          // Don't show type selector, let the modal handle recovery
+          return true;
+        }
+        return false;
+      };
+      
+      // Check immediately
+      if (checkRecoveryData()) {
+        return;
+      }
+      
+      // If no recovery data and no active session, wait a bit more then show selector
+      if (!hasActiveSession) {
+        // Give the modal extra time to detect recovery data (up to 2 seconds total)
+        const checkInterval = setInterval(() => {
+          if (checkRecoveryData()) {
+            clearInterval(checkInterval);
+            return;
+          }
+        }, 100);
+        
+        // After 2 seconds, if still no recovery data, show the type selector
+        const timeout = setTimeout(() => {
+          clearInterval(checkInterval);
+          const finalCheck = sessionStorage.getItem('session-recovery-pending');
+          if (!finalCheck && !hasActiveSession) {
+            console.log('📝 No active session found after extended check, showing therapy type selector for user to choose');
+            // CRITICAL: Don't set any defaults - let the user choose their therapy type
+            // The therapist will be set in handleSelectTherapyType when user makes their choice
+            setShowTypeSelector(true);
+          }
+        }, 2000);
+        
+        return () => {
+          clearInterval(checkInterval);
+          clearTimeout(timeout);
+        };
+      }
     }
-  }, [initialCheckComplete, hasActiveSession, selectedAssistant, sessionType]);
+  }, [initialCheckComplete, minimumWaitComplete, isCheckingForSession, hasActiveSession, selectedAssistant, sessionType]);
   
   // CRITICAL FIX: Only show therapist selector AFTER checking for active sessions
   // This prevents the modal from appearing before session recovery
@@ -149,6 +213,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       if (hasActiveClass) {
         setShowTypeSelector(false);
       }
+      
+      console.log(`🎨 Session active state changed: ${hasActiveClass ? 'ACTIVE (starry night)' : 'INACTIVE (gradient)'}`);
     };
 
     // Initial check
@@ -164,6 +230,14 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     });
 
     observer.observe(document.body, { attributes: true });
+    
+    // Also listen for custom event
+    const handleSessionStateChange = () => {
+      console.log('📡 Received sessionStateChanged event')
+      checkActive();
+    };
+    
+    window.addEventListener('sessionStateChanged', handleSessionStateChange);
 
     // Update time every second for digital clock
     const updateClock = () => {
@@ -222,6 +296,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     return () => {
       observer.disconnect();
       clearInterval(timer);
+      window.removeEventListener('sessionStateChanged', handleSessionStateChange);
     };
   }, []);
 
@@ -337,27 +412,47 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         throw new Error(`Session is ${currentSessionData.status}, cannot continue`)
       }
       
-          // Determine session type from assistantId first, then theme as fallback
-      let detectedType = null // Changed: Don't default to any type
+          // CRITICAL FIX: Use theme as primary source, assistant ID as secondary
+      // Theme is more reliable for session recovery since it reflects actual session content
+      let detectedType = null
+      let themeDetectedType = null
+      let assistantDetectedType = null
       
-      // First, try to determine type from assistantId (most reliable)
+      // First, try to detect from theme (most reliable for recovery)
+      if (sessionData.theme || currentSessionData.theme) {
+        const theme = sessionData.theme || currentSessionData.theme
+        console.log(`🔍 Primary: Detecting session type from theme: "${theme}"`);
+        
+        if (theme.toLowerCase().includes('individual') || theme.toLowerCase().includes('solo')) {
+          themeDetectedType = 'solo'
+          console.log(`✅ Theme indicates Solo therapy`);
+        } else if (theme.toLowerCase().includes('family')) {
+          themeDetectedType = 'family'
+          console.log(`✅ Theme indicates Family therapy`);
+        } else if (theme.toLowerCase().includes('couple')) {
+          themeDetectedType = 'couple'
+          console.log(`✅ Theme indicates Couple therapy`);
+        }
+      }
+      
+      // Secondary: Check assistant ID for validation
       if (sessionData.assistantId || currentSessionData.assistantId) {
         const assistantId = sessionData.assistantId || currentSessionData.assistantId
-        console.log(`🔍 Detecting session type from assistantId: "${assistantId}"`)
+        console.log(`🔍 Secondary: Validating with assistantId: "${assistantId}"`)
         console.log(`🔍 Available assistant IDs:`);
         console.log(`  - Individual: "${INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id}"`);
         console.log(`  - Family: "${FAMILY_THERAPY_ASSISTANT_CONFIG.id}"`);
         console.log(`  - Couple: "${COUPLE_THERAPY_ASSISTANT_CONFIG.id}"`);
         
         if (assistantId === INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id) {
-          detectedType = 'solo'
-          console.log(`✅ Matched Individual therapy assistant`);
+          assistantDetectedType = 'solo'
+          console.log(`✅ Assistant ID matches Individual therapy`);
         } else if (assistantId === FAMILY_THERAPY_ASSISTANT_CONFIG.id) {
-          detectedType = 'family'
-          console.log(`✅ Matched Family therapy assistant`);
+          assistantDetectedType = 'family'
+          console.log(`✅ Assistant ID matches Family therapy`);
         } else if (assistantId === COUPLE_THERAPY_ASSISTANT_CONFIG.id) {
-          detectedType = 'couple'
-          console.log(`✅ Matched Couple therapy assistant`);
+          assistantDetectedType = 'couple'
+          console.log(`✅ Assistant ID matches Couple therapy`);
         } else {
           console.log(`⚠️ AssistantId "${assistantId}" did not match any known assistant configs`);
         }
@@ -365,21 +460,22 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         console.log(`⚠️ No assistantId found in session data`);
       }
       
-      // Fallback to theme detection if assistantId didn't match
-      if (!detectedType && (sessionData.theme || currentSessionData.theme)) {
-        const theme = sessionData.theme || currentSessionData.theme
-        console.log(`🔍 Fallback: Detecting session type from theme: "${theme}"`);
-        
-        if (theme.toLowerCase().includes('individual') || theme.toLowerCase().includes('solo')) {
-          detectedType = 'solo'
-          console.log(`✅ Detected Solo therapy from theme`);
-        } else if (theme.toLowerCase().includes('family')) {
-          detectedType = 'family'
-          console.log(`✅ Detected Family therapy from theme`);
-        } else if (theme.toLowerCase().includes('couple')) {
-          detectedType = 'couple'
-          console.log(`✅ Detected Couple therapy from theme`);
+      // Decision logic: Theme takes priority, but validate against assistant ID
+      if (themeDetectedType && assistantDetectedType) {
+        if (themeDetectedType === assistantDetectedType) {
+          detectedType = themeDetectedType
+          console.log(`✅ Theme and Assistant ID agree: ${detectedType}`)
+        } else {
+          // MISMATCH: Theme wins for session recovery
+          detectedType = themeDetectedType
+          console.log(`⚠️ MISMATCH: Theme says "${themeDetectedType}", Assistant ID says "${assistantDetectedType}". Using theme for recovery.`)
         }
+      } else if (themeDetectedType) {
+        detectedType = themeDetectedType
+        console.log(`✅ Using theme detection: ${detectedType}`)
+      } else if (assistantDetectedType) {
+        detectedType = assistantDetectedType
+        console.log(`✅ Using assistant ID detection: ${detectedType}`)
       }
       
       // Final fallback if no type detected
@@ -428,7 +524,29 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       }, 100)
       
       console.log(`✅ Session recovery setup complete - ${detectedType} therapy with ${assistant.name}`)
-      console.log('👉 User should now see active session interface')
+      
+      // CRITICAL FIX: Signal to TherapyButtonRefactored to auto-start the session
+      console.log('🚀 Triggering auto-start for recovered session...')
+      
+      // Set a flag to indicate auto-start should happen
+      sessionStorage.setItem('session-auto-start', JSON.stringify({
+        sessionId: sessionData.id,
+        sessionData: currentSessionData,
+        detectedType,
+        timestamp: Date.now()
+      }))
+      
+      // Trigger a custom event that TherapyButtonRefactored can listen for
+      window.dispatchEvent(new CustomEvent('sessionRecoveryComplete', {
+        detail: {
+          sessionId: sessionData.id,
+          sessionData: currentSessionData,
+          detectedType,
+          assistant
+        }
+      }))
+      
+      console.log('👉 Session recovery complete - VAPI session should start automatically')
       
     } catch (error) {
       console.error('❌ Error continuing active session:', error)
@@ -445,6 +563,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       sessionStorage.removeItem('session-recovery-pending')
       sessionStorage.removeItem('session-continue-trigger')
       sessionStorage.removeItem('current-session-id')
+      sessionStorage.removeItem('session-auto-start')
       
       // Notify user
       alert(`Failed to continue session: ${errorMessage}\n\nYou'll need to start a new session. Any previous session has been safely ended.`)
@@ -595,7 +714,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // This ensures session recovery modal appears first if needed
     React.createElement(TherapyTypeSelector, {
       key: "therapy-selector",
-      isOpen: showTypeSelector && initialCheckComplete && !hasActiveSession,
+      isOpen: showTypeSelector && initialCheckComplete && minimumWaitComplete && !hasActiveSession,
       onClose: () => {
         /* No-op: User must select a therapist */
       },
@@ -808,8 +927,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               ]
             ),
 
-            // Main card content - adjusted margin to move content further down
-            React.createElement(
+            // Main card content - only show when therapy type is selected or session is active
+            (sessionType || isSessionActive) ? React.createElement(
               "div",
               {
                 key: "main-card",
@@ -1252,8 +1371,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   ]
                                 )
                               : null,
-                            // Therapist info - Enhanced centered layout with reduced size and better styling
-                            React.createElement(
+                            // Only show therapist info when therapy type is selected
+                            sessionType && selectedAssistant ? React.createElement(
                               "div",
                               {
                                 key: "therapist",
@@ -1390,7 +1509,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   ]
                                 ),
                               ]
-                            ),
+                            ) : null,
 
                             // Status indicator (when active) - centered, shown prominently when active
                             isSessionActive
@@ -1439,7 +1558,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                               },
                               [
                                 // Session info - Enhanced styling
-                                !initialCheckComplete
+                                (!initialCheckComplete || !minimumWaitComplete)
                                   ? React.createElement(
                                       "div",
                                       {
@@ -1537,7 +1656,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         ),
                                       ]
                                     )
-                                  : React.createElement(
+                                  : sessionType && selectedAssistant ? React.createElement(
                                   "div",
                                   {
                                     key: "welcome-info",
@@ -1619,25 +1738,20 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       )
                                     ),
                                   ]
-                                ),
+                                ) : null,
                                 
-                                // Show therapy button only after initial check
-                                initialCheckComplete && React.createElement(
+                                // Show therapy button only after initial check AND therapist selection
+                                initialCheckComplete && selectedAssistant && React.createElement(
                                   "div",
                                   {
                                     key: "button-wrapper-persistent",
                                     className: "flex justify-center items-center w-full mt-1 mb-4 pb-8",
                                   },
-                                  selectedAssistant ? React.createElement(TherapyButton, {
+                                  React.createElement(TherapyButton, {
                                     key: "therapy-button-main", // Add stable key to prevent remounting
-                                    userId: userId,
-                                    assistantConfig: selectedAssistant,
                                     therapyType: sessionType || "couple",
-                                    shouldAutoRestart: shouldAutoRestart, // Pass session recovery state
-                                  }) : React.createElement("div", {
-                                    key: "loading-button",
-                                    className: "flex items-center justify-center p-4 rounded-lg bg-gray-300 text-gray-600"
-                                  }, "Loading therapist...")
+                                    disabled: false
+                                  })
                                 ),
                               ]
                             ),
@@ -1648,7 +1762,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   ]
                 ),
               ]
-            ),
+            ) : null,
           ]
         ),
       ]

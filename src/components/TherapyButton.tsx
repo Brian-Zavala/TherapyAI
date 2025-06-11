@@ -1609,38 +1609,45 @@ function TherapyButton({
         }
       }
       
-      // Get assistant ID - either from assistantConfig or from env vars
+      // Check if we're using inline configuration
+      const useInlineConfig = process.env.NEXT_PUBLIC_USE_INLINE_ASSISTANT === 'true';
       let assistantId;
       
-      // Log the available assistant options
-      console.log('Assistant config:', JSON.stringify({
-        id: assistantConfig?.id,
-        name: assistantConfig?.name,
-        type: assistantConfig?.type,
-        therapyType: effectiveTherapyType
-      }));
-      
-      // Check for assistantId based on therapy type
-      if (effectiveTherapyType === 'couple') {
-        assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
-        console.log('Using couple therapy assistant ID:', assistantId);
-      } else if (effectiveTherapyType === 'solo') {
-        assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
-        console.log('Using solo therapy assistant ID:', assistantId);
-      } else if (effectiveTherapyType === 'family') {
-        assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
-        console.log('Using family therapy assistant ID:', assistantId);
-      } else if (assistantConfig && assistantConfig.id) {
-        console.log('Using assistant ID from config:', assistantConfig.id);
-        assistantId = assistantConfig.id;
+      if (useInlineConfig) {
+        console.log('🎭 Using inline configuration - skipping assistant ID lookup');
+        // Skip assistant ID logic when using inline config
       } else {
-        console.log('No specific assistant ID found, using default assistant ID');
-        assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-      }
-      
-      if (!assistantId) {
-        console.error('No assistant ID available from any source');
-        throw new Error('No assistant ID available')
+        // Get assistant ID - either from assistantConfig or from env vars
+        // Log the available assistant options
+        console.log('Assistant config:', JSON.stringify({
+          id: assistantConfig?.id,
+          name: assistantConfig?.name,
+          type: assistantConfig?.type,
+          therapyType: effectiveTherapyType
+        }));
+        
+        // Check for assistantId based on therapy type
+        if (effectiveTherapyType === 'couple') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID;
+          console.log('Using couple therapy assistant ID:', assistantId);
+        } else if (effectiveTherapyType === 'solo') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID;
+          console.log('Using solo therapy assistant ID:', assistantId);
+        } else if (effectiveTherapyType === 'family') {
+          assistantId = process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID;
+          console.log('Using family therapy assistant ID:', assistantId);
+        } else if (assistantConfig && assistantConfig.id) {
+          console.log('Using assistant ID from config:', assistantConfig.id);
+          assistantId = assistantConfig.id;
+        } else {
+          console.log('No specific assistant ID found, using default assistant ID');
+          assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+        }
+        
+        if (!assistantId) {
+          console.error('No assistant ID available from any source');
+          throw new Error('No assistant ID available')
+        }
       }
       
       console.log(`Starting ${effectiveTherapyType} therapy session with assistant: ${assistantConfig?.name || 'Unknown'} (ID: ${assistantId})`);
@@ -1665,11 +1672,6 @@ function TherapyButton({
           (vapiInstanceRef.current as any)._isCallActive = true;
           (vapiInstanceRef.current as any)._currentAssistantId = assistantId;
           (vapiInstanceRef.current as any)._callStartTime = new Date();
-        }
-        
-        // Validate that assistantId exists
-        if (!assistantId) {
-          throw new Error('Assistant ID is missing or invalid');
         }
         
         // Check if vapiInstanceRef.current exists before calling start
@@ -1705,6 +1707,32 @@ function TherapyButton({
             duration: sessionDuration,
             maxDurationSeconds: personalizedConfig.maxDurationSeconds
           });
+          
+          // Check if configuration is inline (no assistant ID)
+          const useInlineConfig = process.env.NEXT_PUBLIC_USE_INLINE_ASSISTANT === 'true';
+          const isInlineConfig = personalizedConfig.inline === true || useInlineConfig;
+          
+          if (isInlineConfig) {
+            console.log('🎭 Using inline assistant configuration (role-based system)');
+            
+            // Remove the ID field to ensure inline configuration
+            const { id, ...inlineConfig } = personalizedConfig;
+            
+            try {
+              // Start VAPI with inline configuration (no assistant ID)
+              await vapiInstanceRef.current.start(inlineConfig);
+              console.log('✅ Session started with inline assistant configuration');
+              return; // Exit early on success
+            } catch (inlineError) {
+              console.error('Failed to start with inline configuration:', inlineError);
+              throw inlineError;
+            }
+          }
+          
+          // Validate that assistantId exists only when NOT using inline configuration
+          if (!assistantId) {
+            throw new Error('Assistant ID is missing or invalid for non-inline configuration');
+          }
           
           // Option 1: Try to configure assistant server-side first
           try {
@@ -3715,7 +3743,7 @@ function TherapyButton({
         if (!vapiInstanceRef.current) {
           console.log('📱 RESUME: Creating new VAPI instance as none exists');
           const Vapi = (await import('@vapi-ai/web')).default;
-          vapiInstanceRef.current = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY!);
+          vapiInstanceRef.current = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
           setupVapiEventHandlers(); // Re-attach event handlers
         }
         

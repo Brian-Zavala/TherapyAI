@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SessionTimer from './SessionTimer'
 
@@ -36,18 +36,40 @@ export default function ActiveSessionFoundModal({
   const [sessionData, setSessionData] = useState<ActiveSessionData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [currentRemainingMinutes, setCurrentRemainingMinutes] = useState<number>(0)
+  
+  // Track last recovery check state to reduce logging
+  const lastRecoveryCheckState = useRef<string | null>(null)
 
   useEffect(() => {
     let hasProcessedRecovery = false // Deduplication flag
-    let intervalId: NodeJS.Timeout | null = null
+    let checkInterval: NodeJS.Timeout | null = null
     
     const checkForPendingRecovery = () => {
       try {
         const pendingRecovery = sessionStorage.getItem('session-recovery-pending')
-        console.log('🔍 ActiveSessionFoundModal: Checking for pending recovery:', !!pendingRecovery)
+        const recoveryCheckInProgress = sessionStorage.getItem('recovery-check-in-progress')
+        
+        // Only log when there's actual recovery data or state change
+        if (pendingRecovery || recoveryCheckInProgress !== lastRecoveryCheckState.current) {
+          console.log('🔍 ActiveSessionFoundModal: Checking for pending recovery:', {
+            hasPendingRecovery: !!pendingRecovery,
+            recoveryCheckInProgress,
+            hasProcessedRecovery,
+            showModal
+          })
+          lastRecoveryCheckState.current = recoveryCheckInProgress
+        }
         
         if (pendingRecovery && !hasProcessedRecovery) {
           const data: ActiveSessionData = JSON.parse(pendingRecovery)
+          
+          // Check if recovery data is stale (older than 60 seconds)
+          const recoveryAge = Date.now() - new Date(data.recoveredAt).getTime()
+          if (recoveryAge > 60000) {
+            console.log('🧹 Recovery data is stale (age:', Math.round(recoveryAge/1000), 'seconds), clearing')
+            sessionStorage.removeItem('session-recovery-pending')
+            return
+          }
           
           // Prevent duplicate processing
           hasProcessedRecovery = true
@@ -64,8 +86,14 @@ export default function ActiveSessionFoundModal({
           // Initialize current remaining minutes
           setCurrentRemainingMinutes(data.remainingMinutes)
           
+          // Clear the check interval once we've found and processed the recovery
+          if (checkInterval) {
+            clearInterval(checkInterval)
+            checkInterval = null
+          }
+          
           // Don't clear the recovery data immediately - let the user action handle it
-          console.log('💾 Keeping session-recovery-pending until user action')
+          console.log('💾 Keeping session-recovery-pending until user action, modal should now be visible')
         }
       } catch (error) {
         console.warn('Error checking for pending session recovery:', error)
@@ -77,18 +105,39 @@ export default function ActiveSessionFoundModal({
     // Check immediately
     checkForPendingRecovery()
     
-    // Also poll every 2 seconds for the first 10 seconds to catch any timing issues
-    let pollCount = 0
-    intervalId = setInterval(() => {
-      pollCount++
-      if (pollCount <= 5 && !hasProcessedRecovery) { // Poll 5 times (10 seconds total)
-        console.log('🔄 ActiveSessionFoundModal: Polling for recovery data, attempt', pollCount)
-        checkForPendingRecovery()
-      } else if (intervalId) {
-        clearInterval(intervalId)
-        intervalId = null
+    // Set up a regular interval to check for recovery data
+    // This ensures we catch it even if there are timing issues
+    checkInterval = setInterval(() => {
+      if (!hasProcessedRecovery) {
+        // Only check if there's a reason to (recovery in progress or pending data)
+        const shouldCheck = sessionStorage.getItem('recovery-check-in-progress') === 'true' || 
+                          sessionStorage.getItem('session-recovery-pending')
+        if (shouldCheck) {
+          checkForPendingRecovery()
+        }
+      } else if (checkInterval) {
+        // Clean up interval if we've already processed
+        clearInterval(checkInterval)
+        checkInterval = null
       }
-    }, 2000)
+    }, 500) // Check every 500ms instead of 250ms
+    
+    // Clear interval after 3 seconds to prevent indefinite checking
+    const timeoutId = setTimeout(() => {
+      if (checkInterval) {
+        clearInterval(checkInterval)
+        checkInterval = null
+        console.log('⏰ ActiveSessionFoundModal: Stopped checking after 3 seconds')
+        
+        // Final cleanup of any stuck flags
+        const finalCheck = sessionStorage.getItem('session-recovery-pending')
+        const stillInProgress = sessionStorage.getItem('recovery-check-in-progress') === 'true'
+        if (!finalCheck && stillInProgress) {
+          console.log('🧹 Final cleanup: removing stuck recovery-check-in-progress flag')
+          sessionStorage.removeItem('recovery-check-in-progress')
+        }
+      }
+    }, 3000)
     
     // Listen for storage changes (works across tabs but not same-tab)
     const handleStorageChange = (e: StorageEvent) => {
@@ -98,13 +147,24 @@ export default function ActiveSessionFoundModal({
       }
     }
     
+    // Also listen for custom events dispatched within the same tab
+    const handleCustomEvent = () => {
+      if (!hasProcessedRecovery) {
+        console.log('📡 ActiveSessionFoundModal: Custom event detected')
+        checkForPendingRecovery()
+      }
+    }
+    
     window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('session-recovery-ready', handleCustomEvent)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      if (intervalId) {
-        clearInterval(intervalId)
+      window.removeEventListener('session-recovery-ready', handleCustomEvent)
+      if (checkInterval) {
+        clearInterval(checkInterval)
       }
+      clearTimeout(timeoutId)
     }
   }, [])
 
@@ -246,7 +306,20 @@ export default function ActiveSessionFoundModal({
     return `${hours}h ${mins}m`
   }
 
-  if (!sessionData) return null
+  // Debug log - only log when state actually changes
+  useEffect(() => {
+    console.log('🎨 ActiveSessionFoundModal render state:', { 
+      showModal, 
+      hasSessionData: !!sessionData,
+      isLoading,
+      sessionId: sessionData?.sessionId 
+    })
+  }, [showModal, sessionData, isLoading])
+
+  if (!sessionData) {
+    // Still return the component structure so effects can run
+    return null
+  }
 
   return (
     <AnimatePresence>
