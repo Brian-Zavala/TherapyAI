@@ -20,7 +20,7 @@ import {
   ExclamationTriangleIcon,
   DocumentChartBarIcon,
 } from "@heroicons/react/24/outline"; // Example icons
-import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
+import { useRealTimeMetrics } from "@/hooks/useDashboardMetrics";
 
 // Helper function for number formatting (optional, but nice for tooltips)
 const formatNumber = (num: number) => num.toLocaleString();

@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
+import { useRealTimeMetrics } from "@/hooks/useDashboardMetrics";
 import type { IncrementalMetrics } from "@/lib/real-time-metrics-optimized";
 
 // Define types for better clarity (optional but recommended)

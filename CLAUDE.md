@@ -55,7 +55,7 @@ DATABASE_URL=postgresql://postgres.xxx:password@aws-0-us-east-1.pooler.supabase.
 **✅ USE**: Natural speech with "..." for pauses, spell out numbers
 
 ### Environment Variables
-**Required**: `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `VAPI_API_KEY`, `JWT_TOKEN_SECRET`, `CRON_SECRET`
+**Required**: `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `VAPI_API_KEY`, `JWT_TOKEN_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## Code Standards
 
@@ -109,12 +109,14 @@ src/
 **UPDATE: The refactored code is now the primary implementation**
 
 The original TherapyButton.tsx (4,431 lines) has been successfully refactored into:
-- **8 focused hooks** in `/src/hooks/`:
+- **11 focused hooks** in `/src/hooks/`:
   - `useVapiSession` - VAPI voice AI integration
   - `useSessionManagement` - Session state orchestration
   - `useTranscriptHandler` - Real-time transcript processing
   - `useTherapySessionRecovery` - Session recovery logic
-  - `useRealTimeMetrics` - WebSocket metrics connection
+  - `useSupabaseRealTimeMetrics` - Supabase Realtime metrics (replaces WebSocket)
+  - `useSupabaseSessionState` - Session pause/resume state via Supabase
+  - `useVapiMetricsBridge` - Bridges VAPI with Supabase broadcasting
   - `useAuth` - Authentication management
   - `useButtonSound` - UI sound effects
   - `usePersistentOnboarding` - Onboarding state

@@ -115,32 +115,13 @@ class BatchedTranscriptManager {
   }
 
   /**
-   * Send metrics to API endpoint for WebSocket broadcasting
+   * @deprecated - No longer needed as metrics broadcasting is handled within RealTimeMetricsCalculator
+   * This method is kept for backward compatibility but does nothing
    */
   private async sendMetricsToAPI(sessionId: string, userId: string, metrics: IncrementalMetrics): Promise<void> {
-    try {
-      const response = await fetch('/api/ws/metrics', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'metrics_update',
-          userId,
-          sessionId,
-          metrics,
-          timestamp: new Date().toISOString()
-        }),
-      });
-
-      if (!response.ok) {
-        console.warn(`Failed to send metrics to API: ${response.status}`);
-      } else {
-        console.log(`✅ METRICS API: Successfully sent metrics for session ${sessionId}`);
-      }
-    } catch (error) {
-      console.error('Error sending metrics to API:', error);
-    }
+    // Metrics broadcasting is now handled directly by RealTimeMetricsCalculator
+    // which uses Supabase Realtime channels
+    console.log(`📊 METRICS: Broadcasting handled by RealTimeMetricsCalculator for session ${sessionId}`);
   }
 
   /**

@@ -84,6 +84,10 @@ model Session {
   conversationTimeSeconds Int              @default(0)  // Accumulated actual conversation time
   lastConversationStart   DateTime?                     // When current conversation segment started
   isPaused               Boolean           @default(false) // Whether conversation is currently paused
+  pausedAt               DateTime?                         // When session was last paused
+  resumedAt              DateTime?                         // When session was last resumed
+  totalPausedTimeSeconds Int               @default(0)     // Total accumulated pause time
+  pauseStartTime         DateTime?                         // When current pause started (for tracking)
   user                   User              @relation(fields: [userId], references: [id])
   transcriptEntries      TranscriptEntry[]
 

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Session" ADD COLUMN "pausedAt" TIMESTAMP(3),
+ADD COLUMN "resumedAt" TIMESTAMP(3),
+ADD COLUMN "totalPausedTimeSeconds" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "pauseStartTime" TIMESTAMP(3);

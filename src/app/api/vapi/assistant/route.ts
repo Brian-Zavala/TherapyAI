@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       // Handle personalized assistant configuration with conversation history
       const body = await req.json();
       const conversationHistory = body.conversationHistory || '';
-      const transcriptChunks = body.transcriptChunks || [];
+      const _transcriptChunks = body.transcriptChunks || [];
       
       // Delegate to GET handler logic but with POST body data
       searchParams.set('conversationHistory', conversationHistory);
@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
       // If creating a personalized assistant is requested
       if (searchParams.get('personalized') === 'true' && user) {
         // Import the necessary functions
-        const { getPersonalizedAssistantConfig, formatSessionHistory } = await import('@/lib/vapi');
+        const { getPersonalizedAssistantConfig } = await import('@/lib/vapi');
         
         // Skip session history fetching for speed - use basic session count instead
         let sessionHistory = "No previous sessions found.";
@@ -287,7 +287,7 @@ export async function GET(req: NextRequest) {
             
             // Extract key topics from conversation history
             const conversationLines = decodedHistory.split('\n').filter(line => line.trim());
-            const therapistLines = conversationLines.filter(line => line.startsWith('THERAPIST:'));
+            const _therapistLines = conversationLines.filter(line => line.startsWith('THERAPIST:'));
             const userLines = conversationLines.filter(line => line.startsWith('USER:'));
             
             // Create a summary of topics discussed

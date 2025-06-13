@@ -49,6 +49,11 @@ export async function POST(
       // Clean up any real-time metrics calculators
       cleanupSessionMetrics(sessionId);
       console.log('✅ PHASE 3: Session metrics cleaned up');
+      
+      // Clean up Supabase broadcast channels
+      const { cleanupBroadcastChannels } = await import('@/lib/metrics-broadcaster');
+      await cleanupBroadcastChannels(sessionId);
+      console.log('✅ PHASE 3: Broadcast channels cleaned up');
     } catch (flushError) {
       console.error('⚠️ PHASE 3: Error flushing transcripts, but continuing with completion:', flushError);
     }

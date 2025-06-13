@@ -22,7 +22,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useButtonSound } from "@/hooks/useButtonSound";
 import RelationshipAssessment from "@/components/RelationshipAssessment";
-import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics";
+import { useRealTimeMetrics } from "@/hooks/useDashboardMetrics";
 import type { IncrementalMetrics } from "@/lib/real-time-metrics-optimized";
 
 // Define types for the metrics data

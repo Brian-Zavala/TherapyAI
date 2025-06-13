@@ -1,7 +1,7 @@
 /**
- * Custom server.js for Next.js with WebSocket support
- * This allows us to attach a WebSocket server to the HTTP/HTTPS server
- * for custom transcriber functionality
+ * Custom server.js for Next.js 
+ * This handles HTTPS in development mode
+ * and initializes the custom transcriber
  */
 const { createServer: createHttpServer } = require('http');
 const { createServer: createHttpsServer } = require('https');
@@ -62,51 +62,9 @@ app.prepare().then(() => {
     server = createHttpServer(requestHandler);
   }
 
-  // Important: Store the server instance globally for WebSocket setup
+  // Important: Store the server instance globally for custom transcriber
   // This allows the API route to access the server instance
   global.__nextServerInstance = server;
-
-  // Set up WebSocket handling for metrics endpoint
-  server.on('upgrade', async (request, socket, head) => {
-    try {
-      const { pathname } = parse(request.url);
-      
-      // Handle Next.js HMR WebSocket in development
-      if (dev && pathname === '/_next/webpack-hmr') {
-        // Let Next.js handle its own WebSocket
-        return;
-      }
-      
-      // Handle metrics WebSocket upgrade
-      if (pathname === '/api/ws/metrics') {
-        try {
-          // Import the WebSocket handler - using JavaScript wrapper for compatibility
-          console.log('🔍 Importing WebSocket handler (JavaScript version)...');
-          const { getMetricsWebSocketServer, handleUpgrade } = require('./websocket-server.js');
-          
-          if (!handleUpgrade) {
-            throw new Error('WebSocket handleUpgrade function not found in imported module');
-          }
-          
-          // Use the handleUpgrade function directly
-          handleUpgrade(request, socket, head);
-          console.log('📡 WebSocket upgrade handled for metrics endpoint');
-        } catch (importError) {
-          console.error('💥 Failed to import WebSocket handler:', importError);
-          console.error('💥 Import error details:', importError.message);
-          console.error('💥 Stack trace:', importError.stack);
-          socket.write('HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nWebSocket server initialization failed');
-          socket.destroy();
-        }
-      } else {
-        // For other WebSocket routes, destroy the connection
-        socket.destroy();
-      }
-    } catch (error) {
-      console.error('Error handling WebSocket upgrade:', error);
-      socket.destroy();
-    }
-  });
 
   // Touch the custom transcriber endpoint to initialize the WebSocket server
   if (!dev) {

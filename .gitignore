@@ -109,6 +109,11 @@ Thumbs.db
 ehthumbs.db
 
 # Test files
+test-*.js
+test-*.ts
+test-*.html
+websocket-server-debug.js
+websocket-server-fixed.js
 test-email.js
 test-support-email.js
 CLAUDE.md

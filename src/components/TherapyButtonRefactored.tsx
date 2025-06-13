@@ -7,22 +7,32 @@ import { useVapiSession } from '@/hooks/useVapiSession'
 import { useSessionManagement } from '@/hooks/useSessionManagement'
 import { useTranscriptHandler } from '@/hooks/useTranscriptHandler'
 import { useButtonSound } from '@/hooks/useButtonSound'
-import { useRealTimeMetrics } from '@/hooks/useRealTimeMetrics'
+import { useSupabaseRealTimeMetrics } from '@/hooks/useSupabaseRealTimeMetrics'
+import { useSupabaseSessionState } from '@/hooks/useSupabaseSessionState'
+import { useVapiMetricsBridge } from '@/hooks/useVapiMetricsBridge'
+import { initializeSessionMetrics, cleanupSessionMetrics } from '@/lib/transcript-service-optimized'
 import SessionDurationModal from './SessionDurationModal'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
-import ActiveSessionFoundModal from './ActiveSessionFoundModal'
 import SessionTimer from './SessionTimer'
 import VoiceWaveform from './VoiceWaveform'
-import SessionNotes from './SessionNotes'
 import SessionTranscript from './SessionTranscript'
 import { 
   CallControls, 
   CallHeader, 
-  LoadingAnimation, 
   PausedOverlay,
   ErrorDisplay 
 } from './therapy'
 import type { TherapyType } from '@/types/therapy-session'
+
+// Loading messages that cycle through
+const loadingMessages = [
+  "Finding the perfect space for our conversation...",
+  "Preparing a comfortable environment...",
+  "Setting up your private therapy session...",
+  "Creating a safe space for you to share...",
+  "Getting everything ready for our talk...",
+  "Almost there... just a moment more..."
+]
 
 interface TherapyButtonRefactoredProps {
   therapyType: TherapyType
@@ -54,6 +64,10 @@ export function TherapyButtonRefactored({
     onError: (error: unknown) => {
       console.error('[TherapyButton] VAPI error:', error)
       setError(error instanceof Error ? error.message : String(error))
+    },
+    onMessage: (message) => {
+      // Forward VAPI messages to transcript handler
+      transcript.handleVapiMessage(message, vapi.vapiInstanceRef.current)
     }
   })
   
@@ -66,25 +80,59 @@ export function TherapyButtonRefactored({
     },
     onSessionRecovered: (recoveredSession: any) => {
       console.log('[TherapyButton] Session recovered:', recoveredSession)
-      setShowActiveSessionModal(true)
+      // TODO: Implement session recovery modal when ActiveSessionFoundModal is needed
     }
   })
   
   const transcript = useTranscriptHandler({
-    sessionId: session.sessionId || ''
+    sessionId: session.sessionId || '',
+    onTranscriptUpdate: (chunks) => {
+      console.log('[TherapyButton] Transcript updated:', chunks.length, 'chunks')
+    },
+    onMetricsUpdate: (metrics) => {
+      console.log('[TherapyButton] Transcript metrics:', metrics)
+    }
   })
 
-  const metrics = useRealTimeMetrics({
+  // Use Supabase realtime for metrics (as consumer to receive updates)
+  const metrics = useSupabaseRealTimeMetrics({
     sessionId: session.sessionId || '',
-    userId: user?.id || ''
+    userId: user?.id || '',
+    role: 'consumer', // Always consumer - the bridge will be the provider
+    onMetricsUpdate: (metrics) => {
+      console.log('[TherapyButton] Metrics updated:', metrics)
+    },
+    onError: (error) => {
+      console.error('[TherapyButton] Metrics error:', error)
+    }
+  })
+  
+  // Use Supabase realtime for session state management
+  const sessionState = useSupabaseSessionState({
+    sessionId: session.sessionId,
+    userId: user?.id || '',
+    onSessionUpdate: (updatedSession) => {
+      console.log('[TherapyButton] Session updated:', updatedSession)
+    }
+  })
+  
+  // Bridge VAPI session with Supabase metrics broadcasting
+  const { isBroadcasting } = useVapiMetricsBridge({
+    sessionId: session.sessionId || '',
+    userId: user?.id || '',
+    vapiState: vapi.vapiState,
+    transcriptChunks: transcript.transcriptChunks,
+    therapyType: therapyType,
+    sessionDuration: session.sessionDuration,
+    enabled: !!(session.sessionId && vapi.vapiState.isActive && !session.isPaused)
   })
   
   // Local UI state
   const [showDurationModal, setShowDurationModal] = useState(false)
   const [showFamilySelectionModal, setShowFamilySelectionModal] = useState(false)
-  const [showActiveSessionModal, setShowActiveSessionModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [messageIndex, setMessageIndex] = useState(0)
   
   // Family member management for family therapy
   const [familyMembers, setFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
@@ -97,6 +145,20 @@ export function TherapyButtonRefactored({
   const [isProcessingRecovery, setIsProcessingRecovery] = useState(false)
   const recoveryProcessedRef = useRef(new Set<string>())
   const lastRecoveryAttemptRef = useRef<number>(0)
+  
+  // Effect to cycle through loading messages
+  useEffect(() => {
+    if (!isLoading && !vapi.vapiState.isLoading) {
+      setMessageIndex(0) // Reset when not loading
+      return
+    }
+
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % loadingMessages.length)
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [isLoading, vapi.vapiState.isLoading])
   
   // Listen for session recovery auto-start events
   useEffect(() => {
@@ -134,6 +196,12 @@ export function TherapyButtonRefactored({
             conversationTimeSeconds: sessionData.conversationTimeSeconds || 0,
             pauseInfo: sessionData.pauseInfo
           })
+          
+          // Initialize metrics calculator for recovered session
+          if (user?.id) {
+            initializeSessionMetrics(sessionId, user.id, detectedType as TherapyType, sessionData.duration || 60)
+            console.log('📊 Initialized metrics calculator for recovered session:', sessionId)
+          }
         } catch (recoveryError) {
           console.error('❌ Failed to recover session state:', recoveryError)
           throw new Error(`Session recovery failed: ${recoveryError instanceof Error ? recoveryError.message : 'Unknown error'}`)
@@ -328,10 +396,12 @@ export function TherapyButtonRefactored({
       return
     }
     
-    // IMMEDIATE UI FEEDBACK - critical for user experience
-    console.log('🎨 Starting session - applying immediate UI transitions')
+    console.log('🎨 Preparing session - showing duration selection modal')
     
-    // 1. Set session-active class immediately for starry night background
+    // Apply background transition but DO NOT set loading state yet
+    // This allows the duration modal to be visible and interactive
+    
+    // 1. Set session-active class for starry night background
     document.body.classList.add('session-active')
     console.log('Added session-active class to body - background should transition to starry night')
     
@@ -347,22 +417,21 @@ export function TherapyButtonRefactored({
       window.dispatchEvent(new Event('sessionStateChanged'))
     }, 10)
     
-    // 2. Set loading state to show phone container with loading animation
-    setIsLoading(true)
-    console.log('Set isLoading = true - phone container should appear with loading')
-    
-    // 3. Set window flag to prevent cleanup
+    // 2. Set window flag to prevent cleanup
     if (typeof window !== 'undefined') {
       (window as any).__therapySessionActive = true;
       console.log('Set window.__therapySessionActive = true')
     }
     
-    // 4. Apply visual effects immediately
+    // 3. Apply visual effects
     const main = document.querySelector('main')
     if (main) {
       main.style.transition = 'all 0.3s ease-in-out'
       main.style.opacity = '0.95'
     }
+    
+    // NOTE: DO NOT set isLoading = true here!
+    // We need the duration modal to be visible and interactive
     
     // For family therapy, show family member selection first
     if (therapyType === 'family') {
@@ -376,7 +445,10 @@ export function TherapyButtonRefactored({
   const handleDurationSelect = useCallback(async (duration: number) => {
     setShowDurationModal(false)
     setError(null)
-    // Loading state is already set in handleTherapyClick, so don't duplicate
+    
+    // NOW set loading state after duration is selected
+    setIsLoading(true)
+    console.log('Duration selected, starting session creation and VAPI initialization...')
     
     try {
       // Create session with family members if selected
@@ -384,6 +456,12 @@ export function TherapyButtonRefactored({
       
       if (!newSession) {
         throw new Error('Failed to create session')
+      }
+      
+      // Initialize metrics calculator for real-time metrics
+      if (user?.id) {
+        initializeSessionMetrics(newSession, user.id, therapyType, duration)
+        console.log('📊 Initialized metrics calculator for session:', newSession)
       }
       
       // session-active class was already added in handleTherapyClick for immediate UI feedback
@@ -558,7 +636,11 @@ export function TherapyButtonRefactored({
   const handleEndSession = useCallback(async () => {
     try {
       await vapi.stopCall()
-      await session.endSession()
+      // End session through both systems for proper synchronization
+      await Promise.all([
+        session.endSession(),
+        sessionState.endSession()
+      ])
       setError(null)
       
       // CRITICAL: Reset loading state to hide phone UI
@@ -583,6 +665,12 @@ export function TherapyButtonRefactored({
       sessionStorage.removeItem('current-session-id')
       sessionStorage.removeItem('session-auto-start')
       
+      // Cleanup metrics calculator
+      if (session.sessionId) {
+        cleanupSessionMetrics(session.sessionId)
+        console.log('🧹 Cleaned up metrics calculator for session:', session.sessionId)
+      }
+      
       console.log('✅ Session ended, UI reset to inactive state')
     } catch (error) {
       console.error('[TherapyButton] Failed to end session:', error)
@@ -594,7 +682,7 @@ export function TherapyButtonRefactored({
         (window as any).__therapySessionActive = false
       }
     }
-  }, [vapi, session])
+  }, [vapi, session, sessionState])
 
   // Handle time updates from the timer
   const handleTimeUpdate = useCallback((remainingMinutes: number, remainingSeconds: number) => {
@@ -650,25 +738,6 @@ export function TherapyButtonRefactored({
     setFamilyMembers(prev => prev.filter((_, i) => i !== index))
   }, [])
 
-  // Handle session recovery
-  const handleRecoverSession = useCallback(async () => {
-    setShowActiveSessionModal(false)
-    
-    if (!session.sessionId) return
-    
-    try {
-      // Add session-active class for recovery
-      document.body.classList.add('session-active')
-      console.log('🌟 Added session-active class for manual recovery')
-      
-      await vapi.startCall(getAssistantId(therapyType))
-    } catch (error) {
-      console.error('[TherapyButton] Failed to recover session:', error)
-      setError(error instanceof Error ? error.message : 'Failed to recover session')
-      // Remove class on error
-      document.body.classList.remove('session-active')
-    }
-  }, [session.sessionId, therapyType, vapi])
   
   // Debug logging for UI state
   useEffect(() => {
@@ -677,9 +746,14 @@ export function TherapyButtonRefactored({
       vapiIsActive: vapi.vapiState.isActive,
       vapiIsLoading: vapi.vapiState.isLoading,
       vapiError: vapi.vapiState.error,
-      shouldShowSessionUI: !!(session.sessionId || vapi.vapiState.isActive)
+      shouldShowSessionUI: !!(session.sessionId || vapi.vapiState.isActive),
+      // Supabase realtime state
+      metricsConnected: metrics.isConnected,
+      sessionStateConnected: sessionState.isConnected,
+      isPaused: sessionState.isPaused,
+      isBroadcasting: isBroadcasting
     })
-  }, [session.sessionId, vapi.vapiState.isActive, vapi.vapiState.isLoading, vapi.vapiState.error])
+  }, [session.sessionId, vapi.vapiState.isActive, vapi.vapiState.isLoading, vapi.vapiState.error, metrics.isConnected, sessionState.isConnected, sessionState.isPaused, isBroadcasting])
 
   // Debug logging for SessionTimer data
   useEffect(() => {
@@ -754,7 +828,7 @@ export function TherapyButtonRefactored({
           {/* Call Header */}
           <CallHeader 
             therapistName={getTherapistName()}
-            isPaused={session.isSessionPaused}
+            isPaused={sessionState.isPaused}
             isVisible={!isLoading && !vapi.vapiState.isLoading}
           />
           
@@ -860,9 +934,18 @@ export function TherapyButtonRefactored({
                 <h3 className="text-white text-xl font-semibold mb-3 tracking-wide">
                   Preparing Your Session
                 </h3>
-                <p className="text-gray-300 text-sm font-light">
-                  Creating a safe space...
-                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={messageIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.5 }}
+                    className="text-gray-300 text-sm font-light"
+                  >
+                    {loadingMessages[messageIndex]}
+                  </motion.p>
+                </AnimatePresence>
               </motion.div>
               
               {/* Enhanced Floating Dots with Gradient */}
@@ -926,7 +1009,7 @@ export function TherapyButtonRefactored({
                 
                 {/* Voice Waveform */}
                 <div className="w-full my-2 sm:my-3 relative" style={{ minHeight: '80px' }}>
-                  <VoiceWaveform audioLevel={isMuted || session.isSessionPaused ? 0 : vapi.audioLevel} />
+                  <VoiceWaveform audioLevel={isMuted || sessionState.isPaused ? 0 : vapi.audioLevel} />
                   {isMuted && (
                     <div className="absolute inset-0 flex items-center justify-center z-20">
                       <div className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full animate-pulse shadow-md">
@@ -942,7 +1025,7 @@ export function TherapyButtonRefactored({
                     <SessionTimer
                       durationMinutes={session.sessionDuration}
                       conversationTimeSeconds={session.conversationTimeSeconds}
-                      isConversationActive={vapi.vapiState.isActive && !session.isSessionPaused}
+                      isConversationActive={vapi.vapiState.isActive && !sessionState.isPaused}
                       conversationStartTime={session.conversationStartTime || undefined}
                       className="text-white"
                       showRecoveredIndicator={session.sessionRecovered}
@@ -958,12 +1041,12 @@ export function TherapyButtonRefactored({
                 {/* Call Controls using extracted component */}
                 <CallControls
                   isMuted={isMuted}
-                  isSessionPaused={session.isSessionPaused}
-                  totalPausedTimeSeconds={session.totalPausedTimeSeconds}
+                  isSessionPaused={sessionState.isPaused}
+                  totalPausedTimeSeconds={sessionState.session?.totalPausedTimeSeconds || 0}
                   isLoading={vapi.vapiState.isLoading || isLoading}
                   onMuteToggle={toggleMute}
                   onEndCall={handleEndSession}
-                  onPauseResume={() => session.isSessionPaused ? session.resumeSession() : session.pauseSession()}
+                  onPauseResume={() => sessionState.isPaused ? sessionState.resumeSession() : sessionState.pauseSession()}
                 />
               </div>
             </>
@@ -971,15 +1054,15 @@ export function TherapyButtonRefactored({
           
           {/* Paused Overlay */}
           <PausedOverlay 
-            isPaused={session.isSessionPaused}
-            totalPausedMinutes={Math.floor(session.totalPausedTimeSeconds / 60)}
+            isPaused={sessionState.isPaused}
+            totalPausedMinutes={Math.floor((sessionState.session?.totalPausedTimeSeconds || 0) / 60)}
           />
         </motion.div>
         
         {/* Session status message */}
-        {(vapi.vapiState.isActive || session.isSessionPaused) && (
-          <p className={`mt-4 font-medium text-sm sm:text-base opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] text-center ${session.isSessionPaused ? 'text-orange-500' : 'text-green-600'}`}>
-            {session.isSessionPaused ? 'Session paused - click Resume to continue' : 'Session active - speak with our AI therapist'}
+        {(vapi.vapiState.isActive || sessionState.isPaused) && (
+          <p className={`mt-4 font-medium text-sm sm:text-base opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] text-center ${sessionState.isPaused ? 'text-orange-500' : 'text-green-600'}`}>
+            {sessionState.isPaused ? 'Session paused - click Resume to continue' : 'Session active - speak with our AI therapist'}
           </p>
         )}
         

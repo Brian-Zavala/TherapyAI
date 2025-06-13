@@ -1,49 +1,46 @@
-// src/middleware.ts
-import { NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  // Get the pathname of the request
-  const path = request.nextUrl.pathname
-  
-  // Public paths that don't require authentication
-  const isPublicPath = path === '/auth/login' || 
-                        path === '/auth/register' || 
-                        path.startsWith('/api/auth') ||
-                        path === '/' || // Make homepage public
-                        path === '/terms' || // Make terms page public
-                        path === '/privacy' // Make privacy page public
-  
-  // Check if the user is authenticated
-  const token = await getToken({ 
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET
-  })
-  
-  // Redirect unauthenticated users from protected routes to login
-  if (!isPublicPath && !token) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+export function middleware(request: NextRequest) {
+  // Skip WebSocket upgrade requests completely
+  if (request.headers.get('upgrade') === 'websocket') {
+    console.log('🔄 Middleware: Skipping WebSocket upgrade request');
+    return NextResponse.next();
   }
-  
-  // Redirect authenticated users away from auth pages
-  if (token && (path === '/auth/login' || path === '/auth/register')) {
-    return NextResponse.redirect(new URL('/intro', request.url))
+
+  // Skip WebSocket paths
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith('/api/ws/')) {
+    console.log('🔄 Middleware: Skipping WebSocket API path');
+    return NextResponse.next();
   }
-  
-  return NextResponse.next()
+
+  // Authentication check for dashboard and therapy routes
+  const token = request.cookies.get('next-auth.session-token');
+  const isAuthPage = pathname.startsWith('/auth/');
+  const isDashboard = pathname.startsWith('/dashboard');
+  const isTherapy = pathname === '/therapy';
+  const isProtectedRoute = isDashboard || isTherapy;
+
+  if (isProtectedRoute && !token) {
+    console.log('🔒 Redirecting to login - no session token');
+    return NextResponse.redirect(new URL('/auth/signin', request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/',
-    '/dashboard/:path*',
-    '/auth/:path*',
-    '/intro',
-    '/welcome',
-    '/schedule/:path*',
-    '/support/:path*',
-    '/terms',
-    '/privacy',
-  ]
-}
+    /*
+     * Match all request paths except:
+     * - api/ws (WebSocket endpoints)
+     * - _next/webpack-hmr (Next.js HMR WebSocket)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!api/ws|_next/webpack-hmr|_next/static|_next/image|favicon.ico|public).*)',
+  ],
+};
