@@ -1604,12 +1604,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                           "p-4 md:p-6 rounded-2xl mb-4 md:mb-8 shadow-inner bg-transparent",
                                       },
                                       [
-                                        // Info icon at the top with pulsing animation
+                                        // Info icon at the top with pulsing animation - hidden on mobile
                                         React.createElement(
                                           "div",
                                           {
                                             key: "info-header",
-                                            className: "flex justify-center mb-2",
+                                            className: "hidden sm:flex justify-center mb-2",
                                           },
                                           [
                                             React.createElement(
