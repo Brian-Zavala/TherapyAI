@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
 - **Framer Motion** for all animations
 - **Responsive**: Design mobile-first, scale up
 - **Components**: Use composition, avoid prop drilling
+- **React Portals**: Use for modals, tooltips, and overlays to avoid CSS stacking context issues
 
 ## Project Structure
 ```
@@ -163,6 +164,35 @@ npm run dev:https
 
 ## Common Issues & Solutions
 
+### React Portals for Modals & Overlays
+**Problem**: Modals/overlays constrained by parent CSS (transform, filter, perspective)
+**Solution**: Use React Portals to render outside DOM hierarchy
+
+```typescript
+import { createPortal } from 'react-dom';
+import { useState, useEffect } from 'react';
+
+export default function Modal({ isOpen, children }) {
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  if (!isClient) return null;
+  
+  const modalRoot = document.getElementById('modal-root');
+  if (!modalRoot) return null;
+  
+  return createPortal(
+    <>{isOpen && children}</>,
+    modalRoot
+  );
+}
+```
+
+**Required**: Add `<div id="modal-root"></div>` to root layout.tsx after main content
+
 ### Database Errors
 - `P2022: Column does not exist` → Run `npx prisma db push`
 - `P1001: Can't reach database` → Check `.env` file (not `.env.local`)
@@ -201,6 +231,7 @@ if (field.name.startsWith("familyMember") && field.name !== "familyMemberCount")
 6. **Handle errors properly** in all async operations
 7. **Mobile-first design** for all UI components
 8. **Check directory CLAUDE.md** for area-specific guidance
+9. **Use React Portals** for all modals, tooltips, dropdowns, and overlays
 
 ## Cost Optimization (Future)
 
