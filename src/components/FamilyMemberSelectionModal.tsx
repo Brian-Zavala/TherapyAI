@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, User, UserCheck, UserX, AlertCircle, CheckCircle } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import FamilyMemberCard from './FamilyMemberCard';
 import RemoveMemberConfirmationModal from './RemoveMemberConfirmationModal';
 
@@ -32,6 +33,11 @@ export default function FamilyMemberSelectionModal({
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
   const [removedMembers, setRemovedMembers] = useState<Set<number>>(new Set());
   const [memberToRemove, setMemberToRemove] = useState<{ member: FamilyMember; index: number } | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Reset all states when modal opens
   useEffect(() => {
@@ -136,26 +142,32 @@ export default function FamilyMemberSelectionModal({
     };
   }, [selectedMembers, removedMembers, availableMembers.length, eligibleMembers.length]);
 
-  return (
+  const modalContent = (
     <>
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            key="family-member-selection-modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10002] flex items-center justify-center min-h-screen p-2 py-4 sm:p-4 sm:py-8"
-            onClick={onClose}
-          >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="relative w-full max-w-xs sm:max-w-lg lg:max-w-2xl bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[95vh] sm:max-h-[90vh] lg:max-h-[85vh] overflow-y-auto border border-gray-700/50 flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+              onClick={onClose}
+            />
+            
+            {/* Modal Container - Centered */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+            >
+              <div 
+                className="relative w-full max-w-xs sm:max-w-lg lg:max-w-2xl bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl max-h-[85vh] overflow-hidden border border-gray-700/50 flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
             {/* Header */}
             <div className="relative px-3 sm:px-6 lg:px-8 py-4 sm:py-6 bg-blue-600 border-b border-gray-600/30 flex-shrink-0">
               <button
@@ -347,8 +359,9 @@ export default function FamilyMemberSelectionModal({
                 </>
               )}
             </div>
-          </motion.div>
-          </motion.div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
       
@@ -367,4 +380,17 @@ export default function FamilyMemberSelectionModal({
       </AnimatePresence>
     </>
   );
+
+  // Render portal only on client side
+  if (!isClient) {
+    return null;
+  }
+
+  const modalRoot = document.getElementById("modal-root");
+  if (!modalRoot) {
+    console.error("Modal root element not found");
+    return null;
+  }
+
+  return createPortal(modalContent, modalRoot);
 }

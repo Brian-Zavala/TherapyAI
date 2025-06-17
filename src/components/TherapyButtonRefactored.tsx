@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useVapiSession } from '@/hooks/useVapiSession'
-import { useSessionManagement } from '@/hooks/useSessionManagement'
+import { useSessionManagementV2 } from '@/hooks/useSessionManagementV2'
 import { useTranscriptHandler } from '@/hooks/useTranscriptHandler'
 import { useButtonSound } from '@/hooks/useButtonSound'
 import { useSupabaseRealTimeMetrics } from '@/hooks/useSupabaseRealTimeMetrics'
@@ -13,7 +13,7 @@ import { useVapiMetricsBridge } from '@/hooks/useVapiMetricsBridge'
 import { initializeSessionMetrics, cleanupSessionMetrics } from '@/lib/transcript-service-optimized'
 import SessionDurationModal from './SessionDurationModal'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
-import SessionTimer from './SessionTimer'
+import SessionTimerV2 from './SessionTimerV2'
 import VoiceWaveform from './VoiceWaveform'
 import SessionTranscript from './SessionTranscript'
 import { 
@@ -22,7 +22,7 @@ import {
   PausedOverlay,
   ErrorDisplay 
 } from './therapy'
-import type { TherapyType } from '@/types/therapy-session'
+import type { TherapyType, SessionRecoveryData } from '@/types/therapy-session'
 
 // Loading messages that cycle through
 const loadingMessages = [
@@ -52,8 +52,8 @@ export function TherapyButtonRefactored({
       console.log('[TherapyButton] VAPI call started - starting conversation timer')
       // Add session-active class to trigger background transition
       document.body.classList.add('session-active')
-      // Trigger conversation start timing
-      session.startConversationTimer()
+      // Trigger conversation start timing with current sessionId
+      session.startConversationTimer(session.sessionId || undefined)
     },
     onCallEnd: (reason?: string) => {
       console.log('[TherapyButton] VAPI call ended:', reason)
@@ -71,60 +71,162 @@ export function TherapyButtonRefactored({
     }
   })
   
-  const session = useSessionManagement({
+  // Memoize callbacks to prevent re-renders
+  const handleSessionCreated = useCallback((sessionId: string) => {
+    console.log('[TherapyButton] Session created:', sessionId)
+    // Handle post-session actions
+  }, [])
+  
+  const handleSessionRecovered = useCallback((recoveredSession: SessionRecoveryData) => {
+    console.log('[TherapyButton] Session recovered:', recoveredSession)
+    // TODO: Implement session recovery modal when ActiveSessionFoundModal is needed
+  }, [])
+  
+  const handleTranscriptUpdate = useCallback(() => {
+    // Transcript updates happen frequently, no need to log
+  }, [])
+
+  const session = useSessionManagementV2({
     userId: user?.id || '',
     therapyType,
-    onSessionCreated: (sessionId: string) => {
-      console.log('[TherapyButton] Session created:', sessionId)
-      // Handle post-session actions
-    },
-    onSessionRecovered: (recoveredSession: any) => {
-      console.log('[TherapyButton] Session recovered:', recoveredSession)
-      // TODO: Implement session recovery modal when ActiveSessionFoundModal is needed
+    onSessionCreated: handleSessionCreated,
+    onSessionRecovered: handleSessionRecovered,
+    onTimeWarning: (remainingMinutes) => {
+      console.log(`⚠️ Time warning: ${remainingMinutes} minutes remaining`)
+      
+      // Enhanced conversational time management system:
+      // - 10 min: AI becomes time-aware but doesn't interrupt
+      // - 5 min: AI politely interrupts, offers choice (continue vs reflect)
+      // - 1 min: AI guides based on user's 5-min choice
+      // - 30 sec: AI prepares personalized goodbye
+      // - 0 sec: AI delivers warm, contextual farewell
+      
+      // Send time warning to VAPI if connected
+      if (vapi.vapiInstanceRef.current && vapi.vapiState.isActive) {
+        try {
+          // Different messages based on remaining time and therapy type
+          let systemMessage = '';
+          
+          if (remainingMinutes === 10) {
+            if (therapyType === 'couple') {
+              systemMessage = 'The couple has 10 minutes remaining. Without interrupting their flow, start being mindful of the time. If they\'re deep in discussion, let them continue but be ready to gently check if there are other topics they want to touch on. Don\'t announce the time yet - just be aware and guide naturally.';
+            } else if (therapyType === 'family') {
+              systemMessage = 'The family has 10 minutes left. Be mindful of ensuring everyone who wants to speak has had a chance. If someone has been quiet, you might gently invite their thoughts. Don\'t announce the time - just start naturally guiding toward inclusivity.';
+            } else {
+              systemMessage = 'The user has 10 minutes remaining. Stay present with their current topic but be aware of the time. If they seem to be circling or repeating, you might gently help them focus or ask if there\'s anything else they want to explore today. Don\'t mention the time yet.';
+            }
+          } else if (remainingMinutes === 5) {
+            // Send the 5-minute warning voice message
+            let userNotification = '';
+            
+            if (therapyType === 'couple') {
+              userNotification = "I'm sorry to interrupt, but I wanted to let you both know we're getting close to the end of our session - we have about 5 minutes left. Would you like to continue with what you're discussing right now, or would it be helpful to take a moment to reflect on what we've talked about today and identify some key takeaways together?";
+            } else if (therapyType === 'family') {
+              userNotification = "Hey everyone, I'm sorry to interrupt, but I just wanted to let you all know we're getting close to the end of our session - we have about 5 minutes remaining. Would you like to keep going with our current discussion, or would it be helpful to pause and reflect on what we've accomplished as a family today?";
+            } else {
+              // For individual/solo therapy, use their name if available
+              const userName = user?.name ? user.name.split(' ')[0] : '';
+              if (userName) {
+                userNotification = `I'm sorry to interrupt you, ${userName}, but I wanted to let you know we're getting close to the end of our session - we have about 5 minutes left. Would you like to continue exploring what you're sharing right now, or would it be helpful to take these last few minutes to reflect on our conversation today and identify any insights or action steps you'd like to take with you?`;
+              } else {
+                userNotification = "I'm sorry to interrupt, but I wanted to let you know we're getting close to the end of our session - we have about 5 minutes left. Would you like to continue with what you're sharing, or would it be helpful to use these last few minutes to reflect on our conversation today and identify any key insights or next steps?";
+              }
+            }
+            
+            // Use say() to make the assistant naturally speak the time warning
+            vapi.vapiInstanceRef.current.say(userNotification, false); // false = don't end call after speaking
+            console.log('📤 Assistant will naturally announce 5-minute warning with choice');
+            console.log(`⏰ 5-minute warning triggered at conversation time: ${Math.floor(session.conversationTimeSeconds / 60)}:${(session.conversationTimeSeconds % 60).toString().padStart(2, '0')}`);
+            
+            // Then send the system message for how to handle the user's response
+            if (therapyType === 'couple') {
+              systemMessage = 'You just gave the couple a choice about how to use their remaining 5 minutes. Listen to their response. If they want to continue their current discussion, let them, but gently guide toward closure in 3-4 minutes. If they choose reflection, help them identify: 1) One key insight from today, 2) One thing they appreciated about their partner during the session, and 3) One specific action they can take together this week.';
+            } else if (therapyType === 'family') {
+              systemMessage = 'You just asked the family how they\'d like to use their remaining 5 minutes. Based on their choice: If continuing current topic, allow it but guide toward wrapping up soon. If they choose reflection, facilitate a brief family check-in where each member can share one positive thing from today\'s session and help them agree on one family goal or activity for the week.';
+            } else {
+              const userName = user?.name ? user.name.split(' ')[0] : 'the user';
+              systemMessage = `You just asked ${userName} how they'd like to use their remaining 5 minutes. Listen carefully to their choice. If they want to continue exploring their current topic, support them while gently moving toward closure. If they choose reflection, help them: 1) Identify 2-3 key insights from today, 2) Recognize any personal strengths they showed, and 3) Choose one specific, achievable action step for this week.`;
+            }
+          } else if (remainingMinutes === 1) {
+            if (therapyType === 'couple') {
+              systemMessage = 'One minute remains. If they\'re still in reflection mode, help them finalize their action step. Otherwise, gently bring the current topic to a close. Ask if there\'s anything urgent they need to share before we end. Prepare to offer a brief, warm summary of their progress and connection today.';
+            } else if (therapyType === 'family') {
+              systemMessage = 'One minute left. If doing reflection, ensure everyone has been heard. If still discussing, wrap up the current point. Check quickly if anyone has something urgent to share. Prepare to acknowledge the family\'s effort and cooperation today.';
+            } else {
+              systemMessage = 'One minute remaining. If in reflection mode, help finalize their action step. If still exploring a topic, gently close that thread. Ask if there\'s anything urgent they need to say. Prepare to offer encouragement about their self-awareness and growth.';
+            }
+          } else if (remainingMinutes === 0.5) { // 30 seconds
+            systemMessage = 'Only 30 seconds left. Whatever they chose to do with their last 5 minutes - whether continuing their topic or reflecting - acknowledge it briefly. Express genuine appreciation for their engagement today. Let them know you\'re looking forward to continuing next time. Prepare your personalized goodbye that will reference their specific work today.';
+          }
+          
+          if (systemMessage) {
+            vapi.vapiInstanceRef.current.send({
+              type: 'add-message',
+              message: {
+                role: 'system',
+                content: systemMessage,
+              },
+            });
+            console.log('📤 Sent time warning to VAPI:', {
+            remainingMinutes,
+            therapyType,
+            messagePreview: systemMessage.substring(0, 50) + '...'
+          });
+          }
+        } catch (error) {
+          console.error('Failed to send time warning to VAPI:', error);
+        }
+      }
     }
   })
   
+  const handleTranscriptMetricsUpdate = useCallback(() => {
+    // Metrics updates happen frequently, no need to log
+  }, [])
+  
+  const handleMetricsUpdate = useCallback(() => {
+    // Metrics updates happen frequently, no need to log
+  }, [])
+  
+  const handleMetricsError = useCallback((error: Error) => {
+    console.error('[TherapyButton] Metrics error:', error)
+  }, [])
+  
+  const handleSessionUpdate = useCallback(() => {
+    // Session updates happen frequently, no need to log
+  }, [])
+
   const transcript = useTranscriptHandler({
     sessionId: session.sessionId || '',
-    onTranscriptUpdate: (chunks) => {
-      console.log('[TherapyButton] Transcript updated:', chunks.length, 'chunks')
-    },
-    onMetricsUpdate: (metrics) => {
-      console.log('[TherapyButton] Transcript metrics:', metrics)
-    }
+    onTranscriptUpdate: handleTranscriptUpdate,
+    onMetricsUpdate: handleTranscriptMetricsUpdate
   })
 
   // Use Supabase realtime for metrics (as consumer to receive updates)
-  const metrics = useSupabaseRealTimeMetrics({
+  useSupabaseRealTimeMetrics({
     sessionId: session.sessionId || '',
     userId: user?.id || '',
     role: 'consumer', // Always consumer - the bridge will be the provider
-    onMetricsUpdate: (metrics) => {
-      console.log('[TherapyButton] Metrics updated:', metrics)
-    },
-    onError: (error) => {
-      console.error('[TherapyButton] Metrics error:', error)
-    }
+    onMetricsUpdate: handleMetricsUpdate,
+    onError: handleMetricsError
   })
   
   // Use Supabase realtime for session state management
   const sessionState = useSupabaseSessionState({
     sessionId: session.sessionId,
     userId: user?.id || '',
-    onSessionUpdate: (updatedSession) => {
-      console.log('[TherapyButton] Session updated:', updatedSession)
-    }
+    onSessionUpdate: handleSessionUpdate
   })
   
   // Bridge VAPI session with Supabase metrics broadcasting
-  const { isBroadcasting } = useVapiMetricsBridge({
+  useVapiMetricsBridge({
     sessionId: session.sessionId || '',
     userId: user?.id || '',
     vapiState: vapi.vapiState,
     transcriptChunks: transcript.transcriptChunks,
     therapyType: therapyType,
     sessionDuration: session.sessionDuration,
-    enabled: !!(session.sessionId && vapi.vapiState.isActive && !session.isPaused)
+    enabled: !!(session.sessionId && vapi.vapiState.isActive && !session.isSessionPaused)
   })
   
   // Local UI state
@@ -133,6 +235,8 @@ export function TherapyButtonRefactored({
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [messageIndex, setMessageIndex] = useState(0)
+  const [isRecoveredSession, setIsRecoveredSession] = useState(false)
+  const [forceHidePhoneUI, setForceHidePhoneUI] = useState(false)
   
   // Family member management for family therapy
   const [familyMembers, setFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
@@ -145,6 +249,9 @@ export function TherapyButtonRefactored({
   const [isProcessingRecovery, setIsProcessingRecovery] = useState(false)
   const recoveryProcessedRef = useRef(new Set<string>())
   const lastRecoveryAttemptRef = useRef<number>(0)
+  
+  // Timer expiry handling
+  const isHandlingExpiryRef = useRef(false)
   
   // Effect to cycle through loading messages
   useEffect(() => {
@@ -180,6 +287,10 @@ export function TherapyButtonRefactored({
       setIsProcessingRecovery(true)
       recoveryProcessedRef.current.add(sessionId)
       lastRecoveryAttemptRef.current = now
+      setIsRecoveredSession(true)
+      
+      // Reset forceHidePhoneUI when recovering a session
+      setForceHidePhoneUI(false)
       
       // Clear auto-start data immediately to prevent loops
       sessionStorage.removeItem('session-auto-start')
@@ -225,7 +336,10 @@ export function TherapyButtonRefactored({
           const personalizedConfig = await response.json()
           
           // Remove ID and any non-VAPI fields to ensure clean inline configuration
-          const { id: _id, metadata: _metadata, variableValues: _variableValues, ...inlineConfig } = personalizedConfig
+          const inlineConfig = { ...personalizedConfig }
+          delete inlineConfig.id
+          delete inlineConfig.metadata
+          delete inlineConfig.variableValues
           
           // Update first message for recovery
           inlineConfig.firstMessage = 'Welcome back! I can see we were in the middle of our session together. Let\'s continue right where we left off. How are you feeling?'
@@ -355,7 +469,7 @@ export function TherapyButtonRefactored({
       // Reset recovery state on unmount
       setIsProcessingRecovery(false)
     }
-  }, [vapi, therapyType, isProcessingRecovery])
+  }, [vapi, therapyType, user?.id])
   
   // Cleanup session-active class on unmount to prevent stuck states
   useEffect(() => {
@@ -419,7 +533,7 @@ export function TherapyButtonRefactored({
     
     // 2. Set window flag to prevent cleanup
     if (typeof window !== 'undefined') {
-      (window as any).__therapySessionActive = true;
+      (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = true;
       console.log('Set window.__therapySessionActive = true')
     }
     
@@ -445,6 +559,9 @@ export function TherapyButtonRefactored({
   const handleDurationSelect = useCallback(async (duration: number) => {
     setShowDurationModal(false)
     setError(null)
+    
+    // Reset forceHidePhoneUI when starting a new session
+    setForceHidePhoneUI(false)
     
     // NOW set loading state after duration is selected
     setIsLoading(true)
@@ -529,7 +646,9 @@ export function TherapyButtonRefactored({
         
         // The API endpoint already cleaned the config, so use it directly
         // Only remove fields we know for sure are not part of VAPI schema
-        const { id: _id, metadata: _metadata, ...inlineConfig } = personalizedConfig
+        const inlineConfig = { ...personalizedConfig }
+        delete inlineConfig.id
+        delete inlineConfig.metadata
         
         // Ensure critical fields are present
         if (!inlineConfig.model || !inlineConfig.voice || !inlineConfig.transcriber) {
@@ -599,6 +718,10 @@ export function TherapyButtonRefactored({
         
         // Start VAPI with inline configuration
         await vapi.startCall(inlineConfig)
+        
+        // Start conversation timer with the new sessionId after VAPI starts
+        console.log('📞 VAPI started, starting conversation timer with sessionId:', newSession)
+        session.startConversationTimer(newSession)
       } else {
         // Use assistant ID approach
         await vapi.startCall({
@@ -613,15 +736,20 @@ export function TherapyButtonRefactored({
             }
           }
         })
+        
+        // Start conversation timer with the new sessionId after VAPI starts
+        console.log('📞 VAPI started, starting conversation timer with sessionId:', newSession)
+        session.startConversationTimer(newSession)
       }
     } catch (error) {
       console.error('[TherapyButton] Failed to start session:', error)
       setError(error instanceof Error ? error.message : 'Failed to start session')
       
       // Reset UI state on error
+      setForceHidePhoneUI(false) // Ensure proper cleanup
       document.body.classList.remove('session-active')
       if (typeof window !== 'undefined') {
-        (window as any).__therapySessionActive = false
+        (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
       }
       const main = document.querySelector('main')
       if (main) {
@@ -630,28 +758,37 @@ export function TherapyButtonRefactored({
     } finally {
       setIsLoading(false) // Stop loading
     }
-  }, [therapyType, session, vapi, selectedFamilyMembers])
+  }, [therapyType, session, vapi, selectedFamilyMembers, user?.id])
   
   // Handle end session
   const handleEndSession = useCallback(async () => {
     try {
+      // CRITICAL: Force hide phone UI immediately to prevent any visual glitches
+      setForceHidePhoneUI(true)
+      
+      // CRITICAL: Set loading state immediately to prevent UI flicker
+      setIsLoading(true)
+      
+      // Store sessionId before it gets cleared
+      const currentSessionId = session.sessionId
+      
+      // Stop VAPI call first
       await vapi.stopCall()
+      
       // End session through both systems for proper synchronization
       await Promise.all([
         session.endSession(),
         sessionState.endSession()
       ])
-      setError(null)
       
-      // CRITICAL: Reset loading state to hide phone UI
-      setIsLoading(false)
+      setError(null)
       
       // Remove session-active class to return to inactive state
       document.body.classList.remove('session-active')
       
       // Reset window flag
       if (typeof window !== 'undefined') {
-        (window as any).__therapySessionActive = false
+        (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
       }
       
       // Reset main opacity
@@ -666,35 +803,92 @@ export function TherapyButtonRefactored({
       sessionStorage.removeItem('session-auto-start')
       
       // Cleanup metrics calculator
-      if (session.sessionId) {
-        cleanupSessionMetrics(session.sessionId)
-        console.log('🧹 Cleaned up metrics calculator for session:', session.sessionId)
+      if (currentSessionId) {
+        cleanupSessionMetrics(currentSessionId)
+        console.log('🧹 Cleaned up metrics calculator for session:', currentSessionId)
       }
       
-      console.log('✅ Session ended, UI reset to inactive state')
+      // CRITICAL: Small delay to ensure all async state updates have propagated
+      // This prevents the phone UI from briefly showing due to stale state
+      setTimeout(() => {
+        setIsLoading(false)
+        // Reset forceHidePhoneUI after session is fully ended
+        setForceHidePhoneUI(false)
+        console.log('✅ Session ended, UI reset to inactive state')
+      }, 100)
+      
     } catch (error) {
       console.error('[TherapyButton] Failed to end session:', error)
       setError(error instanceof Error ? error.message : 'Failed to end session')
       // Still reset UI on error
       setIsLoading(false)
+      setForceHidePhoneUI(false)
       document.body.classList.remove('session-active')
       if (typeof window !== 'undefined') {
-        (window as any).__therapySessionActive = false
+        (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
       }
     }
   }, [vapi, session, sessionState])
 
+  
   // Handle time updates from the timer
-  const handleTimeUpdate = useCallback((remainingMinutes: number, remainingSeconds: number) => {
-    // Log time updates for debugging
-    console.log(`⏱️ Time update: ${remainingMinutes}:${remainingSeconds.toString().padStart(2, '0')} remaining`)
-    
-    // If time is expired, end the session
-    if (remainingMinutes === 0 && remainingSeconds === 0) {
-      console.log('⏰ Session time expired, ending session...')
-      handleEndSession()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleTimeUpdate = useCallback((_remainingMinutes: number, _remainingSeconds: number) => {
+    // Time updates are for display/logging purposes only
+    // All time warnings are handled by useSessionManagementV2's onTimeWarning callback
+    // Timer expiration is handled by handleTimerExpire callback
+  }, [])
+
+  // Handle timer expiration
+  const handleTimerExpire = useCallback(() => {
+    // Prevent multiple expiry handling
+    if (isHandlingExpiryRef.current || session.isEndingSession) {
+      console.log('⚠️ Timer expiry already being handled, skipping...')
+      return
     }
-  }, [handleEndSession])
+    
+    isHandlingExpiryRef.current = true
+    console.log('⏰ Timer expired, ending session gracefully...')
+    
+    // Use VAPI say() to provide a graceful ending message
+    if (vapi.vapiInstanceRef.current && vapi.vapiState.isActive) {
+      try {
+        // Have VAPI say goodbye and end the call after speaking
+        let goodbyeMessage = '';
+        
+        if (therapyType === 'couple') {
+          goodbyeMessage = "And with that, our time together comes to an end for today. Thank you both for your openness and willingness to engage with each other. I hope you'll take some time this week to practice what we discussed - whether that's the specific action step you identified or simply being more mindful of how you communicate with each other. Remember, progress happens in small moments. Take care of each other, and I look forward to hearing how things go. Until next time, goodbye!";
+        } else if (therapyType === 'family') {
+          goodbyeMessage = "Well, that brings us to the end of our session today. I want to thank each of you for participating and for being willing to share and listen to one another. Remember the goal we set together - even small steps toward that goal count as progress. Keep supporting each other this week. Take care, everyone, and I'll see you all next time. Goodbye!";
+        } else {
+          const userName = user?.name ? user.name.split(' ')[0] : '';
+          if (userName) {
+            goodbyeMessage = `${userName}, our time is up for today. Thank you for trusting me with your thoughts and feelings. Whether you chose to continue exploring or to reflect on our session, I hope you're leaving with something meaningful. Remember the insights or action steps we identified - you have the strength to work with them this week. Be gentle with yourself, and I look forward to hearing how things unfold. Take care, and goodbye!`;
+          } else {
+            goodbyeMessage = "Our session has come to an end for today. Thank you for your openness and willingness to explore what's on your mind. I hope you're taking something valuable from our conversation - whether it's a new insight, a different perspective, or simply the experience of being heard. Remember to practice self-compassion this week. I look forward to continuing our work together. Take care, and goodbye!";
+          }
+        }
+        
+        vapi.vapiInstanceRef.current.say(goodbyeMessage, true);
+        console.log('📤 Sent graceful goodbye message to VAPI');
+        
+        // Give VAPI time to say goodbye before ending the session
+        setTimeout(() => {
+          handleEndSession();
+          isHandlingExpiryRef.current = false; // Reset after handling
+        }, 5000); // 5 seconds for goodbye message (longer messages need more time)
+      } catch (error) {
+        console.error('Failed to send goodbye message to VAPI:', error);
+        // Fall back to immediate end if VAPI fails
+        handleEndSession();
+        isHandlingExpiryRef.current = false; // Reset on error
+      }
+    } else {
+      // No active VAPI connection, end immediately
+      handleEndSession();
+      isHandlingExpiryRef.current = false; // Reset when no VAPI
+    }
+  }, [handleEndSession, vapi, therapyType, session.isEndingSession, user]) // Include user for personalized goodbye
 
   // Handle mute toggle
   const toggleMute = useCallback(() => {
@@ -725,7 +919,7 @@ export function TherapyButtonRefactored({
     setIsLoading(false)
     document.body.classList.remove('session-active')
     if (typeof window !== 'undefined') {
-      (window as any).__therapySessionActive = false
+      (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
     }
     const main = document.querySelector('main')
     if (main) {
@@ -739,34 +933,13 @@ export function TherapyButtonRefactored({
   }, [])
 
   
-  // Debug logging for UI state
+  // Debug logging for UI state (only on sessionId change)
   useEffect(() => {
-    console.log('[TherapyButton Debug] UI State:', {
-      sessionId: session.sessionId,
-      vapiIsActive: vapi.vapiState.isActive,
-      vapiIsLoading: vapi.vapiState.isLoading,
-      vapiError: vapi.vapiState.error,
-      shouldShowSessionUI: !!(session.sessionId || vapi.vapiState.isActive),
-      // Supabase realtime state
-      metricsConnected: metrics.isConnected,
-      sessionStateConnected: sessionState.isConnected,
-      isPaused: sessionState.isPaused,
-      isBroadcasting: isBroadcasting
-    })
-  }, [session.sessionId, vapi.vapiState.isActive, vapi.vapiState.isLoading, vapi.vapiState.error, metrics.isConnected, sessionState.isConnected, sessionState.isPaused, isBroadcasting])
+    if (session.sessionId) {
+      console.log('[TherapyButton Debug] Session started:', session.sessionId)
+    }
+  }, [session.sessionId])
 
-  // Debug logging for SessionTimer data
-  useEffect(() => {
-    console.log('[TherapyButton Debug] Timer Data:', {
-      sessionDuration: session.sessionDuration,
-      sessionDurationType: typeof session.sessionDuration,
-      conversationTimeSeconds: session.conversationTimeSeconds,
-      conversationTimeType: typeof session.conversationTimeSeconds,
-      conversationStartTime: session.conversationStartTime,
-      sessionRecovered: session.sessionRecovered,
-      isSessionPaused: session.isSessionPaused
-    })
-  }, [session.sessionDuration, session.conversationTimeSeconds, session.conversationStartTime, session.sessionRecovered, session.isSessionPaused])
 
   // Get therapist name based on therapy type
   const getTherapistName = () => {
@@ -781,7 +954,10 @@ export function TherapyButtonRefactored({
   // Render different states
   // Show session UI if we have a session ID OR if VAPI reports as active OR if loading
   // This ensures the phone container appears immediately when starting a session
-  if (session.sessionId || vapi.vapiState.isActive || isLoading || vapi.vapiState.isLoading) {
+  // But also ensures it hides properly when session ends
+  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading) && !session.isEndingSession && !forceHidePhoneUI
+  
+  if (showPhoneUI || isLoading) {
 
     // Active session UI with proper phone container
     return (
@@ -803,14 +979,16 @@ export function TherapyButtonRefactored({
           }}
           initial={{ 
             height: '80px',
-            opacity: 0.9,
-            scale: 0.95,
+            opacity: 0,
+            scale: 0.9,
           }}
           transition={{ 
-            duration: 0.7, 
+            duration: 0.8, 
             type: "spring",
-            damping: 20,
-            stiffness: 100
+            damping: 25,
+            stiffness: 80,
+            // Add delay for recovered sessions to ensure modal has time to close
+            delay: isRecoveredSession ? 0.5 : 0
           }}
           style={{
             height: 'auto',
@@ -994,6 +1172,7 @@ export function TherapyButtonRefactored({
                 {/* Therapist Avatar */}
                 <div className="py-4 sm:py-6 relative">
                   <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-lg mb-3 sm:mb-4 border-2 border-blue-300 mx-auto">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={`/images/${therapyType === 'solo' ? 'dr-elliot-mackaphy.jpg' : 
                                     therapyType === 'family' ? 'dr-jada-pearson.jpg' : 
@@ -1019,17 +1198,18 @@ export function TherapyButtonRefactored({
                   )}
                 </div>
                 
-                {/* Session Timer */}
+                {/* Session Timer V2 with react-timer-hook */}
                 <div className="text-center py-1 sm:py-2">
                   {session.sessionDuration ? (
-                    <SessionTimer
+                    <SessionTimerV2
                       durationMinutes={session.sessionDuration}
                       conversationTimeSeconds={session.conversationTimeSeconds}
                       isConversationActive={vapi.vapiState.isActive && !sessionState.isPaused}
-                      conversationStartTime={session.conversationStartTime || undefined}
+                      isPaused={sessionState.isPaused || session.isSessionPaused}
                       className="text-white"
                       showRecoveredIndicator={session.sessionRecovered}
                       onTimeUpdate={handleTimeUpdate}
+                      onExpire={handleTimerExpire}
                     />
                   ) : (
                     <p className="text-white font-mono text-base sm:text-lg">
@@ -1042,7 +1222,7 @@ export function TherapyButtonRefactored({
                 <CallControls
                   isMuted={isMuted}
                   isSessionPaused={sessionState.isPaused}
-                  totalPausedTimeSeconds={sessionState.session?.totalPausedTimeSeconds || 0}
+                  totalPausedTimeSeconds={session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0}
                   isLoading={vapi.vapiState.isLoading || isLoading}
                   onMuteToggle={toggleMute}
                   onEndCall={handleEndSession}
@@ -1055,7 +1235,7 @@ export function TherapyButtonRefactored({
           {/* Paused Overlay */}
           <PausedOverlay 
             isPaused={sessionState.isPaused}
-            totalPausedMinutes={Math.floor((sessionState.session?.totalPausedTimeSeconds || 0) / 60)}
+            totalPausedMinutes={Math.floor((session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0) / 60)}
           />
         </motion.div>
         
@@ -1069,14 +1249,14 @@ export function TherapyButtonRefactored({
         {/* Transcript only - NO NOTES in phone UI - Only show when session is active */}
         {!isLoading && !vapi.vapiState.isLoading && transcript.transcriptChunks.length > 0 && (
           <div className="mt-4">
-            <SessionTranscript chunks={transcript.transcriptChunks} />
+            <SessionTranscript sessionId={session.sessionId || ''} />
           </div>
         )}
         
         {/* Error Display */}
         {error && (
           <ErrorDisplay 
-            message={error}
+            error={error}
             onDismiss={() => setError(null)}
           />
         )}
@@ -1136,7 +1316,7 @@ export function TherapyButtonRefactored({
               setIsLoading(false)
               document.body.classList.remove('session-active')
               if (typeof window !== 'undefined') {
-                (window as any).__therapySessionActive = false
+                (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
               }
               const main = document.querySelector('main')
               if (main) {

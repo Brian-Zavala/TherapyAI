@@ -16,6 +16,7 @@ import {
   isFunctionCallMessage
 } from '@/types/vapi'
 import { normalizeAudioLevel } from '@/lib/therapy-session/utils'
+import { useVapiToken } from './useVapiToken'
 
 // Hook configuration interface
 interface UseVapiSessionOptions {
@@ -133,9 +134,69 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     }
   }, [analyzeAudio])
   
+  // Get VAPI token
+  const { 
+    token, 
+    isLoading: tokenLoading, 
+    error: tokenError, 
+    refreshToken,
+    isExpiringSoon 
+  } = useVapiToken({ 
+    autoRefresh: true,
+    onError: (error) => {
+      console.error('[useVapiSession] Token error:', error);
+      setVapiState(prev => ({ ...prev, error: error.message }));
+      options.onError?.(error);
+    }
+  });
+
+  // Auto-refresh token when expiring soon during active call
+  useEffect(() => {
+    if (isExpiringSoon && vapiState.isActive && !tokenLoading) {
+      console.log('[useVapiSession] Token expiring soon, refreshing...');
+      refreshToken();
+    }
+  }, [isExpiringSoon, vapiState.isActive, tokenLoading, refreshToken]);
+
+  // Listen for VAPI auth errors
+  useEffect(() => {
+    const handleAuthError = async (event: CustomEvent) => {
+      console.log('[useVapiSession] Received VAPI auth error event:', event.detail);
+      
+      // Try to refresh token
+      try {
+        await refreshToken();
+        console.log('[useVapiSession] Token refreshed after auth error');
+        
+        // If we have an active instance, recreate it with new token
+        if (vapiInstanceRef.current) {
+          const sessionId = (vapiInstanceRef.current as ExtendedVapi)?._sessionId;
+          await createVapiInstance(sessionId);
+        }
+      } catch (error) {
+        console.error('[useVapiSession] Failed to recover from auth error:', error);
+        setVapiState(prev => ({ 
+          ...prev, 
+          error: 'Authentication failed. Please try again.'
+        }));
+      }
+    };
+
+    window.addEventListener('vapi-auth-error', handleAuthError as EventListener);
+    
+    return () => {
+      window.removeEventListener('vapi-auth-error', handleAuthError as EventListener);
+    };
+  }, [refreshToken, createVapiInstance]);
+
   // Create VAPI instance
   const createVapiInstance = useCallback(async (sessionId?: string): Promise<boolean> => {
     try {
+      // Don't create instance if token is not ready
+      if (!token) {
+        throw new Error(tokenError || ERROR_MESSAGES.VAPI_KEY_MISSING);
+      }
+
       // Dispose of any existing instance
       if (vapiInstanceRef.current) {
         try {
@@ -146,16 +207,10 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         vapiInstanceRef.current = null
       }
       
-      // Get API key
-      const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY
-      if (!apiKey) {
-        throw new Error(ERROR_MESSAGES.VAPI_KEY_MISSING)
-      }
-      
       console.log('🎙️ Initializing Vapi...')
       
       // Create instance with configuration
-      const vapiInstance = await initVapi(apiKey, {
+      const vapiInstance = await initVapi(token, {
         useCustomTranscriber: VAPI_CONFIG.USE_CUSTOM_TRANSCRIBER,
         reconnectEnabled: VAPI_CONFIG.RECONNECT_ENABLED,
         iceServers: VAPI_CONFIG.ICE_SERVERS
@@ -187,7 +242,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       return false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options])
+  }, [options, token, tokenError])
   
   // Set up VAPI event handlers
   const setupEventHandlers = useCallback(() => {
@@ -338,6 +393,17 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
   
   // Start VAPI call
   const startCall = useCallback(async (assistantIdOrConfig: string | AssistantConfigType) => {
+    // Check if token is expired and refresh if needed
+    if (isExpiringSoon && !tokenLoading) {
+      console.log('[useVapiSession] Token expiring, refreshing before call...');
+      await refreshToken();
+      // Force recreate instance with new token
+      if (vapiInstanceRef.current) {
+        const sessionId = (vapiInstanceRef.current as ExtendedVapi)?._sessionId;
+        await createVapiInstance(sessionId);
+      }
+    }
+    
     // Auto-initialize VAPI instance if it doesn't exist
     if (!vapiInstanceRef.current) {
       console.log('🎙️ VAPI instance not found, creating one...')
@@ -431,7 +497,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       }))
       throw error
     }
-  }, [createVapiInstance])
+  }, [createVapiInstance, isExpiringSoon, tokenLoading, refreshToken])
   
   // Stop VAPI call
   const stopCall = useCallback(async () => {

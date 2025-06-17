@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 interface SessionTimerProps {
@@ -24,9 +24,13 @@ export default function SessionTimer({
 }: SessionTimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState(durationMinutes * 60)
   const [isExpired, setIsExpired] = useState(false)
+  
+  // Track the last conversationTimeSeconds to detect external updates
+  const lastConversationTimeRef = useRef(conversationTimeSeconds)
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    // Calculate the current remaining time
+    const calculateRemaining = () => {
       let currentConversationTime = conversationTimeSeconds
       
       // Add current active segment time if conversation is active
@@ -38,24 +42,55 @@ export default function SessionTimer({
       }
       
       const totalSeconds = durationMinutes * 60
-      const remaining = Math.max(0, totalSeconds - currentConversationTime)
-      
-      // Log timer calculation for debugging (every 10 seconds to avoid spam)
-      if (currentConversationTime % 10 === 0 || remaining <= 60) {
-        console.log(`⏱️ TIMER: ${Math.floor(currentConversationTime / 60)}:${(currentConversationTime % 60).toString().padStart(2, '0')} used, ${Math.floor(remaining / 60)}:${(remaining % 60).toString().padStart(2, '0')} remaining (${durationMinutes}min session)`);
-      }
-      
-      setRemainingSeconds(remaining)
-      
-      if (remaining === 0 && !isExpired) {
-        setIsExpired(true)
-      }
+      return Math.max(0, totalSeconds - currentConversationTime)
+    }
+    
+    // Initial calculation
+    const initialRemaining = calculateRemaining()
+    setRemainingSeconds(initialRemaining)
+    
+    // Check if conversationTimeSeconds was updated externally
+    if (conversationTimeSeconds !== lastConversationTimeRef.current) {
+      console.log(`⏱️ External conversation time update detected: ${lastConversationTimeRef.current}s → ${conversationTimeSeconds}s`)
+      lastConversationTimeRef.current = conversationTimeSeconds
+    }
 
-      // Call the callback with remaining time for VAPI integration
-      if (onTimeUpdate) {
-        const remainingMinutes = Math.floor(remaining / 60)
-        onTimeUpdate(remainingMinutes, remaining)
-      }
+    const interval = setInterval(() => {
+      // Always recalculate based on current props
+      const newRemaining = calculateRemaining()
+      
+      setRemainingSeconds(prev => {
+        // If there's a significant difference (> 2 seconds), use the recalculated value
+        if (Math.abs(newRemaining - prev) > 2) {
+          console.log(`⏱️ Timer correction: ${prev}s → ${newRemaining}s (diff: ${prev - newRemaining}s)`)
+          return newRemaining
+        }
+        
+        // Otherwise, just count down normally if active
+        if (!isConversationActive) {
+          return prev
+        }
+        
+        const countdownRemaining = Math.max(0, prev - 1)
+        
+        // Log timer calculation for debugging (only at key moments)
+        if (countdownRemaining === 300 || countdownRemaining === 60 || countdownRemaining === 30 || countdownRemaining === 10) {
+          const usedSeconds = durationMinutes * 60 - countdownRemaining
+          console.log(`⏱️ TIMER: ${Math.floor(usedSeconds / 60)}:${(usedSeconds % 60).toString().padStart(2, '0')} used, ${Math.floor(countdownRemaining / 60)}:${(countdownRemaining % 60).toString().padStart(2, '0')} remaining (${durationMinutes}min session)`);
+        }
+        
+        if (countdownRemaining === 0 && !isExpired) {
+          setIsExpired(true)
+        }
+
+        // Call the callback with remaining time for VAPI integration
+        if (onTimeUpdate) {
+          const remainingMinutes = Math.floor(countdownRemaining / 60)
+          onTimeUpdate(remainingMinutes, countdownRemaining)
+        }
+        
+        return countdownRemaining
+      })
     }, 1000)
 
     return () => clearInterval(interval)

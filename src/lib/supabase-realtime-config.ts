@@ -84,7 +84,7 @@ export const REALTIME_CONFIG = {
   heartbeatInterval: isProduction ? 30000 : 15000, // 30s prod, 15s dev
   
   // Debug logging
-  enableDebugLogging: isDevelopment,
+  enableDebugLogging: isDevelopment && process.env.NEXT_PUBLIC_DEBUG_REALTIME === 'true',
   
   // Persistence settings
   persistMetricsAfterMs: 30000, // Save to DB every 30 seconds

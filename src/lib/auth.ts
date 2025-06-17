@@ -5,10 +5,10 @@ import GoogleProvider from "next-auth/providers/google"
 import FacebookProvider from "next-auth/providers/facebook"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
-import { compare } from "bcrypt"
+import { compare } from "bcryptjs"
 
 export const authOptions: NextAuthOptions = {
-  debug: true, // Helpful for troubleshooting
+  debug: process.env.NODE_ENV === 'development', // Only enable debug in development
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
@@ -19,8 +19,6 @@ export const authOptions: NextAuthOptions = {
     signOut: "/auth/login",
     error: "/auth/login?error=true",
   },
-  // Allow signing in with different providers using the same email
-  allowDangerousEmailAccountLinking: true,
   providers: [
     // Only add OAuth providers if credentials are available
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

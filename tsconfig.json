@@ -35,7 +35,15 @@
     "src/**/*",
     "src/types/**/*.d.ts"
   ],
-  "exclude": ["node_modules", ".next", "dist", "build"],
+  "exclude": [
+    "node_modules", 
+    ".next", 
+    "dist", 
+    "build",
+    "client-sdk-web-main/**/*",
+    "server-sdk-typescript-main/**/*",
+    "example-client-javascript-react-master/**/*"
+  ],
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs",

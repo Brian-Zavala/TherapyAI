@@ -167,7 +167,10 @@ export function useTherapySessionRecovery() {
               conversationTimeSeconds: conversationTimeSeconds,
               remainingMinutes: remainingMinutes,
               autoRestarted: false, // Will be updated when session actually restarts
-              sessionData: activeSession
+              sessionData: {
+                ...activeSession,
+                conversationTimeSeconds: conversationTimeSeconds // Ensure this is included
+              }
             }
             
             sessionStorage.setItem('session-recovery-pending', JSON.stringify(recoveryInfo))

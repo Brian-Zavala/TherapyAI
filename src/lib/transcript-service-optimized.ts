@@ -172,6 +172,7 @@ class BatchedTranscriptManager {
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include', // Include cookies for authentication
             body: JSON.stringify({
               entries: chunk.map(entry => ({
                 speaker: entry.speaker,
@@ -317,7 +318,9 @@ export async function flushSessionTranscripts(sessionId: string): Promise<void> 
  */
 export async function getTranscriptEntries(sessionId: string): Promise<TranscriptEntry[]> {
   try {
-    const response = await fetch(`/api/sessions/${sessionId}/transcript`)
+    const response = await fetch(`/api/sessions/${sessionId}/transcript`, {
+      credentials: 'include', // Include cookies for authentication
+    })
 
     if (!response.ok) {
       const errorData = await response.json()
@@ -343,6 +346,7 @@ export async function deleteTranscriptEntry(sessionId: string, entryId: string):
   try {
     const response = await fetch(`/api/sessions/${sessionId}/transcript?entryId=${entryId}`, {
       method: 'DELETE',
+      credentials: 'include', // Include cookies for authentication
     })
 
     if (!response.ok) {

@@ -1,5 +1,5 @@
 // src/app/api/sessions/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
@@ -8,10 +8,11 @@ import SessionConfirmationEmail from '@/emails/SessionConfirmation';
 import { sendSessionConfirmation } from '@/lib/sms-service'; // Currently using mock implementation
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
 import { validateEmailEnvironment } from '@/lib/env-validation';
+import { rateLimitManager } from '@/lib/rate-limit-manager';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const authSession = await getServerSession(authOptions);
   
   console.log('Auth session:', JSON.stringify(authSession, null, 2));
@@ -104,7 +105,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const authSession = await getServerSession(authOptions);
   
   console.log('POST /api/sessions - Auth session:', JSON.stringify(authSession, null, 2));
@@ -112,6 +113,42 @@ export async function POST(request: Request) {
   if (!authSession?.user) {
     console.log('No authenticated user found');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // Find user first to get ID for rate limiting
+  const userEmail = authSession.user.email as string;
+  const preliminaryUser = await prisma.user.findUnique({
+    where: { email: userEmail },
+    select: { id: true }
+  });
+  
+  // Rate limiting check - using userId if available
+  const clientId = preliminaryUser?.id || userEmail;
+  const userType = (authSession.user as any)?.type || 'standard';
+  
+  const rateLimitResult = await rateLimitManager.checkLimits(
+    clientId,
+    'session-creation',
+    { 
+      endpoint: '/api/sessions',
+      userType 
+    }
+  );
+  
+  if (!rateLimitResult.allowed) {
+    const response = NextResponse.json(
+      { 
+        error: "Too many session creation attempts. Please try again later.",
+        retryAfter: rateLimitResult.nextRetryAfter 
+      },
+      { status: 429 }
+    );
+    
+    if (rateLimitResult.nextRetryAfter) {
+      response.headers.set('Retry-After', rateLimitResult.nextRetryAfter.toString());
+    }
+    
+    return response;
   }
   
   try {

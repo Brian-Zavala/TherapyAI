@@ -1,3 +1,13 @@
-// Empty module for client-side aliasing of server-only packages
-// This prevents server-only modules from being bundled on the client
-module.exports = {};
+// Empty module to replace problematic dependencies
+module.exports = {}
+module.exports.default = {}
+
+// Export as ES module as well
+export default {}
+
+// Handle various require patterns
+if (typeof global !== 'undefined') {
+  global.mockAws = {}
+  global.nock = () => ({})
+  global.AWS = {}
+}

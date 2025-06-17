@@ -62,6 +62,29 @@ export const initVapi = async (
     criticalEvents.forEach((eventType) => {
       (vapiInstance as any).on(eventType, (data: any) => {
         console.log(`🔥 VAPI [${eventType}]:`, data);
+        
+        // Handle authentication errors specifically
+        if (eventType === "error" && data) {
+          const errorMessage = data?.message || data?.error || '';
+          const isAuthError = 
+            errorMessage.toLowerCase().includes('unauthorized') ||
+            errorMessage.toLowerCase().includes('401') ||
+            errorMessage.toLowerCase().includes('token') ||
+            errorMessage.toLowerCase().includes('auth') ||
+            errorMessage.toLowerCase().includes('jwt');
+          
+          if (isAuthError) {
+            console.error('🔒 VAPI Authentication Error Detected:', errorMessage);
+            console.error('💡 Fix: Token may be expired or invalid. Try refreshing the token.');
+            
+            // Emit a custom event that the hook can listen to
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('vapi-auth-error', { 
+                detail: { error: data, timestamp: Date.now() } 
+              }));
+            }
+          }
+        }
       });
     });
 

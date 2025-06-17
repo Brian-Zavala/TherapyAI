@@ -3,15 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
-import SessionTimer from './SessionTimer'
+import SessionTimerV2 from './SessionTimerV2'
 
 interface ActiveSessionData {
   sessionId: string
   originalStart: string
   recoveredAt: string
-  conversationTimeMinutes?: number // New conversation-based timing
-  conversationTimeSeconds?: number
-  elapsedMinutes?: number // Keep for backward compatibility
+  conversationTimeSeconds: number
+  totalPausedTimeSeconds: number
   remainingMinutes: number
   autoRestarted: boolean
   sessionData: {
@@ -21,24 +20,25 @@ interface ActiveSessionData {
     status: string
     theme: string
     therapyType?: string
+    isPaused?: boolean
   }
 }
 
-interface ActiveSessionFoundModalProps {
+interface ActiveSessionFoundModalV2Props {
   onContinueSession: (sessionData: any) => void
   onStartNewSession: () => void
 }
 
-export default function ActiveSessionFoundModal({ 
+export default function ActiveSessionFoundModalV2({ 
   onContinueSession, 
   onStartNewSession 
-}: ActiveSessionFoundModalProps) {
+}: ActiveSessionFoundModalV2Props) {
   const [showModal, setShowModal] = useState(false)
   const [sessionData, setSessionData] = useState<ActiveSessionData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentRemainingMinutes, setCurrentRemainingMinutes] = useState<number>(0)
   const [isClient, setIsClient] = useState(false)
-  const [elapsedTimeSeconds, setElapsedTimeSeconds] = useState<number>(0)
+  const [liveConversationTime, setLiveConversationTime] = useState<number>(0)
+  const [liveRemainingMinutes, setLiveRemainingMinutes] = useState<number>(0)
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const fetchControllerRef = useRef<AbortController | null>(null)
   
@@ -50,7 +50,7 @@ export default function ActiveSessionFoundModal({
   }, [])
 
   useEffect(() => {
-    let hasProcessedRecovery = false // Deduplication flag
+    let hasProcessedRecovery = false
     let checkInterval: NodeJS.Timeout | null = null
     
     const checkForPendingRecovery = () => {
@@ -69,7 +69,7 @@ export default function ActiveSessionFoundModal({
           // Check if recovery data is stale (older than 60 seconds)
           const recoveryAge = Date.now() - new Date(data.recoveredAt).getTime()
           if (recoveryAge > 60000) {
-            console.log('🧹 Recovery data is stale (age:', Math.round(recoveryAge/1000), 'seconds), clearing')
+            console.log('🧹 Recovery data is stale, clearing')
             sessionStorage.removeItem('session-recovery-pending')
             return
           }
@@ -77,31 +77,26 @@ export default function ActiveSessionFoundModal({
           // Prevent duplicate processing
           hasProcessedRecovery = true
           
-          console.log('🔔 Active session found modal triggered (once):', {
+          console.log('🔔 Active session found modal triggered:', {
             sessionId: data.sessionId,
-            conversationTime: data.conversationTimeMinutes,
+            conversationTime: Math.floor(data.conversationTimeSeconds / 60),
             remaining: data.remainingMinutes,
             theme: data.sessionData?.theme
           })
           
           setSessionData(data)
           setShowModal(true)
-          // Initialize current remaining minutes and conversation time
-          setCurrentRemainingMinutes(data.remainingMinutes)
-          setElapsedTimeSeconds(data.conversationTimeSeconds || 0)
+          setLiveConversationTime(data.conversationTimeSeconds)
+          setLiveRemainingMinutes(data.remainingMinutes)
           
           // Clear the check interval once we've found and processed the recovery
           if (checkInterval) {
             clearInterval(checkInterval)
             checkInterval = null
           }
-          
-          // Don't clear the recovery data immediately - let the user action handle it
-          console.log('💾 Keeping session-recovery-pending until user action, modal should now be visible')
         }
       } catch (error) {
         console.warn('Error checking for pending session recovery:', error)
-        // Clear corrupted data
         sessionStorage.removeItem('session-recovery-pending')
       }
     }
@@ -110,34 +105,29 @@ export default function ActiveSessionFoundModal({
     checkForPendingRecovery()
     
     // Set up a regular interval to check for recovery data
-    // This ensures we catch it even if there are timing issues
     checkInterval = setInterval(() => {
       if (!hasProcessedRecovery) {
-        // Only check if there's a reason to (recovery in progress or pending data)
         const shouldCheck = sessionStorage.getItem('recovery-check-in-progress') === 'true' || 
                           sessionStorage.getItem('session-recovery-pending')
         if (shouldCheck) {
           checkForPendingRecovery()
         }
       } else if (checkInterval) {
-        // Clean up interval if we've already processed
         clearInterval(checkInterval)
         checkInterval = null
       }
-    }, 500) // Check every 500ms instead of 250ms
+    }, 500)
     
     // Clear interval after 3 seconds to prevent indefinite checking
     const timeoutId = setTimeout(() => {
       if (checkInterval) {
         clearInterval(checkInterval)
         checkInterval = null
-        console.log('⏰ ActiveSessionFoundModal: Stopped checking after 3 seconds')
         
         // Final cleanup of any stuck flags
         const finalCheck = sessionStorage.getItem('session-recovery-pending')
         const stillInProgress = sessionStorage.getItem('recovery-check-in-progress') === 'true'
         if (!finalCheck && stillInProgress) {
-          console.log('🧹 Final cleanup: removing stuck recovery-check-in-progress flag')
           sessionStorage.removeItem('recovery-check-in-progress')
         }
       }
@@ -146,7 +136,6 @@ export default function ActiveSessionFoundModal({
     // Listen for storage changes (works across tabs but not same-tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'session-recovery-pending' && e.newValue && !hasProcessedRecovery) {
-        console.log('📡 ActiveSessionFoundModal: Storage event detected')
         checkForPendingRecovery()
       }
     }
@@ -154,7 +143,6 @@ export default function ActiveSessionFoundModal({
     // Also listen for custom events dispatched within the same tab
     const handleCustomEvent = () => {
       if (!hasProcessedRecovery) {
-        console.log('📡 ActiveSessionFoundModal: Custom event detected')
         checkForPendingRecovery()
       }
     }
@@ -183,7 +171,8 @@ export default function ActiveSessionFoundModal({
       const updatedRecoveryInfo = {
         ...sessionData,
         autoRestarted: true,
-        recoveredAt: new Date().toISOString()
+        recoveredAt: new Date().toISOString(),
+        conversationTimeSeconds: liveConversationTime // Use latest time
       }
       
       // Store for the recovery notification
@@ -198,11 +187,17 @@ export default function ActiveSessionFoundModal({
       // Set trigger for TherapyButton to pick up
       sessionStorage.setItem('session-continue-trigger', JSON.stringify({
         sessionId: sessionData.sessionId,
-        sessionData: sessionData.sessionData
+        sessionData: {
+          ...sessionData.sessionData,
+          conversationTimeSeconds: liveConversationTime
+        }
       }))
       
       // Trigger continue session callback first
-      await onContinueSession(sessionData.sessionData)
+      await onContinueSession({
+        ...sessionData.sessionData,
+        conversationTimeSeconds: liveConversationTime
+      })
       
       // Success - show brief success feedback before closing
       setIsLoading(false)
@@ -258,7 +253,7 @@ export default function ActiveSessionFoundModal({
       setTimeout(() => {
         setShowModal(false)
         console.log('✅ Session continuation initiated successfully')
-      }, 1500) // Increased delay to allow smoother transition
+      }, 1500)
       
     } catch (error) {
       console.error('❌ Error continuing session:', error)
@@ -303,21 +298,21 @@ export default function ActiveSessionFoundModal({
     }
   }
 
-  const formatTime = (minutes: number) => {
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
     if (minutes < 60) return `${minutes}m`
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return `${hours}h ${mins}m`
   }
 
-  // Update elapsed time periodically
+  // Update session data periodically
   useEffect(() => {
     if (!sessionData || !showModal) {
       if (updateIntervalRef.current) {
         clearInterval(updateIntervalRef.current)
         updateIntervalRef.current = null
       }
-      // Cancel any pending fetches
       if (fetchControllerRef.current) {
         fetchControllerRef.current.abort()
         fetchControllerRef.current = null
@@ -342,8 +337,22 @@ export default function ActiveSessionFoundModal({
         if (response.ok) {
           const latestSession = await response.json()
           // Validate session is still active before updating
-          if (latestSession.status === 'active' && latestSession.conversationTimeSeconds !== undefined) {
-            setElapsedTimeSeconds(latestSession.conversationTimeSeconds)
+          if (latestSession.status === 'active') {
+            // Calculate current conversation time if session is active
+            let currentConversationTime = latestSession.conversationTimeSeconds || 0
+            if (latestSession.lastConversationStart && !latestSession.isPaused) {
+              const activeTime = Math.floor(
+                (Date.now() - new Date(latestSession.lastConversationStart).getTime()) / 1000
+              )
+              currentConversationTime += activeTime
+            }
+            
+            setLiveConversationTime(currentConversationTime)
+            
+            // Calculate remaining minutes
+            const totalMinutes = latestSession.duration || 30
+            const remainingMinutes = Math.max(0, totalMinutes - (currentConversationTime / 60))
+            setLiveRemainingMinutes(remainingMinutes)
           }
         } else if (response.status === 404) {
           // Session no longer exists, close modal
@@ -377,7 +386,6 @@ export default function ActiveSessionFoundModal({
   }, [sessionData, showModal])
 
   if (!sessionData) {
-    // Still return the component structure so effects can run
     return null
   }
 
@@ -436,7 +444,7 @@ export default function ActiveSessionFoundModal({
               {/* Content */}
               <div className="px-6 py-5 space-y-4">
                 {/* Warning message - conditional based on conversation activity */}
-                {(sessionData.conversationTimeMinutes || sessionData.elapsedMinutes || 0) > 0 ? (
+                {liveConversationTime > 0 ? (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <div className="flex items-start space-x-2">
                       <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -444,7 +452,7 @@ export default function ActiveSessionFoundModal({
                       </svg>
                       <div className="text-sm text-red-700">
                         <p className="font-medium">Session was in progress!</p>
-                        <p>You have conversation time used. Continue to avoid losing progress.</p>
+                        <p>You have {formatTime(liveConversationTime)} of conversation time used. Continue to avoid losing progress.</p>
                       </div>
                     </div>
                   </div>
@@ -466,17 +474,18 @@ export default function ActiveSessionFoundModal({
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-blue-50 rounded-lg px-3 py-2">
                     <div className="text-blue-600 font-medium">Conversation Time</div>
-                    <div className="text-blue-800 font-semibold">{formatTime(Math.floor(elapsedTimeSeconds / 60))}</div>
+                    <div className="text-blue-800 font-semibold">{formatTime(liveConversationTime)}</div>
                   </div>
                   <div className="bg-green-50 rounded-lg px-3 py-2">
                     <div className="text-green-600 font-medium text-center mb-1">Time Remaining</div>
-                    <SessionTimer
+                    <SessionTimerV2
                       durationMinutes={sessionData.sessionData.duration}
-                      conversationTimeSeconds={elapsedTimeSeconds}
+                      conversationTimeSeconds={liveConversationTime}
                       isConversationActive={false} // Session is paused while modal is open
+                      isPaused={sessionData.sessionData.isPaused || false}
                       className="scale-90"
                       showRecoveredIndicator={false}
-                      onTimeUpdate={(remainingMinutes) => setCurrentRemainingMinutes(remainingMinutes)}
+                      onTimeUpdate={(remainingMinutes) => setLiveRemainingMinutes(remainingMinutes)}
                     />
                   </div>
                 </div>
@@ -507,7 +516,7 @@ export default function ActiveSessionFoundModal({
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>Continue Session ({formatTime(currentRemainingMinutes || sessionData.remainingMinutes)} left)</span>
+                      <span>Continue Session ({formatTime(liveRemainingMinutes * 60)} left)</span>
                     </>
                   )}
                 </motion.button>

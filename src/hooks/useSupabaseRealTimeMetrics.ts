@@ -4,7 +4,7 @@
  * Handles both broadcast (ephemeral) and database (persistent) updates
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
@@ -25,8 +25,13 @@ interface UseSupabaseRealTimeMetricsOptions {
   autoConnect?: boolean
 }
 
+interface BufferedMetrics {
+  metrics: IncrementalMetrics
+  timestamp: Date
+}
+
 interface MetricsBuffer {
-  metrics: IncrementalMetrics[]
+  metrics: BufferedMetrics[]
   lastPersisted: Date | null
   aggregated: IncrementalMetrics | null
 }
@@ -39,7 +44,7 @@ export function useSupabaseRealTimeMetrics({
   onError,
   autoConnect = true,
 }: UseSupabaseRealTimeMetricsOptions) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [isConnected, setIsConnected] = useState(false)
   const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -52,10 +57,16 @@ export function useSupabaseRealTimeMetrics({
     aggregated: null,
   })
   const persistenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const lastConnectionTimeRef = useRef<number>(0)
+  const connectionCountRef = useRef<number>(0)
+  const isSetupInProgressRef = useRef<boolean>(false)
+  const channelSetupCompleteRef = useRef<boolean>(false)
 
   // Aggregate metrics for database persistence
-  const aggregateMetrics = useCallback((metrics: IncrementalMetrics[]): IncrementalMetrics | null => {
-    if (metrics.length === 0) return null
+  const aggregateMetrics = useCallback((bufferedMetrics: BufferedMetrics[]): IncrementalMetrics | null => {
+    if (bufferedMetrics.length === 0) return null
+    
+    const metrics = bufferedMetrics.map(bm => bm.metrics)
     
     // Calculate averages for the actual IncrementalMetrics structure
     const aggregated: IncrementalMetrics = {
@@ -86,12 +97,13 @@ export function useSupabaseRealTimeMetrics({
       const response = await fetch('/api/sessions/metrics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           sessionId,
           metrics: aggregated,
           metricsCount: buffer.metrics.length,
-          periodStart: buffer.metrics[0].timestamp,
-          periodEnd: buffer.metrics[buffer.metrics.length - 1].timestamp,
+          periodStart: buffer.metrics[0].timestamp.toISOString(),
+          periodEnd: buffer.metrics[buffer.metrics.length - 1].timestamp.toISOString(),
         }),
       })
       
@@ -124,7 +136,10 @@ export function useSupabaseRealTimeMetrics({
     // Buffer metrics for persistence (only if provider)
     if (role === 'provider') {
       const buffer = metricsBufferRef.current
-      buffer.metrics.push(metrics)
+      buffer.metrics.push({
+        metrics,
+        timestamp: new Date()
+      })
       
       // Keep buffer size limited
       if (buffer.metrics.length > REALTIME_CONFIG.metricsBufferSize) {
@@ -160,7 +175,20 @@ export function useSupabaseRealTimeMetrics({
   useEffect(() => {
     if (!autoConnect || !sessionId) return
     
+    // Prevent duplicate setup
+    if (isSetupInProgressRef.current || channelSetupCompleteRef.current) {
+      return // Remove log to avoid spam
+    }
+    
+    // Debounce rapid reconnections
+    const now = Date.now()
+    if (now - lastConnectionTimeRef.current < 2000) { // Increase debounce to 2s
+      return // Remove log to avoid spam
+    }
+    lastConnectionTimeRef.current = now
+    
     let isSubscribed = true
+    isSetupInProgressRef.current = true
     
     const setupChannel = async () => {
       try {
@@ -186,11 +214,14 @@ export function useSupabaseRealTimeMetrics({
           })
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-              setIsConnected(true)
-              setError(null)
-              if (REALTIME_CONFIG.enableDebugLogging) {
+              connectionCountRef.current++
+              // Only log first connection to reduce spam
+              if (connectionCountRef.current === 1) {
                 console.log(`✅ Connected to session metrics: ${sessionId}`)
               }
+              setIsConnected(true)
+              setError(null)
+              channelSetupCompleteRef.current = true
             } else if (status === 'CHANNEL_ERROR') {
               setError('Failed to connect to metrics channel')
               setIsConnected(false)
@@ -213,6 +244,8 @@ export function useSupabaseRealTimeMetrics({
         console.error('Failed to setup metrics channel:', error)
         setError('Failed to setup real-time connection')
         onError?.(error as Error)
+      } finally {
+        isSetupInProgressRef.current = false
       }
     }
     
@@ -238,8 +271,10 @@ export function useSupabaseRealTimeMetrics({
       }
       
       setIsConnected(false)
+      channelSetupCompleteRef.current = false
+      isSetupInProgressRef.current = false
     }
-  }, [sessionId, userId, role, autoConnect, supabase, handleMetricsUpdate, persistMetrics, onError])
+  }, [sessionId, userId, role, autoConnect, handleMetricsUpdate, persistMetrics, onError, supabase])
 
   // Public methods
   const connect = useCallback(() => {
@@ -254,7 +289,7 @@ export function useSupabaseRealTimeMetrics({
       metricsChannelRef.current = null
       setIsConnected(false)
     }
-  }, [supabase])
+  }, [])
 
   return {
     // State

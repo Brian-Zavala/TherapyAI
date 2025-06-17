@@ -21,6 +21,10 @@ interface UseVapiMetricsBridgeOptions {
   enabled?: boolean
 }
 
+// Throttle configuration
+const METRICS_THROTTLE_MS = 5000 // 5 seconds between broadcasts
+const TRANSCRIPT_BATCH_SIZE = 3 // Process 3 chunks at a time
+
 export function useVapiMetricsBridge({
   sessionId,
   userId,
@@ -32,6 +36,8 @@ export function useVapiMetricsBridge({
 }: UseVapiMetricsBridgeOptions) {
   const metricsCalculatorRef = useRef<RealTimeMetricsCalculator | null>(null)
   const lastTranscriptCountRef = useRef(0)
+  const lastBroadcastTimeRef = useRef(0)
+  const pendingChunksRef = useRef<string[]>([])
   
   // Use Supabase realtime as provider
   const { broadcastMetrics, isConnected } = useSupabaseRealTimeMetrics({
@@ -63,7 +69,7 @@ export function useVapiMetricsBridge({
     }
   }, [enabled, sessionId, vapiState.isActive, userId, therapyType, sessionDuration])
 
-  // Process new transcript chunks
+  // Process new transcript chunks with throttling
   useEffect(() => {
     if (!enabled || !sessionId || !vapiState.isActive || !isConnected || !metricsCalculatorRef.current) {
       return
@@ -71,12 +77,28 @@ export function useVapiMetricsBridge({
 
     const currentTranscriptCount = transcriptChunks.length
     if (currentTranscriptCount > lastTranscriptCountRef.current) {
-      // Process new transcript chunks
+      // Add new chunks to pending buffer
       const newChunks = transcriptChunks.slice(lastTranscriptCountRef.current)
+      pendingChunksRef.current.push(...newChunks)
+      lastTranscriptCountRef.current = currentTranscriptCount
       
-      // Process chunks sequentially to maintain order
+      // Process chunks in batches with throttling
       const processChunks = async () => {
-        for (const chunk of newChunks) {
+        const now = Date.now()
+        const timeSinceLastBroadcast = now - lastBroadcastTimeRef.current
+        
+        // Skip if we've broadcast too recently
+        if (timeSinceLastBroadcast < METRICS_THROTTLE_MS && pendingChunksRef.current.length < TRANSCRIPT_BATCH_SIZE * 2) {
+          return // Silently throttle to reduce log spam
+        }
+        
+        // Process up to TRANSCRIPT_BATCH_SIZE chunks
+        const chunksToProcess = pendingChunksRef.current.splice(0, TRANSCRIPT_BATCH_SIZE)
+        if (chunksToProcess.length === 0) return
+        
+        let lastMetrics = null
+        
+        for (const chunk of chunksToProcess) {
           // Parse transcript chunk format: "AI: text" or "You: text"
           const match = chunk.match(/^(AI|You): (.+)$/)
           if (match) {
@@ -90,31 +112,35 @@ export function useVapiMetricsBridge({
             
             try {
               // Add to metrics calculator and get updated metrics
-              const metrics = await metricsCalculatorRef.current!.addTranscriptEntry(transcriptEntry)
-              
-              // Broadcast metrics through Supabase
-              broadcastMetrics(metrics)
-              
-              console.log('[VapiMetricsBridge] Processed transcript and broadcast metrics:', {
-                speaker: transcriptEntry.speaker,
-                textLength: transcriptEntry.text.length,
-                metrics: {
-                  confidence: metrics.confidence,
-                  entryCount: metrics.entryCount,
-                  communicationScore: metrics.communicationScore
-                }
-              })
+              lastMetrics = await metricsCalculatorRef.current!.addTranscriptEntry(transcriptEntry)
             } catch (error) {
               console.error('[VapiMetricsBridge] Error processing transcript:', error)
             }
           }
         }
+        
+        // Broadcast only the final metrics after processing batch
+        if (lastMetrics && timeSinceLastBroadcast >= METRICS_THROTTLE_MS) {
+          broadcastMetrics(lastMetrics)
+          lastBroadcastTimeRef.current = now
+          
+          // Log only significant metric changes (every 10 entries)
+          if (lastMetrics.entryCount % 10 === 0) {
+            console.log('[VapiMetricsBridge] Metrics milestone:', {
+              entryCount: lastMetrics.entryCount,
+              confidence: lastMetrics.confidence.toFixed(2)
+            })
+          }
+        }
       }
       
-      // Execute async processing
+      // Execute processing
       processChunks()
       
-      lastTranscriptCountRef.current = currentTranscriptCount
+      // Set up delayed processing for remaining chunks
+      if (pendingChunksRef.current.length > 0) {
+        setTimeout(processChunks, METRICS_THROTTLE_MS)
+      }
     }
   }, [enabled, sessionId, vapiState.isActive, isConnected, broadcastMetrics, transcriptChunks])
 

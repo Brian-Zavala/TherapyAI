@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type TherapyType = 'couple' | 'solo' | 'family';
 
@@ -48,38 +50,66 @@ interface TherapyTypeSelectorProps {
 }
 
 export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: TherapyTypeSelectorProps) {
-  if (!isOpen) return null;
+  const [isClient, setIsClient] = useState(false);
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-100">
-      <div 
-        className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-indigo-100"
-      >
-        <div className="p-6 sm:p-8">
-          <div className="flex justify-center items-center mb-8">
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const modalContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+            onClick={onClose}
+          />
+          
+          {/* Modal Container - Centered */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+          >
+            <div 
+              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-4xl max-h-[85vh] overflow-y-auto border border-indigo-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+        <div className="p-4 sm:p-6 md:p-8">
+          <div className="flex justify-center items-center mb-6 sm:mb-8">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent text-center">Choose Your Therapist</h2>
-              <div className="h-1 bg-gradient-to-r from-blue-500/10 via-blue-300/80 to-transparent rounded-full mt-2 motion-preset-pulse-sm "></div>
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent text-center">Choose Your Therapist</h2>
+              <div className="h-1 bg-gradient-to-r from-blue-500/10 via-blue-300/80 to-transparent rounded-full mt-2"></div>
             </div>
           </div>
-          <div>
-          <div className="bg-gradient-to-r from-gray-600 to-gray-600 bg-clip-text text-transparent font-bold mb-8 max-w-2xl">
-            <p>Select your therapist and therapy type that best meets your current needs.</p>
-            <div className="h-1 bg-gradient-to-r from-gray-600/10 via-gray-400/80 to-transparent rounded-full mt-2"></div>
-          </div>
+          <div className="mb-6 sm:mb-8">
+            <p className="text-sm sm:text-base text-gray-600 text-center max-w-2xl mx-auto">
+              Select your therapist and therapy type that best meets your current needs.
+            </p>
           </div>
           
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {therapyOptions.map((option) => (
-              <div
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            {therapyOptions.map((option, index) => (
+              <motion.div
                 key={option.id}
-                className="bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.03] hover:border-indigo-200 cursor-pointer overflow-hidden flex flex-col"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-200 cursor-pointer overflow-hidden flex flex-col h-full"
                 onClick={() => {
                   onSelect(option.type);
                 }}
               >
-                <div className="w-full h-36 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                <div className="w-full h-28 sm:h-32 md:h-36 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                   <div className="text-center">
                     <div className="flex items-center justify-center mb-2">
                       {option.type === 'couple' ? (
@@ -96,18 +126,18 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                         </svg>
                       )}
                     </div>
-                    <h3 className="text-xl font-bold text-white text-center px-4">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-white text-center px-2 sm:px-4">
                       {option.title}
                     </h3>
                   </div>
                 </div>
                 
-                <div className="p-5 flex-grow flex flex-col">
-                  <p className="text-gray-600 mb-6 flex-grow">
+                <div className="p-4 sm:p-5 flex-grow flex flex-col">
+                  <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 flex-grow">
                     {option.description}
                   </p>
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-green-500/10 p-1 mb-3 border-2 border-blue-500/10 shadow-md overflow-hidden">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-green-500/10 p-1 mb-2 sm:mb-3 border-2 border-blue-500/10 shadow-md overflow-hidden">
                     
                       <div className="w-full h-full rounded-full bg-white overflow-hidden relative">
                         {/* Simple img element for doctor photo */}
@@ -140,18 +170,34 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                         </div>
                       </div>
                     </div>
-                    <h4 className="font-bold text-lg mb-1 text-blue-500">{option.therapist}</h4>
+                    <h4 className="font-bold text-base sm:text-lg mb-1 text-blue-500">{option.therapist}</h4>
                     <span className="text-sm bg-blue-500/85 text-white px-3 py-1 rounded-full font-medium">
                       {option.type === 'couple' ? 'AI Relationship Therapist' :
                        option.type === 'solo' ? 'AI Personal Therapist' : 'AI Family Therapist'}
                     </span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </div>
-    </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
+
+  // Render portal only on client side
+  if (!isClient) {
+    return null;
+  }
+
+  const modalRoot = document.getElementById("modal-root");
+  if (!modalRoot) {
+    console.error("Modal root element not found");
+    return null;
+  }
+
+  return createPortal(modalContent, modalRoot);
 }

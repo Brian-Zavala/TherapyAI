@@ -4,7 +4,7 @@
  * Handles database changes, broadcast events, and presence
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { 
@@ -40,7 +40,7 @@ export function useSupabaseSessionState({
   onPresenceUpdate,
   autoSubscribe = true,
 }: UseSupabaseSessionStateOptions) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [state, setState] = useState<SessionState>({
     session: null,
     isActive: false,
@@ -54,6 +54,24 @@ export function useSupabaseSessionState({
   const stateChannelRef = useRef<RealtimeChannel | null>(null)
   const presenceChannelRef = useRef<RealtimeChannel | null>(null)
   const dbChannelRef = useRef<RealtimeChannel | null>(null)
+  
+  // Track if we've already fetched session data
+  const sessionFetchedRef = useRef<string | null>(null)
+  // Track if channels are already set up for this session
+  const channelsSetupRef = useRef<string | null>(null)
+  
+  // Store callbacks in refs to avoid dependency issues
+  const onSessionUpdateRef = useRef(onSessionUpdate)
+  const onPresenceUpdateRef = useRef(onPresenceUpdate)
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onSessionUpdateRef.current = onSessionUpdate
+  }, [onSessionUpdate])
+  
+  useEffect(() => {
+    onPresenceUpdateRef.current = onPresenceUpdate
+  }, [onPresenceUpdate])
 
   // Handle session database changes
   const handleSessionChange = useCallback((payload: RealtimePostgresChangesPayload<Session>) => {
@@ -71,7 +89,7 @@ export function useSupabaseSessionState({
             isActive: updatedSession.status === 'active' || updatedSession.status === 'scheduled',
             isPaused: updatedSession.isPaused || false,
           }))
-          onSessionUpdate?.(updatedSession)
+          onSessionUpdateRef.current?.(updatedSession)
         }
         break
         
@@ -86,7 +104,7 @@ export function useSupabaseSessionState({
         }
         break
     }
-  }, [sessionId, onSessionUpdate])
+  }, [sessionId])
 
   // Handle session state broadcasts
   const handleStateUpdate = useCallback((payload: SessionStatePayload) => {
@@ -99,11 +117,11 @@ export function useSupabaseSessionState({
       session: {
         ...prev.session,
         isPaused: payload.state === 'paused',
-        pausedAt: payload.pausedAt,
-        resumedAt: payload.resumedAt,
+        pausedAt: payload.pausedAt ? new Date(payload.pausedAt) : undefined,
+        resumedAt: payload.resumedAt ? new Date(payload.resumedAt) : undefined,
         totalPausedTimeSeconds: payload.totalPausedTime,
         // Note: endedAt doesn't exist in our schema, would need to add if required
-      },
+      } as Partial<Session>,
     }))
   }, [sessionId])
 
@@ -122,7 +140,7 @@ export function useSupabaseSessionState({
     
     await stateChannelRef.current.send({
       type: 'broadcast',
-      event: REALTIME_EVENTS[`SESSION_${state.toUpperCase()}`],
+      event: REALTIME_EVENTS[`SESSION_${state.toUpperCase()}` as keyof typeof REALTIME_EVENTS],
       payload,
     })
   }, [sessionId])
@@ -135,6 +153,7 @@ export function useSupabaseSessionState({
       // Update database
       const response = await fetch(`/api/sessions/${sessionId}/pause`, {
         method: 'POST',
+        credentials: 'include', // Include cookies for authentication
       })
       
       if (!response.ok) {
@@ -176,6 +195,7 @@ export function useSupabaseSessionState({
       // Update database
       const response = await fetch(`/api/sessions/${sessionId}/resume`, {
         method: 'POST',
+        credentials: 'include', // Include cookies for authentication
       })
       
       if (!response.ok) {
@@ -220,6 +240,7 @@ export function useSupabaseSessionState({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           actualDurationMinutes: 0, // This should be calculated from session data
           completionNotes: 'Session ended by user'
@@ -251,12 +272,28 @@ export function useSupabaseSessionState({
 
   // Subscribe to all channels
   useEffect(() => {
-    if (!autoSubscribe || !sessionId) return
+    console.log('[useSupabaseSessionState] Effect running - sessionId:', sessionId, 'autoSubscribe:', autoSubscribe)
+    if (!autoSubscribe || !sessionId) {
+      // Reset refs if sessionId is null
+      if (!sessionId) {
+        sessionFetchedRef.current = null
+        channelsSetupRef.current = null
+      }
+      return
+    }
     
     let isSubscribed = true
     
     const setupChannels = async () => {
+      // Check if channels are already set up for this session
+      if (channelsSetupRef.current === sessionId) {
+        console.log('[useSupabaseSessionState] Channels already set up for session:', sessionId)
+        return
+      }
+      
+      console.log('[useSupabaseSessionState] Setting up channels for session:', sessionId)
       try {
+        
         // 1. Subscribe to database changes for sessions table
         const dbChannel = supabase
           .channel(REALTIME_CHANNELS.sessionsTable)
@@ -295,11 +332,14 @@ export function useSupabaseSessionState({
           })
           .on('presence', { event: 'sync' }, () => {
             const state = presenceChannel.presenceState()
-            const users = Object.values(state).flatMap(
-              (presences) => presences as SessionPresencePayload[]
-            )
+            // Transform Supabase presence format to our format
+            const users: SessionPresencePayload[] = Object.entries(state).map(([, presences]) => {
+              // Each presence entry includes the payload we sent in track()
+              const presence = presences[0] as unknown // First presence for this key
+              return presence as SessionPresencePayload
+            }).filter(Boolean)
             setState(prev => ({ ...prev, onlineUsers: users }))
-            onPresenceUpdate?.(users)
+            onPresenceUpdateRef.current?.(users)
           })
           .on('presence', { event: 'join' }, ({ key, newPresences }) => {
             if (REALTIME_CONFIG.enableDebugLogging) {
@@ -333,22 +373,43 @@ export function useSupabaseSessionState({
         stateChannelRef.current = stateChannel
         presenceChannelRef.current = presenceChannel
         
+        // Mark channels as set up for this session
+        channelsSetupRef.current = sessionId
+        
         setState(prev => ({ ...prev, isConnected: true, error: null }))
         
-        // Fetch initial session data
-        const { data: sessionData, error: fetchError } = await supabase
-          .from('Session')
-          .select('*')
-          .eq('id', sessionId)
-          .single()
-        
-        if (sessionData && !fetchError) {
-          setState(prev => ({
-            ...prev,
-            session: sessionData,
-            isActive: sessionData.status === 'active' || sessionData.status === 'scheduled',
-            isPaused: sessionData.isPaused || false,
-          }))
+        // Fetch initial session data from API (only if not already fetched)
+        if (sessionFetchedRef.current !== sessionId) {
+          console.log('[useSupabaseSessionState] Fetching initial session data for:', sessionId)
+          try {
+            const response = await fetch(`/api/sessions/${sessionId}`, {
+              method: 'GET',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            })
+            
+            if (response.ok) {
+              const { session: sessionData } = await response.json()
+              if (sessionData) {
+                setState(prev => ({
+                  ...prev,
+                  session: sessionData,
+                  isActive: sessionData.status === 'active' || sessionData.status === 'scheduled',
+                  isPaused: sessionData.isPaused || false,
+                }))
+                // Mark this session as fetched
+                sessionFetchedRef.current = sessionId
+              }
+            } else {
+              console.error('Failed to fetch session data:', response.statusText)
+            }
+          } catch (error) {
+            console.error('Error fetching session data:', error)
+          }
+        } else {
+          console.log('[useSupabaseSessionState] Session data already fetched for:', sessionId)
         }
         
       } catch (error) {
@@ -361,6 +422,7 @@ export function useSupabaseSessionState({
     
     // Cleanup
     return () => {
+      console.log('[useSupabaseSessionState] Cleaning up channels for session:', sessionId)
       isSubscribed = false
       
       // Untrack presence
@@ -381,9 +443,12 @@ export function useSupabaseSessionState({
       stateChannelRef.current = null
       presenceChannelRef.current = null
       
+      // Reset channel setup tracking
+      channelsSetupRef.current = null
+      
       setState(prev => ({ ...prev, isConnected: false }))
     }
-  }, [sessionId, userId, autoSubscribe, supabase, handleSessionChange, handleStateUpdate, onPresenceUpdate])
+  }, [sessionId, userId, autoSubscribe, handleSessionChange, handleStateUpdate, supabase])
 
   return {
     // State

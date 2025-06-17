@@ -14,19 +14,21 @@ import {
   SessionDuration
 } from '@/lib/therapy-session/constants'
 import { isSessionExpired } from '@/lib/therapy-session/utils'
+import { useAccurateSessionTimer, useSessionRecoveryTimer, useSessionTimeAlerts } from './useAccurateSessionTimer'
 
 // Hook configuration interface
-interface UseSessionManagementOptions {
+interface UseSessionManagementV2Options {
   userId: string
   therapyType: string
   onSessionCreated?: (sessionId: string) => void
   onSessionRecovered?: (data: SessionRecoveryData) => void
   onSessionCompleted?: (data: SessionCompletionData) => void
   onError?: (error: Error) => void
+  onTimeWarning?: (remainingMinutes: number) => void
 }
 
 // Hook return type
-interface UseSessionManagementReturn {
+interface UseSessionManagementV2Return {
   // Session state
   sessionId: string | null
   sessionStartTime: Date | null
@@ -39,9 +41,19 @@ interface UseSessionManagementReturn {
   pauseStartTime: Date | null
   totalPausedTimeSeconds: number
   
-  // Conversation time
+  // Conversation time (from react-timer-hook)
   conversationTimeSeconds: number
   conversationStartTime: Date | null
+  
+  // Timer state from react-timer-hook
+  timerState: {
+    remainingSeconds: number
+    formattedRemaining: string
+    formattedElapsed: string
+    formattedConversation: string
+    progressPercentage: number
+    isExpired: boolean
+  }
   
   // Methods
   createSession: (duration: SessionDuration, familyMembers?: FamilyMember[]) => Promise<string | null>
@@ -50,8 +62,6 @@ interface UseSessionManagementReturn {
   pauseSession: () => Promise<void>
   resumeSession: () => Promise<void>
   endSession: (reason?: string) => Promise<void>
-  updateConversationTime: (additionalSeconds: number) => void
-  saveSessionBackup: () => void
   startConversationTimer: (overrideSessionId?: string) => void
   
   // Guards
@@ -59,11 +69,11 @@ interface UseSessionManagementReturn {
 }
 
 /**
- * Custom hook for managing therapy session lifecycle
- * Handles session creation, recovery, pause/resume, and completion
+ * Enhanced session management hook using react-timer-hook for accurate time tracking
+ * Updates server every 5-10 seconds for billing accuracy
  */
-export function useSessionManagement(options: UseSessionManagementOptions): UseSessionManagementReturn {
-  const { therapyType, onSessionCreated, onSessionRecovered, onSessionCompleted, onError } = options
+export function useSessionManagementV2(options: UseSessionManagementV2Options): UseSessionManagementV2Return {
+  const { userId, therapyType, onSessionCreated, onSessionRecovered, onSessionCompleted, onError, onTimeWarning } = options
   
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -75,18 +85,93 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
   // Pause state
   const [isSessionPaused, setIsSessionPaused] = useState(false)
   const [pauseStartTime, setPauseStartTime] = useState<Date | null>(null)
-  const [totalPausedTimeSeconds, setTotalPausedTimeSeconds] = useState(0)
   
-  // Conversation time tracking
-  const [conversationTimeSeconds, setConversationTimeSeconds] = useState(0)
+  // Conversation state
+  const [isConversationActive, setIsConversationActive] = useState(false)
   const [conversationStartTime, setConversationStartTime] = useState<Date | null>(null)
+  
+  // Initial time values for timer
+  const [initialConversationTime, setInitialConversationTime] = useState(0)
+  const [initialPausedTime, setInitialPausedTime] = useState(0)
   
   // Guards to prevent duplicate operations
   const sessionCreationInProgress = useRef(false)
   const sessionCheckInProgress = useRef(false)
+  const lastServerUpdateTime = useRef(0)
   
-  // Debouncing ref for database updates
-  const dbUpdateDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  // Use the accurate timer hook
+  const timer = useAccurateSessionTimer({
+    sessionDurationMinutes: sessionDuration,
+    initialConversationTimeSeconds: initialConversationTime,
+    initialPausedTimeSeconds: initialPausedTime,
+    isConversationActive,
+    isPaused: isSessionPaused,
+    updateIntervalMs: 5000, // Update server every 5 seconds
+    onTimeUpdate: useCallback(async (conversationTime: number) => {
+      if (!sessionId) return
+      
+      // Prevent too frequent updates
+      const now = Date.now()
+      if (now - lastServerUpdateTime.current < 4000) return
+      lastServerUpdateTime.current = now
+      
+      try {
+        // Update conversation time in database
+        const response = await fetch(`/api/sessions/${sessionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationTimeSeconds: Math.floor(conversationTime),
+            lastConversationStart: conversationStartTime?.toISOString()
+          })
+        })
+        
+        if (!response.ok) {
+          console.error('❌ Failed to update conversation time:', response.status)
+        } else {
+          // Log milestone updates
+          if (conversationTime % 300 === 0 && conversationTime > 0) {
+            console.log(`💰 Billing milestone: ${Math.floor(conversationTime / 60)}min`)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error updating conversation time:', error)
+      }
+    }, [sessionId, conversationStartTime]),
+    onExpire: useCallback(() => {
+      console.log('⏰ Session timer expired')
+      endSession('timer_expired')
+    }, [])
+  })
+  
+  // Use time alerts
+  useSessionTimeAlerts({
+    remainingSeconds: timer.remainingSeconds,
+    onTenMinuteWarning: useCallback(() => {
+      console.log('⚠️ 10 minutes remaining')
+      onTimeWarning?.(10)
+    }, [onTimeWarning]),
+    onFiveMinuteWarning: useCallback(() => {
+      console.log('⚠️ 5 minutes remaining')
+      onTimeWarning?.(5)
+    }, [onTimeWarning]),
+    onOneMinuteWarning: useCallback(() => {
+      console.log('⚠️ 1 minute remaining')
+      onTimeWarning?.(1)
+    }, [onTimeWarning]),
+    onThirtySecondWarning: useCallback(() => {
+      console.log('⚠️ 30 seconds remaining')
+      onTimeWarning?.(0.5)
+    }, [onTimeWarning])
+  })
+  
+  // Recovery timer for session restoration
+  const recoveryState = useSessionRecoveryTimer({
+    sessionId: sessionRecovered ? sessionId : null,
+    onRecoveryComplete: useCallback((conversationTime: number) => {
+      setInitialConversationTime(conversationTime)
+    }, [])
+  })
   
   // Create a new session
   const createSession = useCallback(async (duration: SessionDuration, familyMembers?: FamilyMember[]): Promise<string | null> => {
@@ -139,8 +224,8 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       setSessionId(newSessionId)
       setSessionDuration(duration)
       setSessionStartTime(new Date())
-      setConversationTimeSeconds(0)
-      setTotalPausedTimeSeconds(0)
+      setInitialConversationTime(0)
+      setInitialPausedTime(0)
       
       // Save to storage for recovery
       sessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, newSessionId)
@@ -180,14 +265,22 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         return null
       }
       
-      // Check if session has expired
-      const startTime = new Date(activeSession.startTime)
+      // Check if session has expired based on conversation time
       const duration = activeSession.duration || DEFAULT_SESSION_DURATION
       const conversationMinutes = (activeSession.conversationTimeSeconds || 0) / 60
       
-      if (isSessionExpired(startTime, duration, conversationMinutes)) {
-        console.log('⏰ Active session has expired')
+      if (conversationMinutes >= duration) {
+        console.log('⏰ Active session has expired based on conversation time')
         return null
+      }
+      
+      // Calculate current conversation time if session is active
+      let currentConversationTime = activeSession.conversationTimeSeconds || 0
+      if (activeSession.lastConversationStart && !activeSession.isPaused) {
+        const activeTime = Math.floor(
+          (Date.now() - new Date(activeSession.lastConversationStart).getTime()) / 1000
+        )
+        currentConversationTime += activeTime
       }
       
       // Build recovery data
@@ -195,16 +288,13 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         sessionId: activeSession.id,
         originalStart: activeSession.startTime,
         recoveredAt: new Date().toISOString(),
-        conversationTimeMinutes: conversationMinutes,
-        conversationTimeSeconds: activeSession.conversationTimeSeconds || 0,
-        remainingMinutes: duration - conversationMinutes,
-        autoRestarted: false,
-        sessionData: activeSession,
-        pauseInfo: activeSession.isPaused ? {
-          isPaused: true,
-          pauseStartTime: activeSession.pauseStartTime,
-          totalPausedTime: activeSession.totalPausedTime || 0
-        } : undefined
+        conversationTimeMinutes: currentConversationTime / 60,
+        conversationTimeSeconds: currentConversationTime,
+        remainingMinutes: duration - (currentConversationTime / 60),
+        elapsedTimeSeconds: currentConversationTime,
+        totalPausedTimeSeconds: activeSession.totalPausedTimeSeconds || 0,
+        therapyType: activeSession.therapyType,
+        sessionDuration: activeSession.duration
       }
       
       return recoveryData
@@ -220,25 +310,19 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
   // Recover an existing session
   const recoverSession = useCallback(async (recoveryData: SessionRecoveryData): Promise<void> => {
     try {
-      // Update state with recovered session
+      console.log('🔄 Recovering session:', recoveryData.sessionId)
+      
       setSessionId(recoveryData.sessionId)
       setSessionStartTime(new Date(recoveryData.originalStart))
-      setSessionDuration(recoveryData.sessionData.duration || DEFAULT_SESSION_DURATION)
-      setConversationTimeSeconds(recoveryData.conversationTimeSeconds)
+      setSessionDuration(recoveryData.sessionDuration || DEFAULT_SESSION_DURATION)
+      setInitialConversationTime(recoveryData.conversationTimeSeconds)
+      setInitialPausedTime(recoveryData.totalPausedTimeSeconds || 0)
       setSessionRecovered(true)
       
-      // Restore pause state if applicable
-      if (recoveryData.pauseInfo?.isPaused) {
-        setIsSessionPaused(true)
-        setPauseStartTime(recoveryData.pauseInfo.pauseStartTime ? new Date(recoveryData.pauseInfo.pauseStartTime) : null)
-        setTotalPausedTimeSeconds(recoveryData.pauseInfo.totalPausedTime || 0)
-      }
-      
-      // Update storage
+      // Save recovery state
       sessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, recoveryData.sessionId)
-      sessionStorage.setItem(STORAGE_KEYS.SESSION_RECOVERED, JSON.stringify(recoveryData))
+      sessionStorage.setItem('active-session-id', recoveryData.sessionId)
       
-      console.log(`✅ Recovered session: ${recoveryData.sessionId}`)
       onSessionRecovered?.(recoveryData)
       
     } catch (error) {
@@ -255,12 +339,13 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       const pauseTime = new Date()
       setIsSessionPaused(true)
       setPauseStartTime(pauseTime)
+      setIsConversationActive(false)
       
-      // Save pause state
+      // Save pause state for recovery
       const pauseState = {
         pausedAt: pauseTime.toISOString(),
-        conversationTimeSeconds,
-        totalPausedTimeSeconds,
+        conversationTimeSeconds: timer.conversationTimeSeconds,
+        totalPausedTimeSeconds: timer.pausedTimeSeconds,
         sessionId,
         therapyType,
         selectedSessionDuration: sessionDuration
@@ -274,7 +359,8 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isPaused: true,
-          pauseStartTime: pauseTime.toISOString()
+          pauseStartTime: pauseTime.toISOString(),
+          conversationTimeSeconds: timer.conversationTimeSeconds
         })
       })
       
@@ -284,22 +370,17 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       console.error('Error pausing session:', error)
       onError?.(error as Error)
     }
-  }, [sessionId, isSessionPaused, conversationTimeSeconds, totalPausedTimeSeconds, therapyType, sessionDuration, onError])
+  }, [sessionId, isSessionPaused, timer.conversationTimeSeconds, timer.pausedTimeSeconds, therapyType, sessionDuration, onError])
   
   // Resume the session
   const resumeSession = useCallback(async (): Promise<void> => {
     if (!sessionId || !isSessionPaused) return
     
     try {
-      // Calculate pause duration
-      if (pauseStartTime) {
-        const pauseDuration = Math.floor((Date.now() - pauseStartTime.getTime()) / 1000)
-        setTotalPausedTimeSeconds(prev => prev + pauseDuration)
-      }
-      
       setIsSessionPaused(false)
       setPauseStartTime(null)
       setConversationStartTime(new Date())
+      setIsConversationActive(true)
       
       // Clear pause state
       sessionStorage.removeItem(`session-${sessionId}-pause-state`)
@@ -311,7 +392,8 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         body: JSON.stringify({
           isPaused: false,
           pauseStartTime: null,
-          lastConversationStart: new Date().toISOString()
+          lastConversationStart: new Date().toISOString(),
+          totalPausedTimeSeconds: timer.pausedTimeSeconds
         })
       })
       
@@ -321,7 +403,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       console.error('Error resuming session:', error)
       onError?.(error as Error)
     }
-  }, [sessionId, isSessionPaused, pauseStartTime, onError])
+  }, [sessionId, isSessionPaused, timer.pausedTimeSeconds, onError])
   
   // End the session
   const endSession = useCallback(async (reason: string = 'normal'): Promise<void> => {
@@ -330,9 +412,13 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
     setIsEndingSession(true)
     
     try {
+      // Get final time values from timer
+      const finalConversationTime = timer.conversationTimeSeconds
+      const finalPausedTime = timer.pausedTimeSeconds
+      
       // Calculate final metrics
-      const actualDurationMinutes = Math.ceil(conversationTimeSeconds / 60)
-      const totalPausedMinutes = Math.floor(totalPausedTimeSeconds / 60)
+      const actualDurationMinutes = Math.ceil(finalConversationTime / 60)
+      const totalPausedMinutes = Math.floor(finalPausedTime / 60)
       const billableMinutes = actualDurationMinutes
       
       const completionData: SessionCompletionData = {
@@ -354,7 +440,9 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
           totalConversationMinutes: actualDurationMinutes,
           totalPausedMinutes,
           billableMinutes,
-          completionNotes: completionData.completionNotes
+          completionNotes: completionData.completionNotes,
+          conversationTimeSeconds: finalConversationTime,
+          totalPausedTimeSeconds: finalPausedTime
         })
       })
       
@@ -363,6 +451,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       }
       
       console.log(`✅ Session ${sessionId} completed successfully`)
+      console.log(`📊 Final billing: ${billableMinutes} minutes`)
       onSessionCompleted?.(completionData)
       
       // Clear session state
@@ -374,206 +463,76 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
     } finally {
       setIsEndingSession(false)
     }
-  }, [sessionId, isEndingSession, conversationTimeSeconds, totalPausedTimeSeconds, onSessionCompleted, onError])
+  }, [sessionId, isEndingSession, timer.conversationTimeSeconds, timer.pausedTimeSeconds, onSessionCompleted, onError])
   
-  // Update conversation time
-  const updateConversationTime = useCallback((additionalSeconds: number) => {
-    setConversationTimeSeconds(prev => {
-      const newTotal = prev + additionalSeconds
-      console.log(`📊 Updated conversation time: +${additionalSeconds}s, total: ${newTotal}s`)
-      
-      // Debounced database update to prevent overwhelming the server
-      if (sessionId && additionalSeconds > 0) {
-        // Clear any pending update
-        if (dbUpdateDebounceRef.current) {
-          clearTimeout(dbUpdateDebounceRef.current)
-        }
-        
-        // Schedule new update with 1 second debounce
-        dbUpdateDebounceRef.current = setTimeout(() => {
-          fetch(`/api/sessions/${sessionId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              conversationTimeSeconds: newTotal
-            })
-          }).catch(error => {
-            console.error('Failed to update conversation time in database:', error)
-          })
-        }, 1000) // 1 second debounce to batch rapid updates
-      }
-      
-      return newTotal
-    })
+  // Start conversation timer
+  const startConversationTimer = useCallback((overrideSessionId?: string) => {
+    const activeSessionId = overrideSessionId || sessionId
+    if (!activeSessionId) return
+    
+    setConversationStartTime(new Date())
+    setIsConversationActive(true)
+    console.log(`⏱️ Started conversation timer for session: ${activeSessionId}`)
   }, [sessionId])
   
-  // Save session backup
-  const saveSessionBackup = useCallback(() => {
-    if (!sessionId) return
-    
-    const backupData = {
-      sessionId,
-      timestamp: new Date().toISOString(),
-      conversationTimeSeconds,
-      totalPausedTimeSeconds,
-      isPaused: isSessionPaused,
-      therapyType
-    }
-    
-    const backupKey = `session-${sessionId}-backup-time`
-    sessionStorage.setItem(backupKey, JSON.stringify(backupData))
-    
-    console.log('💾 Session backup saved')
-  }, [sessionId, conversationTimeSeconds, totalPausedTimeSeconds, isSessionPaused, therapyType])
-  
-  // Start conversation timer (when VAPI connects)
-  const startConversationTimer = useCallback((overrideSessionId?: string) => {
-    const currentSessionId = overrideSessionId || sessionId
-    
-    if (!currentSessionId || conversationStartTime) {
-      console.log('⚠️ Conversation timer not started:', {
-        sessionId: !!currentSessionId,
-        conversationStartTime: !!conversationStartTime
-      })
-      return
-    }
-    
-    const now = new Date()
-    setConversationStartTime(now)
-    
-    console.log('⏱️ Conversation timer started at:', now.toISOString())
-    
-    // Update session in database
-    if (currentSessionId) {
-      fetch(`/api/sessions/${currentSessionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationStartTime: now.toISOString()
-        })
-      }).then(response => {
-        // Validate session still exists after async operation
-        if (!response.ok && response.status === 404) {
-          console.error('Session no longer exists, clearing state')
-          clearSessionState()
-        }
-      }).catch(error => {
-        console.error('Failed to update conversation start time:', error)
-      })
-    }
-  }, [sessionId, conversationStartTime])
-  
-  // Clear session state
-  const clearSessionState = () => {
-    // Clear any pending database update timer
-    if (dbUpdateDebounceRef.current) {
-      clearTimeout(dbUpdateDebounceRef.current)
-      dbUpdateDebounceRef.current = null
-    }
-    
+  // Clear all session state
+  const clearSessionState = useCallback(() => {
     setSessionId(null)
     setSessionStartTime(null)
-    setSessionDuration(DEFAULT_SESSION_DURATION)
     setSessionRecovered(false)
     setIsSessionPaused(false)
     setPauseStartTime(null)
-    setTotalPausedTimeSeconds(0)
-    setConversationTimeSeconds(0)
     setConversationStartTime(null)
+    setIsConversationActive(false)
+    setInitialConversationTime(0)
+    setInitialPausedTime(0)
     
     // Clear storage
     sessionStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION_ID)
-    sessionStorage.removeItem(STORAGE_KEYS.SESSION_RECOVERED)
     sessionStorage.removeItem('active-session-id')
-    sessionStorage.removeItem('session-start-time')
-  }
-  
-  // Check if session creation is in progress
-  const isSessionCreationInProgress = useCallback(() => {
-    return sessionCreationInProgress.current
   }, [])
   
-  // Restore pause state on mount
-  useEffect(() => {
-    if (sessionId) {
-      const pauseStateKey = `session-${sessionId}-pause-state`
-      const pauseState = sessionStorage.getItem(pauseStateKey)
-      
-      if (pauseState) {
-        try {
-          const parsed = JSON.parse(pauseState)
-          if (parsed.pausedAt && !parsed.resumedAt) {
-            setIsSessionPaused(true)
-            setPauseStartTime(new Date(parsed.pausedAt))
-            setConversationTimeSeconds(parsed.conversationTimeSeconds || 0)
-            setTotalPausedTimeSeconds(parsed.totalPausedTimeSeconds || 0)
-          }
-        } catch (error) {
-          console.warn('Error parsing pause state:', error)
-        }
-      }
-    }
-  }, [sessionId])
-  
-  // Periodic session backup
+  // Save session backup periodically
   useEffect(() => {
     if (!sessionId || !sessionStartTime) return
     
-    const backupInterval = setInterval(saveSessionBackup, 30000) // Every 30 seconds
+    const saveBackup = () => {
+      const backup = {
+        sessionId,
+        conversationTimeSeconds: timer.conversationTimeSeconds,
+        totalPausedTimeSeconds: timer.pausedTimeSeconds,
+        isSessionPaused,
+        sessionStartTime: sessionStartTime.toISOString(),
+        savedAt: new Date().toISOString()
+      }
+      
+      sessionStorage.setItem(`session-${sessionId}-backup`, JSON.stringify(backup))
+    }
+    
+    const backupInterval = setInterval(saveBackup, 30000) // Every 30 seconds
     
     return () => clearInterval(backupInterval)
-  }, [sessionId, sessionStartTime, saveSessionBackup])
+  }, [sessionId, sessionStartTime, timer.conversationTimeSeconds, timer.pausedTimeSeconds, isSessionPaused])
   
-  // CRITICAL: Periodic conversation time update to prevent billing loss
+  // Restore pause state on mount
   useEffect(() => {
-    if (!sessionId || !conversationStartTime || isSessionPaused) return
+    if (!sessionId) return
     
-    const updateInterval = setInterval(async () => {
-      // Calculate current conversation segment duration
-      const currentSegmentSeconds = Math.floor((Date.now() - conversationStartTime.getTime()) / 1000)
-      const totalConversationTime = conversationTimeSeconds + currentSegmentSeconds
-      
-      // Only log significant updates (every 5 minutes)
-      if (totalConversationTime % 300 === 0) {
-        console.log(`💰 Conversation time milestone: ${Math.floor(totalConversationTime / 60)}min`)
-      }
-      
+    const pauseStateKey = `session-${sessionId}-pause-state`
+    const pauseState = sessionStorage.getItem(pauseStateKey)
+    
+    if (pauseState) {
       try {
-        // Update conversation time in database
-        const response = await fetch(`/api/sessions/${sessionId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationTimeSeconds: totalConversationTime,
-            lastConversationStart: conversationStartTime.toISOString()
-          })
-        })
-        
-        if (response.ok) {
-          // Update local state to match what we saved
-          // Do NOT reset conversationStartTime here - it should remain the same
-          // throughout the conversation segment
-        } else {
-          console.error('❌ Failed to update conversation time:', response.status)
+        const parsed = JSON.parse(pauseState)
+        if (parsed.pausedAt && !parsed.resumedAt) {
+          setIsSessionPaused(true)
+          setPauseStartTime(new Date(parsed.pausedAt))
         }
       } catch (error) {
-        console.error('❌ Error updating conversation time:', error)
-      }
-    }, 30000) // Update every 30 seconds to prevent data loss
-    
-    return () => clearInterval(updateInterval)
-  }, [sessionId, conversationStartTime, isSessionPaused, conversationTimeSeconds])
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Clear any pending database update timer when component unmounts
-      if (dbUpdateDebounceRef.current) {
-        clearTimeout(dbUpdateDebounceRef.current)
-        dbUpdateDebounceRef.current = null
+        console.warn('Error parsing pause state:', error)
       }
     }
-  }, [])
+  }, [sessionId])
   
   return {
     // Session state
@@ -586,11 +545,21 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
     // Pause state
     isSessionPaused,
     pauseStartTime,
-    totalPausedTimeSeconds,
+    totalPausedTimeSeconds: timer.pausedTimeSeconds,
     
     // Conversation time
-    conversationTimeSeconds,
+    conversationTimeSeconds: timer.conversationTimeSeconds,
     conversationStartTime,
+    
+    // Timer state
+    timerState: {
+      remainingSeconds: timer.remainingSeconds,
+      formattedRemaining: timer.formattedRemaining,
+      formattedElapsed: timer.formattedElapsed,
+      formattedConversation: timer.formattedConversation,
+      progressPercentage: timer.progressPercentage,
+      isExpired: timer.isExpired
+    },
     
     // Methods
     createSession,
@@ -599,11 +568,9 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
     pauseSession,
     resumeSession,
     endSession,
-    updateConversationTime,
-    saveSessionBackup,
     startConversationTimer,
     
     // Guards
-    isSessionCreationInProgress
+    isSessionCreationInProgress: () => sessionCreationInProgress.current
   }
 }

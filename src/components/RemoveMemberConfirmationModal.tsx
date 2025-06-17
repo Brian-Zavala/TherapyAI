@@ -2,6 +2,8 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle, User, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface FamilyMember {
   name: string;
@@ -24,25 +26,36 @@ export default function RemoveMemberConfirmationModal({
   member,
   isLoading = false
 }: RemoveMemberConfirmationModalProps) {
-  return (
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          key={`remove-confirmation-${member.name}-${member.age}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[10003] flex items-center justify-center p-2 sm:p-4"
-          onClick={onClose}
-        >
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+            onClick={onClose}
+          />
+          
+          {/* Modal Container - Centered */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-gray-700/50"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
           >
+            <div 
+              className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-gray-700/50"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Header */}
             <div className="relative px-4 sm:px-6 py-4 sm:py-5 bg-red-600/10 border-b border-red-600/20">
               <button
@@ -129,9 +142,23 @@ export default function RemoveMemberConfirmationModal({
                 </motion.button>
               </div>
             </div>
+            </div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
+
+  // Render portal only on client side
+  if (!isClient) {
+    return null;
+  }
+
+  const modalRoot = document.getElementById("modal-root");
+  if (!modalRoot) {
+    console.error("Modal root element not found");
+    return null;
+  }
+
+  return createPortal(modalContent, modalRoot);
 }

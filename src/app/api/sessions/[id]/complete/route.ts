@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateMetricsFromSession } from '../metrics-helper';
 import { Resend } from 'resend';
 import SessionCompletedEmail from '@/emails/SessionCompleted';
+import { rateLimitManager } from '@/lib/rate-limit-manager';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
@@ -18,8 +19,45 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
+  // Rate limiting check
+  const clientId = session.user?.id || 'anonymous';
+  const userType = (session.user as any)?.type || 'standard';
+  
+  const rateLimitResult = await rateLimitManager.checkLimits(
+    clientId,
+    'session-creation',
+    { 
+      endpoint: '/api/sessions/complete',
+      userType 
+    }
+  );
+  
+  if (!rateLimitResult.allowed) {
+    const response = NextResponse.json(
+      { 
+        error: "Too many session completion requests. Please try again later.",
+        retryAfter: rateLimitResult.nextRetryAfter 
+      },
+      { status: 429 }
+    );
+    
+    if (rateLimitResult.nextRetryAfter) {
+      response.headers.set('Retry-After', rateLimitResult.nextRetryAfter.toString());
+    }
+    
+    return response;
+  }
+  
   try {
     const { id: sessionId } = await params;
+    
+    // Parse request body for billing data
+    const body = await request.json().catch(() => ({}));
+    const {
+      totalPausedMinutes,
+      billableMinutes,
+      completionNotes
+    } = body;
     
     const therapySession = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -58,10 +96,39 @@ export async function POST(
       console.error('⚠️ PHASE 3: Error flushing transcripts, but continuing with completion:', flushError);
     }
 
-    // 2. Mark session as completed
+    // 2. Calculate final billing data if not provided
+    let finalBillableMinutes = billableMinutes;
+    let finalConversationTimeSeconds = therapySession.conversationTimeSeconds || 0;
+    
+    // If we're currently in an active conversation, add the current segment
+    if (therapySession.lastConversationStart && !therapySession.isPaused) {
+      const currentSegmentSeconds = Math.floor(
+        (Date.now() - new Date(therapySession.lastConversationStart).getTime()) / 1000
+      );
+      finalConversationTimeSeconds += currentSegmentSeconds;
+    }
+    
+    // Calculate billable minutes from conversation time if not provided
+    if (!finalBillableMinutes && finalConversationTimeSeconds > 0) {
+      finalBillableMinutes = Math.ceil(finalConversationTimeSeconds / 60);
+    }
+    
+    console.log(`💰 Final billing calculation for session ${sessionId}:`, {
+      conversationTimeSeconds: finalConversationTimeSeconds,
+      billableMinutes: finalBillableMinutes,
+      totalPausedMinutes: totalPausedMinutes || Math.floor((therapySession.totalPausedTimeSeconds || 0) / 60),
+      scheduledDuration: therapySession.duration
+    });
+    
+    // 3. Mark session as completed with billing data
     await prisma.session.update({
       where: { id: sessionId },
-      data: { status: 'completed' },
+      data: { 
+        status: 'completed',
+        conversationTimeSeconds: finalConversationTimeSeconds,
+        // Store billing data in notes or create new fields if needed
+        notes: completionNotes || `Session completed. Billable time: ${finalBillableMinutes} minutes (${finalConversationTimeSeconds} seconds of conversation). Total paused: ${totalPausedMinutes || 0} minutes.`
+      },
     });
     
     // 3. Generate comprehensive metrics based on the complete session (formerly real-time)
@@ -112,8 +179,8 @@ export async function POST(
     
     // Send SessionCompleted email
     try {
-      // Calculate duration in seconds
-      const durationInSeconds = therapySession.duration ? therapySession.duration * 60 : 1800; // Default to 30 minutes
+      // Use actual conversation time for the email
+      const durationInSeconds = finalConversationTimeSeconds || (therapySession.duration ? therapySession.duration * 60 : 1800);
       
       // Find the next scheduled session for this user
       const nextSession = await prisma.session.findFirst({
@@ -149,7 +216,15 @@ export async function POST(
       console.error('Error sending session completion email:', emailError);
     }
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      billing: {
+        conversationTimeSeconds: finalConversationTimeSeconds,
+        billableMinutes: finalBillableMinutes,
+        totalPausedMinutes: totalPausedMinutes || Math.floor((therapySession.totalPausedTimeSeconds || 0) / 60),
+        scheduledDurationMinutes: therapySession.duration
+      }
+    });
   } catch (error) {
     console.error('Error completing session:', error);
     return NextResponse.json({ error: 'Failed to complete session' }, { status: 500 });

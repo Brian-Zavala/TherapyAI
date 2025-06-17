@@ -135,8 +135,9 @@ body.session-active {
   background-color: transparent !important; /* !important likely needed to override inline styles or highly specific selectors */
   color: var(--color-text-light); /* Change text color for dark background */
   transition:
-    background 0.3s ease-in-out,
-    color 0.3s ease-in-out; /* Smooth transition */
+    background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.4s ease-in-out; /* Smoother transition with better easing */
   /* Ensure body can grow if content exceeds viewport height during session */
   height: auto !important; /* !important ensures override if height was previously constrained */
   min-height: 100vh; /* Reaffirm min-height */

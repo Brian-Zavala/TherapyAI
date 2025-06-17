@@ -1,9 +1,39 @@
-import { NextResponse } from 'next/server'
-import bcrypt from 'bcrypt'
+import { NextResponse, NextRequest } from 'next/server'
+import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { rateLimitManager } from '@/lib/rate-limit-manager'
+import { upstashRedis } from '@/lib/upstash-redis.service'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Rate limiting check - based on IP for registration
+    const clientId = request.headers.get('x-forwarded-for') || 
+                     request.headers.get('x-real-ip') || 
+                     'anonymous';
+    
+    // Use Redis-based rate limiting if available
+    const rateLimitResult = await rateLimitManager.checkLimits(
+      clientId, 
+      'registration',
+      { endpoint: '/api/register' }
+    );
+    
+    if (!rateLimitResult.allowed) {
+      const response = NextResponse.json(
+        { 
+          message: "Too many registration attempts. Please try again later.",
+          retryAfter: rateLimitResult.nextRetryAfter 
+        },
+        { status: 429 }
+      );
+      
+      if (rateLimitResult.nextRetryAfter) {
+        response.headers.set('Retry-After', rateLimitResult.nextRetryAfter.toString());
+      }
+      
+      return response;
+    }
+    
     const { name, email, password } = await request.json()
     
     // Basic validation
