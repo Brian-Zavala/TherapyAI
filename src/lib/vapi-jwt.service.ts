@@ -72,7 +72,6 @@ class VapiJWTService {
 
     const payload = {
       orgId: this.orgId,
-      token: { scope },
       sub: userId,
       iat: now,
       exp: expiresAt,

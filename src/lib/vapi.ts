@@ -65,13 +65,24 @@ export const initVapi = async (
         
         // Handle authentication errors specifically
         if (eventType === "error" && data) {
-          const errorMessage = data?.message || data?.error || '';
-          const isAuthError = 
-            errorMessage.toLowerCase().includes('unauthorized') ||
+          // Extract error message from various possible formats
+          let errorMessage = '';
+          if (typeof data === 'string') {
+            errorMessage = data;
+          } else if (data?.error?.message) {
+            errorMessage = data.error.message;
+          } else if (data?.message) {
+            errorMessage = data.message;
+          } else if (data?.error) {
+            errorMessage = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+          }
+          
+          const isAuthError = errorMessage && typeof errorMessage === 'string' &&
+            (errorMessage.toLowerCase().includes('unauthorized') ||
             errorMessage.toLowerCase().includes('401') ||
             errorMessage.toLowerCase().includes('token') ||
             errorMessage.toLowerCase().includes('auth') ||
-            errorMessage.toLowerCase().includes('jwt');
+            errorMessage.toLowerCase().includes('jwt'));
           
           if (isAuthError) {
             console.error('🔒 VAPI Authentication Error Detected:', errorMessage);
