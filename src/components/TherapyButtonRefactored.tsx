@@ -47,29 +47,56 @@ export function TherapyButtonRefactored({
   const playClick = useButtonSound()
   
   // Core hooks for session management
-  const vapi = useVapiSession({
-    onCallStart: () => {
-      console.log('[TherapyButton] VAPI call started - starting conversation timer')
-      // Add session-active class to trigger background transition
-      document.body.classList.add('session-active')
-      // Trigger conversation start timing with current sessionId
-      session.startConversationTimer(session.sessionId || undefined)
-    },
-    onCallEnd: (reason?: string) => {
-      console.log('[TherapyButton] VAPI call ended:', reason)
-      // Remove session-active class when VAPI call ends
-      document.body.classList.remove('session-active')
-      // Conversation time tracking should automatically stop
-    },
-    onError: (error: unknown) => {
-      console.error('[TherapyButton] VAPI error:', error)
-      setError(error instanceof Error ? error.message : String(error))
-    },
-    onMessage: (message) => {
-      // Forward VAPI messages to transcript handler
-      transcript.handleVapiMessage(message, vapi.vapiInstanceRef.current)
+  // Create vapi ref first
+  const vapiInstanceRef = useRef<any>(null)
+  
+  // Store session ref for callbacks
+  const sessionRef = useRef<any>(null)
+  
+  // Memoize VAPI callbacks to prevent re-renders
+  const handleVapiCallStart = useCallback(() => {
+    console.log('[TherapyButton] VAPI call started - starting conversation timer')
+    // Add session-active class to trigger background transition
+    document.body.classList.add('session-active')
+    // Trigger conversation start timing with current sessionId
+    if (sessionRef.current) {
+      sessionRef.current.startConversationTimer(sessionRef.current.sessionId || undefined)
     }
+  }, [])
+  
+  const handleVapiCallEnd = useCallback((reason?: string) => {
+    console.log('[TherapyButton] VAPI call ended:', reason)
+    // Remove session-active class when VAPI call ends
+    document.body.classList.remove('session-active')
+    // Conversation time tracking should automatically stop
+  }, [])
+  
+  const handleVapiError = useCallback((error: unknown) => {
+    console.error('[TherapyButton] VAPI error:', error)
+    setError(error instanceof Error ? error.message : String(error))
+  }, [])
+  
+  // Create transcript ref for the callback
+  const transcriptRef = useRef<any>(null)
+  
+  const handleVapiMessage = useCallback((message: any) => {
+    // Forward VAPI messages to transcript handler
+    if (transcriptRef.current) {
+      transcriptRef.current.handleVapiMessage(message, vapiInstanceRef.current)
+    }
+  }, [])
+  
+  const vapi = useVapiSession({
+    onCallStart: handleVapiCallStart,
+    onCallEnd: handleVapiCallEnd,
+    onError: handleVapiError,
+    onMessage: handleVapiMessage
   })
+  
+  // Update ref when vapi instance changes
+  useEffect(() => {
+    vapiInstanceRef.current = vapi.vapiInstanceRef.current
+  }, [vapi.vapiInstanceRef])
   
   // Memoize callbacks to prevent re-renders
   const handleSessionCreated = useCallback((sessionId: string) => {
@@ -201,6 +228,11 @@ export function TherapyButtonRefactored({
     onTranscriptUpdate: handleTranscriptUpdate,
     onMetricsUpdate: handleTranscriptMetricsUpdate
   })
+  
+  // Update transcript ref when transcript handler changes
+  useEffect(() => {
+    transcriptRef.current = transcript
+  }, [transcript])
 
   // Use Supabase realtime for metrics (as consumer to receive updates)
   useSupabaseRealTimeMetrics({
@@ -228,6 +260,11 @@ export function TherapyButtonRefactored({
     sessionDuration: session.sessionDuration,
     enabled: !!(session.sessionId && vapi.vapiState.isActive && !session.isSessionPaused)
   })
+  
+  // Update session ref when session changes
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
   
   // Local UI state
   const [showDurationModal, setShowDurationModal] = useState(false)

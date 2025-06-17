@@ -121,6 +121,7 @@ The original TherapyButton.tsx (4,431 lines) has been successfully refactored in
   - `useAuth` - Authentication management
   - `useButtonSound` - UI sound effects
   - `usePersistentOnboarding` - Onboarding state
+  - `useVapiToken` - JWT token management with rate limiting ⚠️ NEW
 - **10+ small UI components** for modular session interface
 - **Feature flag system** with development mode defaulting to refactored code
 - **TherapyButtonWrapper** component that routes to refactored implementation
@@ -130,7 +131,17 @@ The original TherapyButton.tsx (4,431 lines) has been successfully refactored in
 - ✅ TherapyButtonRefactored is the active implementation
 - ✅ Inline VAPI assistant configuration fully integrated
 - ✅ All hooks and components tested and working
+- ✅ Rate limiting properly implemented in useVapiToken hook
+- ✅ Fixed infinite loop issues with memoized callbacks
 - ⚠️ Original TherapyButton.tsx kept for emergency fallback only
+
+**Recent Critical Fixes (Dec 2024)**:
+- Fixed `useVapiSession` initialization order preventing "Cannot access before initialization" errors
+- Implemented proper rate limiting in `useVapiToken` with exponential backoff
+- Added comprehensive token validation and expiry checking
+- Memoized all callbacks to prevent re-render loops
+- Added user switching protection to clear rate limit state
+- Implemented periodic token validity checks for edge cases
 
 See `/docs/REFACTORING_STATUS.md` for implementation details.
 
@@ -163,6 +174,28 @@ npm run dev:https
 - **Never include Claude attribution** in commits
 
 ## Common Issues & Solutions
+
+### Rate Limiting & Token Management
+**Problem**: Infinite loops when rate limited, token refresh issues
+**Solution**: Proper state management and memoization
+
+```typescript
+// ✅ CORRECT: Use refs for callbacks to prevent re-renders
+const onErrorRef = useRef(onError);
+useEffect(() => {
+  onErrorRef.current = onError;
+}, [onError]);
+
+// ✅ CORRECT: Check rate limit before token fetch
+if (isRateLimitedRef.current && Date.now() < rateLimitResetTimeRef.current - 100) {
+  return; // Skip fetch while rate limited
+}
+
+// ✅ CORRECT: Validate received tokens
+if (!tokenData.token || tokenData.expiresAt <= Date.now() / 1000) {
+  throw new Error('Invalid or expired token');
+}
+```
 
 ### React Portals for Modals & Overlays
 **Problem**: Modals/overlays constrained by parent CSS (transform, filter, perspective)

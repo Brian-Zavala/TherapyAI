@@ -85,11 +85,11 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     const normalizedLevel = normalizeAudioLevel(average)
     
     setAudioLevel(normalizedLevel)
-    options.onAudioLevelChange?.(normalizedLevel)
+    optionsRef.current.onAudioLevelChange?.(normalizedLevel)
     
     // Continue animation loop
     animationFrameRef.current = requestAnimationFrame(analyzeAudio)
-  }, [vapiState.isActive, options])
+  }, [vapiState.isActive])
   
   // Setup audio analyzer for voice visualization
   const setupAudioAnalyzer = useCallback(async () => {
@@ -135,6 +135,19 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
   }, [analyzeAudio])
   
   // Get VAPI token
+  // Store options in refs to avoid stale closures
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+  
+  // Memoize the onError callback for useVapiToken to prevent re-renders
+  const handleTokenError = useCallback((error: Error) => {
+    console.error('[useVapiSession] Token error:', error);
+    setVapiState(prev => ({ ...prev, error: error.message }));
+    optionsRef.current.onError?.(error);
+  }, []);
+  
   const { 
     token, 
     isLoading: tokenLoading, 
@@ -143,11 +156,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     isExpiringSoon 
   } = useVapiToken({ 
     autoRefresh: true,
-    onError: (error) => {
-      console.error('[useVapiSession] Token error:', error);
-      setVapiState(prev => ({ ...prev, error: error.message }));
-      options.onError?.(error);
-    }
+    onError: handleTokenError
   });
 
   // Auto-refresh token when expiring soon during active call
@@ -157,37 +166,6 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       refreshToken();
     }
   }, [isExpiringSoon, vapiState.isActive, tokenLoading, refreshToken]);
-
-  // Listen for VAPI auth errors
-  useEffect(() => {
-    const handleAuthError = async (event: CustomEvent) => {
-      console.log('[useVapiSession] Received VAPI auth error event:', event.detail);
-      
-      // Try to refresh token
-      try {
-        await refreshToken();
-        console.log('[useVapiSession] Token refreshed after auth error');
-        
-        // If we have an active instance, recreate it with new token
-        if (vapiInstanceRef.current) {
-          const sessionId = (vapiInstanceRef.current as ExtendedVapi)?._sessionId;
-          await createVapiInstance(sessionId);
-        }
-      } catch (error) {
-        console.error('[useVapiSession] Failed to recover from auth error:', error);
-        setVapiState(prev => ({ 
-          ...prev, 
-          error: 'Authentication failed. Please try again.'
-        }));
-      }
-    };
-
-    window.addEventListener('vapi-auth-error', handleAuthError as EventListener);
-    
-    return () => {
-      window.removeEventListener('vapi-auth-error', handleAuthError as EventListener);
-    };
-  }, [refreshToken, createVapiInstance]);
 
   // Create VAPI instance
   const createVapiInstance = useCallback(async (sessionId?: string): Promise<boolean> => {
@@ -238,11 +216,42 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       console.error('Failed to create Vapi instance:', error)
       const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.VAPI_INIT_FAILED
       setVapiState(prev => ({ ...prev, error: errorMessage }))
-      options.onError?.(error)
+      optionsRef.current.onError?.(error)
       return false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options, token, tokenError])
+  }, [token, tokenError])
+  
+  // Listen for VAPI auth errors
+  useEffect(() => {
+    const handleAuthError = async (event: CustomEvent) => {
+      console.log('[useVapiSession] Received VAPI auth error event:', event.detail);
+      
+      // Try to refresh token
+      try {
+        await refreshToken();
+        console.log('[useVapiSession] Token refreshed after auth error');
+        
+        // If we have an active instance, recreate it with new token
+        if (vapiInstanceRef.current) {
+          const sessionId = (vapiInstanceRef.current as ExtendedVapi)?._sessionId;
+          await createVapiInstance(sessionId);
+        }
+      } catch (error) {
+        console.error('[useVapiSession] Failed to recover from auth error:', error);
+        setVapiState(prev => ({ 
+          ...prev, 
+          error: 'Authentication failed. Please try again.'
+        }));
+      }
+    };
+
+    window.addEventListener('vapi-auth-error', handleAuthError as EventListener);
+    
+    return () => {
+      window.removeEventListener('vapi-auth-error', handleAuthError as EventListener);
+    };
+  }, [refreshToken, createVapiInstance]);
   
   // Set up VAPI event handlers
   const setupEventHandlers = useCallback(() => {
@@ -262,7 +271,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       setupAudioAnalyzer()
       
       // Notify parent
-      options.onCallStart?.()
+      optionsRef.current.onCallStart?.()
     })
     
     // Call end event
@@ -307,7 +316,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       window.dispatchEvent(new Event('sessionStateChanged'))
       
       // Notify parent
-      options.onCallEnd?.(reason)
+      optionsRef.current.onCallEnd?.(reason)
     })
     
     // Error event
@@ -371,7 +380,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         isLoading: false 
       }))
       
-      options.onError?.(error)
+      optionsRef.current.onError?.(error)
     })
     
     // Message event
@@ -379,17 +388,17 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       // Check for function calls
       if (isFunctionCallMessage(message) && message.functionCall) {
         console.log('🔧 Function call:', message.functionCall.name)
-        options.onFunctionCall?.(
+        optionsRef.current.onFunctionCall?.(
           message.functionCall.name, 
           message.functionCall.parameters
         )
       }
       
       // Pass all messages to parent
-      options.onMessage?.(message)
+      optionsRef.current.onMessage?.(message)
     })
     
-  }, [options, setupAudioAnalyzer])
+  }, [setupAudioAnalyzer])
   
   // Start VAPI call
   const startCall = useCallback(async (assistantIdOrConfig: string | AssistantConfigType) => {
