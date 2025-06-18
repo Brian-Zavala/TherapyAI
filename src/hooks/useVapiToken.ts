@@ -51,7 +51,11 @@ export function useVapiToken({
     
     // Don't fetch if no session
     if (status !== 'authenticated' || !session?.user?.id) {
-      setError('No authenticated session');
+      const errorMsg = status === 'loading' 
+        ? 'Authentication in progress, please wait...' 
+        : 'No authenticated session - please log in';
+      setError(errorMsg);
+      console.log(`[useVapiToken] Auth status: ${status}, session: ${session ? 'exists' : 'null'}`);
       return;
     }
     

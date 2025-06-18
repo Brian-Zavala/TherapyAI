@@ -19,7 +19,7 @@ export function PausedOverlay({ isPaused, totalPausedMinutes }: PausedOverlayPro
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-40 rounded-[28px]"
+          className="absolute inset-x-0 top-0 bottom-24 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30 rounded-t-[28px]"
         >
           <div className="bg-gray-900/90 p-8 rounded-2xl border border-orange-500/30 shadow-2xl max-w-sm mx-4">
             <div className="flex flex-col items-center">

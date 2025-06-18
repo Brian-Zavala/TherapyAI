@@ -34,6 +34,10 @@ interface UseVapiSessionReturn {
   vapiState: VapiState
   audioLevel: number
   
+  // Authentication state
+  isAuthLoading: boolean
+  authError: string | null
+  
   // Methods
   createVapiInstance: (sessionId?: string) => Promise<boolean>
   startCall: (assistantIdOrConfig: string | AssistantConfigType) => Promise<void>
@@ -172,7 +176,15 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     try {
       // Don't create instance if token is not ready
       if (!token) {
-        throw new Error(tokenError || ERROR_MESSAGES.VAPI_KEY_MISSING);
+        // If token is still loading, this is expected
+        if (tokenLoading) {
+          console.log('[useVapiSession] Token is still loading, waiting...');
+          throw new Error('Authentication in progress, please wait...');
+        }
+        
+        const errorMsg = tokenError || ERROR_MESSAGES.VAPI_KEY_MISSING;
+        console.error('[useVapiSession] No token available:', { tokenError, tokenLoading });
+        throw new Error(errorMsg);
       }
 
       // Dispose of any existing instance
@@ -571,6 +583,10 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     // State
     vapiState,
     audioLevel,
+    
+    // Authentication state
+    isAuthLoading: tokenLoading,
+    authError: tokenError,
     
     // Methods
     createVapiInstance,

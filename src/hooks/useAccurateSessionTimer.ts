@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useStopwatch, useTimer } from 'react-timer-hook';
 
 export interface SessionTimerState {
@@ -45,39 +45,51 @@ export function useAccurateSessionTimer({
 }: UseAccurateSessionTimerProps): SessionTimerState {
   const totalSessionSeconds = sessionDurationMinutes * 60;
   
+  // Memoize offset timestamps to prevent re-creation
+  const conversationOffsetTimestamp = useMemo(() => {
+    const offset = new Date();
+    offset.setSeconds(offset.getSeconds() + initialConversationTimeSeconds);
+    return offset;
+  }, [initialConversationTimeSeconds]);
+  
+  const pauseOffsetTimestamp = useMemo(() => {
+    const offset = new Date();
+    offset.setSeconds(offset.getSeconds() + initialPausedTimeSeconds);
+    return offset;
+  }, [initialPausedTimeSeconds]);
+  
+  const expiryTimestamp = useMemo(() => {
+    const expiry = new Date();
+    const remainingSeconds = totalSessionSeconds - initialConversationTimeSeconds;
+    expiry.setSeconds(expiry.getSeconds() + remainingSeconds);
+    return expiry;
+  }, [totalSessionSeconds, initialConversationTimeSeconds]);
+  
+  // Use refs to store callbacks to prevent re-creation
+  const onExpireRef = useRef(onExpire);
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
+  
   // Track conversation time with a stopwatch
   const conversationStopwatch = useStopwatch({
     autoStart: false,
-    offsetTimestamp: (() => {
-      const offset = new Date();
-      offset.setSeconds(offset.getSeconds() + initialConversationTimeSeconds);
-      return offset;
-    })(),
+    offsetTimestamp: conversationOffsetTimestamp,
   });
   
   // Track pause time with a separate stopwatch
   const pauseStopwatch = useStopwatch({
     autoStart: false,
-    offsetTimestamp: (() => {
-      const offset = new Date();
-      offset.setSeconds(offset.getSeconds() + initialPausedTimeSeconds);
-      return offset;
-    })(),
+    offsetTimestamp: pauseOffsetTimestamp,
   });
   
   // Track overall session countdown
   const sessionTimer = useTimer({
-    expiryTimestamp: (() => {
-      const expiry = new Date();
-      // Remaining time = total session time - conversation time
-      const remainingSeconds = totalSessionSeconds - initialConversationTimeSeconds;
-      expiry.setSeconds(expiry.getSeconds() + remainingSeconds);
-      return expiry;
-    })(),
+    expiryTimestamp: expiryTimestamp,
     onExpire: () => {
       conversationStopwatch.pause();
       pauseStopwatch.pause();
-      onExpire?.();
+      onExpireRef.current?.();
     },
     autoStart: isConversationActive && !isPaused,
   });
@@ -110,7 +122,7 @@ export function useAccurateSessionTimer({
       sessionTimer.pause();
       isActiveRef.current = false;
     }
-  }, [isConversationActive, isPaused, conversationStopwatch, pauseStopwatch, sessionTimer]);
+  }, [isConversationActive, isPaused]); // Remove timer dependencies to prevent infinite loops
   
   // Periodic time updates to server
   useEffect(() => {

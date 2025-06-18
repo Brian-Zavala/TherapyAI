@@ -123,11 +123,15 @@ export interface SessionRecoveryData {
   remainingMinutes: number;
   autoRestarted: boolean;
   sessionData: SessionData;
+  sessionDuration?: number; // Original session duration in minutes
   pauseInfo?: {
     isPaused: boolean;
     pauseStartTime: string | null;
     totalPausedTime: number;
   };
+  elapsedTimeSeconds?: number; // Total elapsed time
+  totalPausedTimeSeconds?: number; // Total paused time
+  therapyType?: string; // Therapy type for recovery
 }
 
 // Transcript entry for storage

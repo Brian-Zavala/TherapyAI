@@ -527,22 +527,31 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       
       // CRITICAL FIX: Signal to TherapyButtonRefactored to auto-start the session
       console.log('🚀 Triggering auto-start for recovered session...')
+      console.log('📊 Session duration:', currentSessionData.duration || sessionData.duration, 'minutes')
       
       // Set a flag to indicate auto-start should happen
       sessionStorage.setItem('session-auto-start', JSON.stringify({
         sessionId: sessionData.id,
-        sessionData: currentSessionData,
+        sessionData: {
+          ...currentSessionData,
+          duration: currentSessionData.duration || sessionData.duration || 60 // Ensure duration is preserved
+        },
         detectedType,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        sessionDuration: currentSessionData.duration || sessionData.duration || 60 // Explicit duration field
       }))
       
       // Trigger a custom event that TherapyButtonRefactored can listen for
       window.dispatchEvent(new CustomEvent('sessionRecoveryComplete', {
         detail: {
           sessionId: sessionData.id,
-          sessionData: currentSessionData,
+          sessionData: {
+            ...currentSessionData,
+            duration: currentSessionData.duration || sessionData.duration || 60 // Ensure duration is preserved
+          },
           detectedType,
-          assistant
+          assistant,
+          sessionDuration: currentSessionData.duration || sessionData.duration || 60 // Explicit duration field
         }
       }))
       

@@ -53,23 +53,77 @@ export function TherapyButtonRefactored({
   // Store session ref for callbacks
   const sessionRef = useRef<any>(null)
   
+  // Session active class management - moved here to be available for callbacks
+  const sessionActiveManaged = useRef(false)
+  const sessionActiveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Centralized function to manage session-active class
+  const setSessionActive = useCallback((active: boolean) => {
+    // Clear any pending timeout
+    if (sessionActiveTimeoutRef.current) {
+      clearTimeout(sessionActiveTimeoutRef.current)
+      sessionActiveTimeoutRef.current = null
+    }
+    
+    // Update managed flag
+    sessionActiveManaged.current = active
+    
+    // Use requestAnimationFrame for smooth DOM updates
+    requestAnimationFrame(() => {
+      if (active && !document.body.classList.contains('session-active')) {
+        document.body.classList.add('session-active')
+        console.log('✅ Added session-active class')
+        
+        // Set window flag
+        if (typeof window !== 'undefined') {
+          (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = true
+        }
+      } else if (!active && document.body.classList.contains('session-active')) {
+        // Add a small delay before removing to prevent flicker during transitions
+        sessionActiveTimeoutRef.current = setTimeout(() => {
+          if (!sessionActiveManaged.current) {
+            document.body.classList.remove('session-active')
+            console.log('✅ Removed session-active class')
+            
+            // Clear window flag
+            if (typeof window !== 'undefined') {
+              (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
+            }
+            
+            // Reset main opacity
+            const main = document.querySelector('main')
+            if (main) {
+              main.style.opacity = '1'
+            }
+          }
+        }, 100) // Small delay to prevent flicker
+      }
+      
+      // Dispatch event
+      window.dispatchEvent(new Event('sessionStateChanged'))
+    })
+  }, [])
+  
   // Memoize VAPI callbacks to prevent re-renders
   const handleVapiCallStart = useCallback(() => {
     console.log('[TherapyButton] VAPI call started - starting conversation timer')
     // Add session-active class to trigger background transition
-    document.body.classList.add('session-active')
+    setSessionActive(true)
     // Trigger conversation start timing with current sessionId
     if (sessionRef.current) {
       sessionRef.current.startConversationTimer(sessionRef.current.sessionId || undefined)
     }
-  }, [])
+  }, [setSessionActive])
   
   const handleVapiCallEnd = useCallback((reason?: string) => {
     console.log('[TherapyButton] VAPI call ended:', reason)
     // Remove session-active class when VAPI call ends
-    document.body.classList.remove('session-active')
+    // Only if we're not loading or in a modal
+    if (!isLoadingRef.current && !showDurationModalRef.current && !showFamilySelectionModalRef.current) {
+      setSessionActive(false)
+    }
     // Conversation time tracking should automatically stop
-  }, [])
+  }, [setSessionActive])
   
   const handleVapiError = useCallback((error: unknown) => {
     console.error('[TherapyButton] VAPI error:', error)
@@ -92,6 +146,9 @@ export function TherapyButtonRefactored({
     onError: handleVapiError,
     onMessage: handleVapiMessage
   })
+  
+  // Destructure authentication state from vapi
+  const { isAuthLoading, authError } = vapi
   
   // Update ref when vapi instance changes
   useEffect(() => {
@@ -275,6 +332,17 @@ export function TherapyButtonRefactored({
   const [isRecoveredSession, setIsRecoveredSession] = useState(false)
   const [forceHidePhoneUI, setForceHidePhoneUI] = useState(false)
   
+  // Create refs for callbacks to avoid re-renders
+  const isLoadingRef = useRef(isLoading)
+  const showDurationModalRef = useRef(showDurationModal)
+  const showFamilySelectionModalRef = useRef(showFamilySelectionModal)
+  
+  useEffect(() => {
+    isLoadingRef.current = isLoading
+    showDurationModalRef.current = showDurationModal
+    showFamilySelectionModalRef.current = showFamilySelectionModal
+  }, [isLoading, showDurationModal, showFamilySelectionModal])
+  
   // Family member management for family therapy
   const [familyMembers, setFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
   const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
@@ -335,15 +403,45 @@ export function TherapyButtonRefactored({
       try {
         console.log('🚀 Auto-starting VAPI session for recovered session:', sessionId)
         
+        // Check if authentication is still loading
+        if (isAuthLoading) {
+          console.log('⏳ Authentication still loading, deferring recovery...')
+          // Defer recovery by re-triggering the event after a delay
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('sessionRecoveryComplete', { detail: event.detail }))
+          }, 1000)
+          setIsProcessingRecovery(false)
+          recoveryProcessedRef.current.delete(sessionId)
+          return
+        }
+        
+        // Check if there's an authentication error
+        if (authError) {
+          console.error('❌ Authentication error, cannot recover session:', authError)
+          throw new Error(`Authentication failed: ${authError}`)
+        }
+        
         // First recover the session state in session management
         try {
+          // Get session duration from event detail or sessionData
+          const duration = event.detail.sessionDuration || sessionData.duration || 60
+          console.log('🕐 Recovering session with duration:', duration, 'minutes')
+          
           await session.recoverSession({
             sessionId,
-            sessionData,
+            sessionData: {
+              ...sessionData,
+              duration // Ensure duration is included
+            },
             originalStart: sessionData.startTime || new Date().toISOString(),
             conversationTimeSeconds: sessionData.conversationTimeSeconds || 0,
-            pauseInfo: sessionData.pauseInfo
-          })
+            pauseInfo: sessionData.pauseInfo,
+            sessionDuration: duration, // Explicit duration field
+            remainingMinutes: Math.floor((duration * 60 - (sessionData.conversationTimeSeconds || 0)) / 60),
+            conversationTimeMinutes: (sessionData.conversationTimeSeconds || 0) / 60,
+            recoveredAt: new Date().toISOString(),
+            autoRestarted: true
+          } as SessionRecoveryData)
           
           // Initialize metrics calculator for recovered session
           if (user?.id) {
@@ -434,8 +532,8 @@ export function TherapyButtonRefactored({
         }
         
         // Ensure session-active class is set for recovered sessions
-        document.body.classList.add('session-active')
-        console.log('🌟 Added session-active class for recovered session')
+        setSessionActive(true)
+        console.log('🌟 Set session-active for recovered session')
         
         console.log('✅ VAPI session auto-started successfully for recovery')
         
@@ -503,21 +601,26 @@ export function TherapyButtonRefactored({
     return () => {
       window.removeEventListener('sessionRecoveryComplete', handleSessionRecoveryComplete as EventListener)
       clearInterval(cleanupInterval)
-      // Reset recovery state on unmount
-      setIsProcessingRecovery(false)
+      // Don't update state in cleanup - it causes infinite loops
+      // The ref will be reset naturally when component remounts
     }
-  }, [vapi, therapyType, user?.id])
+  }, [vapi, therapyType, user?.id, isAuthLoading, authError, setSessionActive])
   
   // Cleanup session-active class on unmount to prevent stuck states
   useEffect(() => {
     return () => {
+      // Use refs to avoid stale closures in cleanup
+      const currentSessionId = sessionRef.current?.sessionId
+      const currentVapiState = vapiInstanceRef.current
+      
       // Only remove if no active session exists
-      if (!session.sessionId && !vapi.vapiState.isActive) {
+      // Don't check state variables in cleanup to avoid infinite loops
+      if (!currentSessionId && !currentVapiState) {
         document.body.classList.remove('session-active')
         console.log('🧹 Cleaned up session-active class on component unmount')
       }
     }
-  }, [session.sessionId, vapi.vapiState.isActive])
+  }, []) // Empty deps to run only on mount/unmount
   
   // Helper to get assistant config by type
   const getAssistantConfigByType = (type: string) => {
@@ -553,26 +656,10 @@ export function TherapyButtonRefactored({
     // This allows the duration modal to be visible and interactive
     
     // 1. Set session-active class for starry night background
-    document.body.classList.add('session-active')
-    console.log('Added session-active class to body - background should transition to starry night')
+    setSessionActive(true)
+    console.log('Set session-active for therapy button click')
     
-    // Force a small delay to ensure MutationObserver catches the change
-    setTimeout(() => {
-      // Double-check the class is still there
-      if (!document.body.classList.contains('session-active')) {
-        console.log('⚠️ Re-adding session-active class')
-        document.body.classList.add('session-active')
-      }
-      
-      // Dispatch a custom event to notify any listeners
-      window.dispatchEvent(new Event('sessionStateChanged'))
-    }, 10)
-    
-    // 2. Set window flag to prevent cleanup
-    if (typeof window !== 'undefined') {
-      (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = true;
-      console.log('Set window.__therapySessionActive = true')
-    }
+    // 2. Set window flag is handled by setSessionActive
     
     // 3. Apply visual effects
     const main = document.querySelector('main')
@@ -599,6 +686,19 @@ export function TherapyButtonRefactored({
     
     // Reset forceHidePhoneUI when starting a new session
     setForceHidePhoneUI(false)
+    
+    // Check authentication state before proceeding
+    if (isAuthLoading) {
+      console.log('⏳ Authentication still loading, waiting...')
+      setError('Please wait for authentication to complete')
+      return
+    }
+    
+    if (authError) {
+      console.error('❌ Authentication error:', authError)
+      setError(authError)
+      return
+    }
     
     // NOW set loading state after duration is selected
     setIsLoading(true)
@@ -784,18 +884,11 @@ export function TherapyButtonRefactored({
       
       // Reset UI state on error
       setForceHidePhoneUI(false) // Ensure proper cleanup
-      document.body.classList.remove('session-active')
-      if (typeof window !== 'undefined') {
-        (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
-      }
-      const main = document.querySelector('main')
-      if (main) {
-        main.style.opacity = '1'
-      }
+      setSessionActive(false)
     } finally {
       setIsLoading(false) // Stop loading
     }
-  }, [therapyType, session, vapi, selectedFamilyMembers, user?.id])
+  }, [therapyType, session, vapi, selectedFamilyMembers, user?.id, isAuthLoading, authError, setSessionActive])
   
   // Handle end session
   const handleEndSession = useCallback(async () => {
@@ -821,18 +914,7 @@ export function TherapyButtonRefactored({
       setError(null)
       
       // Remove session-active class to return to inactive state
-      document.body.classList.remove('session-active')
-      
-      // Reset window flag
-      if (typeof window !== 'undefined') {
-        (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
-      }
-      
-      // Reset main opacity
-      const main = document.querySelector('main')
-      if (main) {
-        main.style.opacity = '1'
-      }
+      setSessionActive(false)
       
       // Clear any session recovery data
       sessionStorage.removeItem('session-recovery-pending')
@@ -860,12 +942,9 @@ export function TherapyButtonRefactored({
       // Still reset UI on error
       setIsLoading(false)
       setForceHidePhoneUI(false)
-      document.body.classList.remove('session-active')
-      if (typeof window !== 'undefined') {
-        (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
-      }
+      setSessionActive(false)
     }
-  }, [vapi, session, sessionState])
+  }, [vapi, session, sessionState, setSessionActive])
 
   
   // Handle time updates from the timer
@@ -954,28 +1033,27 @@ export function TherapyButtonRefactored({
     setShowFamilySelectionModal(false)
     // Reset UI state if user cancels the modal
     setIsLoading(false)
-    document.body.classList.remove('session-active')
-    if (typeof window !== 'undefined') {
-      (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
-    }
-    const main = document.querySelector('main')
-    if (main) {
-      main.style.opacity = '1'
-    }
+    setSessionActive(false)
     console.log('🔙 Family selection modal cancelled - reverting UI state')
-  }, [])
+  }, [setSessionActive])
 
   const handleRemoveFamilyMember = useCallback((index: number) => {
     setFamilyMembers(prev => prev.filter((_, i) => i !== index))
   }, [])
 
   
-  // Debug logging for UI state (only on sessionId change)
+  // Monitor session state and ensure session-active class is in sync
   useEffect(() => {
-    if (session.sessionId) {
-      console.log('[TherapyButton Debug] Session started:', session.sessionId)
+    const hasActiveSession = !!(session.sessionId || vapi.vapiState.isActive || isLoading || showDurationModal || showFamilySelectionModal)
+    
+    if (hasActiveSession && !sessionActiveManaged.current) {
+      console.log('[Session Monitor] Detected active session, ensuring session-active class')
+      setSessionActive(true)
+    } else if (!hasActiveSession && sessionActiveManaged.current && !forceHidePhoneUI) {
+      console.log('[Session Monitor] No active session, ensuring session-active class removed')
+      setSessionActive(false)
     }
-  }, [session.sessionId])
+  }, [session.sessionId, vapi.vapiState.isActive, isLoading, showDurationModal, showFamilySelectionModal, forceHidePhoneUI, setSessionActive])
 
 
   // Get therapist name based on therapy type
@@ -989,10 +1067,38 @@ export function TherapyButtonRefactored({
   }
   
   // Render different states
+  // Show authentication loading state first
+  if (isAuthLoading && !session.sessionId) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-600">Authenticating...</p>
+      </div>
+    )
+  }
+  
+  // Show authentication error if present and no active session
+  if (authError && !session.sessionId && !vapi.vapiState.isActive) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-700">Authentication Error</p>
+          <p className="text-red-600 text-sm mt-1">{authError}</p>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Refresh Page
+        </button>
+      </div>
+    )
+  }
+  
   // Show session UI if we have a session ID OR if VAPI reports as active OR if loading
   // This ensures the phone container appears immediately when starting a session
   // But also ensures it hides properly when session ends
-  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading) && !session.isEndingSession && !forceHidePhoneUI
+  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading || isLoading) && !session.isEndingSession && !forceHidePhoneUI
   
   if (showPhoneUI || isLoading) {
 
@@ -1351,14 +1457,7 @@ export function TherapyButtonRefactored({
               setShowDurationModal(false)
               // Reset UI state if user cancels the modal
               setIsLoading(false)
-              document.body.classList.remove('session-active')
-              if (typeof window !== 'undefined') {
-                (window as Window & { __therapySessionActive?: boolean }).__therapySessionActive = false
-              }
-              const main = document.querySelector('main')
-              if (main) {
-                main.style.opacity = '1'
-              }
+              setSessionActive(false)
               console.log('🔙 Duration modal cancelled - reverting UI state')
             }}
             onSelectDuration={handleDurationSelect}

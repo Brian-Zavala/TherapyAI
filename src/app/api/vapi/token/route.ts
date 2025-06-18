@@ -45,6 +45,16 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now();
 
     try {
+      // Check if JWT service is available
+      if (!vapiJWTRedisService) {
+        console.error('[VAPI Token] JWT service not initialized - missing VAPI_ORG_ID or VAPI_PRIVATE_KEY environment variables');
+        return NextResponse.json({
+          error: 'Voice service configuration error. Please contact support.',
+          code: 'SERVICE_NOT_CONFIGURED',
+          statusCode: 503,
+        } as VapiError, { status: 503 });
+      }
+      
       // Generate token with Redis caching and rate limiting
       const tokenData = await vapiJWTRedisService.getOrCreateToken(userId, scope, userType);
       

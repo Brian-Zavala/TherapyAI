@@ -142,8 +142,20 @@ The original TherapyButton.tsx (4,431 lines) has been successfully refactored in
 - Memoized all callbacks to prevent re-render loops
 - Added user switching protection to clear rate limit state
 - Implemented periodic token validity checks for edge cases
+- **Fixed UI flicker during VAPI session initialization** - Centralized session-active class management
+- **Resolved "Maximum update depth exceeded" errors** - Removed setState calls from cleanup functions
+- **Implemented ref-based state access in callbacks** - Prevents stale closures and re-render loops
+- **Fixed react-timer-hook infinite loops** - Used refs for timer functions to prevent re-render cycles
+- **Fixed pause/resume UI accessibility** - Adjusted overlay positioning to keep controls accessible
+- **Added optimistic UI updates** - Instant feedback for pause/resume actions
 
-See `/docs/REFACTORING_STATUS.md` for implementation details.
+See documentation for details:
+- `/docs/REFACTORING_STATUS.md` - Full refactoring implementation
+- `/docs/JWT_AUTHENTICATION_FIX.md` - JWT/VAPI authentication fixes  
+- `/docs/UI_FLICKER_FIX.md` - UI flicker and infinite loop fixes
+- `/src/hooks/RATE_LIMITING_FIX.md` - Rate limiting best practices
+- `/docs/REACT_TIMER_HOOK_FIX.md` - React timer hook infinite loop fixes
+- `/docs/SESSION_RECOVERY_FIXES.md` - Session recovery and pause/resume fixes
 
 ## Development Setup
 

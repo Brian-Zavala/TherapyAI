@@ -149,6 +149,17 @@ export function useSupabaseSessionState({
   const pauseSession = useCallback(async () => {
     if (!sessionId) return
     
+    // Optimistic update - update UI immediately
+    setState(prev => ({
+      ...prev,
+      isPaused: true,
+      session: prev.session ? {
+        ...prev.session,
+        isPaused: true,
+        pausedAt: new Date().toISOString(),
+      } : null
+    }))
+    
     try {
       // Update database
       const response = await fetch(`/api/sessions/${sessionId}/pause`, {
@@ -162,7 +173,7 @@ export function useSupabaseSessionState({
       
       const data = await response.json()
       
-      // Update local state with response data
+      // Update local state with actual response data
       setState(prev => ({
         ...prev,
         isPaused: true,
@@ -183,13 +194,34 @@ export function useSupabaseSessionState({
       
     } catch (error) {
       console.error('Failed to pause session:', error)
-      setState(prev => ({ ...prev, error: 'Failed to pause session' }))
+      // Revert optimistic update on error
+      setState(prev => ({ 
+        ...prev, 
+        isPaused: false,
+        session: prev.session ? {
+          ...prev.session,
+          isPaused: false,
+          pausedAt: null
+        } : null,
+        error: 'Failed to pause session' 
+      }))
     }
   }, [sessionId, broadcastStateChange])
 
   // Resume session
   const resumeSession = useCallback(async () => {
     if (!sessionId) return
+    
+    // Optimistic update - update UI immediately
+    setState(prev => ({
+      ...prev,
+      isPaused: false,
+      session: prev.session ? {
+        ...prev.session,
+        isPaused: false,
+        resumedAt: new Date().toISOString(),
+      } : null
+    }))
     
     try {
       // Update database
@@ -204,7 +236,7 @@ export function useSupabaseSessionState({
       
       const data = await response.json()
       
-      // Update local state with response data
+      // Update local state with actual response data
       setState(prev => ({
         ...prev,
         isPaused: false,
@@ -225,7 +257,17 @@ export function useSupabaseSessionState({
       
     } catch (error) {
       console.error('Failed to resume session:', error)
-      setState(prev => ({ ...prev, error: 'Failed to resume session' }))
+      // Revert optimistic update on error
+      setState(prev => ({ 
+        ...prev, 
+        isPaused: true,
+        session: prev.session ? {
+          ...prev.session,
+          isPaused: true,
+          resumedAt: null
+        } : null,
+        error: 'Failed to resume session' 
+      }))
     }
   }, [sessionId, broadcastStateChange])
 

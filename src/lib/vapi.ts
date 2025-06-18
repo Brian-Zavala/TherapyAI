@@ -17,6 +17,12 @@ export const initVapi = async (
   } = {}
 ) => {
   try {
+    // Validate token before creating instance
+    if (!token) {
+      console.error("❌ No token provided to initVapi");
+      throw new Error("JWT token is required to initialize Vapi");
+    }
+
     // Create a simple Vapi instance - explicitly provide the API URL as second parameter
     console.log(
       "Creating Vapi instance with explicit API URL as constructor parameter"
@@ -26,7 +32,7 @@ export const initVapi = async (
     // This is the recommended way according to the Vapi API docs
     const vapiInstance = new Vapi(token);
     console.log(
-      "Created Vapi instance with token:", token ? token.substring(0, 8) + "..." : "NO TOKEN"
+      "✅ Created Vapi instance with token:", token ? token.substring(0, 8) + "..." : "NO TOKEN"
     );
 
     // Double-check that window.fetch isn't modified in a way that could cause issues

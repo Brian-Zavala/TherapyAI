@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { useTimer } from 'react-timer-hook'
+import { useTimer, useStopwatch } from 'react-timer-hook'
 
 interface SessionTimerV2Props {
   durationMinutes: number
@@ -36,6 +36,12 @@ export default function SessionTimerV2({
     return now
   }, [durationMinutes, conversationTimeSeconds])
   
+  // Store callbacks in refs to prevent re-creation
+  const onExpireRef = useRef(onExpire)
+  useEffect(() => {
+    onExpireRef.current = onExpire
+  }, [onExpire])
+  
   // Initialize timer with react-timer-hook
   const {
     totalSeconds,
@@ -50,10 +56,21 @@ export default function SessionTimerV2({
     expiryTimestamp: calculateExpiryTimestamp(),
     onExpire: () => {
       console.log('⏰ Session timer expired')
-      onExpire?.()
+      onExpireRef.current?.()
     },
     autoStart: false, // We'll control start/stop based on conversation state
   })
+  
+  // Store timer functions in refs to prevent re-render loops
+  const startRef = useRef(start)
+  const pauseRef = useRef(pause)
+  const restartRef = useRef(restart)
+  
+  useEffect(() => {
+    startRef.current = start
+    pauseRef.current = pause
+    restartRef.current = restart
+  }, [start, pause, restart])
   
   // Client-side rendering check
   useEffect(() => {
@@ -67,15 +84,15 @@ export default function SessionTimerV2({
     if (isConversationActive && !isPaused) {
       if (!isRunning) {
         console.log('▶️ Starting timer countdown')
-        start()
+        startRef.current()
       }
     } else {
       if (isRunning) {
         console.log('⏸️ Pausing timer countdown')
-        pause()
+        pauseRef.current()
       }
     }
-  }, [isConversationActive, isPaused, isRunning, start, pause, isClient])
+  }, [isConversationActive, isPaused, isRunning, isClient]) // Remove start/pause to prevent infinite loops
   
   // Handle external conversation time updates
   useEffect(() => {
@@ -92,9 +109,9 @@ export default function SessionTimerV2({
     if (timeDiff > 5) {
       console.log(`⏱️ Timer sync needed: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
       const newExpiry = calculateExpiryTimestamp()
-      restart(newExpiry, isConversationActive && !isPaused)
+      restartRef.current(newExpiry, isConversationActive && !isPaused)
     }
-  }, [conversationTimeSeconds, durationMinutes, totalSeconds, restart, isConversationActive, isPaused, isClient, calculateExpiryTimestamp])
+  }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, calculateExpiryTimestamp]) // Remove restart to prevent infinite loops
   
   // Notify parent of time updates
   useEffect(() => {
@@ -267,6 +284,15 @@ export function SessionStopwatch({
     offsetTimestamp: getOffsetTimestamp()
   })
   
+  // Store stopwatch functions in refs
+  const stopwatchStartRef = useRef(start)
+  const stopwatchPauseRef = useRef(pause)
+  
+  useEffect(() => {
+    stopwatchStartRef.current = start
+    stopwatchPauseRef.current = pause
+  }, [start, pause])
+  
   useEffect(() => {
     setIsClient(true)
   }, [])
@@ -277,14 +303,14 @@ export function SessionStopwatch({
     
     if (isActive && !isPaused) {
       if (!isRunning) {
-        start()
+        stopwatchStartRef.current()
       }
     } else {
       if (isRunning) {
-        pause()
+        stopwatchPauseRef.current()
       }
     }
-  }, [isActive, isPaused, isRunning, start, pause, isClient])
+  }, [isActive, isPaused, isRunning, isClient]) // Remove start/pause to prevent infinite loops
   
   // Notify parent of elapsed time
   useEffect(() => {

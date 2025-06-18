@@ -225,7 +225,21 @@ class VapiJWTRedisService {
 }
 
 // Export singleton instance with Redis support
-export const vapiJWTRedisService = new VapiJWTRedisService();
+// Initialize only if required environment variables are present
+let vapiJWTRedisService: VapiJWTRedisService | null = null;
+
+try {
+  if (process.env.VAPI_ORG_ID && process.env.VAPI_PRIVATE_KEY) {
+    vapiJWTRedisService = new VapiJWTRedisService();
+  } else {
+    console.error('[VapiJWTRedisService] Missing required environment variables: VAPI_ORG_ID and/or VAPI_PRIVATE_KEY');
+  }
+} catch (error) {
+  console.error('[VapiJWTRedisService] Failed to initialize:', error);
+  vapiJWTRedisService = null;
+}
+
+export { vapiJWTRedisService };
 
 // Export a flag to check if Redis is available
 export const isRedisEnabled = isUpstashRedisAvailable();

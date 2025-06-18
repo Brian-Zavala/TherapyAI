@@ -94,7 +94,7 @@ export const ANIMATION_DURATIONS = {
 
 // Error messages
 export const ERROR_MESSAGES = {
-  VAPI_KEY_MISSING: 'Vapi API key not configured - check environment variables',
+  VAPI_KEY_MISSING: 'Failed to obtain authentication token. Please try refreshing the page or logging in again.',
   VAPI_INIT_FAILED: 'Failed to initialize Vapi instance',
   SESSION_CREATE_FAILED: 'Failed to create therapy session',
   TRANSCRIPT_SAVE_FAILED: 'Failed to save transcript entry',
