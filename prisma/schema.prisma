@@ -90,6 +90,7 @@ model Session {
   pauseStartTime         DateTime?                         // When current pause started (for tracking)
   user                   User              @relation(fields: [userId], references: [id])
   transcriptEntries      TranscriptEntry[]
+  conversationState      ConversationState?
 
   @@index([userId])
   @@index([assistantId])
@@ -195,4 +196,59 @@ model TherapySession {
   @@index([userId])
   @@index([sessionDate])
   @@index([status])
+}
+
+model ConversationState {
+  id                String   @id @default(cuid())
+  sessionId         String   @unique
+  userId            String
+  assistantId       String
+  
+  // Conversation content
+  messages          ConversationMessage[]
+  variableValues    Json?    // VAPI assistant variable values
+  
+  // Session metadata
+  sessionStartTime  DateTime
+  lastActiveTime    DateTime
+  totalDuration     Int      @default(0) // Total conversation duration in ms
+  messageCount      Int      @default(0)
+  
+  // State management
+  isActive          Boolean  @default(false)
+  isPaused          Boolean  @default(true)
+  
+  // Cleanup
+  expiresAt         DateTime? // Auto-cleanup old conversations
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  // Indexes for performance
+  @@index([userId, isPaused])
+  @@index([userId, lastActiveTime])
+  @@index([expiresAt])
+  @@map("conversation_states")
+}
+
+model ConversationMessage {
+  id                    String   @id @default(cuid())
+  conversationStateId   String
+  
+  role                  String   // 'user', 'assistant', 'system'
+  content               String   @db.Text
+  timestamp             DateTime @default(now())
+  
+  // Message metadata
+  metadata              Json?
+  
+  // Relations
+  conversationState     ConversationState @relation(fields: [conversationStateId], references: [id], onDelete: Cascade)
+  
+  // Index for ordering
+  @@index([conversationStateId, timestamp])
+  @@map("conversation_messages")
 }

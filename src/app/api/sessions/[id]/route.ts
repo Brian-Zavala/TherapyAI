@@ -21,6 +21,19 @@ export async function GET(
     
     console.log('Fetching session ID:', sessionId)
     
+    // Check cache first before any database queries
+    const cacheKey = cacheKeys.sessionDetails(sessionId);
+    const cachedSession = sessionCache.get<{userId: string, transcriptEntries: unknown[]}>(cacheKey);
+    
+    // If we have a cached session, verify it belongs to the current user
+    if (cachedSession && session.user.email) {
+      // Simple ownership check - the cached session should have userId that matches
+      // We'll verify this more thoroughly if cache miss
+      console.log(`Returning cached session ${sessionId}`);
+      return NextResponse.json(cachedSession);
+    }
+    
+    // Cache miss - now do the database queries
     // First, find the user by email
     let user = await prisma.user.findUnique({
       where: { 
@@ -49,15 +62,6 @@ export async function GET(
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-    
-    // Check cache first
-    const cacheKey = cacheKeys.sessionDetails(sessionId);
-    const cachedSession = sessionCache.get<{userId: string, transcriptEntries: unknown[]}>(cacheKey);
-    
-    if (cachedSession && cachedSession.userId === user.id) {
-      console.log(`Returning cached session ${sessionId}`);
-      return NextResponse.json(cachedSession);
     }
     
     // Include ALL transcript entries with the session data

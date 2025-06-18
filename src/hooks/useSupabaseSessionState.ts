@@ -22,6 +22,8 @@ interface UseSupabaseSessionStateOptions {
   onSessionUpdate?: (session: Partial<Session>) => void
   onPresenceUpdate?: (users: SessionPresencePayload[]) => void
   autoSubscribe?: boolean
+  onVapiPause?: (sessionId: string) => Promise<string | null>
+  onVapiResume?: (sessionId: string) => Promise<void>
 }
 
 interface SessionState {
@@ -39,6 +41,8 @@ export function useSupabaseSessionState({
   onSessionUpdate,
   onPresenceUpdate,
   autoSubscribe = true,
+  onVapiPause,
+  onVapiResume,
 }: UseSupabaseSessionStateOptions) {
   const supabase = useMemo(() => createClient(), [])
   const [state, setState] = useState<SessionState>({
@@ -145,6 +149,18 @@ export function useSupabaseSessionState({
     })
   }, [sessionId])
 
+  // Store VAPI callbacks in refs
+  const onVapiPauseRef = useRef(onVapiPause)
+  const onVapiResumeRef = useRef(onVapiResume)
+  
+  useEffect(() => {
+    onVapiPauseRef.current = onVapiPause
+  }, [onVapiPause])
+  
+  useEffect(() => {
+    onVapiResumeRef.current = onVapiResume
+  }, [onVapiResume])
+
   // Pause session
   const pauseSession = useCallback(async () => {
     if (!sessionId) return
@@ -161,10 +177,26 @@ export function useSupabaseSessionState({
     }))
     
     try {
+      // First pause VAPI to stop billing and save conversation state
+      let conversationStateId: string | null = null
+      if (onVapiPauseRef.current) {
+        console.log('🎙️ Pausing VAPI session...')
+        conversationStateId = await onVapiPauseRef.current(sessionId)
+        if (!conversationStateId) {
+          console.warn('VAPI pause returned no conversation state ID')
+        }
+      }
+      
       // Update database
       const response = await fetch(`/api/sessions/${sessionId}/pause`, {
         method: 'POST',
         credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationStateId
+        })
       })
       
       if (!response.ok) {
@@ -224,7 +256,7 @@ export function useSupabaseSessionState({
     }))
     
     try {
-      // Update database
+      // Update database first
       const response = await fetch(`/api/sessions/${sessionId}/resume`, {
         method: 'POST',
         credentials: 'include', // Include cookies for authentication
@@ -248,6 +280,12 @@ export function useSupabaseSessionState({
           totalPausedTimeSeconds: data.session.totalPausedTimeSeconds,
         }
       }))
+      
+      // Resume VAPI session with saved state
+      if (onVapiResumeRef.current) {
+        console.log('🎙️ Resuming VAPI session...')
+        await onVapiResumeRef.current(sessionId)
+      }
       
       // Broadcast state change
       await broadcastStateChange('active', {
@@ -325,6 +363,8 @@ export function useSupabaseSessionState({
     }
     
     let isSubscribed = true
+    let setupTimeout: NodeJS.Timeout | null = null
+    let fetchDebounceTimeout: NodeJS.Timeout | null = null
     
     const setupChannels = async () => {
       // Check if channels are already set up for this session
@@ -422,34 +462,42 @@ export function useSupabaseSessionState({
         
         // Fetch initial session data from API (only if not already fetched)
         if (sessionFetchedRef.current !== sessionId) {
-          console.log('[useSupabaseSessionState] Fetching initial session data for:', sessionId)
-          try {
-            const response = await fetch(`/api/sessions/${sessionId}`, {
-              method: 'GET',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            })
-            
-            if (response.ok) {
-              const { session: sessionData } = await response.json()
-              if (sessionData) {
-                setState(prev => ({
-                  ...prev,
-                  session: sessionData,
-                  isActive: sessionData.status === 'active' || sessionData.status === 'scheduled',
-                  isPaused: sessionData.isPaused || false,
-                }))
-                // Mark this session as fetched
-                sessionFetchedRef.current = sessionId
-              }
-            } else {
-              console.error('Failed to fetch session data:', response.statusText)
+          // Debounce the fetch to prevent rapid repeated calls
+          fetchDebounceTimeout = setTimeout(async () => {
+            // Double-check we still need to fetch and component is still subscribed
+            if (!isSubscribed || sessionFetchedRef.current === sessionId) {
+              return
             }
-          } catch (error) {
-            console.error('Error fetching session data:', error)
-          }
+            
+            console.log('[useSupabaseSessionState] Fetching initial session data for:', sessionId)
+            try {
+              const response = await fetch(`/api/sessions/${sessionId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              })
+              
+              if (response.ok) {
+                const sessionData = await response.json()
+                if (sessionData && isSubscribed) {
+                  setState(prev => ({
+                    ...prev,
+                    session: sessionData,
+                    isActive: sessionData.status === 'active' || sessionData.status === 'scheduled',
+                    isPaused: sessionData.isPaused || false,
+                  }))
+                  // Mark this session as fetched
+                  sessionFetchedRef.current = sessionId
+                }
+              } else {
+                console.error('Failed to fetch session data:', response.statusText)
+              }
+            } catch (error) {
+              console.error('Error fetching session data:', error)
+            }
+          }, 500) // 500ms debounce
         } else {
           console.log('[useSupabaseSessionState] Session data already fetched for:', sessionId)
         }
@@ -466,6 +514,11 @@ export function useSupabaseSessionState({
     return () => {
       console.log('[useSupabaseSessionState] Cleaning up channels for session:', sessionId)
       isSubscribed = false
+      
+      // Clear debounce timeout
+      if (fetchDebounceTimeout) {
+        clearTimeout(fetchDebounceTimeout)
+      }
       
       // Untrack presence
       if (presenceChannelRef.current) {
@@ -490,7 +543,7 @@ export function useSupabaseSessionState({
       
       setState(prev => ({ ...prev, isConnected: false }))
     }
-  }, [sessionId, userId, autoSubscribe, handleSessionChange, handleStateUpdate, supabase])
+  }, [sessionId, userId, autoSubscribe, supabase])
 
   return {
     // State

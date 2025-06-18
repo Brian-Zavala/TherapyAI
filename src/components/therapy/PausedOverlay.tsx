@@ -19,9 +19,9 @@ export function PausedOverlay({ isPaused, totalPausedMinutes }: PausedOverlayPro
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="absolute inset-x-0 top-0 bottom-24 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30 rounded-t-[28px]"
+          className="absolute inset-x-0 top-0 bottom-32 bg-black/60 backdrop-blur-sm flex items-center justify-center z-20 rounded-t-[28px] pointer-events-none"
         >
-          <div className="bg-gray-900/90 p-8 rounded-2xl border border-orange-500/30 shadow-2xl max-w-sm mx-4">
+          <div className="bg-gray-900/90 p-8 rounded-2xl border border-orange-500/30 shadow-2xl max-w-sm mx-4 pointer-events-auto">
             <div className="flex flex-col items-center">
               {/* Pause Icon */}
               <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mb-4">

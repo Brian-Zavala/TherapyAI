@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import SessionTimer from './SessionTimer'
+import { createClient } from '@/utils/supabase/client'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface ActiveSessionData {
   sessionId: string
@@ -310,13 +312,11 @@ export default function ActiveSessionFoundModal({
     return `${hours}h ${mins}m`
   }
 
-  // Update elapsed time periodically
+  // Update session data using Supabase Realtime instead of polling
   useEffect(() => {
+    let supabaseChannel: RealtimeChannel | null = null
+    
     if (!sessionData || !showModal) {
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current)
-        updateIntervalRef.current = null
-      }
       // Cancel any pending fetches
       if (fetchControllerRef.current) {
         fetchControllerRef.current.abort()
@@ -325,7 +325,9 @@ export default function ActiveSessionFoundModal({
       return
     }
 
-    // Fetch latest session data periodically
+    const supabase = createClient()
+    
+    // Fetch latest session data once
     const fetchLatestSessionData = async () => {
       try {
         // Cancel previous fetch if still pending
@@ -361,13 +363,54 @@ export default function ActiveSessionFoundModal({
     // Initial fetch
     fetchLatestSessionData()
 
-    // Set up periodic updates
-    updateIntervalRef.current = setInterval(fetchLatestSessionData, 5000) // Update every 5 seconds
+    // Set up Supabase Realtime subscription for session updates
+    supabaseChannel = supabase
+      .channel(`session-updates-${sessionData.sessionId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'sessions',
+          filter: `id=eq.${sessionData.sessionId}`
+        },
+        (payload) => {
+          console.log('Real-time session update received:', payload)
+          const updatedSession = payload.new
+          
+          // Update conversation time from real-time data
+          if (updatedSession.status === 'active' && updatedSession.conversationTimeSeconds !== undefined) {
+            setElapsedTimeSeconds(updatedSession.conversationTimeSeconds)
+          }
+          
+          // Close modal if session is completed or errored
+          if (updatedSession.status === 'completed' || updatedSession.status === 'error') {
+            console.log('Session completed or errored, closing modal')
+            setShowModal(false)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'DELETE', 
+          schema: 'public', 
+          table: 'sessions',
+          filter: `id=eq.${sessionData.sessionId}`
+        },
+        () => {
+          console.log('Session deleted, closing modal')
+          setShowModal(false)
+        }
+      )
+      .subscribe((status) => {
+        console.log('Supabase channel subscription status:', status)
+      })
 
     return () => {
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current)
-        updateIntervalRef.current = null
+      // Cleanup Supabase subscription
+      if (supabaseChannel) {
+        supabase.removeChannel(supabaseChannel)
       }
       if (fetchControllerRef.current) {
         fetchControllerRef.current.abort()

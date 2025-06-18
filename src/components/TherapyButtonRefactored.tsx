@@ -152,8 +152,8 @@ export function TherapyButtonRefactored({
   
   // Update ref when vapi instance changes
   useEffect(() => {
-    vapiInstanceRef.current = vapi.vapiInstanceRef.current
-  }, [vapi.vapiInstanceRef])
+    vapiInstanceRef.current = vapi.vapiManagerRef.current
+  }, [vapi.vapiManagerRef])
   
   // Memoize callbacks to prevent re-renders
   const handleSessionCreated = useCallback((sessionId: string) => {
@@ -186,7 +186,7 @@ export function TherapyButtonRefactored({
       // - 0 sec: AI delivers warm, contextual farewell
       
       // Send time warning to VAPI if connected
-      if (vapi.vapiInstanceRef.current && vapi.vapiState.isActive) {
+      if (vapi.vapiManagerRef.current && vapi.vapiState.isActive) {
         try {
           // Different messages based on remaining time and therapy type
           let systemMessage = '';
@@ -218,7 +218,7 @@ export function TherapyButtonRefactored({
             }
             
             // Use say() to make the assistant naturally speak the time warning
-            vapi.vapiInstanceRef.current.say(userNotification, false); // false = don't end call after speaking
+            vapi.vapiManagerRef.current.say(userNotification, false); // false = don't end call after speaking
             console.log('📤 Assistant will naturally announce 5-minute warning with choice');
             console.log(`⏰ 5-minute warning triggered at conversation time: ${Math.floor(session.conversationTimeSeconds / 60)}:${(session.conversationTimeSeconds % 60).toString().padStart(2, '0')}`);
             
@@ -244,7 +244,7 @@ export function TherapyButtonRefactored({
           }
           
           if (systemMessage) {
-            vapi.vapiInstanceRef.current.send({
+            vapi.vapiManagerRef.current.send({
               type: 'add-message',
               message: {
                 role: 'system',
@@ -304,7 +304,9 @@ export function TherapyButtonRefactored({
   const sessionState = useSupabaseSessionState({
     sessionId: session.sessionId,
     userId: user?.id || '',
-    onSessionUpdate: handleSessionUpdate
+    onSessionUpdate: handleSessionUpdate,
+    onVapiPause: vapi.pauseCall,
+    onVapiResume: vapi.resumeCall
   })
   
   // Bridge VAPI session with Supabase metrics broadcasting
@@ -967,7 +969,7 @@ export function TherapyButtonRefactored({
     console.log('⏰ Timer expired, ending session gracefully...')
     
     // Use VAPI say() to provide a graceful ending message
-    if (vapi.vapiInstanceRef.current && vapi.vapiState.isActive) {
+    if (vapi.vapiManagerRef.current && vapi.vapiState.isActive) {
       try {
         // Have VAPI say goodbye and end the call after speaking
         let goodbyeMessage = '';
@@ -985,7 +987,7 @@ export function TherapyButtonRefactored({
           }
         }
         
-        vapi.vapiInstanceRef.current.say(goodbyeMessage, true);
+        vapi.vapiManagerRef.current.say(goodbyeMessage, true);
         console.log('📤 Sent graceful goodbye message to VAPI');
         
         // Give VAPI time to say goodbye before ending the session

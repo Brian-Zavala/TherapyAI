@@ -18,6 +18,20 @@ export async function POST(
     }
 
     const sessionId = params.id
+    
+    // Get conversation state ID from request body if provided
+    // This will be used in future to link the paused session with saved VAPI conversation state
+    let conversationStateId: string | undefined
+    try {
+      const body = await req.json()
+      conversationStateId = body.conversationStateId
+      // TODO: Store conversationStateId in session or related table when VAPI pause is fully integrated
+      if (conversationStateId) {
+        console.log('Conversation state saved with ID:', conversationStateId)
+      }
+    } catch {
+      // Body parsing failed, continue without conversationStateId
+    }
 
     // Get the session and verify ownership
     const therapySession = await prisma.session.findUnique({
