@@ -1,3 +1,5 @@
+![download-modified](https://github.com/user-attachments/assets/d470ce81-0824-4a5f-9fbf-0e273b67bda4)
+
 # Couples Therapy AI Platform
 
 An AI-powered couples therapy platform featuring real-time voice therapy sessions, intelligent conversation analysis, and comprehensive session management.
