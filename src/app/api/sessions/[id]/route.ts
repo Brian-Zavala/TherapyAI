@@ -105,9 +105,11 @@ export async function GET(
   }
 }
 
+import { SESSION_CONFIG } from '@/lib/session-config';
+
 // Rate limiting map to prevent too frequent updates per session
 const updateRateLimit = new Map<string, number>();
-const RATE_LIMIT_MS = 5000; // 5 seconds between updates per session
+const RATE_LIMIT_MS = SESSION_CONFIG.API_RATE_LIMIT_MS; // 30 seconds between updates per session
 
 // Handle both PATCH and POST requests for session updates
 // POST is used by sendBeacon for beforeunload saves
@@ -128,7 +130,7 @@ async function handleSessionUpdate(
   const lastUpdate = updateRateLimit.get(sessionId) || 0;
   const timeSinceLastUpdate = now - lastUpdate;
   
-  console.log(`🔄 Processing update for session ${sessionId} (${timeSinceLastUpdate}ms since last update)`)
+  console.log(`🔄 Processing update for session ${sessionId} (${timeSinceLastUpdate}ms since last update, rate limit: ${RATE_LIMIT_MS}ms)`)
 
   try {
     // Parse request body with error handling

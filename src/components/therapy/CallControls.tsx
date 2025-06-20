@@ -7,6 +7,7 @@ interface CallControlsProps {
   isMuted: boolean
   isSessionPaused: boolean
   totalPausedTimeSeconds: number
+  conversationTimeSeconds?: number
   isLoading: boolean
   onMuteToggle: () => void
   onEndCall: () => void
@@ -21,11 +22,15 @@ export function CallControls({
   isMuted,
   isSessionPaused,
   totalPausedTimeSeconds,
+  conversationTimeSeconds = 0,
   isLoading,
   onMuteToggle,
   onEndCall,
   onPauseResume
 }: CallControlsProps) {
+  // Only show pause/resume if conversation has actually started
+  const showPauseResume = conversationTimeSeconds > 0
+  
   return (
     <div className="px-6 pb-8 flex items-center justify-center relative">
       <div className="flex items-end justify-center space-x-4 sm:space-x-6">
@@ -42,12 +47,14 @@ export function CallControls({
           isLoading={isLoading}
         />
         
-        {/* Pause/Resume Button */}
-        <PauseResumeButton 
-          isPaused={isSessionPaused}
-          onClick={onPauseResume}
-          totalPausedTimeSeconds={totalPausedTimeSeconds}
-        />
+        {/* Pause/Resume Button - only show if conversation has started */}
+        {showPauseResume && (
+          <PauseResumeButton 
+            isPaused={isSessionPaused}
+            onClick={onPauseResume}
+            totalPausedTimeSeconds={totalPausedTimeSeconds}
+          />
+        )}
       </div>
     </div>
   )

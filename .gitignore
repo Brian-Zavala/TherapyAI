@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -9,164 +7,263 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# testing
+# Testing & Coverage
 /coverage
+*.lcov
+.nyc_output
+/test-results
+/playwright-report
+/playwright/.cache
+/e2e-results
 
-# next.js
+# Next.js
 /.next/
 /out/
+next-env.d.ts
+.swc/
 
-# production
+# Production builds
 /build
+/dist
+/public/build
+/public/dist
 
-# misc
+# Environment files - CRITICAL
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.production
+.env.test
+.env.staging
+.env.mcp
+
+# IDE & Editor files
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*:Zone.Identifier
 
-# debug
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 .pnpm-debug.log*
 debug.txt
 debug-log.txt
-
-# env files (can opt-in for committing if needed)
-.env*
-.env.mcp
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# claude
-/CLAUDE.md
-**/CLAUDE.local.md
-DEEPGRAM-SETUP.md
-CUSTOM-TRANSCRIBER.md
-TRANSCRIPT-GUIDE.md
-TRANSCRIPT-MIGRATION.md
-VAPI-JWT-SETUP.md
-
-# documentation
-/src/docs/
-*.md
-!README.md
-
-# docs directory
-/docs/
-
-# utility scripts
-create-test-user.js
-test-transcript.js
-migrate-transcripts.js
-update_env.sh
-setup-https.sh
-setup-https-remote.sh
-setup-wsl2-remote-access.sh
-generate-remote-certs.sh
-setup-port-forward.ps1
-
-# debug scripts
-debug-*.js
-debug-*.ts
-debug-*.json
-
-# IDE files
-.idea/
-
-# Windows Zone identifiers
-*:Zone.Identifier
-
-# Temporary files
-/public/tmp/
-*.tmp
-*.temp
-
-# Logs
-*.log
+error.log
+access.log
 
 # Database files
 *.db
 *.sqlite
 *.sqlite3
 *.sqlite-journal
+*.sql
+/prisma/*.db
+/prisma/*.db-journal
+/data/
 
-# Session files
+# Session & temporary files
 *.session
+*.tmp
+*.temp
+*.cache
+/tmp/
+/temp/
+/public/tmp/
+.cache/
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
+# Backup files
+*.backup
+*.bak
+*.old
+~*
 
-# Thumbnails
-Thumbs.db
-ehthumbs.db
+# Security & Keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+private.key
+public.key
+/certs/
+/certificates/
+/ssl/
 
-# Test files
+# Documentation (if private)
+/docs/private/
+/internal-docs/
+CLAUDE.md
+**/CLAUDE.local.md
+**/CLAUDE.md
+DEEPGRAM-SETUP.md
+CUSTOM-TRANSCRIBER.md
+TRANSCRIPT-GUIDE.md
+TRANSCRIPT-MIGRATION.md
+VAPI-JWT-SETUP.md
+*.md
+!README.md
+!README-*.md
+
+# Scripts (development/debug)
+create-test-user.js
 test-*.js
 test-*.ts
 test-*.html
-websocket-server-debug.js
-websocket-server-fixed.js
-test-email.js
-test-support-email.js
-CLAUDE.md
+debug-*.js
+debug-*.ts
+debug-*.json
+migrate-*.js
+setup-*.sh
+setup-*.ps1
+update_env.sh
+generate-remote-certs.sh
+websocket-server-*.js
+monitor-*.js
+fix-*.sh
+import-*.js
+quick-*.sh
 
 # VAPI SDK directories
 /server-sdk-typescript-main/
 /client-sdk-web-main/
 /example-client-javascript-react-master/
 
-# MCP server files
+# MCP (Model Context Protocol) files
 .mcp.json
 .mcp.json.secure
 .mcp-memory.json
 .mcp-memory-*.json
+/mcp-data/
 
-# Project history imports
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Vercel
+.vercel
+.vercel_build_output
+
+# Sentry
+.sentryclirc
+
+# Analytics
+/analytics/
+.ga-credentials.json
+
+# User uploads (if stored locally)
+/uploads/
+/public/uploads/
+/public/user-content/
+
+# Generated files
+/generated/
+sitemap.xml
+robots.txt
+/public/sitemap.xml
+/public/robots.txt
+
+# Bundle analysis
+/bundle-stats.json
+/.next/analyze/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# CI/CD
+.github/workflows/local-*
+.gitlab-ci-local/
+
+# Monitoring
+/grafana-storage/
+/prometheus-data/
+
+# Project-specific ignores
 project-history-import.json
 capture-error.sh
 save-session.sh
-
-# Shell history and backups
 .bashrc.backup
 .mcp-memory-search
 
-# Package manager lock files (optional - remove if you want to track)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
-
-# Test pages
-/src/app/test-*/
-test-*.tsx
-test-*.ts
-
-# Setup and utility scripts
-setup-*.sh
-setup-*.ps1
-fix-*.sh
-monitor-*.js
-import-*.js
-quick-*.sh
-start-*.sh
-
-# Development scripts
+# Memory capture temporary files
 /scripts/setup-continuous-capture.md
 /scripts/cli-memory-wrapper.sh
 
-# Build artifacts
-.turbo
-.swc/
+# Demo/test data
+/demo-data/
+/test-data/
+/seed-data/
 
-# Performance profiles
+# Performance profiling
 *.cpuprofile
 *.heapprofile
 *.heapsnapshot
+
+# Package manager files (optional)
+.npmrc
+.yarnrc
+.pnpmfile.cjs
+
+# Miscellaneous
+*.pid
+*.seed
+*.pid.lock
+.grunt
+.lock-wscript
+lib-cov
+pids
+.node_repl_history
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.parcel-cache
+.turbo
+
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

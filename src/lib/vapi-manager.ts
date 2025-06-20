@@ -1,4 +1,5 @@
 import Vapi from '@vapi-ai/web'
+import { cleanAndValidateVapiConfig, extractVariableValues } from './vapi-config-cleaner'
 
 interface ConversationMessage {
   role: 'user' | 'assistant' | 'system'
@@ -29,6 +30,7 @@ export class VAPIManager {
   private eventListeners: Map<string, (...args: any[]) => void> = new Map()
   private isDestroyed = false
   private currentAssistantId: string | null = null
+  private currentAssistantConfig: any = null // Store inline config for pause/resume
 
   constructor(config: VAPIManagerConfig) {
     this.config = {
@@ -122,7 +124,8 @@ export class VAPIManager {
   }
 
   async startSession(config: {
-    assistantId: string
+    assistantId?: string
+    assistantConfig?: any // Full inline assistant configuration
     resumeFromMessages?: ConversationMessage[]
     variableValues?: Record<string, unknown>
   }): Promise<void> {
@@ -131,33 +134,89 @@ export class VAPIManager {
     }
 
     try {
-      // Store the assistant ID for later use
-      this.currentAssistantId = config.assistantId
-      
-      let startConfig: any = {
-        assistantId: config.assistantId,
-      }
+      let startConfig: any
 
-      // If resuming from saved state, inject previous messages
-      if (config.resumeFromMessages && config.resumeFromMessages.length > 0) {
-        console.log(`Resuming with ${config.resumeFromMessages.length} messages`)
+      // Handle inline configuration
+      if (config.assistantConfig) {
+        console.log('🎭 Starting VAPI with inline assistant configuration')
         
-        // Add previous messages to conversation history
-        this.conversationHistory = [...config.resumeFromMessages]
-        
-        // Configure VAPI to start with previous context
-        startConfig.assistantOverrides = {
-          model: {
-            messages: config.resumeFromMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content
-            }))
-          },
-          variableValues: config.variableValues || {}
+        try {
+          // Clean and validate the configuration
+          const cleanedConfig = cleanAndValidateVapiConfig(config.assistantConfig)
+          console.log('✅ VAPI config cleaned and validated')
+          
+          // Extract variable values separately (they shouldn't be in the inline config)
+          const variableValues = extractVariableValues(config.assistantConfig) || config.variableValues
+          
+          // For inline config, pass the cleaned config object
+          startConfig = { ...cleanedConfig }
+          
+          // Store a placeholder ID for inline configs
+          this.currentAssistantId = 'inline-config'
+          this.currentAssistantConfig = cleanedConfig
+          
+          // Store messages for later injection if resuming
+          const messagesToInject = config.resumeFromMessages || []
+          
+          // Apply variable values if provided (after cleaning)
+          if (variableValues) {
+            startConfig.variableValues = variableValues
+          }
+        } catch (error) {
+          console.error('❌ VAPI config validation failed:', error)
+          throw new Error(`Invalid VAPI configuration: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
+      }
+      // Handle assistant ID configuration
+      else if (config.assistantId) {
+        console.log('🎯 Starting VAPI with assistant ID:', config.assistantId)
+        
+        // Store the assistant ID for later use
+        this.currentAssistantId = config.assistantId
+        
+        startConfig = {
+          assistantId: config.assistantId,
+        }
+
+        // Configure assistant overrides for variable values only
+        if (config.variableValues) {
+          startConfig.assistantOverrides = {
+            variableValues: config.variableValues
+          }
+        }
+      } else {
+        throw new Error('Either assistantId or assistantConfig must be provided')
       }
 
       await this.vapi.start(startConfig)
+      
+      // After session starts, inject conversation history using add-message
+      if (config.resumeFromMessages && config.resumeFromMessages.length > 0) {
+        console.log(`Injecting ${config.resumeFromMessages.length} conversation history messages`)
+        
+        // Wait a moment for session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Inject each message into the conversation history
+        for (const msg of config.resumeFromMessages) {
+          try {
+            this.vapi.send({
+              type: 'add-message',
+              message: {
+                role: msg.role,
+                content: msg.content
+              }
+            })
+            // Small delay between messages to ensure proper ordering
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } catch (error) {
+            console.error('Failed to inject message:', error)
+          }
+        }
+        
+        // Add the conversation messages to our local history
+        this.conversationHistory = [...config.resumeFromMessages]
+      }
 
     } catch (error) {
       console.error('Failed to start VAPI session:', error)
@@ -205,6 +264,10 @@ export class VAPIManager {
     return this.currentAssistantId
   }
 
+  getCurrentAssistantConfig(): any {
+    return this.currentAssistantConfig
+  }
+
   clearHistory() {
     this.conversationHistory = []
   }
@@ -245,6 +308,7 @@ export class VAPIManager {
 
     // Clear references
     this.conversationHistory = []
+    this.currentAssistantConfig = null
     
     console.log('VAPIManager destroyed and cleaned up')
   }

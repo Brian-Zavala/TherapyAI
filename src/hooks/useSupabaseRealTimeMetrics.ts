@@ -4,8 +4,8 @@
  * Handles both broadcast (ephemeral) and database (persistent) updates
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { getSupabaseClient } from '@/lib/supabase-singleton'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
 import { 
@@ -44,7 +44,7 @@ export function useSupabaseRealTimeMetrics({
   onError,
   autoConnect = true,
 }: UseSupabaseRealTimeMetricsOptions) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = getSupabaseClient()
   const [isConnected, setIsConnected] = useState(false)
   const [currentMetrics, setCurrentMetrics] = useState<IncrementalMetrics | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -274,7 +274,7 @@ export function useSupabaseRealTimeMetrics({
       channelSetupCompleteRef.current = false
       isSetupInProgressRef.current = false
     }
-  }, [sessionId, userId, role, autoConnect, handleMetricsUpdate, persistMetrics, onError, supabase])
+  }, [sessionId, userId, role, autoConnect, handleMetricsUpdate, persistMetrics, onError])
 
   // Public methods
   const connect = useCallback(() => {
@@ -289,7 +289,7 @@ export function useSupabaseRealTimeMetrics({
       metricsChannelRef.current = null
       setIsConnected(false)
     }
-  }, [])
+  }, [supabase])
 
   return {
     // State

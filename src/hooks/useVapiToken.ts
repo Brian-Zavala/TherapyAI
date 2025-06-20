@@ -24,7 +24,7 @@ export function useVapiToken({
 }: UseVapiTokenOptions = {}): UseVapiTokenReturn {
   const { data: session, status } = useSession();
   const [tokenData, setTokenData] = useState<VapiTokenResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true until we check auth status
   const [error, setError] = useState<string | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout>();
   const isRefreshingRef = useRef(false);
@@ -76,9 +76,7 @@ export function useVapiToken({
         if (response.status === 429) {
           // Rate limited - extract retry information
           const retryAfter = response.headers.get('Retry-After');
-          const resetTime = response.headers.get('X-RateLimit-Reset');
           
-          const errorData = await response.json();
           const retrySeconds = retryAfter ? parseInt(retryAfter) : 60;
           
           // Set rate limit state
@@ -176,7 +174,7 @@ export function useVapiToken({
         isRefreshingRef.current = false;
       }
     }
-  }, [session?.user?.id, status, scope, autoRefresh]); // Removed onError to prevent re-creation
+  }, [session, status, scope, autoRefresh]); // Removed onError to prevent re-creation
 
   const refreshToken = useCallback(async (): Promise<void> => {
     // Check if we're rate limited before attempting refresh
@@ -197,13 +195,19 @@ export function useVapiToken({
 
   // Initial token fetch when session is ready
   useEffect(() => {
+    if (status === 'loading') {
+      // Session is still loading, keep isLoading as true
+      return;
+    }
+    
     if (status === 'authenticated' && session?.user?.id) {
       fetchToken();
     } else if (status === 'unauthenticated') {
       setError('User not authenticated');
       setTokenData(null);
+      setIsLoading(false); // Set loading to false when user is not authenticated
     }
-  }, [status, session?.user?.id, fetchToken]);
+  }, [status, session, fetchToken]);
   
   // Clear rate limit state when user changes
   useEffect(() => {

@@ -77,12 +77,21 @@
   --z-notification: 40;
   --z-maximum: 50;
 
+  /* glow-btn styles support form submit btn*/
+  .glow-button {
+    box-shadow: 0 0 10px 5px rgba(68, 188, 255, 0.5);
+  }
+
+  .glow-button:hover {
+    box-shadow: 0 0 20px 10px rgba(68, 188, 255, 0.7);
+  }
+
   /* Animation durations for consistency */
   --animation-fast: 0.2s;
   --animation-normal: 0.3s;
   --animation-slow: 0.6s;
   --animation-slower: 1s;
-  
+
   /* Animation play state for global control */
   --animation-play-state: running;
 }
@@ -231,16 +240,16 @@ body.session-active .hide-during-session {
 
 /* High-Performance Pulse Ring Animation for Statistics */
 @keyframes pulse-ring {
-  0% { 
-    transform: scale(1); 
-    opacity: 0; 
+  0% {
+    transform: scale(1);
+    opacity: 0;
   }
-  40% { 
-    opacity: 0.4; 
+  40% {
+    opacity: 0.4;
   }
-  100% { 
-    transform: scale(1.7); 
-    opacity: 0; 
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
   }
 }
 
@@ -249,12 +258,12 @@ body.session-active .hide-during-session {
   animation-play-state: var(--animation-play-state, running);
 }
 
-.pulse-ring-delay-1 { 
-  animation-delay: 1.33s; 
+.pulse-ring-delay-1 {
+  animation-delay: 1.33s;
 }
 
-.pulse-ring-delay-2 { 
-  animation-delay: 2.66s; 
+.pulse-ring-delay-2 {
+  animation-delay: 2.66s;
 }
 
 /* Animation pause control for performance */
@@ -266,14 +275,12 @@ body.session-active .hide-during-session {
 @keyframes pulse-glow {
   0%,
   100% {
-    filter: 
-      drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))
       drop-shadow(0 0 24px rgba(255, 255, 255, 0.5));
     transform: scale3d(1, 1, 1);
   }
   50% {
-    filter: 
-      drop-shadow(0 0 16px rgba(255, 255, 255, 1))
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 1))
       drop-shadow(0 0 32px rgba(255, 255, 255, 0.7));
     transform: scale3d(1.05, 1.05, 1);
   }
@@ -283,36 +290,31 @@ body.session-active .hide-during-session {
   0% {
     opacity: 0;
     transform: scale3d(0.92, 0.92, 1);
-    filter: 
-      drop-shadow(0 0 8px rgba(255, 255, 255, 0.4))
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4))
       drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
   }
   15% {
     opacity: 1;
     transform: scale3d(0.98, 0.98, 1);
-    filter: 
-      drop-shadow(0 0 12px rgba(255, 255, 255, 0.6))
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6))
       drop-shadow(0 0 24px rgba(255, 255, 255, 0.3));
   }
   50% {
     opacity: 1;
     transform: scale3d(1.15, 1.15, 1);
-    filter: 
-      drop-shadow(0 0 16px rgba(255, 255, 255, 0.9))
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9))
       drop-shadow(0 0 32px rgba(255, 255, 255, 0.5));
   }
   85% {
     opacity: 1;
     transform: scale3d(0.98, 0.98, 1);
-    filter: 
-      drop-shadow(0 0 12px rgba(255, 255, 255, 0.6))
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6))
       drop-shadow(0 0 24px rgba(255, 255, 255, 0.3));
   }
   100% {
     opacity: 0;
     transform: scale3d(0.92, 0.92, 1);
-    filter: 
-      drop-shadow(0 0 8px rgba(255, 255, 255, 0.4))
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4))
       drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
   }
 }
@@ -332,8 +334,7 @@ body.session-active .hide-during-session {
   25% {
     opacity: 1;
     transform: scale3d(1.2, 1.2, 1);
-    filter: 
-      drop-shadow(0 0 16px rgba(255, 255, 255, 0.9))
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9))
       drop-shadow(0 0 32px rgba(255, 255, 255, 0.4));
   }
   45% {
@@ -350,8 +351,7 @@ body.session-active .hide-during-session {
   75% {
     opacity: 1;
     transform: scale3d(1.2, 1.2, 1);
-    filter: 
-      drop-shadow(0 0 16px rgba(255, 255, 255, 0.9))
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9))
       drop-shadow(0 0 32px rgba(255, 255, 255, 0.4));
   }
   95% {
@@ -473,33 +473,32 @@ body.session-active .hide-during-session {
   letter-spacing: 0.1em;
   will-change: transform, opacity, filter;
   contain: layout paint;
-  
+
   /* Performance optimizations - Force GPU acceleration & compositor layer */
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   perspective: 1000px;
   transform-style: preserve-3d;
-  
+
   /* Remove ALL border/box effects for clean floating text */
   outline: none !important;
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
   margin: 0 !important;
-  
+
   /* Clean text rendering without container styling */
   display: inline-block;
   text-decoration: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  
+
   /* Optimized organic glow - reduced from 4 to 3 layers for better performance */
-  filter: 
-    drop-shadow(0 0 12px rgba(255, 255, 255, 0.95))
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95))
     drop-shadow(0 0 24px rgba(255, 255, 255, 0.6))
     drop-shadow(0 0 40px rgba(255, 255, 255, 0.25));
-  
+
   /* Remove any residual text-shadow that might create box effects */
   text-shadow: none !important;
 }
@@ -625,8 +624,8 @@ body.session-active .hide-during-session {
     75vw 78vh 2px white,
     85vw 82vh 2px white,
     95vw 75vh 2px white,
-    /* Secondary stars - smaller for depth */
-    15vw 15vh 1px rgba(255, 255, 255, 0.8),
+    /* Secondary stars - smaller for depth */ 15vw 15vh 1px
+      rgba(255, 255, 255, 0.8),
     28vw 12vh 1px rgba(255, 255, 255, 0.8),
     38vw 18vh 1px rgba(255, 255, 255, 0.8),
     48vw 25vh 1px rgba(255, 255, 255, 0.8),
@@ -662,8 +661,7 @@ body.session-active .hide-during-session {
     27vw 88vh 1px white,
     43vw 85vh 1px white,
     59vw 78vh 1px white,
-    /* Fainter distant stars */
-    16vw 18vh 1px rgba(255, 255, 255, 0.6),
+    /* Fainter distant stars */ 16vw 18vh 1px rgba(255, 255, 255, 0.6),
     33vw 15vh 1px rgba(255, 255, 255, 0.6),
     49vw 35vh 1px rgba(255, 255, 255, 0.6),
     65vw 42vh 1px rgba(255, 255, 255, 0.6);
@@ -771,11 +769,11 @@ body.session-active .hide-during-session {
 
 /* Custom utility for removing scrollbars while allowing scroll functionality */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 .no-scrollbar::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* 3D flip card styles */
@@ -828,7 +826,7 @@ body.session-active .hide-during-session {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  
+
   /* Remove will-change to prevent unnecessary GPU usage */
   .will-animate-transform,
   .will-animate-opacity,
@@ -841,26 +839,26 @@ body.session-active .hide-during-session {
   .circle-xxlarge {
     will-change: auto !important;
   }
-  
+
   /* Disable specific animations that might cause discomfort */
   .countdown-number,
   .breath-text,
   .begin-text {
     animation: none !important;
   }
-  
+
   /* Keep stars visible but static */
   .stars,
   .stars::after {
     animation: none !important;
     opacity: 1 !important;
   }
-  
+
   /* Disable neon flicker effect */
   .neon-text {
     animation: none !important;
   }
-  
+
   /* Disable gradient circle animations */
   .circle-small,
   .circle-medium,
@@ -913,7 +911,7 @@ body:has(.welcome-page) {
   section[style*="opacity"] {
     opacity: 1 !important;
   }
-  
+
   /* Ensure minimum height doesn't cause issues on mobile */
   .min-h-screen {
     min-height: -webkit-fill-available;

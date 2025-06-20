@@ -1,0 +1,331 @@
+// Enhanced Production-Ready Schema
+// This is the enhanced version of schema.prisma with all optimizations
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==================== USER & AUTH ====================
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique @db.VarChar(255)
+  hashedPassword        String?
+  name                  String?   @db.VarChar(255)
+  role                  String    @default("user") @db.VarChar(50)
+  
+  // Profile & Settings
+  image                 String?   @db.Text
+  bio                   String?   @db.Text
+  phoneNumber           String?   @db.VarChar(20)
+  timezone              String?   @default("UTC") @db.VarChar(50)
+  notificationPreferences Json?   @db.JsonB
+  
+  // Onboarding & Preferences
+  onboardingCompleted   Boolean   @default(false)
+  onboardingData        Json?     @db.JsonB
+  currentConcerns       Json?     @db.JsonB
+  communicationStyle    String?   @db.VarChar(100)
+  therapyGoals          String[]  @db.Text
+  preferredSessionLength Int?     @db.SmallInt
+  preferredDays         Json?     @db.JsonB
+  preferredTimes        Json?     @db.JsonB
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastLoginAt           DateTime?
+  emailVerified         DateTime?
+  
+  // Optimistic Locking
+  version               Int       @default(0)
+  
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  communicationMetrics  CommunicationMetric[]
+  progressTracking      ProgressTracking[]
+  familyMembers         FamilyMember[]
+  conversationStates    ConversationState[]
+  
+  // Indexes
+  @@index([email])
+  @@index([createdAt])
+  @@index([lastLoginAt])
+}
+
+// NEW: Normalized Family Member Table
+model FamilyMember {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String    @db.VarChar(255)
+  age         Int?      @db.SmallInt
+  relation    String?   @db.VarChar(100)
+  order       Int       @default(0) @db.SmallInt
+  isActive    Boolean   @default(true)
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId, order])
+  @@index([userId, isActive])
+  @@unique([userId, order])
+}
+
+// ==================== SESSIONS ====================
+
+model Session {
+  id                    String    @id @default(cuid())
+  userId                String
+  assistantId           String    @db.VarChar(255)
+  
+  // Session Details
+  date                  DateTime  @default(now())
+  duration              Int       @default(0) @db.SmallInt @check("duration >= 0")
+  status                String    @default("active") @db.VarChar(50)
+  theme                 String?   @db.VarChar(255)
+  mood                  String?   @db.VarChar(100)
+  
+  // Timing & State
+  startTime             DateTime?
+  endTime               DateTime?
+  pausedAt              DateTime?
+  resumedAt             DateTime?
+  conversationTimeSeconds Int     @default(0) @check("conversationTimeSeconds >= 0")
+  
+  // Content
+  transcript            String?   @db.Text
+  notes                 String?   @db.Text
+  summary               String?   @db.Text
+  keyInsights           String[]  @db.Text
+  actionItems           String[]  @db.Text
+  
+  // Metrics
+  completionRate        Float?    @db.Real
+  engagementScore       Float?    @db.Real
+  sentimentScore        Float?    @db.Real
+  
+  // VAPI Integration
+  vapiCallId            String?   @unique @db.VarChar(255)
+  vapiCallStatus        String?   @db.VarChar(50)
+  
+  // Recovery & State
+  recoveryAttempts      Int       @default(0) @db.SmallInt
+  lastRecoveryAt        DateTime?
+  sessionState          Json?     @db.JsonB
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Optimistic Locking
+  version               Int       @default(0)
+  
+  // Relations
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcriptEntries     TranscriptEntry[]
+  conversationState     ConversationState?
+  
+  // Indexes
+  @@index([userId, date])
+  @@index([userId, status])
+  @@index([assistantId])
+  @@index([status, userId])
+  @@index([date])
+  @@index([vapiCallId])
+}
+
+// ==================== TRANSCRIPTS ====================
+
+model TranscriptEntry {
+  id                String    @id @default(cuid())
+  sessionId         String
+  assistantId       String    @db.VarChar(255)
+  
+  // Content
+  speaker           String    @db.VarChar(50)
+  text              String    @db.Text
+  timestamp         DateTime  @default(now())
+  isFinal           Boolean   @default(false)
+  
+  // Metadata
+  messageType       String?   @db.VarChar(50)
+  emotion           String?   @db.VarChar(50)
+  confidence        Float?    @db.Real
+  wordCount         Int?      @db.Integer
+  characterCount    Int?      @db.Integer
+  
+  // Audio Metadata
+  audioDuration     Float?    @db.Real
+  audioUrl          String?   @db.Text
+  
+  // Analysis
+  sentiment         String?   @db.VarChar(50)
+  sentimentScore    Float?    @db.Real
+  keywords          String[]  @db.Text
+  topics            String[]  @db.Text
+  
+  // Relations
+  session           Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([sessionId, timestamp])
+  @@index([assistantId])
+  @@index([timestamp])
+  @@index([sessionId, speaker])
+}
+
+// ==================== CONVERSATION STATE ====================
+
+model ConversationState {
+  id                String    @id @default(cuid())
+  sessionId         String    @unique
+  userId            String
+  
+  // State Data
+  messages          Json      @db.JsonB
+  currentTopic      String?   @db.VarChar(255)
+  conversationFlow  Json?     @db.JsonB
+  
+  // Metrics
+  turnCount         Int       @default(0) @db.Integer
+  totalDuration     Int       @default(0) @db.Integer
+  
+  // Timestamps
+  lastUpdated       DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  
+  // Optimistic Locking
+  version           Int       @default(0)
+  
+  // Relations
+  session           Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId, lastUpdated])
+  @@index([sessionId])
+}
+
+// ==================== METRICS & ANALYTICS ====================
+
+model CommunicationMetric {
+  id                String    @id @default(cuid())
+  userId            String
+  
+  // Metrics
+  date              DateTime  @default(now())
+  clarityScore      Float     @db.Real
+  empathyScore      Float     @db.Real
+  respectScore      Float     @db.Real
+  overallScore      Float     @db.Real
+  
+  // Detailed Metrics
+  listeningScore    Float?    @db.Real
+  expressionScore   Float?    @db.Real
+  conflictScore     Float?    @db.Real
+  
+  // Metadata
+  sessionId         String?
+  metricType        String    @default("session") @db.VarChar(50)
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId, date])
+  @@index([sessionId])
+  @@index([date])
+}
+
+model ProgressTracking {
+  id                String    @id @default(cuid())
+  userId            String
+  
+  // Progress Data
+  date              DateTime  @default(now())
+  weekNumber        Int       @db.SmallInt
+  goalsAchieved     Int       @default(0) @db.SmallInt
+  totalGoals        Int       @default(0) @db.SmallInt
+  
+  // Detailed Progress
+  progressNotes     String?   @db.Text
+  achievements      String[]  @db.Text
+  challenges        String[]  @db.Text
+  nextSteps         String[]  @db.Text
+  
+  // Scores
+  weeklyScore       Float?    @db.Real
+  improvementRate   Float?    @db.Real
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId, date])
+  @@index([userId, weekNumber])
+  @@unique([userId, weekNumber])
+}
+
+// ==================== AUTH MODELS ====================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String  @db.VarChar(50)
+  provider          String  @db.VarChar(50)
+  providerAccountId String  @db.VarChar(255)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(50)
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String? @db.Text
+  
+  // Relations
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// ==================== VIEWS (For Complex Queries) ====================
+// These would be created as actual database views
+
+// View: UserSessionStats
+// - userId
+// - totalSessions
+// - totalDuration
+// - avgDuration
+// - lastSessionDate
+// - activeStreak
+
+// View: WeeklyMetrics
+// - userId
+// - weekStart
+// - avgClarityScore
+// - avgEmpathyScore
+// - avgRespectScore
+// - sessionCount
+// - totalDuration

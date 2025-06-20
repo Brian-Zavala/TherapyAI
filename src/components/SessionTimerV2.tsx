@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useTimer, useStopwatch } from 'react-timer-hook'
 
 interface SessionTimerV2Props {
+  sessionId: string // Session ID for storage keys
   durationMinutes: number
   conversationTimeSeconds: number // Total conversation time from server
   isConversationActive: boolean // Whether VAPI call is active
@@ -16,6 +17,7 @@ interface SessionTimerV2Props {
 }
 
 export default function SessionTimerV2({ 
+  sessionId,
   durationMinutes, 
   conversationTimeSeconds,
   isConversationActive,
@@ -98,20 +100,35 @@ export default function SessionTimerV2({
   useEffect(() => {
     if (!isClient) return
     
+    // Skip sync if conversation is not active or is paused
+    if (!isConversationActive || isPaused) return
+    
+    // Check if we recently synced to prevent rapid re-syncs
+    const lastSyncKey = `timer-last-sync-${sessionId}`
+    const lastSync = sessionStorage.getItem(lastSyncKey)
+    if (lastSync) {
+      const timeSinceSync = Date.now() - parseInt(lastSync)
+      if (timeSinceSync < 10000) return // Don't sync more than once per 10 seconds
+    }
+    
     // Calculate expected remaining time based on conversation time
     const totalSessionSeconds = durationMinutes * 60
     const expectedRemaining = Math.max(0, totalSessionSeconds - conversationTimeSeconds)
     
-    // If there's a significant difference (>5 seconds), restart the timer
+    // If there's a significant difference (>10 seconds), restart the timer
     const currentRemaining = totalSeconds
     const timeDiff = Math.abs(expectedRemaining - currentRemaining)
     
-    if (timeDiff > 5) {
+    // Only sync if the drift is significant and we're not near expiry
+    if (timeDiff > 10 && expectedRemaining > 30) {
       console.log(`⏱️ Timer sync needed: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
       const newExpiry = calculateExpiryTimestamp()
-      restartRef.current(newExpiry, isConversationActive && !isPaused)
+      restartRef.current(newExpiry, true)
+      
+      // Update last sync time
+      sessionStorage.setItem(lastSyncKey, Date.now().toString())
     }
-  }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, calculateExpiryTimestamp]) // Remove restart to prevent infinite loops
+  }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, sessionId]) // Remove restart and calculateExpiryTimestamp to prevent infinite loops
   
   // Notify parent of time updates
   useEffect(() => {

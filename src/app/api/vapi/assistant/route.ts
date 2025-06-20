@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAssistant, getAssistant, updateAssistant } from '@/lib/vapi-server';
+import { getPersonalizedAssistantConfig } from '@/lib/vapi';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
@@ -404,23 +405,23 @@ export async function GET(req: NextRequest) {
             clientMessagesCount: cleanConfig.clientMessages?.length || 0
           });
           
-          // Validate configuration before sending to client
-          const { validateVapiInlineConfig, logVapiValidationResult } = await import('@/lib/vapi-config-validator');
-          const validationResult = validateVapiInlineConfig(cleanConfig);
-          logVapiValidationResult(validationResult);
+          // Clean and validate configuration before sending to client
+          const { cleanAndValidateVapiConfig } = await import('@/lib/vapi-config-cleaner');
           
-          if (!validationResult.isValid) {
-            console.error('❌ VAPI configuration validation failed, returning error');
+          try {
+            const finalConfig = cleanAndValidateVapiConfig(cleanConfig);
+            console.log('✅ VAPI configuration cleaned and validated successfully');
+            return NextResponse.json(finalConfig);
+          } catch (validationError) {
+            console.error('❌ VAPI configuration validation failed:', validationError);
             return NextResponse.json(
               { 
-                error: 'Invalid VAPI configuration', 
-                validationErrors: validationResult.errors 
+                error: validationError instanceof Error ? validationError.message : 'Invalid VAPI configuration',
+                details: validationError instanceof Error ? validationError.message : undefined
               }, 
               { status: 400 }
             );
           }
-          
-          return NextResponse.json(cleanConfig);
         } else {
           // Return the personalized config with assistant ID
           return NextResponse.json({

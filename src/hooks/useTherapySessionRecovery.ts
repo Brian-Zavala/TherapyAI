@@ -27,7 +27,14 @@ export function useTherapySessionRecovery() {
   })
   
   // Deduplication tracking with session key to handle HMR/Fast Refresh
-  const sessionKey = session?.user?.id || 'no-session'
+  // Use a stable session key that won't change unexpectedly
+  const getStableSessionKey = useCallback((userSession: typeof session) => {
+    if (!userSession?.user?.id) return 'no-session'
+    // Create a stable key that won't change with object reference changes
+    return `user-${userSession.user.id}`
+  }, [])
+  
+  const sessionKey = getStableSessionKey(session)
   const [hasCheckedThisSession, setHasCheckedThisSession] = useState(false)
   const [lastSessionKey, setLastSessionKey] = useState<string | null>(null)
   
@@ -99,6 +106,35 @@ export function useTherapySessionRecovery() {
     }, 10000) // 10 second safety timeout
 
     console.log('🔍 Checking for active therapy session...')
+    
+    // CRITICAL: Check if a session just ended to prevent recovery attempts
+    const justEndedData = sessionStorage.getItem('session-just-ended')
+    if (justEndedData) {
+      try {
+        const { sessionId, timestamp } = JSON.parse(justEndedData)
+        const age = Date.now() - timestamp
+        
+        // If session ended less than 10 seconds ago, skip recovery
+        if (age < 10000) {
+          console.log('🚫 Session just ended, skipping recovery check for:', sessionId)
+          setRecoveryState(prev => ({ 
+            ...prev, 
+            isChecking: false,
+            hasActiveSession: false,
+            sessionData: null,
+            shouldAutoRestart: false
+          }))
+          return null
+        } else {
+          // Clean up old data
+          sessionStorage.removeItem('session-just-ended')
+        }
+      } catch (e) {
+        console.warn('Failed to parse session-just-ended data:', e)
+        sessionStorage.removeItem('session-just-ended')
+      }
+    }
+    
     setRecoveryState(prev => ({ ...prev, isChecking: true }))
     setHasCheckedThisSession(true) // Mark as checked to prevent duplicate runs
     sessionStorage.setItem('last-recovery-check-time', Date.now().toString())
@@ -231,6 +267,29 @@ export function useTherapySessionRecovery() {
       return () => clearTimeout(timer)
     }
   }, [status]) // Removed checkForActiveSession dependency to prevent infinite loops
+  
+  // Clean up old session-just-ended data periodically
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const justEndedData = sessionStorage.getItem('session-just-ended')
+      if (justEndedData) {
+        try {
+          const { timestamp } = JSON.parse(justEndedData)
+          const age = Date.now() - timestamp
+          
+          // Remove if older than 30 seconds
+          if (age > 30000) {
+            console.log('🧹 Cleaning up old session-just-ended data')
+            sessionStorage.removeItem('session-just-ended')
+          }
+        } catch (e) {
+          sessionStorage.removeItem('session-just-ended')
+        }
+      }
+    }, 10000) // Check every 10 seconds
+    
+    return () => clearInterval(cleanupInterval)
+  }, [])
 
   // Reset state when session becomes active to avoid duplicate checking
   useEffect(() => {
@@ -249,6 +308,25 @@ export function useTherapySessionRecovery() {
     observer.observe(document.body, { attributes: true })
     return () => observer.disconnect()
   }, [recoveryState.isChecking])
+  
+  // Listen for session end events to reset recovery state
+  useEffect(() => {
+    const handleSessionEnded = () => {
+      console.log('🔚 Session ended event received - resetting recovery state')
+      setRecoveryState({
+        isChecking: false,
+        hasActiveSession: false,
+        sessionData: null,
+        shouldAutoRestart: false
+      })
+      // Clear any pending recovery data
+      sessionStorage.removeItem('session-recovery-pending')
+      sessionStorage.removeItem('recovery-check-in-progress')
+    }
+    
+    window.addEventListener('sessionEnded', handleSessionEnded)
+    return () => window.removeEventListener('sessionEnded', handleSessionEnded)
+  }, [])
 
   return recoveryState
 }

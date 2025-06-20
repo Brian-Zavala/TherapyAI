@@ -1,5 +1,5 @@
 // Session timing constants
-export const TRANSCRIPT_DEBOUNCE_MS = 1500; // Wait 1.5s for fragments to complete before processing
+export const TRANSCRIPT_DEBOUNCE_MS = 250; // Reduced from 1.5s to 250ms for better UX
 export const DEFAULT_SESSION_DURATION = 60; // Default session duration in minutes
 export const SESSION_DURATION_OPTIONS = [30, 60] as const;
 export type SessionDuration = typeof SESSION_DURATION_OPTIONS[number];

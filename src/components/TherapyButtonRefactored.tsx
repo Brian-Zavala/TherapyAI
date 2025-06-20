@@ -128,7 +128,27 @@ export function TherapyButtonRefactored({
   const handleVapiError = useCallback((error: unknown) => {
     console.error('[TherapyButton] VAPI error:', error)
     setError(error instanceof Error ? error.message : String(error))
-  }, [])
+    
+    // Check if this is a "Meeting has ended" error
+    if (error && typeof error === 'object') {
+      const errorObj = error as Record<string, any>
+      if (errorObj.errorMsg === 'Meeting has ended' && errorObj.error?.type === 'no-room') {
+        // Mark session as ended to prevent recovery attempts
+        const currentSessionId = sessionIdRef.current
+        if (currentSessionId) {
+          sessionStorage.setItem('session-just-ended', JSON.stringify({
+            sessionId: currentSessionId,
+            timestamp: Date.now(),
+            reason: 'vapi-room-ended'
+          }))
+          console.log('🚫 VAPI room ended - marked session to prevent recovery')
+          
+          // Force cleanup
+          cleanupSession()
+        }
+      }
+    }
+  }, [cleanupSession])
   
   // Create transcript ref for the callback
   const transcriptRef = useRef<any>(null)
@@ -263,6 +283,14 @@ export function TherapyButtonRefactored({
       }
     }
   })
+  
+  // Initialize VAPI instance as soon as token is ready
+  useEffect(() => {
+    if (!vapi.isAuthLoading && !vapi.authError && !vapi.isInstanceReady()) {
+      console.log('🎙️ Token ready, creating VAPI instance...')
+      vapi.createVapiInstance(session.sessionId || undefined)
+    }
+  }, [vapi.isAuthLoading, vapi.authError, session.sessionId, vapi])
   
   const handleTranscriptMetricsUpdate = useCallback(() => {
     // Metrics updates happen frequently, no need to log
@@ -454,6 +482,49 @@ export function TherapyButtonRefactored({
           console.error('❌ Failed to recover session state:', recoveryError)
           throw new Error(`Session recovery failed: ${recoveryError instanceof Error ? recoveryError.message : 'Unknown error'}`)
         }
+        
+        // CRITICAL: Check VAPI readiness before attempting recovery
+        if (vapi.authError) {
+          console.error('❌ Cannot recover session: VAPI authentication error', vapi.authError)
+          
+          // Clear recovery data to prevent repeated attempts
+          sessionStorage.removeItem('session-recovery-pending')
+          sessionStorage.removeItem('session-auto-start')
+          sessionStorage.removeItem('current-session-id')
+          
+          setError('Unable to recover session due to authentication error. Please refresh the page and try again.')
+          setIsProcessingRecovery(false)
+          return
+        }
+        
+        // Wait for VAPI to be ready
+        let vapiReadyAttempts = 0
+        const maxVapiAttempts = 30 // 15 seconds max wait
+        
+        while ((vapi.isAuthLoading || !vapi.isInstanceReady()) && vapiReadyAttempts < maxVapiAttempts) {
+          console.log(`⏳ Waiting for VAPI to be ready... Attempt ${vapiReadyAttempts + 1}/${maxVapiAttempts}`)
+          console.log('Auth loading:', vapi.isAuthLoading)
+          console.log('Instance ready:', vapi.isInstanceReady())
+          
+          await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms between checks
+          vapiReadyAttempts++
+        }
+        
+        // Final check after waiting
+        if (!vapi.isInstanceReady()) {
+          console.error('❌ VAPI failed to initialize after 15 seconds')
+          
+          // Clear recovery data to prevent repeated attempts
+          sessionStorage.removeItem('session-recovery-pending')
+          sessionStorage.removeItem('session-auto-start')
+          sessionStorage.removeItem('current-session-id')
+          
+          setError('Voice session initialization timed out. Please refresh the page and try again.')
+          setIsProcessingRecovery(false)
+          return
+        }
+        
+        console.log('✅ VAPI is ready, proceeding with session recovery')
         
         // Check if we should use inline configuration
         const useInlineConfig = process.env.NEXT_PUBLIC_USE_INLINE_ASSISTANT === 'true'
@@ -855,7 +926,7 @@ export function TherapyButtonRefactored({
         
         console.log('✅ Client-side validation passed, starting VAPI call...')
         
-        // Start VAPI with inline configuration
+        // Start VAPI with inline configuration through the hook
         await vapi.startCall(inlineConfig)
         
         // Start conversation timer with the new sessionId after VAPI starts
@@ -923,6 +994,15 @@ export function TherapyButtonRefactored({
       sessionStorage.removeItem('current-session-id')
       sessionStorage.removeItem('session-auto-start')
       
+      // CRITICAL: Mark session as just ended to prevent recovery attempts
+      if (currentSessionId) {
+        sessionStorage.setItem('session-just-ended', JSON.stringify({
+          sessionId: currentSessionId,
+          timestamp: Date.now()
+        }))
+        console.log('🚫 Marked session as just ended to prevent recovery')
+      }
+      
       // Cleanup metrics calculator
       if (currentSessionId) {
         cleanupSessionMetrics(currentSessionId)
@@ -935,7 +1015,12 @@ export function TherapyButtonRefactored({
         setIsLoading(false)
         // Reset forceHidePhoneUI after session is fully ended
         setForceHidePhoneUI(false)
+        // Ensure session-active class is removed
+        document.body.classList.remove('session-active')
         console.log('✅ Session ended, UI reset to inactive state')
+        
+        // Dispatch event to notify UI components
+        window.dispatchEvent(new Event('sessionEnded'))
       }, 100)
       
     } catch (error) {
@@ -1056,6 +1141,24 @@ export function TherapyButtonRefactored({
       setSessionActive(false)
     }
   }, [session.sessionId, vapi.vapiState.isActive, isLoading, showDurationModal, showFamilySelectionModal, forceHidePhoneUI, setSessionActive])
+  
+  // Listen for explicit session end event to ensure proper cleanup
+  useEffect(() => {
+    const handleSessionEnded = () => {
+      console.log('[Session Monitor] Received sessionEnded event, ensuring complete cleanup')
+      // Force remove session-active class
+      document.body.classList.remove('session-active')
+      // Clear any lingering recovery data
+      sessionStorage.removeItem('session-recovery-pending')
+      sessionStorage.removeItem('current-session-id')
+      sessionStorage.removeItem('session-auto-start')
+      // Dispatch state change event
+      window.dispatchEvent(new Event('sessionStateChanged'))
+    }
+    
+    window.addEventListener('sessionEnded', handleSessionEnded)
+    return () => window.removeEventListener('sessionEnded', handleSessionEnded)
+  }, [])
 
 
   // Get therapist name based on therapy type
@@ -1347,6 +1450,7 @@ export function TherapyButtonRefactored({
                 <div className="text-center py-1 sm:py-2">
                   {session.sessionDuration ? (
                     <SessionTimerV2
+                      sessionId={session.id}
                       durationMinutes={session.sessionDuration}
                       conversationTimeSeconds={session.conversationTimeSeconds}
                       isConversationActive={vapi.vapiState.isActive && !sessionState.isPaused}
@@ -1368,6 +1472,7 @@ export function TherapyButtonRefactored({
                   isMuted={isMuted}
                   isSessionPaused={sessionState.isPaused}
                   totalPausedTimeSeconds={session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0}
+                  conversationTimeSeconds={session.conversationTimeSeconds}
                   isLoading={vapi.vapiState.isLoading || isLoading}
                   onMuteToggle={toggleMute}
                   onEndCall={handleEndSession}

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
+import { useOptimizedTranscript } from '@/hooks/useOptimizedTranscript'
 
 // Define the structure for a single transcript message
 type TranscriptEntry = {
@@ -34,375 +35,139 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   const [session, setSession] = useState<Session | null>(initialSession || null)
   const [loading, setLoading] = useState(!initialSession)
   const [error, setError] = useState<string | null>(null)
-  const [transcriptEntries, setTranscriptEntries] = useState<TranscriptEntry[]>([])
   
-  // Show a placeholder entry immediately while loading for better UI experience
-  const [showingPlaceholder, setShowingPlaceholder] = useState(true)
-
   // Real-time tracking of session duration
   const [sessionDuration, setSessionDuration] = useState<number>(initialSession?.duration || 0)
-  const [transcriptPollingInterval, setTranscriptPollingInterval] = useState<NodeJS.Timeout | null>(null)
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
+  
+  // Use optimized transcript hook for real-time updates
+  const {
+    entries: transcriptEntries,
+    isLoading: transcriptLoading,
+    error: transcriptError,
+    hasMore,
+    loadMore,
+    refresh
+  } = useOptimizedTranscript({
+    sessionId,
+    isActive: session?.status === 'active',
+    pageSize: 50
+  })
+  
+  // Virtual scrolling refs
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
+  
+  // Handle scroll position for auto-scroll
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current) return
+    
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+    
+    setAutoScroll(isNearBottom)
+    
+    // Load more when near top (for pagination)
+    if (scrollTop < 100 && hasMore && !transcriptLoading) {
+      loadMore()
+    }
+  }, [hasMore, transcriptLoading, loadMore])
+  
+  // Auto-scroll to bottom when new entries arrive
+  useEffect(() => {
+    if (autoScroll && bottomRef.current && session?.status === 'active') {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [transcriptEntries.length, autoScroll, session?.status])
   
   // Function to calculate elapsed time for active sessions
   useEffect(() => {
-    // Only for active sessions
     if (session?.status === 'active') {
-      // Try to get the exact session start time
       const fetchSessionStartTime = async () => {
         try {
-          const response = await fetch(`/api/sessions/${sessionId}`);
+          const response = await fetch(`/api/sessions/${sessionId}`)
           if (response.ok) {
-            const data = await response.json();
+            const data = await response.json()
             if (data.startTime) {
-              setSessionStartTime(new Date(data.startTime));
+              setSessionStartTime(new Date(data.startTime))
             } else {
-              // Fall back to session date if no explicit start time
-              setSessionStartTime(new Date(data.date));
+              setSessionStartTime(new Date(data.date))
             }
           }
         } catch (error) {
-          console.error('Error fetching session start time:', error);
+          console.error('Error fetching session start time:', error)
         }
-      };
+      }
       
-      fetchSessionStartTime();
+      fetchSessionStartTime()
     } else {
-      // For completed sessions, just use the stored duration
-      setSessionDuration(session?.duration || 0);
+      setSessionDuration(session?.duration || 0)
     }
-  }, [session?.status, sessionId]);
+  }, [session?.status, sessionId])
 
-  // Separate effect for updating duration every 10 seconds
+  // Update duration every 10 seconds for active sessions
   useEffect(() => {
     if (session?.status === 'active' && sessionStartTime) {
-      // Calculate initial duration
-      const now = new Date();
-      const elapsedMinutes = Math.floor((now.getTime() - sessionStartTime.getTime()) / (1000 * 60));
-      setSessionDuration(Math.max(1, elapsedMinutes));
-
-      // Set up timer to calculate elapsed time
-      const durationTimer = setInterval(() => {
-        const currentTime = new Date();
-        const elapsedMins = Math.floor((currentTime.getTime() - sessionStartTime.getTime()) / (1000 * 60));
-        // Update the duration
-        setSessionDuration(Math.max(1, elapsedMins));
-      }, 10000); // Update every 10 seconds
-      
-      return () => clearInterval(durationTimer);
-    }
-  }, [session?.status, sessionStartTime]);
-  
-  // Load session data and transcript entries with real-time updates
-  useEffect(() => {
-    // Enhanced transcript loading with improved error handling and polling
-    async function loadTranscript(force: boolean = false) {
-      try {
-        // Throttle fetch rate to avoid excessive requests
-        const now = Date.now();
-        if (!force && now - lastFetchTime < 2000) {
-          console.log('Throttling transcript fetch - too soon since last fetch');
-          return;
-        }
-        
-        setLastFetchTime(now);
-        console.log(`Loading transcript entries for session ${sessionId}`);
-        
-        // Improved error handling for fetch
-        let response;
-        try {
-          // Use catch syntax to handle fetch errors properly
-          response = await fetch(`/api/sessions/${sessionId}/transcript`, {
-            cache: 'no-store', // Use no-store instead of no-cache
-            headers: {
-              'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
-            }
-          });
-          
-          if (!response.ok) {
-            console.error(`Error fetching transcript: ${response.status}`);
-            return;
-          }
-        } catch (fetchError) {
-          console.error(`Network error fetching transcript: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
-          return;
-        }
-        
-        const data = await response.json();
-        
-        // Handle both old format (array) and new format (with pagination)
-        const entries = Array.isArray(data) ? data : data.entries;
-        console.log(`Fetched ${entries?.length || 0} transcript entries`);
-        
-        if (entries && Array.isArray(entries) && entries.length > 0) {
-          // Sort entries by timestamp to ensure correct ordering
-          const sortedEntries = [...entries].sort((a, b) => 
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
-          
-          // Compare with existing entries to avoid unnecessary re-renders
-          const existingIds = new Set(transcriptEntries.map(e => e.id));
-          const hasNewEntries = sortedEntries.some(e => !existingIds.has(e.id)) || 
-                               sortedEntries.length !== transcriptEntries.length;
-          
-          if (hasNewEntries) {
-            console.log(`Setting ${sortedEntries.length} sorted transcript entries from API (${sortedEntries.length - transcriptEntries.length} new)`);
-            // Set entries from API
-            setTranscriptEntries(sortedEntries);
-            setShowingPlaceholder(false);
-          } else {
-            console.log('No new transcript entries found');
-          }
-        } else if (session?.transcript && transcriptEntries.length === 0) {
-          // If no entries but we have a legacy transcript, parse it
-          const parsedEntries = formatLegacyTranscript(session.transcript);
-          setTranscriptEntries(parsedEntries);
-          setShowingPlaceholder(false);
-          console.log(`Set ${parsedEntries.length} parsed transcript entries from legacy transcript`);
-        } else {
-          // Check session storage as last resort, but only if we have no entries yet
-          if (transcriptEntries.length === 0) {
-            try {
-              const storageKey = `transcript-${sessionId}`;
-              const stored = sessionStorage.getItem(storageKey);
-              if (stored) {
-                const storedEntries = JSON.parse(stored);
-                if (Array.isArray(storedEntries) && storedEntries.length > 0) {
-                  // Convert to transcript entry format
-                  const formattedEntries = storedEntries.map((entry, index) => ({
-                    id: `storage-${index}`,
-                    sessionId: sessionId,
-                    speaker: entry.speaker || 'unknown',
-                    text: entry.text || '',
-                    timestamp: entry.timestamp || new Date().toISOString(),
-                    isFinal: true
-                  }));
-                  
-                  setTranscriptEntries(formattedEntries);
-                  setShowingPlaceholder(false);
-                  console.log(`Set ${formattedEntries.length} transcript entries from session storage`);
-                  
-                  // Also migrate these entries to the database for future retrieval
-                  try {
-                    formattedEntries.forEach(async (entry) => {
-                      await fetch(`/api/sessions/${sessionId}/transcript`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          speaker: entry.speaker,
-                          text: entry.text,
-                          timestamp: entry.timestamp,
-                          isFinal: true
-                        })
-                      });
-                    });
-                    console.log('Migrated session storage entries to database');
-                  } catch (migrationError) {
-                    console.error('Failed to migrate entries to database:', migrationError);
-                  }
-                }
-              }
-            } catch (storageError) {
-              console.error('Error checking session storage:', storageError);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching transcript entries:', error);
+      const updateDuration = () => {
+        const now = new Date()
+        const elapsedMinutes = Math.floor((now.getTime() - sessionStartTime.getTime()) / (1000 * 60))
+        setSessionDuration(Math.max(1, elapsedMinutes))
       }
+      
+      updateDuration()
+      const durationTimer = setInterval(updateDuration, 10000)
+      
+      return () => clearInterval(durationTimer)
     }
-    
-    async function loadSessionData(force: boolean = false) {
+  }, [session?.status, sessionStartTime])
+  
+  // Load session data
+  useEffect(() => {
+    async function loadSessionData() {
+      if (initialSession) return
+      
       try {
-        if (!force) {
-          setLoading(true);
+        setLoading(true)
+        const response = await fetch(`/api/sessions/${sessionId}`, { 
+          cache: 'no-store'
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch session: ${response.status}`)
         }
         
-        let response;
-        try {
-          response = await fetch(`/api/sessions/${sessionId}`, { 
-            cache: 'no-store', // Use no-store instead of no-cache
-            headers: {
-              'X-Fetch-Time': Date.now().toString() // Add timestamp to prevent caching
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch session: ${response.status}`);
-          }
-        } catch (fetchError) {
-          console.error(`Network error fetching session: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
-          throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`);
-        }
+        const sessionData = await response.json()
+        setSession(sessionData)
         
-        const sessionData = await response.json();
-        
-        // Update session data
-        setSession(sessionData);
-        
-        // Update duration if this is a completed session
         if (sessionData.status !== 'active') {
-          setSessionDuration(sessionData.duration || 0);
-        }
-        
-        // If session has transcript entries directly, use them
-        if (sessionData.transcriptEntries?.length > 0) {
-          setTranscriptEntries(sessionData.transcriptEntries);
-          setShowingPlaceholder(false);
-        } else {
-          // Otherwise, load transcript entries separately
-          await loadTranscript(force);
+          setSessionDuration(sessionData.duration || 0)
         }
       } catch (err) {
-        console.error('Error fetching session data:', err);
-        setError('Could not load session details');
+        console.error('Error fetching session data:', err)
+        setError('Could not load session details')
       } finally {
-        if (!force) {
-          setLoading(false);
-          // If we still have no entries by now, don't show a placeholder anymore
-          setTimeout(() => {
-            setShowingPlaceholder(false);
-          }, 300);
-        }
+        setLoading(false)
       }
     }
     
-    // Initial data loading
-    if (initialSession) {
-      // If we have initial session data, just load transcript
-      loadTranscript(true);
-    } else if (sessionId) {
-      // Otherwise load everything
-      loadSessionData(true);
-    }
-    
-    // Set up polling for real-time updates if this is an active session
-    if (sessionId) {
-      // Check if session is active before setting up polling
-      const checkSessionStatus = async () => {
-        try {
-          let response;
-          try {
-            response = await fetch(`/api/sessions/${sessionId}`, {
-              cache: 'no-store'
-            });
-          } catch (fetchError) {
-            console.error('Network error checking session status:', fetchError);
-            return; // Exit early on network errors
-          }
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            // For active sessions, set up polling
-            if (data.status === 'active') {
-              console.log('Setting up real-time polling for active session');
-              
-              // Clear any existing interval
-              if (transcriptPollingInterval) {
-                clearInterval(transcriptPollingInterval);
-              }
-              
-              // Set up new polling interval - every 5 seconds
-              const interval = setInterval(() => {
-                console.log('Polling for transcript updates');
-                
-                // Use try-catch to prevent interval from being disrupted by errors
-                try {
-                  loadTranscript(false).catch(err => {
-                    console.warn('Error during transcript polling:', err);
-                    // Continue with interval despite errors
-                  });
-                  
-                  // Also refresh session data occasionally to check duration/status
-                  loadSessionData(true).catch(err => {
-                    console.warn('Error during session data polling:', err);
-                    // Continue with interval despite errors
-                  });
-                } catch (pollingError) {
-                  console.error('Error in polling interval:', pollingError);
-                  // Continue with interval despite errors
-                }
-              }, 5000) as unknown as NodeJS.Timeout;
-              
-              setTranscriptPollingInterval(interval);
-            } else if (transcriptPollingInterval) {
-              // For non-active sessions, clear any existing polling
-              console.log('Clearing polling for non-active session');
-              clearInterval(transcriptPollingInterval);
-              setTranscriptPollingInterval(null);
-            }
-          }
-        } catch (error) {
-          console.error('Error checking session status:', error);
-        }
-      };
-      
-      // Initial check
-      checkSessionStatus();
-      
-      // Clean up polling on unmount
-      return () => {
-        if (transcriptPollingInterval) {
-          console.log('Cleaning up transcript polling interval');
-          clearInterval(transcriptPollingInterval);
-        }
-      };
+    if (sessionId && !initialSession) {
+      loadSessionData()
     }
   }, [sessionId, initialSession])
 
-  // Fallback function to parse legacy transcript strings
-  function formatLegacyTranscript(transcript: string): TranscriptEntry[] {
-    if (!transcript || !session) return []
+  // Filter and process entries for display
+  const displayEntries = transcriptEntries.filter(entry => {
+    if (!entry || !entry.text || !entry.text.trim()) return false
     
-    // Split by newlines and filter empty lines
-    const lines = transcript.split('\n').filter(line => line.trim() !== '')
-    const entries: TranscriptEntry[] = []
+    // Filter out system artifacts
+    if (entry.text.includes("-----") ||
+        entry.text.includes("Full conversation transcript:")) {
+      return false
+    }
     
-    lines.forEach((line, index) => {
-      // Try to match speaker pattern (SPEAKER: text)
-      const match = line.match(/^([^:]+):\s*(.+)$/)
-      
-      if (match) {
-        const speakerText = match[1].toLowerCase()
-        // Normalize speaker
-        const speaker = (speakerText === 'user' || 
-                       speakerText === 'client' || 
-                       speakerText === 'human' ||
-                       speakerText === 'you') 
-          ? 'user' : 'assistant'
-        
-        const text = match[2].trim()
-        
-        if (text) {
-          entries.push({
-            id: `legacy-${index}`,
-            sessionId: session.id,
-            speaker,
-            text,
-            timestamp: new Date(Date.now() - (lines.length - index) * 10000).toISOString(),
-            isFinal: true
-          })
-        }
-      } else {
-        // No speaker prefix - use heuristics
-        const probablyUser = line.endsWith('?') || 
-                           /\b(I feel|I think|I am|I'm|I need|I want|I have)\b/i.test(line)
-        
-        entries.push({
-          id: `legacy-${index}`,
-          sessionId: session.id,
-          speaker: probablyUser ? 'user' : 'assistant',
-          text: line.trim(),
-          timestamp: new Date(Date.now() - (lines.length - index) * 10000).toISOString(),
-          isFinal: true
-        })
-      }
-    })
-    
-    return entries
-  }
+    return true
+  })
 
   if (loading) {
     return (
@@ -415,9 +180,9 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             Session Transcript
           </h2>
         </div>
-        <div className="p-4 sm:p-5 min-h-[300px]">
-          <div className="flex flex-col justify-center items-center h-full">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <div className="p-4 sm:p-5 min-h-[300px] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3 mx-auto"></div>
             <p className="text-white/70 text-sm">Loading transcript data...</p>
           </div>
         </div>
@@ -433,65 +198,98 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
     )
   }
 
-  // Show a placeholder immediately if we're in placeholder mode
-  if (showingPlaceholder && !loading) {
-    const placeholderEntries = [];
-    for (let i = 0; i < 5; i++) {
-      // Alternate between user and assistant
-      const speaker = i % 2 === 0 ? 'user' : 'assistant';
-      placeholderEntries.push({
-        id: `loading-placeholder-${i}`,
-        sessionId: session.id,
-        speaker,
-        text: speaker === 'user' ? 'Loading conversation...' : 'Retrieving transcript data...',
-        timestamp: new Date(Date.now() - (5 - i) * 5000).toISOString(),
-        isFinal: true
-      });
-    }
-    
-    // Display loading placeholders for a better user experience
-    return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-5">
-          <h2 className="text-xl font-semibold text-white flex items-center">
-            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            Session Transcript
-          </h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
-              <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {format(new Date(session.date), 'PPP')}
+  const combinedError = transcriptError && `Transcript Error: ${transcriptError}`
+
+  return (
+    <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
+      <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5">
+        <h2 className="text-xl font-semibold text-white flex items-center">
+          <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+          Session Transcript
+          {session.status === 'active' && (
+            <span className="ml-2 flex items-center">
+              <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
+              <span className="ml-1 text-xs text-green-300">Live</span>
             </span>
-          </div>
+          )}
+        </h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
+            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {format(new Date(session.date), 'PPP')}
+          </span>
+          
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
+            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {session.status === 'active' ? (
+              <span className="flex items-center">
+                {sessionDuration} minutes
+              </span>
+            ) : (
+              `${session.duration} minutes`
+            )}
+          </span>
+          
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
+            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            {session.theme}
+          </span>
+          
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={transcriptLoading}
+              className="ml-auto text-xs text-white/80 hover:text-white transition-colors"
+            >
+              {transcriptLoading ? 'Loading...' : 'Load More'}
+            </button>
+          )}
         </div>
-        
-        <div className="p-4 sm:p-5 overflow-y-auto max-h-[60vh]">
+      </div>
+      
+      {combinedError && (
+        <div className="px-4 py-2 bg-red-500/20 text-red-300 text-sm">
+          {combinedError}
+        </div>
+      )}
+      
+      <div 
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="p-4 sm:p-5 overflow-y-auto max-h-[60vh] scroll-smooth"
+      >
+        {transcriptLoading && displayEntries.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3 mx-auto"></div>
+            <p className="text-white/70 text-sm">Loading conversation...</p>
+          </div>
+        ) : displayEntries.length > 0 ? (
           <motion.div 
             className="space-y-4"
-            initial={{ opacity: 0.7 }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
           >
-            {placeholderEntries.map((entry, index) => {
-              const isUser = entry.speaker === 'user';
+            {displayEntries.map((entry, index) => {
+              const isUser = entry.speaker?.toLowerCase() === 'user' || 
+                           entry.speaker?.toLowerCase() === 'you' || 
+                           entry.speaker?.toLowerCase() === 'client'
               
               return (
                 <motion.div 
                   key={entry.id}
                   className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-                  initial={{ opacity: 0.5, y: 10 }}
-                  animate={{ 
-                    opacity: [0.5, 0.8, 0.5] as any, 
-                    y: 0 
-                  }}
-                  transition={{ 
-                    duration: 1.5, 
-                    repeat: Infinity,
-                    delay: index * 0.2 
-                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.05, 0.2), duration: 0.3 }}
                 >
                   <div 
                     className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm backdrop-blur-sm ${
@@ -518,283 +316,18 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                           AI Therapist
                         </>
                       )}
+                      <span className="ml-auto text-[10px] text-white/50">
+                        {format(new Date(entry.timestamp), 'HH:mm:ss')}
+                      </span>
                     </div>
-                    <div className="text-sm whitespace-pre-wrap">{entry.text}</div>
+                    <div className="text-sm whitespace-pre-wrap text-white/90">{entry.text}</div>
                   </div>
                 </motion.div>
-              );
+              )
             }) as any}
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
-
-  // Process entries - extract all actual conversation parts
-  const initialFiltered = [];
-  
-  console.log(`Processing ${transcriptEntries.length} transcript entries`);
-  
-  // First, check if we have any entries
-  if (transcriptEntries.length === 0) {
-    console.log('No transcript entries found');
-    // Add placeholder to ensure UI shows something
-    initialFiltered.push({
-      id: 'placeholder',
-      sessionId: session.id,
-      speaker: 'system',
-      text: 'No conversation data is available for this session.',
-      timestamp: new Date().toISOString(),
-      isFinal: true
-    });
-  } else {
-    console.log('Found transcript entries, processing...');
-    
-    for (const entry of transcriptEntries) {
-      console.log(`Processing entry: speaker=${entry?.speaker}, text preview=${entry?.text?.substring(0, 50)}`);
-      
-      // Skip null or empty entries
-      if (!entry || !entry.text || !entry.text.trim()) {
-        console.log('Skipping empty entry');
-        continue;
-      }
-      
-      // Special case: system notifications
-      if (entry.speaker === 'system') {
-        console.log('Found system entry');
-        initialFiltered.push(entry);
-        continue;
-      }
-      
-      // Only filter out truly invalid entries - be much less aggressive
-      if (entry.text.includes("-----") ||
-          entry.text.includes("Full conversation transcript:")) {
-        console.log('Found clear artifact entry - excluding');
-        // Only skip obvious separators and system artifacts
-        continue;
-      }
-      // Include all other conversation entries
-      else {
-        console.log('Found conversation entry - including');
-        initialFiltered.push(entry);
-      }
-    }
-    
-    console.log(`Filtered to ${initialFiltered.length} entries`);
-    
-    // If all entries were filtered out, add placeholder
-    if (initialFiltered.length === 0) {
-      console.log('No valid entries after filtering - adding placeholder');
-      initialFiltered.push({
-        id: 'placeholder',
-        sessionId: session.id,
-        speaker: 'system',
-        text: 'No conversation data available after filtering summaries. Try refreshing or creating a new session.',
-        timestamp: new Date().toISOString(),
-        isFinal: true
-      });
-    }
-  }
-  
-  // Sort by timestamp first
-  const sortedEntries = [...initialFiltered].sort((a, b) => {
-    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  })
-  
-  // Simplified deduplication - only remove exact duplicates and obvious progressions
-  const filteredEntriesArray: TranscriptEntry[] = [];
-  const seenTexts = new Set<string>();
-  
-  // Helper function for text normalization
-  const normalizeText = (text: string): string => {
-    if (!text) return '';
-    return text.toLowerCase().trim().replace(/\s+/g, ' ');
-  };
-  
-  // Process entries in chronological order
-  sortedEntries.forEach(entry => {
-    const text = entry.text.trim();
-    
-    // Skip empty entries
-    if (!text) return;
-    
-    const normalizedText = normalizeText(text);
-    const textKey = `${entry.speaker}:${normalizedText}`;
-    
-    // Only remove exact duplicates
-    if (seenTexts.has(textKey)) {
-      console.log('Skipping exact duplicate:', text.substring(0, 50));
-      return;
-    }
-    
-    // Check for obvious progressive transcriptions (where new text contains old text completely)
-    let isProgression = false;
-    for (const existingEntry of filteredEntriesArray.slice(-3)) { // Only check last 3 entries
-      if (existingEntry.speaker === entry.speaker) {
-        const existingNorm = normalizeText(existingEntry.text);
-        
-        // If this text completely contains a recent entry from same speaker, replace it
-        if (normalizedText.length > existingNorm.length && 
-            normalizedText.includes(existingNorm) &&
-            existingNorm.length > 10) { // Only for substantial text
-          
-          // Remove the shorter version
-          const indexToRemove = filteredEntriesArray.indexOf(existingEntry);
-          if (indexToRemove >= 0) {
-            filteredEntriesArray.splice(indexToRemove, 1);
-            seenTexts.delete(`${existingEntry.speaker}:${existingNorm}`);
-            console.log('Replaced shorter version with longer:', existingEntry.text.substring(0, 30), '->', text.substring(0, 30));
-          }
-          isProgression = true;
-          break;
-        }
-        
-        // If a recent entry completely contains this text, skip this one
-        if (existingNorm.length > normalizedText.length && 
-            existingNorm.includes(normalizedText) &&
-            normalizedText.length > 10) { // Only for substantial text
-          console.log('Skipping shorter version of existing text');
-          isProgression = true;
-          return;
-        }
-      }
-    }
-    
-    // Add to seen texts
-    seenTexts.add(textKey);
-    
-    // Add to our filtered list
-    filteredEntriesArray.push(entry);
-  })
-  
-  // Use the simplified filtered list directly - no additional complex grouping
-  const filteredEntries = filteredEntriesArray;
-  
-  // If still no valid entries, show placeholder
-  // Filter out system messages with "no recorded conversation" to prevent showing them when real entries exist
-  const filteredWithoutPlaceholders = filteredEntries.filter(
-    entry => !(entry.speaker === 'system' && 
-              (entry.text.includes('This session does not have any recorded conversation yet') || 
-               entry.text === 'No conversation data is available for this session.'))
-  );
-
-  const displayEntries = filteredWithoutPlaceholders.length > 0 
-    ? filteredWithoutPlaceholders 
-    : [{
-        id: 'placeholder',
-        sessionId: session.id,
-        speaker: 'system',
-        text: 'No conversation data is available for this session.',
-        timestamp: new Date().toISOString(),
-        isFinal: true
-      }]
-
-  return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5">
-        <h2 className="text-xl font-semibold text-white flex items-center">
-          <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          Session Transcript
-        </h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
-            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {format(new Date(session.date), 'PPP')}
-          </span>
-          
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
-            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {session.status === 'active' ? (
-              <span className="flex items-center">
-                {sessionDuration} minutes
-                <span className="ml-1 h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></span>
-              </span>
-            ) : (
-              `${session.duration} minutes`
-            )}
-          </span>
-          
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
-            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
-            {session.theme}
-          </span>
-        </div>
-      </div>
-      
-      <div className="p-4 sm:p-5 overflow-y-auto max-h-[60vh]">
-        {displayEntries.length > 0 ? (
-          <motion.div 
-            className="space-y-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            {displayEntries.map((entry, index) => {
-              const isUser = entry.speaker?.toLowerCase() === 'user' || 
-                           entry.speaker?.toLowerCase() === 'you' || 
-                           entry.speaker?.toLowerCase() === 'client';
-              
-              return (
-                <motion.div 
-                  key={entry.id || `line-${index}`}
-                  className={`flex ${isUser ? 'justify-end' : entry.speaker === 'system' ? 'justify-center' : 'justify-start'}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.3 }}
-                >
-                  <div 
-                    className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm backdrop-blur-sm ${
-                      isUser 
-                        ? 'bg-blue-500/20 text-white border border-blue-400/30' 
-                        : entry.speaker === 'system'
-                          ? 'bg-white/10 text-white/80 border border-white/20'
-                          : 'bg-white/15 text-white border border-white/20'
-                    }`}
-                  >
-                    {entry.speaker !== 'system' && (
-                      <div className={`text-xs font-medium mb-1 flex items-center ${
-                        isUser ? 'text-blue-300' : 'text-white/80'
-                      }`}>
-                        {isUser ? (
-                          <>
-                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            You
-                          </>
-                        ) : (
-                          <>
-                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            AI Therapist
-                          </>
-                        )}
-                      </div>
-                    )}
-                    
-                    {entry.speaker === 'system' ? (
-                      <div className="text-sm flex items-center justify-center text-white/80">
-                        <svg className="h-4 w-4 mr-2 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {entry.text}
-                      </div>
-                    ) : (
-                      <div className="text-sm whitespace-pre-wrap text-white/90">{entry.text}</div>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            }) as any}
+            
+            {/* Auto-scroll anchor */}
+            <div ref={bottomRef} />
           </motion.div>
         ) : (
           <div className="text-center py-8">
@@ -813,12 +346,25 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                 />
               </svg>
               <p className="text-white font-medium">No transcript available</p>
-              <p className="text-white/70 text-sm mt-1">This session does not have any recorded conversation yet.</p>
+              <p className="text-white/70 text-sm mt-1">
+                {session.status === 'active' 
+                  ? 'The conversation will appear here as you speak...'
+                  : 'This session does not have any recorded conversation.'}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Loading indicator for pagination */}
+        {transcriptLoading && displayEntries.length > 0 && (
+          <div className="text-center py-4">
+            <div className="inline-flex items-center text-white/60 text-sm">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+              Loading more messages...
             </div>
           </div>
         )}
       </div>
-      
     </div>
   )
 }

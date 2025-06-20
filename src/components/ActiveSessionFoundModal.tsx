@@ -292,12 +292,25 @@ export default function ActiveSessionFoundModal({
       sessionStorage.removeItem('session-recovery-pending')
       sessionStorage.removeItem('current-session-id')
       sessionStorage.removeItem('session-recovered')
+      sessionStorage.removeItem('recovery-check-in-progress')
       
-      // Close modal
+      // Mark session as just ended to prevent recovery attempts
+      if (sessionData?.sessionId) {
+        sessionStorage.setItem('session-just-ended', JSON.stringify({
+          sessionId: sessionData.sessionId,
+          timestamp: Date.now(),
+          reason: 'user-started-new'
+        }))
+      }
+      
+      // Close modal first to ensure smooth transition
       setShowModal(false)
       
-      // Trigger new session callback
-      onStartNewSession()
+      // Small delay before triggering new session to allow modal to close
+      setTimeout(() => {
+        // Trigger new session callback
+        onStartNewSession()
+      }, 200)
       
     } catch (error) {
       console.error('Error ending previous session:', error)

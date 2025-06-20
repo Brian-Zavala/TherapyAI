@@ -4,8 +4,8 @@
  * Handles database changes, broadcast events, and presence
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { getSupabaseClient } from '@/lib/supabase-singleton'
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { 
   REALTIME_CHANNELS, 
@@ -44,7 +44,7 @@ export function useSupabaseSessionState({
   onVapiPause,
   onVapiResume,
 }: UseSupabaseSessionStateOptions) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = getSupabaseClient()
   const [state, setState] = useState<SessionState>({
     session: null,
     isActive: false,
@@ -91,7 +91,8 @@ export function useSupabaseSessionState({
             ...prev,
             session: updatedSession,
             isActive: updatedSession.status === 'active' || updatedSession.status === 'scheduled',
-            isPaused: updatedSession.isPaused || false,
+            // Only update isPaused if session is active
+            isPaused: updatedSession.status === 'active' ? (updatedSession.isPaused || false) : false,
           }))
           onSessionUpdateRef.current?.(updatedSession)
         }
@@ -486,7 +487,8 @@ export function useSupabaseSessionState({
                     ...prev,
                     session: sessionData,
                     isActive: sessionData.status === 'active' || sessionData.status === 'scheduled',
-                    isPaused: sessionData.isPaused || false,
+                    // Only set isPaused from DB if session is active, otherwise default to false
+                    isPaused: sessionData.status === 'active' ? (sessionData.isPaused || false) : false,
                   }))
                   // Mark this session as fetched
                   sessionFetchedRef.current = sessionId
@@ -543,7 +545,7 @@ export function useSupabaseSessionState({
       
       setState(prev => ({ ...prev, isConnected: false }))
     }
-  }, [sessionId, userId, autoSubscribe, supabase])
+  }, [sessionId, userId, autoSubscribe, handleSessionChange, handleStateUpdate, broadcastStateChange])
 
   return {
     // State

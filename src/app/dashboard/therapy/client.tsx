@@ -584,11 +584,24 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Handle starting new session (ends previous)
   const handleStartNewSession = () => {
     console.log('🆕 Starting new session, previous session ended')
+    
     // Reset all state and show type selector
     setSessionType(null)
-    setShowTypeSelector(true)
+    setSelectedAssistant(null) // CRITICAL: Reset assistant selection
     setMeditationStep('none')
     setIsSessionActive(false)
+    
+    // Clear any stale recovery state to prevent race conditions
+    sessionStorage.removeItem('session-recovery-pending')
+    sessionStorage.removeItem('recovery-check-in-progress')
+    sessionStorage.removeItem('current-session-id')
+    sessionStorage.removeItem('session-auto-start')
+    
+    // Small delay to ensure modal closes and state resets before showing type selector
+    setTimeout(() => {
+      console.log('📝 Showing therapy type selector for new session')
+      setShowTypeSelector(true)
+    }, 300) // 300ms delay to allow ActiveSessionFoundModal to close smoothly
   };
 
   // Close menu when clicking outside
@@ -723,7 +736,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // This ensures session recovery modal appears first if needed
     React.createElement(TherapyTypeSelector, {
       key: "therapy-selector",
-      isOpen: showTypeSelector && initialCheckComplete && minimumWaitComplete && !hasActiveSession,
+      isOpen: showTypeSelector && initialCheckComplete && minimumWaitComplete && !hasActiveSession && !selectedAssistant,
       onClose: () => {
         /* No-op: User must select a therapist */
       },

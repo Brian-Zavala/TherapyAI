@@ -64,12 +64,18 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Extract assistant config from metadata if it exists
+    const metadata = conversationState.metadata as Record<string, unknown>
+    const assistantConfig = metadata?.assistantConfig
+
     return NextResponse.json({
       success: true,
       state: {
         id: conversationState.id,
         sessionId: conversationState.sessionId,
         assistantId: conversationState.assistantId,
+        // Include assistantConfig if it's an inline configuration
+        ...(assistantConfig && { assistantConfig }),
         messages: conversationState.messages.map(msg => ({
           role: msg.role,
           content: msg.content,

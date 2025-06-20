@@ -272,7 +272,10 @@ export async function POST(request: NextRequest) {
           notes,
           status,
           notificationPrefs: effectiveNotificationPrefs,
-          assistantId: assistantId // Store the assistant ID from Vapi
+          assistantId: assistantId, // Store the assistant ID from Vapi
+          isPaused: false, // Explicitly set to false for new sessions
+          conversationTimeSeconds: 0,
+          totalPausedTimeSeconds: 0
         }
       });
       

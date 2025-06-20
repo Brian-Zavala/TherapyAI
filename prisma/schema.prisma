@@ -207,6 +207,7 @@ model ConversationState {
   // Conversation content
   messages          ConversationMessage[]
   variableValues    Json?    // VAPI assistant variable values
+  metadata          Json?    // Additional metadata including inline assistant configurations
   
   // Session metadata
   sessionStartTime  DateTime

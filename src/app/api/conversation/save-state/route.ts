@@ -7,7 +7,10 @@ import { z } from 'zod'
 // Input validation schema
 const SaveStateSchema = z.object({
   sessionId: z.string().min(1),
-  assistantId: z.string().min(1).max(255),
+  // Allow either assistantId OR inline configuration
+  assistantId: z.string().min(1).max(255).optional(),
+  assistantConfig: z.record(z.unknown()).optional(),
+  isInlineConfig: z.boolean().optional(),
   messages: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system']),
     content: z.string().max(10000), // Prevent huge messages
@@ -20,7 +23,13 @@ const SaveStateSchema = z.object({
     lastActiveTime: z.number().int().positive(),
     totalDuration: z.number().int().min(0).max(86400000), // Max 24 hours
   })
-})
+}).refine(
+  (data) => data.assistantId || data.assistantConfig || data.isInlineConfig,
+  {
+    message: "Either assistantId or assistantConfig must be provided",
+    path: ["assistantId"]
+  }
+)
 
 export async function POST(request: NextRequest) {
   const authSession = await getServerSession(authOptions)
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest) {
         await tx.conversationState.update({
           where: { id: existingState.id },
           data: {
-            assistantId: validatedData.assistantId,
+            assistantId: validatedData.assistantId || 'inline-config',
             sessionStartTime: new Date(validatedData.sessionMetadata.startTime),
             lastActiveTime: new Date(validatedData.sessionMetadata.lastActiveTime),
             totalDuration: validatedData.sessionMetadata.totalDuration,
@@ -72,7 +81,11 @@ export async function POST(request: NextRequest) {
             isPaused: true,
             isActive: false,
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            // Store inline config in metadata if provided
+            metadata: validatedData.assistantConfig 
+              ? { assistantConfig: validatedData.assistantConfig } as Record<string, unknown>
+              : existingState.metadata || {} as Record<string, unknown>
           }
         })
 
@@ -101,7 +114,7 @@ export async function POST(request: NextRequest) {
           data: {
             sessionId: validatedData.sessionId,
             userId: authSession.user.id,
-            assistantId: validatedData.assistantId,
+            assistantId: validatedData.assistantId || 'inline-config',
             sessionStartTime: new Date(validatedData.sessionMetadata.startTime),
             lastActiveTime: new Date(validatedData.sessionMetadata.lastActiveTime),
             totalDuration: validatedData.sessionMetadata.totalDuration,
@@ -109,7 +122,11 @@ export async function POST(request: NextRequest) {
             variableValues: validatedData.variableValues || {},
             isPaused: true,
             isActive: false,
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            // Store inline config in metadata if provided
+            metadata: validatedData.assistantConfig 
+              ? { assistantConfig: validatedData.assistantConfig } as Record<string, unknown>
+              : {} as Record<string, unknown>
           }
         })
 

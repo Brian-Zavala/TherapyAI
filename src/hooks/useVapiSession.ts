@@ -3,12 +3,10 @@
 import { useState, useRef, useCallback, useEffect, MutableRefObject } from 'react'
 import { 
   VapiState, 
-  AssistantConfigType,
-  ExtendedVapi
+  AssistantConfigType
 } from '@/types/therapy-session'
 import { 
-  ERROR_MESSAGES, 
-  VAPI_CONFIG
+  ERROR_MESSAGES
 } from '@/lib/therapy-session/constants'
 import { 
   VapiMessage, 
@@ -183,15 +181,26 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     try {
       // Don't create instance if token is not ready
       if (!token) {
-        // If token is still loading, this is expected
+        // If token is still loading, this is expected - don't treat as error
         if (tokenLoading) {
           console.log('[useVapiSession] Token is still loading, waiting...');
-          throw new Error('Authentication in progress, please wait...');
+          return false; // Return false instead of throwing error
         }
         
-        const errorMsg = tokenError || ERROR_MESSAGES.VAPI_KEY_MISSING;
+        // If we have a token error, use that message
+        if (tokenError) {
+          console.error('[useVapiSession] Token error:', tokenError);
+          setVapiState(prev => ({ ...prev, error: tokenError }));
+          optionsRef.current.onError?.(new Error(tokenError));
+          return false;
+        }
+        
+        // Otherwise, token is not available for unknown reason
+        const errorMsg = 'Failed to obtain authentication token. Please try refreshing the page or logging in again.';
         console.error('[useVapiSession] No token available:', { tokenError, tokenLoading });
-        throw new Error(errorMsg);
+        setVapiState(prev => ({ ...prev, error: errorMsg }));
+        optionsRef.current.onError?.(new Error(errorMsg));
+        return false;
       }
 
       if (!session?.user?.id) {
@@ -230,7 +239,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       console.error('Failed to create Vapi instance:', error)
       const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.VAPI_INIT_FAILED
       setVapiState(prev => ({ ...prev, error: errorMessage }))
-      optionsRef.current.onError?.(error)
+      optionsRef.current.onError?.(error instanceof Error ? error : new Error(errorMessage))
       return false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -417,6 +426,33 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     
   }, [setupAudioAnalyzer])
   
+  // Validate assistant configuration before starting call
+  const validateAssistantBeforeCall = useCallback(async (assistantIdOrConfig: string | AssistantConfigType) => {
+    if (typeof assistantIdOrConfig === 'string') {
+      // Validate assistant ID exists
+      try {
+        const response = await fetch(`/api/vapi/assistant/validate?assistantId=${assistantIdOrConfig}`)
+        if (response.ok) {
+          const result = await response.json()
+          if (!result.valid) {
+            throw new Error(`Assistant validation failed: ${result.reason || 'Unknown reason'}`)
+          }
+        }
+      } catch (error) {
+        console.warn('Assistant validation request failed, proceeding anyway:', error)
+        // Don't block the call if validation endpoint fails
+      }
+    } else {
+      // For inline configs, use the config cleaner
+      const { cleanAndValidateVapiConfig } = await import('@/lib/vapi-config-cleaner')
+      try {
+        cleanAndValidateVapiConfig(assistantIdOrConfig)
+      } catch (error) {
+        throw new Error(`Configuration validation failed: ${error instanceof Error ? error.message : 'Invalid configuration'}`)
+      }
+    }
+  }, [])
+
   // Start VAPI call
   const startCall = useCallback(async (assistantIdOrConfig: string | AssistantConfigType) => {
     // Check if token is expired and refresh if needed
@@ -430,6 +466,19 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       }
     }
     
+    // Validate configuration before proceeding
+    try {
+      await validateAssistantBeforeCall(assistantIdOrConfig)
+    } catch (error) {
+      console.error('Assistant validation failed:', error)
+      setVapiState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Configuration validation failed'
+      }))
+      throw error
+    }
+    
     // Auto-initialize VAPI instance if it doesn't exist
     if (!vapiManagerRef.current) {
       console.log('🎙️ VAPI Manager not found, creating one...')
@@ -441,13 +490,6 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     
     try {
       setVapiState(prev => ({ ...prev, isLoading: true, error: null }))
-      
-      // Determine assistant ID
-      const assistantId = typeof assistantIdOrConfig === 'string' 
-        ? assistantIdOrConfig 
-        : assistantIdOrConfig.assistantId || ''
-      
-      console.log(`🎯 Starting VAPI call with assistant ID: ${assistantId}`)
       
       // Check if we need to resume from a previous state
       let resumeMessages = undefined
@@ -466,12 +508,39 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         }
       }
       
-      // Start session with VAPIManager
-      await vapiManagerRef.current.startSession({
-        assistantId,
-        resumeFromMessages: resumeMessages,
-        variableValues: typeof assistantIdOrConfig === 'object' ? assistantIdOrConfig.variableValues : undefined
-      })
+      // Determine if we're using inline config or assistant ID
+      if (typeof assistantIdOrConfig === 'string') {
+        // Assistant ID approach
+        console.log(`🎯 Starting VAPI call with assistant ID: ${assistantIdOrConfig}`)
+        
+        await vapiManagerRef.current.startSession({
+          assistantId: assistantIdOrConfig,
+          resumeFromMessages: resumeMessages
+        })
+      } else {
+        // Inline configuration approach
+        console.log('🎭 Starting VAPI call with inline configuration')
+        
+        // Check if this is an inline config (has model, voice, transcriber) or assistant ID config
+        if (assistantIdOrConfig.model && assistantIdOrConfig.voice && assistantIdOrConfig.transcriber) {
+          // Full inline configuration
+          await vapiManagerRef.current.startSession({
+            assistantConfig: assistantIdOrConfig,
+            resumeFromMessages: resumeMessages
+          })
+        } else if (assistantIdOrConfig.assistantId) {
+          // Assistant ID with overrides
+          console.log(`🎯 Starting VAPI call with assistant ID: ${assistantIdOrConfig.assistantId}`)
+          
+          await vapiManagerRef.current.startSession({
+            assistantId: assistantIdOrConfig.assistantId,
+            resumeFromMessages: resumeMessages,
+            variableValues: assistantIdOrConfig.variableValues
+          })
+        } else {
+          throw new Error('Invalid configuration: must provide either assistantId or full inline config')
+        }
+      }
       
       console.log('✅ VAPI call started successfully')
     } catch (error) {
@@ -538,7 +607,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       }))
       throw error
     }
-  }, [createVapiInstance, isExpiringSoon, tokenLoading, refreshToken])
+  }, [createVapiInstance, isExpiringSoon, tokenLoading, refreshToken, validateAssistantBeforeCall])
   
   // Stop VAPI call
   const stopCall = useCallback(async () => {
@@ -570,9 +639,30 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       // Get current conversation state
       const messages = vapiManagerRef.current.getConversationHistory()
       const metadata = vapiManagerRef.current.getSessionMetadata()
-      const assistantId = vapiManagerRef.current.getCurrentAssistantId() || ''
+      const currentAssistantId = vapiManagerRef.current.getCurrentAssistantId()
       
       console.log(`💾 Saving conversation state: ${messages.length} messages`)
+      
+      // Prepare save data based on whether we're using inline config or assistant ID
+      const saveData: any = {
+        sessionId,
+        messages,
+        sessionMetadata: metadata
+      }
+      
+      // If using inline config, we need to save the full config
+      if (currentAssistantId === 'inline-config') {
+        const assistantConfig = vapiManagerRef.current.getCurrentAssistantConfig()
+        if (assistantConfig) {
+          saveData.assistantConfig = assistantConfig
+          console.log('💾 Saving inline configuration session')
+        } else {
+          console.error('❌ Inline config detected but no config found to save')
+          saveData.isInlineConfig = true
+        }
+      } else {
+        saveData.assistantId = currentAssistantId || ''
+      }
       
       // Save conversation state to database
       const response = await fetch('/api/conversation/save-state', {
@@ -580,12 +670,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          sessionId,
-          assistantId,
-          messages,
-          sessionMetadata: metadata
-        })
+        body: JSON.stringify(saveData)
       })
       
       if (!response.ok) {
@@ -632,7 +717,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         throw new Error(result.error || 'No conversation state found')
       }
       
-      const { assistantId, messages, variableValues } = result.state
+      const { assistantId, assistantConfig, messages, variableValues } = result.state
       
       console.log(`📦 Resuming session with ${messages.length} messages`)
       
@@ -645,11 +730,24 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       }
       
       // Resume session with saved state
-      await vapiManagerRef.current.startSession({
-        assistantId,
-        resumeFromMessages: messages,
-        variableValues
-      })
+      if (assistantConfig) {
+        // Resume with inline configuration
+        console.log('🎭 Resuming with inline assistant configuration')
+        await vapiManagerRef.current.startSession({
+          assistantConfig,
+          resumeFromMessages: messages
+        })
+      } else if (assistantId) {
+        // Resume with assistant ID
+        console.log(`🎯 Resuming with assistant ID: ${assistantId}`)
+        await vapiManagerRef.current.startSession({
+          assistantId,
+          resumeFromMessages: messages,
+          variableValues
+        })
+      } else {
+        throw new Error('No assistant configuration found in saved state')
+      }
       
       console.log('✅ Session resumed successfully')
       

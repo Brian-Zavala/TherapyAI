@@ -171,12 +171,15 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     try {
       // Handle transcript messages (speech-to-text)
       if (isTranscriptMessage(message) && message.transcript) {
-        const { speaker, text, isFinal } = message.transcript
+        // Transcript is a string, not an object
+        const transcript = message.transcript
+        const role = message.role
+        const isFinal = message.transcriptType === 'final'
         
-        if (speaker === 'user') {
+        if (role === 'user') {
           // Buffer user messages
           if (isFinal) {
-            userBufferRef.current += (userBufferRef.current ? ' ' : '') + text
+            userBufferRef.current += (userBufferRef.current ? ' ' : '') + transcript
             
             // Clear existing timer
             if (userTimeoutRef.current) {
@@ -200,8 +203,8 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       }
       
       // Handle model output messages (text-to-speech)
-      if (isModelOutputMessage(message) && message.model?.role === 'assistant') {
-        const text = message.model.content
+      if (isModelOutputMessage(message) && message.role === 'assistant') {
+        const text = message.output
         
         // Buffer assistant messages
         assistantBufferRef.current += (assistantBufferRef.current ? ' ' : '') + text
@@ -225,7 +228,7 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
         }, TRANSCRIPT_DEBOUNCE_MS)
       }
       
-      // Handle session ID recovery from messages
+      // Handle conversation update messages - full conversation history
       if (message.type === 'conversation-update' && message.conversation) {
         const conversationMessages = message.conversation
         
@@ -268,6 +271,26 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
         }
         
         lastConversationMetadataRef.current = currentMetadata
+        
+        // Process new conversation messages into transcript entries
+        const newMessages = conversationMessages.slice(transcriptChunks.length)
+        for (const msg of newMessages) {
+          if (msg.role === 'user' || msg.role === 'assistant') {
+            const entry: TranscriptEntry = {
+              role: msg.role,
+              text: msg.content,
+              timestamp: msg.timestamp || new Date().toISOString(),
+              sessionId
+            }
+            
+            // Add to transcript chunks
+            const formattedChunk = `${msg.role === 'assistant' ? 'AI' : 'You'}: ${msg.content}`
+            setTranscriptChunks(prev => [...prev, formattedChunk])
+            
+            // Call the transcript update callback
+            onTranscriptUpdate?.(entry)
+          }
+        }
       }
       
     } catch (error) {
@@ -390,6 +413,25 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     
     return () => clearInterval(backupInterval)
   }, [sessionId, transcriptChunks.length, saveTranscriptBackup])
+  
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clear all pending timers
+      if (userTimeoutRef.current) {
+        clearTimeout(userTimeoutRef.current)
+        userTimeoutRef.current = null
+      }
+      if (assistantTimeoutRef.current) {
+        clearTimeout(assistantTimeoutRef.current)
+        assistantTimeoutRef.current = null
+      }
+      // Clear buffers to prevent memory leaks
+      userBufferRef.current = ''
+      assistantBufferRef.current = ''
+      lastConversationMetadataRef.current = null
+    }
+  }, [])
   
   return {
     // State

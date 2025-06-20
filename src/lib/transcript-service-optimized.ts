@@ -22,7 +22,7 @@ class BatchedTranscriptManager {
   private queue: Map<string, TranscriptEntry[]> = new Map()
   private batchSize = 50 // Increased to handle more entries efficiently
   private maxBatchSize = 90 // Stay under API limit of 100
-  private batchTimeout = 30000 // 30 seconds - balanced between frequency and responsiveness
+  private batchTimeout = 5000 // 5 seconds - reduced for better real-time experience
   private timeouts: Map<string, NodeJS.Timeout> = new Map()
   private saving: Set<string> = new Set()
   
