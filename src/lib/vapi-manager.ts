@@ -1,5 +1,6 @@
 import Vapi from '@vapi-ai/web'
 import { cleanAndValidateVapiConfig, extractVariableValues } from './vapi-config-cleaner'
+import { formatConversationHistory, validateVapiMessage } from './vapi-message-validator'
 
 interface ConversationMessage {
   role: 'user' | 'assistant' | 'system'
@@ -27,10 +28,10 @@ export class VAPIManager {
   private conversationHistory: ConversationMessage[] = []
   private sessionStartTime = 0
   private config: Required<VAPIManagerConfig>
-  private eventListeners: Map<string, (...args: any[]) => void> = new Map()
+  private eventListeners: Map<string, (...args: unknown[]) => void> = new Map()
   private isDestroyed = false
   private currentAssistantId: string | null = null
-  private currentAssistantConfig: any = null // Store inline config for pause/resume
+  private currentAssistantConfig: Record<string, unknown> | null = null // Store inline config for pause/resume
 
   constructor(config: VAPIManagerConfig) {
     this.config = {
@@ -134,7 +135,7 @@ export class VAPIManager {
     }
 
     try {
-      let startConfig: any
+      let startConfig: Record<string, unknown>
 
       // Handle inline configuration
       if (config.assistantConfig) {
@@ -156,7 +157,7 @@ export class VAPIManager {
           this.currentAssistantConfig = cleanedConfig
           
           // Store messages for later injection if resuming
-          const messagesToInject = config.resumeFromMessages || []
+          // Messages are handled in the injection logic below
           
           // Apply variable values if provided (after cleaning)
           if (variableValues) {
@@ -192,14 +193,27 @@ export class VAPIManager {
       
       // After session starts, inject conversation history using add-message
       if (config.resumeFromMessages && config.resumeFromMessages.length > 0) {
-        console.log(`Injecting ${config.resumeFromMessages.length} conversation history messages`)
+        // Validate and format messages before injection
+        const formattedMessages = formatConversationHistory(config.resumeFromMessages, {
+          maxMessages: 30, // Limit to prevent overwhelming the context
+          excludeSystem: true, // System messages might confuse the conversation flow
+          sanitize: true
+        })
+        
+        console.log(`Injecting ${formattedMessages.length} validated conversation history messages`)
         
         // Wait a moment for session to be fully established
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        // Inject each message into the conversation history
-        for (const msg of config.resumeFromMessages) {
+        // Inject each validated message into the conversation history
+        for (const msg of formattedMessages) {
           try {
+            const validation = validateVapiMessage(msg)
+            if (!validation.valid) {
+              console.warn(`Skipping invalid message: ${validation.error}`)
+              continue
+            }
+            
             this.vapi.send({
               type: 'add-message',
               message: {
@@ -214,8 +228,8 @@ export class VAPIManager {
           }
         }
         
-        // Add the conversation messages to our local history
-        this.conversationHistory = [...config.resumeFromMessages]
+        // Add the validated messages to our local history
+        this.conversationHistory = [...formattedMessages]
       }
 
     } catch (error) {
