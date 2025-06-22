@@ -174,7 +174,7 @@ export function useSupabaseSessionState({
         ...prev.session,
         isPaused: true,
         pausedAt: new Date().toISOString(),
-      } : null
+      } as Partial<Session> : null
     }))
     
     try {
@@ -253,7 +253,7 @@ export function useSupabaseSessionState({
         ...prev.session,
         isPaused: false,
         resumedAt: new Date().toISOString(),
-      } : null
+      } as Partial<Session> : null
     }))
     
     try {

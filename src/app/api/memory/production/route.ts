@@ -8,11 +8,29 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { mcpMemoryOps } from '@/lib/mcp-memory-server';
 import { 
-  extractKeywords, 
-  calculateRelevance,
-  formatMemoriesForPrompt,
-  MEMORY_CONFIG
+  formatMemoriesForPrompt
 } from '@/lib/mcp-memory-context';
+
+// Local definitions until exported from mcp-memory-context
+const MEMORY_CONFIG = {
+  minRelevanceScore: 0.3,
+  maxMemories: 5
+};
+
+function extractKeywords(text: string): string[] {
+  // Basic keyword extraction
+  const words = text.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+  const stopWords = new Set(['the', 'and', 'but', 'for', 'with', 'from', 'this', 'that', 'what', 'when', 'where', 'how', 'why']);
+  return words.filter(word => !stopWords.has(word));
+}
+
+function calculateRelevance(keywords: string[], entity: any) {
+  // Basic relevance calculation
+  const entityText = `${entity.name} ${entity.entityType} ${entity.observations.join(' ')}`.toLowerCase();
+  const matchedTerms = keywords.filter(keyword => entityText.includes(keyword.toLowerCase()));
+  const score = matchedTerms.length / Math.max(keywords.length, 1);
+  return { score, matchedTerms };
+}
 
 // GET /api/memory/production - Search real MCP memory
 export async function GET(req: NextRequest) {
@@ -36,24 +54,35 @@ export async function GET(req: NextRequest) {
     const searchResult = await mcpMemoryOps.searchNodes(keywords.join(' '));
     
     // If not enough results, get all entities
-    let entities = searchResult.entities || [];
+    let entities: any[] = [];
+    
+    // Extract entities from search result
+    if (searchResult && searchResult.entities && Array.isArray(searchResult.entities)) {
+      entities = searchResult.entities;
+    } else if (Array.isArray(searchResult)) {
+      entities = searchResult;
+    }
+    
     if (entities.length < 3) {
       const graph = await mcpMemoryOps.readGraph();
-      entities = [...entities, ...(graph.entities || [])];
+      const graphEntities = graph.entities || graph || [];
+      if (Array.isArray(graphEntities)) {
+        entities = [...entities, ...graphEntities];
+      }
     }
     
     // Calculate relevance and sort
     const scoredMemories = entities
-      .map(entity => {
+      .map((entity: any) => {
         const { score, matchedTerms } = calculateRelevance(keywords, entity);
         return { entity, relevanceScore: score, matchedTerms };
       })
-      .filter(memory => memory.relevanceScore >= MEMORY_CONFIG.minRelevanceScore)
-      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .filter((memory: any) => memory.relevanceScore >= MEMORY_CONFIG.minRelevanceScore)
+      .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
       .slice(0, MEMORY_CONFIG.maxMemories);
     
     // Format response
-    const formattedMemories = scoredMemories.map(mem => ({
+    const formattedMemories = scoredMemories.map((mem: any) => ({
       name: mem.entity.name,
       type: mem.entity.entityType,
       relevanceScore: mem.relevanceScore,
@@ -116,7 +145,7 @@ export async function POST(req: NextRequest) {
     // Create relations if provided
     if (relatedEntities && relatedEntities.length > 0) {
       await mcpMemoryOps.createRelations(
-        relatedEntities.map(entity => ({
+        relatedEntities.map((entity: any) => ({
           from: entityName,
           to: entity,
           relationType: 'related_to'

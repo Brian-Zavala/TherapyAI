@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       const { data, error } = await resend.emails.send({
         from: process.env.EMAIL_FROM || 'Therapy AI Support <support@therapyai.us>',
         to: SUPPORT_EMAIL,
-        reply_to: email,
+        replyTo: email,
         subject: formattedSubject,
         html: html,
       });

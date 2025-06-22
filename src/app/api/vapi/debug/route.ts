@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const hasPublicKey = !!process.env.NEXT_PUBLIC_VAPI_API_KEY;
   
   // Test the API key
-  let apiTestResult = null;
+  let apiTestResult: any = null;
   if (hasApiKey || hasPublicKey) {
     const keyToTest = process.env.VAPI_API_KEY || process.env.NEXT_PUBLIC_VAPI_API_KEY;
     try {

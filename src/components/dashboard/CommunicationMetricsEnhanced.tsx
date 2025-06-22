@@ -17,7 +17,7 @@ import {
   Filler,
 } from 'chart.js'
 
-// Register Chart.js components
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -55,17 +55,17 @@ interface FamilyMember {
   relation?: string
 }
 
-interface CommunicationMetricsEnhancedProps {
+interface CommunicationMetricEnhancedProps {
   userId: string
   dateRange?: 'week' | 'month' | 'year'
   showFamilyMembers?: boolean
 }
 
-export default function CommunicationMetricsEnhanced({
+export default function CommunicationMetricEnhanced({
   userId,
   dateRange = 'week',
   showFamilyMembers = true,
-}: CommunicationMetricsEnhancedProps) {
+}: CommunicationMetricEnhancedProps) {
   const [metrics, setMetrics] = useState<MetricData[]>([])
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null)
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])

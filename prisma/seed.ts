@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
+// bcrypt import removed - using plain text password for seed data
 import { v4 as uuidv4 } from 'uuid'
 
 const prisma = new PrismaClient()
@@ -10,27 +10,34 @@ async function main() {
   return;
   
   // Create test user
-  const password = await bcrypt.hash('password123', 10)
+  const password = 'password123' // Plain text for seed data
   
   const user = await prisma.user.upsert({
     where: { email: 'test@example.com' },
     update: {
-      name: 'Test User',
-      partnerName: 'Partner Name',
-      relationshipStatus: 'Married',
-      assistantId: null
+      name: 'Test User'
     },
     create: {
       email: 'test@example.com',
       name: 'Test User',
-      password,
-      partnerName: 'Partner Name',
-      relationshipStatus: 'Married',
-      assistantId: null
+      password
     }
   })
   
   console.log('Test user created:', { id: user.id, email: user.email })
+  
+  // Create user profile
+  await prisma.userProfile.upsert({
+    where: { userId: user.id },
+    update: {},
+    create: {
+      userId: user.id,
+      partnerName: 'Partner Name',
+      relationshipStatus: 'Married',
+      therapyType: 'couple',
+      assistantId: null
+    }
+  })
   
   // Create past sessions
   const today = new Date()
@@ -45,7 +52,7 @@ async function main() {
   })
   await prisma.session.deleteMany({ where: { userId: user.id } })
   await prisma.progressTracking.deleteMany({ where: { userId: user.id } })
-  await prisma.communicationMetrics.deleteMany({ where: { userId: user.id } })
+  await prisma.communicationMetric.deleteMany({ where: { userId: user.id } })
   
   // Create one session per month for the last 6 months
   for (let i = 0; i < 6; i++) {
@@ -62,7 +69,7 @@ async function main() {
         theme: `Communication Strategies ${i + 1}`,
         notes: `Notes for session ${i + 1}. Discussed relationship dynamics and communication patterns.`,
         status: 'completed',
-        transcript: i % 2 === 0 ? `USER: Hello, I'm having communication issues with my partner.\nTHERAPIST: I understand that can be frustrating. Can you tell me more about what's happening?\nUSER: We often talk past each other and don't really listen.\nTHERAPIST: That's a common challenge. Let's explore some active listening techniques that might help both of you feel more heard.` : null,
+        // transcript field removed - using TranscriptEntry instead,
         reminderSent: false
       }
     })
@@ -148,18 +155,29 @@ async function main() {
     console.log(`Created progress tracking for ${trackingDate.toISOString().split('T')[0]}`)
   }
   
-  // Create communication metrics
-  await prisma.communicationMetrics.create({
-    data: {
-      id: uuidv4(),
-      userId: user.id,
-      date: today,
-      activeListeningScore: 75,
-      expressingNeedsScore: 65,
-      conflictResolutionScore: 60,
-      emotionalSupportScore: 80
-    }
+  // Create communication metrics with new schema
+  const lastSession = await prisma.session.findFirst({
+    where: { userId: user.id },
+    orderBy: { date: 'desc' }
   })
+  
+  if (lastSession) {
+    await prisma.communicationMetric.create({
+      data: {
+        id: uuidv4(),
+        userId: user.id,
+        sessionId: lastSession!.id,
+        clarity: 75,
+        empathy: 80,
+        respect: 60,
+        overall: 70,
+        listening: 75,
+        expression: 65,
+        metricType: 'final',
+        calculatedAt: new Date()
+      }
+    })
+  }
   
   console.log('Created communication metrics')
   

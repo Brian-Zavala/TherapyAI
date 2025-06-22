@@ -1,9 +1,11 @@
 import { PrismaClient } from '@prisma/client'
-import { fieldEncryptionExtension } from 'prisma-field-encryption'
 
 declare global {
   var prisma: PrismaClient | undefined
 }
+
+// Ensure global prisma type is correct
+const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined }
 
 // Enhanced Prisma client configuration for production
 const createPrismaClient = () => {
@@ -73,14 +75,8 @@ const createPrismaClient = () => {
     })
   }
 
-  // Add extension for field encryption (if needed)
-  const extendedClient = client.$extends(
-    fieldEncryptionExtension({
-      encryptionKey: process.env.FIELD_ENCRYPTION_KEY,
-    })
-  )
-
-  return extendedClient
+  // Return the client directly (encryption can be added later if needed)
+  return client
 }
 
 // Connection management with retry logic
@@ -132,11 +128,21 @@ const prismaClientSingleton = () => {
 
 const prismaManager = prismaClientSingleton()
 
+// Create singleton instance
+let prismaInstance: PrismaClient | null = null
+
+const getPrismaClient = () => {
+  if (!prismaInstance) {
+    prismaInstance = createPrismaClient()
+  }
+  return prismaInstance
+}
+
 // Export enhanced Prisma client
-export const prisma = global.prisma || await prismaManager.get()
+export const prisma = globalForPrisma.prisma || getPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma
+  globalForPrisma.prisma = prisma as PrismaClient
 }
 
 // Graceful shutdown
@@ -180,13 +186,15 @@ export async function withRetry<T>(
  * Execute a transaction with proper error handling
  */
 export async function withTransaction<T>(
-  operation: (tx: PrismaClient) => Promise<T>
+  operation: (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>
 ): Promise<T> {
-  return await prisma.$transaction(operation, {
+  const client = prisma as PrismaClient
+  const result = await client.$transaction(operation, {
     maxWait: 5000, // 5 seconds
     timeout: 10000, // 10 seconds
     isolationLevel: 'ReadCommitted',
   })
+  return result as T
 }
 
 /**

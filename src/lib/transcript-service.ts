@@ -149,7 +149,7 @@ export async function addTranscriptEntry(entry: TranscriptEntry): Promise<Transc
           // If the response includes transcript entries, find and return the matching one
           if (fallbackResult.transcriptEntries && Array.isArray(fallbackResult.transcriptEntries)) {
             const matchingEntry = fallbackResult.transcriptEntries.find(
-              e => e.speaker === entry.speaker && e.text === entry.text
+              (e: any) => e.speaker === entry.speaker && e.text === entry.text
             );
             
             if (matchingEntry) {
@@ -275,7 +275,8 @@ export async function addTranscriptEntry(entry: TranscriptEntry): Promise<Transc
             throw new Error('All API attempts failed');
           } catch (lastAttemptError) {
             console.error('❌ ALL ATTEMPTS FAILED:', lastAttemptError);
-            throw new Error(`All transcript update methods failed: ${lastAttemptError.message}`);
+            const errorMessage = lastAttemptError instanceof Error ? lastAttemptError.message : String(lastAttemptError);
+            throw new Error(`All transcript update methods failed: ${errorMessage}`);
           }
         }
       }
@@ -297,8 +298,9 @@ export async function addTranscriptEntry(entry: TranscriptEntry): Promise<Transc
     // Try to save error info to session storage for debugging
     try {
       const errorKey = `error-entry-${entry.sessionId}-${Date.now()}`;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       sessionStorage.setItem(errorKey, JSON.stringify({
-        error: error.message,
+        error: errorMessage,
         originalEntry: entry,
         timestamp: new Date().toISOString()
       }));
@@ -327,8 +329,8 @@ export async function getTranscriptEntries(sessionId: string): Promise<Transcrip
     
     console.log(`📊 TRANSCRIPT COUNT: Session ${sessionId} has ${entries.length} entries`)
     if (entries.length > 0) {
-      const userCount = entries.filter(e => e.speaker === 'user').length
-      const assistantCount = entries.filter(e => e.speaker === 'assistant').length
+      const userCount = entries.filter((e: any) => e.speaker === 'user').length
+      const assistantCount = entries.filter((e: any) => e.speaker === 'assistant').length
       console.log(`📊 SPEAKER BREAKDOWN: ${userCount} user, ${assistantCount} assistant`)
     }
     
@@ -684,13 +686,13 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
         
         // Extract user messages
         const userLines = lines
-          .filter(line => line.startsWith('USER:') || line.startsWith('CLIENT:')) 
-          .map(line => line.replace(/^(USER|CLIENT):\s*/, ''));
+          .filter((line: string) => line.startsWith('USER:') || line.startsWith('CLIENT:')) 
+          .map((line: string) => line.replace(/^(USER|CLIENT):\s*/, ''));
           
         // Extract therapist messages
         const therapistLines = lines
-          .filter(line => line.startsWith('THERAPIST:') || line.startsWith('ASSISTANT:'))
-          .map(line => line.replace(/^(THERAPIST|ASSISTANT):\s*/, ''));
+          .filter((line: string) => line.startsWith('THERAPIST:') || line.startsWith('ASSISTANT:'))
+          .map((line: string) => line.replace(/^(THERAPIST|ASSISTANT):\s*/, ''));
         
         if (userLines.length > 0) {
           formattedTranscript += "Key client concerns from our discussion:\n";

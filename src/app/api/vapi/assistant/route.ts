@@ -44,10 +44,14 @@ export async function POST(req: NextRequest) {
     const config = await req.json();
     const assistant = await createAssistant(config);
 
-    // Store assistant ID in the database
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
+    // Store assistant ID in the user's profile
+    await prisma.userProfile.upsert({
+      where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+        assistantId: assistant.id
+      },
+      update: {
         assistantId: assistant.id
       }
     });
@@ -83,44 +87,37 @@ export async function GET(req: NextRequest) {
         where: { id: session.user.id },
         select: { 
           id: true,
-          assistantId: true,
           name: true,
-          age: true,
-          partnerName: true,
-          partnerAge: true,
-          relationshipStatus: true,
-          familyMember1: true,
-          familyMember1Age: true,
-          familyMember1Relation: true,
-          familyMember2: true,
-          familyMember2Age: true,
-          familyMember2Relation: true,
-          familyMember3: true,
-          familyMember3Age: true,
-          familyMember3Relation: true,
-          familyMember4: true,
-          familyMember4Age: true,
-          familyMember4Relation: true,
-          familyMember5: true,
-          familyMember5Age: true,
-          familyMember5Relation: true,
-          familyMember6: true,
-          familyMember6Age: true,
-          familyMember6Relation: true,
-          familyMember7: true,
-          familyMember7Age: true,
-          familyMember7Relation: true,
-          pronouns: true,
-          therapyType: true,
-          currentConcerns: true,
-          communicationStyle: true,
-          sessionPreference: true,
-          additionalNotes: true,
-          onboardingCompleted: true
+          onboardingCompleted: true,
+          profile: {
+            select: {
+              assistantId: true,
+              age: true,
+              partnerName: true,
+              partnerAge: true,
+              relationshipStatus: true,
+              pronouns: true,
+              therapyType: true,
+              currentConcerns: true,
+              communicationStyle: true,
+              sessionPreference: true,
+              additionalNotes: true
+            }
+          },
+          familyMembers: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' },
+            select: {
+              name: true,
+              age: true,
+              relationship: true,
+              order: true
+            }
+          }
         }
       });
       
-      assistantId = user?.assistantId || null;
+      assistantId = user?.profile?.assistantId || null;
       
       // If creating a personalized assistant is requested
       if (searchParams.get('personalized') === 'true' && user) {
@@ -173,7 +170,7 @@ export async function GET(req: NextRequest) {
         
         // Get the therapy type from query params or user profile - prioritize user selection (FIXED)
         const queryTherapyType = searchParams.get('therapyType');
-        const userStoredType = user.therapyType;
+        const userStoredType = user.profile?.therapyType;
         // CRITICAL FIX: Query parameter (user's explicit selection) should take priority over stored preference
         const therapyType = queryTherapyType || userStoredType || 'couple';
         
@@ -192,42 +189,43 @@ export async function GET(req: NextRequest) {
         }
 
         // Create a comprehensive user profile with all available data
+        const familyMembers = user.familyMembers || [];
         const userProfile = {
           id: user.id,
           name: user.name,
           userName: user.name,
-          age: user.age,
-          userAge: user.age,
-          pronouns: user.pronouns,
-          partnerName: user.partnerName,
-          partnerAge: user.partnerAge,
-          relationshipStatus: user.relationshipStatus,
-          familyMember1: user.familyMember1,
-          familyMember1Age: user.familyMember1Age,
-          familyMember1Relation: (user as any).familyMember1Relation,
-          familyMember2: user.familyMember2,
-          familyMember2Age: user.familyMember2Age,
-          familyMember2Relation: (user as any).familyMember2Relation,
-          familyMember3: user.familyMember3,
-          familyMember3Age: user.familyMember3Age,
-          familyMember3Relation: (user as any).familyMember3Relation,
-          familyMember4: user.familyMember4,
-          familyMember4Age: user.familyMember4Age,
-          familyMember4Relation: (user as any).familyMember4Relation,
-          familyMember5: (user as any).familyMember5,
-          familyMember5Age: (user as any).familyMember5Age,
-          familyMember5Relation: (user as any).familyMember5Relation,
-          familyMember6: (user as any).familyMember6,
-          familyMember6Age: (user as any).familyMember6Age,
-          familyMember6Relation: (user as any).familyMember6Relation,
-          familyMember7: (user as any).familyMember7,
-          familyMember7Age: (user as any).familyMember7Age,
-          familyMember7Relation: (user as any).familyMember7Relation,
-          therapyType: user.therapyType || searchParams.get('therapyType') || 'couple',
-          currentConcerns: user.currentConcerns || [],
-          communicationStyle: user.communicationStyle || 'balanced',
-          sessionPreference: user.sessionPreference || 'flexible',
-          additionalNotes: user.additionalNotes || '',
+          age: user.profile?.age,
+          userAge: user.profile?.age,
+          pronouns: user.profile?.pronouns,
+          partnerName: user.profile?.partnerName,
+          partnerAge: user.profile?.partnerAge,
+          relationshipStatus: user.profile?.relationshipStatus,
+          familyMember1: familyMembers[0]?.name,
+          familyMember1Age: familyMembers[0]?.age,
+          familyMember1Relation: familyMembers[0]?.relationship,
+          familyMember2: familyMembers[1]?.name,
+          familyMember2Age: familyMembers[1]?.age,
+          familyMember2Relation: familyMembers[1]?.relationship,
+          familyMember3: familyMembers[2]?.name,
+          familyMember3Age: familyMembers[2]?.age,
+          familyMember3Relation: familyMembers[2]?.relationship,
+          familyMember4: familyMembers[3]?.name,
+          familyMember4Age: familyMembers[3]?.age,
+          familyMember4Relation: familyMembers[3]?.relationship,
+          familyMember5: familyMembers[4]?.name,
+          familyMember5Age: familyMembers[4]?.age,
+          familyMember5Relation: familyMembers[4]?.relationship,
+          familyMember6: familyMembers[5]?.name,
+          familyMember6Age: familyMembers[5]?.age,
+          familyMember6Relation: familyMembers[5]?.relationship,
+          familyMember7: familyMembers[6]?.name,
+          familyMember7Age: familyMembers[6]?.age,
+          familyMember7Relation: familyMembers[6]?.relationship,
+          therapyType: user.profile?.therapyType || searchParams.get('therapyType') || 'couple',
+          currentConcerns: user.profile?.currentConcerns || [],
+          communicationStyle: user.profile?.communicationStyle || 'balanced',
+          sessionPreference: user.profile?.sessionPreference || 'flexible',
+          additionalNotes: user.profile?.additionalNotes || '',
           sessionHistory: sessionHistory,
           // Additional context for enhanced personalization
           onboardingCompleted: user.onboardingCompleted,
@@ -373,7 +371,6 @@ export async function GET(req: NextRequest) {
             maxDurationSeconds: personalizedConfig.maxDurationSeconds,
             silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
             backgroundSound: personalizedConfig.backgroundSound || "off",
-            modelOutputInMessagesEnabled: personalizedConfig.modelOutputInMessagesEnabled || false,
             
             // Client messages configuration  
             clientMessages: Array.isArray(personalizedConfig.clientMessages) 
@@ -401,7 +398,7 @@ export async function GET(req: NextRequest) {
             transcriberProvider: cleanConfig.transcriber?.provider,
             hasFirstMessage: !!cleanConfig.firstMessage,
             maxDuration: cleanConfig.maxDurationSeconds,
-            toolsCount: cleanConfig.model?.tools?.length || 0,
+            toolsCount: ('tools' in (cleanConfig.model || {}) ? (cleanConfig.model as any).tools?.length : 0) || 0,
             clientMessagesCount: cleanConfig.clientMessages?.length || 0
           });
           
@@ -476,10 +473,14 @@ export async function PUT(req: NextRequest) {
       // Get from user profile if not provided
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { assistantId: true }
+        select: { 
+          profile: {
+            select: { assistantId: true }
+          }
+        }
       });
       
-      assistantId = user?.assistantId || null;
+      assistantId = user?.profile?.assistantId || null;
     }
 
     if (!assistantId) {

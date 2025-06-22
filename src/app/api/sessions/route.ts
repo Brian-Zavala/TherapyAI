@@ -235,13 +235,17 @@ export async function POST(request: NextRequest) {
     
     try {
       // Get user's notification preferences from their profile
-      const userProfile = await prisma.user.findUnique({
+      const userWithProfile = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { notificationPrefs: true }
+        select: { 
+          profile: {
+            select: { notificationPrefs: true, assistantId: true }
+          }
+        }
       });
       
       // Use user's preference or default to 'email' if not set
-      const effectiveNotificationPrefs = userProfile?.notificationPrefs || 'email';
+      const effectiveNotificationPrefs = userWithProfile?.profile?.notificationPrefs || 'email';
       
       // Check for existing active session to prevent duplicates
       if (status === 'active') {
@@ -271,8 +275,7 @@ export async function POST(request: NextRequest) {
           theme,
           notes,
           status,
-          notificationPrefs: effectiveNotificationPrefs,
-          assistantId: assistantId, // Store the assistant ID from Vapi
+          assistantId: assistantId || userWithProfile?.profile?.assistantId || undefined, // Store the assistant ID from Vapi or use user's default
           isPaused: false, // Explicitly set to false for new sessions
           conversationTimeSeconds: 0,
           totalPausedTimeSeconds: 0
@@ -348,8 +351,7 @@ export async function POST(request: NextRequest) {
                 theme,
                 notes: notes + ' (Recurring session)',
                 status: 'scheduled',
-                notificationPrefs: effectiveNotificationPrefs,
-                assistantId: assistantId || null
+                assistantId: assistantId || userWithProfile?.profile?.assistantId || null
               }
             });
             

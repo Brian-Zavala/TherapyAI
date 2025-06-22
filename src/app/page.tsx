@@ -897,7 +897,6 @@ export default function Home() {
                   muted
                   playsInline
                   preload="metadata" // Only load metadata initially for faster load
-                  loading="lazy" // Lazy load video
                   className="absolute inset-0 w-full h-full object-cover opacity-80 will-change-transform" // GPU optimization
                   style={{ 
                     transform: 'translateZ(0)', // Force GPU layer

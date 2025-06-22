@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import SessionTimer from '@/components/SessionTimer'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface ActiveSessionData {

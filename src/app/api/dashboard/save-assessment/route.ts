@@ -58,7 +58,14 @@ export async function POST(request: Request) {
       sessionAdjustmentFactor = 1.0 + (Math.min(recentSessions.length, 3) * 0.05);
       
       // Additional boost if sessions have transcripts (evidence of engagement)
-      const sessionsWithTranscripts = recentSessions.filter(s => s.transcript && s.transcript.length > 0);
+      // Check for sessions with transcript entries instead
+      const sessionIds = recentSessions.map(s => s.id);
+      const transcriptCounts = await prisma.transcriptEntry.groupBy({
+        by: ['sessionId'],
+        where: { sessionId: { in: sessionIds } },
+        _count: true
+      });
+      const sessionsWithTranscripts = transcriptCounts.filter(t => t._count > 0);
       if (sessionsWithTranscripts.length > 0) {
         sessionAdjustmentFactor += 0.05;
       }
@@ -70,15 +77,19 @@ export async function POST(request: Request) {
     const adjustedConflictScore = Math.min(100, Math.round(conflictScore * sessionAdjustmentFactor));
     const adjustedIntimacyScore = Math.min(100, Math.round(intimacyScore * sessionAdjustmentFactor));
     
-    // Save to CommunicationMetrics with adjusted scores
-    const savedMetrics = await prisma.communicationMetrics.create({
+    // Save to CommunicationMetric with adjusted scores
+    const savedMetrics = await prisma.communicationMetric.create({
       data: {
         userId: user.id,
-        date: new Date(date),
-        activeListeningScore: adjustedCommunicationScore,
-        expressingNeedsScore: adjustedTrustScore,
-        conflictResolutionScore: adjustedConflictScore,
-        emotionalSupportScore: adjustedIntimacyScore,
+        sessionId: '', // Assessment metric, not tied to a specific session
+        clarity: adjustedCommunicationScore,
+        empathy: adjustedTrustScore,
+        respect: adjustedConflictScore,
+        overall: adjustedIntimacyScore,
+        listening: adjustedCommunicationScore,
+        expression: adjustedTrustScore,
+        metricType: 'assessment',
+        calculatedAt: new Date(date)
       },
     });
     
@@ -92,7 +103,7 @@ export async function POST(request: Request) {
         closenessScore: Math.round((communicationScore + intimacyScore) / 2),
         communicationScore: Math.round(communicationScore),
         date: new Date(),
-        therapyType: user.therapyType || 'couple'
+        therapyType: 'couple' // Default therapy type for assessments
       },
     });
     

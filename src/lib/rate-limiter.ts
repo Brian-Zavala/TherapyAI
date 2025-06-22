@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface RateLimitEntry {
   count: number;
@@ -16,7 +16,7 @@ class RateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private readonly windowMs: number;
   private readonly maxRequests: number;
-  private cleanupInterval: NodeJS.Timer | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(windowMs: number = 15 * 60 * 1000, maxRequests: number = 10) {
     this.windowMs = windowMs; // 15 minutes default

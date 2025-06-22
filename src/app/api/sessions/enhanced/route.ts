@@ -69,9 +69,10 @@ export async function GET(req: NextRequest) {
             } : false,
             conversationState: {
               select: {
-                currentTopic: true,
-                turnCount: true,
-                lastUpdated: true,
+                isActive: true,
+                isPaused: true,
+                lastActiveTime: true,
+                messageCount: true,
               },
             },
           },
@@ -83,17 +84,17 @@ export async function GET(req: NextRequest) {
     // If metrics requested, fetch in parallel
     let metrics = null
     if (includeMetrics && sessions.length > 0) {
-      const sessionIds = sessions.map(s => s.id)
+      const sessionIds = sessions.map((s: any) => s.id)
       metrics = await prisma.communicationMetric.findMany({
         where: {
           sessionId: { in: sessionIds },
         },
         select: {
           sessionId: true,
-          clarityScore: true,
-          empathyScore: true,
-          respectScore: true,
-          overallScore: true,
+          clarity: true,
+          empathy: true,
+          respect: true,
+          overall: true,
         },
       })
     }
@@ -110,9 +111,9 @@ export async function GET(req: NextRequest) {
     })
 
     // Transform sessions for response
-    const transformedSessions = sessions.map(session => ({
+    const transformedSessions = sessions.map((session: any) => ({
       ...session,
-      metrics: metrics?.find(m => m.sessionId === session.id),
+      metrics: metrics?.find((m: any) => m.sessionId === session.id),
       // Add backward compatibility fields
       familyMembers: user?.familyMembers || [],
     }))
@@ -179,7 +180,6 @@ export async function POST(req: NextRequest) {
           userId: session.user.id,
           assistantId: validatedData.assistantId,
           theme: validatedData.theme,
-          mood: validatedData.mood,
           duration: validatedData.duration,
           status: 'scheduled',
           startTime: new Date(),
@@ -192,8 +192,12 @@ export async function POST(req: NextRequest) {
         data: {
           sessionId: createdSession.id,
           userId: session.user.id,
-          messages: [],
-          currentTopic: validatedData.theme,
+          assistantId: validatedData.assistantId || 'default-assistant',
+          sessionStartTime: new Date(),
+          lastActiveTime: new Date(),
+          messages: {
+            create: []
+          }
         },
       })
 
@@ -202,11 +206,14 @@ export async function POST(req: NextRequest) {
         data: {
           userId: session.user.id,
           sessionId: createdSession.id,
-          clarityScore: 50,
-          empathyScore: 50,
-          respectScore: 50,
-          overallScore: 50,
+          clarity: 50,
+          empathy: 50,
+          respect: 50,
+          overall: 50,
+          listening: 50,
+          expression: 50,
           metricType: 'session',
+          calculatedAt: new Date()
         },
       })
 

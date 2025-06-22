@@ -8,6 +8,7 @@ import TherapyTypeSelector from "@/components/TherapyTypeSelector";
 import ActiveSessionFoundModal from "@/components/ActiveSessionFoundModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
+import type { TherapyType } from "@/types/therapy-session";
 import {
   COUPLE_THERAPY_ASSISTANT_CONFIG,
   INDIVIDUAL_THERAPY_ASSISTANT_CONFIG,
@@ -1010,7 +1011,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                           motion.button,
                                           {
                                             key: "quick-actions-button",
-                                            'data-quick-actions-button': "true",
+                                            ...{ 'data-quick-actions-button': "true" },
                                             onClick: () =>
                                               setQuickActionsOpen(
                                                 !quickActionsOpen
@@ -1100,7 +1101,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               motion.div,
                                               {
                                                 key: "popup-menu",
-                                                'data-quick-actions-menu': "true",
+                                                ...{ 'data-quick-actions-menu': "true" },
                                                 className:
                                                   "absolute left-0 mt-2 w-48 rounded-md shadow-xl bg-white ring-1 ring-black/5 ring-opacity-5 z-30 overflow-hidden",
                                                 initial: {
@@ -1771,7 +1772,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   },
                                   React.createElement(TherapyButton, {
                                     key: "therapy-button-main", // Add stable key to prevent remounting
-                                    therapyType: sessionType || "couple",
+                                    therapyType: (sessionType || "couple") as TherapyType,
                                     disabled: false
                                   })
                                 ),

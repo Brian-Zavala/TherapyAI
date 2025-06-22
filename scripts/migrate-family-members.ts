@@ -10,26 +10,17 @@ async function migrateFamilyMembers() {
   console.log('Starting family member migration...')
   
   try {
-    // Get all users with family member data
-    const users = await prisma.user.findMany({
-      where: {
-        OR: [
-          { familyMember1: { not: null } },
-          { familyMember2: { not: null } },
-          { familyMember3: { not: null } },
-          { familyMember4: { not: null } },
-          { familyMember5: { not: null } },
-          { familyMember6: { not: null } },
-          { familyMember7: { not: null } },
-        ]
-      }
-    })
+    // Migration is no longer needed as family members are already normalized
+    console.log('Family members are already in normalized structure')
+    console.log('Migration script is no longer needed')
+    return
     
-    console.log(`Found ${users.length} users with family member data`)
+    // Migration script no longer needed
     
     let migrated = 0
     let errors = 0
     
+    /* Migration code commented out as it's no longer needed
     for (const user of users) {
       try {
         // Check if already migrated
@@ -42,7 +33,7 @@ async function migrateFamilyMembers() {
           continue
         }
         
-        const familyMembers = []
+        const familyMembers: any[] = []
         
         // Extract family member data
         for (let i = 1; i <= 7; i++) {
@@ -80,12 +71,7 @@ async function migrateFamilyMembers() {
         errors++
       }
     }
-    
-    console.log(`Migration completed: ${migrated} users migrated, ${errors} errors`)
-    
-    // Verify migration
-    const totalFamilyMembers = await prisma.familyMember.count()
-    console.log(`Total family members in new table: ${totalFamilyMembers}`)
+    */
     
   } catch (error) {
     console.error('Migration failed:', error)

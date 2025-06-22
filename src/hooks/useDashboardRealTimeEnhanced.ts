@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-client'
+import { createSupabaseClient } from '@/lib/supabase-client'
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
@@ -52,7 +52,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
   const [error, setError] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   
-  const supabase = createSupabaseBrowserClient()
+  const supabase = createSupabaseClient()
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map())
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
@@ -158,7 +158,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
       // 3. Subscribe to broadcast events for real-time session updates
       const broadcastChannel = supabase
         .channel(`dashboard:broadcast:${userId}`)
-        .on('broadcast', { event: 'metrics-update' }, (payload) => {
+        .on('broadcast', { event: 'metrics-update' }, (payload: any) => {
           console.log('Broadcast metrics update:', payload)
           
           if (payload.payload?.metrics) {
@@ -168,7 +168,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
             }))
           }
         })
-        .on('broadcast', { event: 'session-state-change' }, (payload) => {
+        .on('broadcast', { event: 'session-state-change' }, (payload: any) => {
           console.log('Session state change:', payload)
           
           // Reload metrics on state changes
@@ -198,7 +198,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
       const channels = [sessionsChannel, metricsChannel, broadcastChannel, familyMembersChannel]
       
       for (const channel of channels) {
-        await channel.subscribe((status) => {
+        await channel.subscribe((status: any) => {
           if (status === 'SUBSCRIBED') {
             console.log(`Subscribed to channel: ${channel.topic}`)
           }
@@ -289,7 +289,7 @@ export function useSessionRealTimeEnhanced(sessionId: string | null) {
   const [metrics, setMetrics] = useState<any>(null)
   const [isActive, setIsActive] = useState(false)
   
-  const supabase = createSupabaseBrowserClient()
+  const supabase = createSupabaseClient()
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
@@ -344,12 +344,12 @@ export function useSessionRealTimeEnhanced(sessionId: string | null) {
             setMetrics(payload.new)
           }
         )
-        .on('broadcast', { event: 'transcript-update' }, (payload) => {
+        .on('broadcast', { event: 'transcript-update' }, (payload: any) => {
           if (payload.payload?.entry) {
             setTranscript(prev => [...prev, payload.payload.entry])
           }
         })
-        .on('broadcast', { event: 'metrics-update' }, (payload) => {
+        .on('broadcast', { event: 'metrics-update' }, (payload: any) => {
           if (payload.payload?.metrics) {
             setMetrics(payload.payload.metrics)
           }

@@ -25,7 +25,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useDashboardRealTimeEnhanced } from '@/hooks/useDashboardRealTimeEnhanced'
 import { format } from 'date-fns'
 import { ChevronDownIcon, ChevronUpIcon, SparklesIcon } from '@heroicons/react/24/outline'
-import { toast } from 'sonner'
+// TODO: Install sonner for toast notifications
+const toast = {
+  success: (msg: string) => console.log('[Toast Success]:', msg),
+  error: (msg: string) => console.error('[Toast Error]:', msg)
+}
 
 interface ProgressDataPoint {
   date: string

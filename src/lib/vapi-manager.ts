@@ -229,7 +229,12 @@ export class VAPIManager {
         }
         
         // Add the validated messages to our local history
-        this.conversationHistory = [...formattedMessages]
+        this.conversationHistory = formattedMessages.map(msg => ({
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content || '',
+          timestamp: Date.now(),
+          metadata: {}
+        }))
       }
 
     } catch (error) {

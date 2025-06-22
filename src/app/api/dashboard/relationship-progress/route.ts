@@ -166,7 +166,6 @@ export async function GET(request: Request) {
           id: true,
           date: true,
           duration: true,
-          transcript: true,
           notes: true
         },
         orderBy: {
@@ -179,7 +178,7 @@ export async function GET(request: Request) {
       // If there are completed sessions, generate progress tracking data based on real sessions
       if (completedSessions.length > 0) {
         // Group sessions by week for aggregated data
-        const sessionsByWeek = completedSessions.reduce((acc, session) => {
+        const sessionsByWeek = completedSessions.reduce<Record<string, typeof completedSessions>>((acc, session) => {
           const sessionDate = new Date(session.date);
           const weekStart = new Date(sessionDate);
           weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());

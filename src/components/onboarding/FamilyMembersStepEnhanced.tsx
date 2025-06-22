@@ -103,7 +103,7 @@ export default function FamilyMembersStepEnhanced({
       if (!member.name?.trim()) {
         errors[`member-${index}-name`] = 'Name is required'
       }
-      if (member.age !== null && (member.age < 0 || member.age > 150)) {
+      if (member.age !== null && member.age !== undefined && (member.age < 0 || member.age > 150)) {
         errors[`member-${index}-age`] = 'Invalid age'
       }
     })

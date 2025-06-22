@@ -69,7 +69,7 @@ export async function POST(
     }
     
     // Check permission (user or admin)
-    if (therapySession.userId !== session.user.id && session.user.role !== 'admin') {
+    if (therapySession.userId !== session.user.id && (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
     
@@ -142,13 +142,27 @@ export async function POST(
       }
       
       const duration = therapySession.duration || 30;
+      // Get full transcript from TranscriptEntry table
+      const transcriptEntries = await prisma.transcriptEntry.findMany({
+        where: { sessionId },
+        orderBy: { timestamp: 'asc' },
+        select: {
+          speaker: true,
+          text: true
+        }
+      });
+      
+      const fullTranscript = transcriptEntries
+        .map(entry => `${entry.speaker}: ${entry.text}`)
+        .join('\n');
+      
       await generateMetricsFromSession(
         therapySession.userId,
         duration,
         sessionId,
-        therapySession.transcript,
+        fullTranscript,
         therapyType,
-        therapySession.assistantId
+        therapySession.assistantId || undefined
       );
       
       console.log(`✅ PHASE 3: Generated comprehensive ${therapyType} metrics for session ${sessionId}`);
@@ -209,7 +223,7 @@ export async function POST(
           sessionNotes: therapySession.notes || undefined,
           nextSessionDate: nextSession ? nextSession.date.toLocaleDateString() : undefined,
           nextSessionTime: nextSession ? nextSession.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
-        }),
+        }) as any,
       });
       console.log('Session completion email sent successfully');
     } catch (emailError) {

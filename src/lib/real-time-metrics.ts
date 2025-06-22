@@ -71,7 +71,7 @@ export class RealTimeMetricsCalculator {
       const elapsedMinutes = elapsed / (1000 * 60);
       cached.sessionProgress = Math.min(100, (elapsedMinutes / this.sessionDurationMinutes) * 100);
     }
-    return cached;
+    return cached || null;
   }
 
   // Calculate incremental metrics based on current transcript
@@ -247,7 +247,7 @@ export class RealTimeMetricsCalculator {
 
   // Static method to get metrics for any session
   static getMetricsForSession(sessionId: string): IncrementalMetrics | null {
-    return metricsCache.get(sessionId);
+    return metricsCache.get(sessionId) || null;
   }
 
   // Static method to check if metrics should trigger an update

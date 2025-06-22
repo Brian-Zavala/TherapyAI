@@ -134,7 +134,7 @@ export function TherapyButtonRefactored({
       const errorObj = error as Record<string, any>
       if (errorObj.errorMsg === 'Meeting has ended' && errorObj.error?.type === 'no-room') {
         // Mark session as ended to prevent recovery attempts
-        const currentSessionId = sessionIdRef.current
+        const currentSessionId = sessionRef.current?.sessionId
         if (currentSessionId) {
           sessionStorage.setItem('session-just-ended', JSON.stringify({
             sessionId: currentSessionId,
@@ -144,11 +144,11 @@ export function TherapyButtonRefactored({
           console.log('🚫 VAPI room ended - marked session to prevent recovery')
           
           // Force cleanup
-          cleanupSession()
+          cleanupSessionMetrics(currentSessionId)
         }
       }
     }
-  }, [cleanupSession])
+  }, [])
   
   // Create transcript ref for the callback
   const transcriptRef = useRef<any>(null)
@@ -330,7 +330,7 @@ export function TherapyButtonRefactored({
   
   // Use Supabase realtime for session state management
   const sessionState = useSupabaseSessionState({
-    sessionId: session.sessionId,
+    sessionId: session.sessionId || undefined,
     userId: user?.id || '',
     onSessionUpdate: handleSessionUpdate,
     onVapiPause: vapi.pauseCall,
@@ -596,12 +596,7 @@ export function TherapyButtonRefactored({
           
         } else {
           // Use assistant ID approach with recovery message
-          await vapi.startCall({
-            assistantId: assistant.id || getAssistantId(detectedType),
-            assistantOverrides: {
-              firstMessage: 'Welcome back! I can see we were in the middle of our session together. Let\'s continue right where we left off. How are you feeling?'
-            }
-          })
+          await vapi.startCall(assistant.id || getAssistantId(detectedType))
         }
         
         // Ensure session-active class is set for recovered sessions
@@ -622,7 +617,7 @@ export function TherapyButtonRefactored({
     }
     
     // Add event listener
-    window.addEventListener('sessionRecoveryComplete', handleSessionRecoveryComplete as EventListener)
+    window.addEventListener('sessionRecoveryComplete', handleSessionRecoveryComplete as unknown as EventListener)
     
     // Check for existing auto-start flag on mount (in case event was missed)
     const autoStartData = sessionStorage.getItem('session-auto-start')
@@ -672,7 +667,7 @@ export function TherapyButtonRefactored({
     
     // Cleanup
     return () => {
-      window.removeEventListener('sessionRecoveryComplete', handleSessionRecoveryComplete as EventListener)
+      window.removeEventListener('sessionRecoveryComplete', handleSessionRecoveryComplete as unknown as EventListener)
       clearInterval(cleanupInterval)
       // Don't update state in cleanup - it causes infinite loops
       // The ref will be reset naturally when component remounts
@@ -779,7 +774,7 @@ export function TherapyButtonRefactored({
     
     try {
       // Create session with family members if selected
-      const newSession = await session.createSession(duration, selectedFamilyMembers)
+      const newSession = await session.createSession(duration as 30 | 60, selectedFamilyMembers)
       
       if (!newSession) {
         throw new Error('Failed to create session')
@@ -787,7 +782,7 @@ export function TherapyButtonRefactored({
       
       // Initialize metrics calculator for real-time metrics
       if (user?.id) {
-        initializeSessionMetrics(newSession, user.id, therapyType, duration)
+        initializeSessionMetrics(newSession, user.id, therapyType, duration as 30 | 60)
         console.log('📊 Initialized metrics calculator for session:', newSession)
       }
       
@@ -934,18 +929,7 @@ export function TherapyButtonRefactored({
         session.startConversationTimer(newSession)
       } else {
         // Use assistant ID approach
-        await vapi.startCall({
-          assistantId: getAssistantId(therapyType),
-          assistantOverrides: {
-            firstMessage: getFirstMessage(therapyType),
-            model: {
-              provider: 'anthropic',
-              model: 'claude-3-5-sonnet-20241022',
-              temperature: 1,
-              maxTokens: 750
-            }
-          }
-        })
+        await vapi.startCall(getAssistantId(therapyType))
         
         // Start conversation timer with the new sessionId after VAPI starts
         console.log('📞 VAPI started, starting conversation timer with sessionId:', newSession)
@@ -1450,7 +1434,7 @@ export function TherapyButtonRefactored({
                 <div className="text-center py-1 sm:py-2">
                   {session.sessionDuration ? (
                     <SessionTimerV2
-                      sessionId={session.id}
+                      sessionId={session.sessionId || ''}
                       durationMinutes={session.sessionDuration}
                       conversationTimeSeconds={session.conversationTimeSeconds}
                       isConversationActive={vapi.vapiState.isActive && !sessionState.isPaused}

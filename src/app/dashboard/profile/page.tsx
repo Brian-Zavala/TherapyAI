@@ -111,7 +111,7 @@ export default function ProfileSettings() {
         })
       } catch (error) {
         console.error("Profile fetch error details:", error)
-        setMessage(error.message || "Failed to load profile data")
+        setMessage(error instanceof Error ? error.message : "Failed to load profile data")
       } finally {
         setIsLoading(false)
       }
@@ -120,7 +120,7 @@ export default function ProfileSettings() {
     fetchUserData()
   }, [status, router, session])
   
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -128,7 +128,7 @@ export default function ProfileSettings() {
     }))
   }
   
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
     setMessage("")

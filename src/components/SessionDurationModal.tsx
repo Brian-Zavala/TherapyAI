@@ -31,7 +31,14 @@ export default function SessionDurationModal({
     onSelectDuration(selectedDuration);
   };
 
-  const durationOptions = [
+  const durationOptions: Array<{
+    duration: 30 | 60;
+    title: string;
+    description: string;
+    features: string[];
+    recommended: boolean;
+    futurePrice: string;
+  }> = [
     {
       duration: 30,
       title: "Focused Session",

@@ -26,7 +26,7 @@ export async function createVapiInstance(token?: string): Promise<VapiInterface>
   }
 
   console.log('🚀 Production mode - using real VAPI');
-  return new Vapi(token);
+  return new Vapi(token) as VapiInterface;
 }
 
 // Export type for use in components

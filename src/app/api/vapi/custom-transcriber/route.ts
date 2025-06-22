@@ -152,6 +152,6 @@ function setupWebSocketServer() {
 // Close the WebSocket server when the module is reloaded (dev only)
 if (wss && process.env.NODE_ENV !== 'production') {
   logger.info('Closing existing WebSocket server');
-  wss.close();
+  (wss as WebSocketServer).close();
   wss = null;
 }

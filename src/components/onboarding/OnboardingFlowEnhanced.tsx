@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { FamilyMembersStepEnhanced } from './FamilyMembersStepEnhanced'
+import FamilyMembersStepEnhanced from './FamilyMembersStepEnhanced'
 import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
 import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import ButtonWithSound from '@/components/ButtonWithSound'
@@ -32,7 +32,6 @@ export default function OnboardingFlowEnhanced() {
     updateFamilyMember,
     removeFamilyMember,
     saveFamilyMembers,
-    hasChanges,
     hasLegacyData,
     migrateFromLegacyFormat
   } = useFamilyMembersEnhanced({ autoSave: false })
@@ -212,8 +211,7 @@ export default function OnboardingFlowEnhanced() {
           <ButtonWithSound
             onClick={handleBack}
             disabled={currentStep === 0}
-            variant="secondary"
-            className={currentStep === 0 ? 'invisible' : ''}
+            className={`${currentStep === 0 ? 'invisible' : ''} px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50`}
           >
             Back
           </ButtonWithSound>
@@ -221,8 +219,7 @@ export default function OnboardingFlowEnhanced() {
           <ButtonWithSound
             onClick={handleNext}
             disabled={isCompleting || (currentStep === 1 && familyMembers.length === 0)}
-            variant="primary"
-            className="min-w-[120px]"
+            className="min-w-[120px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             {isCompleting ? (
               <span className="flex items-center">

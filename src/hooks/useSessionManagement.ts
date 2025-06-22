@@ -223,7 +223,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       // Update state with recovered session
       setSessionId(recoveryData.sessionId)
       setSessionStartTime(new Date(recoveryData.originalStart))
-      setSessionDuration(recoveryData.sessionData.duration || DEFAULT_SESSION_DURATION)
+      setSessionDuration((recoveryData.sessionData.duration || DEFAULT_SESSION_DURATION) as 30 | 60)
       setConversationTimeSeconds(recoveryData.conversationTimeSeconds)
       setSessionRecovered(true)
       

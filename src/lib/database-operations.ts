@@ -387,12 +387,23 @@ export const DatabaseOperations = {
     return withDatabaseOperation(
       async () => {
         // Use Supabase for real-time updates
-        const supabase = createSupabaseServerClient()
+        const supabase = await createSupabaseServerClient()
+        
+        // Get the session to find userId
+        const session = await prisma.session.findUnique({
+          where: { id: sessionId },
+          select: { userId: true }
+        })
+        
+        if (!session) {
+          throw new DatabaseError('Session not found', 'SESSION_NOT_FOUND', false)
+        }
         
         // Update in database
         const updated = await prisma.communicationMetric.create({
           data: {
             sessionId,
+            userId: session.userId,
             clarity: metrics.clarity,
             empathy: metrics.empathy,
             respect: metrics.respect,

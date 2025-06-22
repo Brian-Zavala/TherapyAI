@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         sessionId: conversationState.sessionId,
         assistantId: conversationState.assistantId,
         // Include assistantConfig if it's an inline configuration
-        ...(assistantConfig && { assistantConfig }),
+        ...(assistantConfig && typeof assistantConfig === 'object' ? { assistantConfig } : {}),
         messages: conversationState.messages.map(msg => ({
           role: msg.role,
           content: msg.content,

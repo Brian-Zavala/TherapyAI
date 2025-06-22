@@ -18,9 +18,16 @@ export async function GET() {
     let user = null;
     
     try {
-      // First try to find user by email
+      // First try to find user by email with profile and family members
       user = await prisma.user.findUnique({
-        where: { email: session.user.email }
+        where: { email: session.user.email },
+        include: {
+          profile: true,
+          familyMembers: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' }
+          }
+        }
       })
     } catch (findError) {
       console.error("Error finding user:", findError)
@@ -86,53 +93,44 @@ export async function GET() {
     }
       
     try {
-      // Handle the case where the database schema might not have family member fields yet
-      // by creating a safe response object
+      // Construct response from user and profile data
+      const profile = (user as any).profile
+      const familyMembers = (user as any).familyMembers || []
+      
+      // Map family members to the old format for backward compatibility
+      const familyMemberData: any = {}
+      for (let i = 0; i < 7; i++) {
+        const member = familyMembers[i]
+        const num = i + 1
+        familyMemberData[`familyMember${num}`] = member?.name || ""
+        familyMemberData[`familyMember${num}Age`] = member?.age || null
+        familyMemberData[`familyMember${num}Relation`] = member?.relationship || ""
+      }
+      
       const safeUser = {
         id: user.id,
         name: user.name || "",
         email: user.email,
-        pronouns: user.pronouns || "",
-        age: user.age || null,
-        partnerName: user.partnerName || "",
-        partnerAge: user.partnerAge || null,
-        relationshipStatus: user.relationshipStatus || "Married",
-        // Safely handle potentially missing fields
-        familyMember1: user.familyMember1 || "",
-        familyMember1Age: user.familyMember1Age || null,
-        familyMember1Relation: (user as any).familyMember1Relation || "",
-        familyMember2: user.familyMember2 || "",
-        familyMember2Age: user.familyMember2Age || null,
-        familyMember2Relation: (user as any).familyMember2Relation || "",
-        familyMember3: user.familyMember3 || "",
-        familyMember3Age: user.familyMember3Age || null,
-        familyMember3Relation: (user as any).familyMember3Relation || "",
-        familyMember4: user.familyMember4 || "",
-        familyMember4Age: user.familyMember4Age || null,
-        familyMember4Relation: (user as any).familyMember4Relation || "",
-        familyMember5: (user as any).familyMember5 || "",
-        familyMember5Age: (user as any).familyMember5Age || null,
-        familyMember5Relation: (user as any).familyMember5Relation || "",
-        familyMember6: (user as any).familyMember6 || "",
-        familyMember6Age: (user as any).familyMember6Age || null,
-        familyMember6Relation: (user as any).familyMember6Relation || "",
-        familyMember7: (user as any).familyMember7 || "",
-        familyMember7Age: (user as any).familyMember7Age || null,
-        familyMember7Relation: (user as any).familyMember7Relation || "",
-        therapyType: user.therapyType || "",
-        currentConcerns: user.currentConcerns || null,
-        emergencyContact: user.emergencyContact || "",
-        sessionPreference: user.sessionPreference || "",
-        preferredDays: user.preferredDays || null,
-        sessionFrequency: user.sessionFrequency || "",
-        recurringSession: user.recurringSession || "",
-        reminderTiming: user.reminderTiming || "",
-        communicationStyle: user.communicationStyle || "",
-        additionalNotes: user.additionalNotes || "",
+        pronouns: profile?.pronouns || "",
+        age: profile?.age || null,
+        partnerName: profile?.partnerName || "",
+        partnerAge: profile?.partnerAge || null,
+        relationshipStatus: profile?.relationshipStatus || "Married",
+        ...familyMemberData,
+        therapyType: profile?.therapyType || "",
+        currentConcerns: profile?.currentConcerns || null,
+        emergencyContact: profile?.emergencyContact || "",
+        sessionPreference: profile?.sessionPreference || "",
+        preferredDays: profile?.preferredDays || null,
+        sessionFrequency: profile?.sessionFrequency || "",
+        recurringSession: profile?.recurringSession || "",
+        reminderTiming: profile?.reminderTiming || "",
+        communicationStyle: profile?.communicationStyle || "",
+        additionalNotes: profile?.additionalNotes || "",
         onboardingCompleted: user.onboardingCompleted || false,
         onboardingData: user.onboardingData || null,
-        phone: user.phone || "",
-        notificationPrefs: user.notificationPrefs || "email",
+        phone: profile?.phone || "",
+        notificationPrefs: profile?.notificationPrefs || "email",
         hasSeenIntro: user.hasSeenIntro || false
       }
       
@@ -208,11 +206,28 @@ export async function PATCH(request: Request) {
             password: 'SESSION_CREATED_USER',
             onboardingData: data,
             onboardingCompleted: true,
-            pronouns: data.pronouns || null,
-            age: data.age ? parseInt(data.age) : null,
-            relationshipStatus: data.relationshipStatus || 'Married',
-            therapyType: data.therapyType || null,
-            notificationPrefs: data.notificationPrefs || 'email',
+            profile: {
+              create: {
+                pronouns: data.pronouns || null,
+                age: data.age ? parseInt(data.age) : null,
+                relationshipStatus: data.relationshipStatus || 'Married',
+                therapyType: data.therapyType || null,
+                notificationPrefs: data.notificationPrefs || 'email',
+                partnerName: data.partnerName || null,
+                partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
+                currentConcerns: data.currentConcerns || null,
+                emergencyContact: data.emergencyContact || null,
+                sessionPreference: data.sessionPreference || null,
+                preferredDays: data.preferredDays || null,
+                sessionFrequency: data.sessionFrequency || null,
+                recurringSession: data.recurringSession || null,
+                reminderTiming: data.reminderTiming || null,
+                communicationStyle: data.communicationStyle || null,
+                additionalNotes: data.additionalNotes || null,
+                phone: data.phone || null,
+                assistantId: data.assistantId || null
+              }
+            }
           }
         })
         console.log("User created during onboarding:", user.id)
@@ -224,52 +239,96 @@ export async function PATCH(request: Request) {
     // If user exists, try to update them
     if (user) {
       try {
-        const updatedUser = await prisma.user.update({
-          where: { email: session.user.email },
-          data: {
-            onboardingData: data,
-            onboardingCompleted: true,
-            // Update any specific fields from onboarding
-            name: data.nickname || session.user.name,
-            pronouns: data.pronouns || null,
-            age: data.age ? parseInt(data.age) : null,
-            relationshipStatus: data.relationshipStatus || 'Married',
-            partnerName: data.partnerName || null,
-            partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
-            familyMember1: data.familyMember1 || null,
-            familyMember1Age: data.familyMember1Age ? parseInt(data.familyMember1Age) : null,
-            familyMember1Relation: data.familyMember1Relation || null,
-            familyMember2: data.familyMember2 || null,
-            familyMember2Age: data.familyMember2Age ? parseInt(data.familyMember2Age) : null,
-            familyMember2Relation: data.familyMember2Relation || null,
-            familyMember3: data.familyMember3 || null,
-            familyMember3Age: data.familyMember3Age ? parseInt(data.familyMember3Age) : null,
-            familyMember3Relation: data.familyMember3Relation || null,
-            familyMember4: data.familyMember4 || null,
-            familyMember4Age: data.familyMember4Age ? parseInt(data.familyMember4Age) : null,
-            familyMember4Relation: data.familyMember4Relation || null,
-            familyMember5: data.familyMember5 || null,
-            familyMember5Age: data.familyMember5Age ? parseInt(data.familyMember5Age) : null,
-            familyMember5Relation: data.familyMember5Relation || null,
-            familyMember6: data.familyMember6 || null,
-            familyMember6Age: data.familyMember6Age ? parseInt(data.familyMember6Age) : null,
-            familyMember6Relation: data.familyMember6Relation || null,
-            familyMember7: data.familyMember7 || null,
-            familyMember7Age: data.familyMember7Age ? parseInt(data.familyMember7Age) : null,
-            familyMember7Relation: data.familyMember7Relation || null,
-            therapyType: data.therapyType || null,
-            currentConcerns: data.goals || null,
-            emergencyContact: data.emergencyContact || null,
-            sessionPreference: data.sessionTime || null,
-            preferredDays: data.preferredDays || null,
-            sessionFrequency: data.sessionFrequency || null,
-            recurringSession: data.recurringSession || null,
-            reminderTiming: data.reminderTiming || null,
-            communicationStyle: data.communicationStyle || null,
-            additionalNotes: data.additionalNotes || null,
-            phone: data.phone || null,
-            notificationPrefs: data.notificationPrefs || 'email',
+        // Use transaction to update user, profile, and family members
+        const updatedUser = await prisma.$transaction(async (tx) => {
+          // Update user
+          const userUpdate = await tx.user.update({
+            where: { email: session.user.email! },
+            data: {
+              onboardingData: data,
+              onboardingCompleted: true,
+              name: data.nickname || session.user.name,
+            },
+            include: {
+              profile: true,
+              familyMembers: true
+            }
+          })
+          
+          // Create or update profile
+          await tx.userProfile.upsert({
+            where: { userId: userUpdate.id },
+            create: {
+              userId: userUpdate.id,
+              pronouns: data.pronouns || null,
+              age: data.age ? parseInt(data.age) : null,
+              relationshipStatus: data.relationshipStatus || 'Married',
+              therapyType: data.therapyType || null,
+              notificationPrefs: data.notificationPrefs || 'email',
+              partnerName: data.partnerName || null,
+              partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
+              currentConcerns: data.goals || data.currentConcerns || null,
+              emergencyContact: data.emergencyContact || null,
+              sessionPreference: data.sessionTime || data.sessionPreference || null,
+              preferredDays: data.preferredDays || null,
+              sessionFrequency: data.sessionFrequency || null,
+              recurringSession: data.recurringSession || null,
+              reminderTiming: data.reminderTiming || null,
+              communicationStyle: data.communicationStyle || null,
+              additionalNotes: data.additionalNotes || null,
+              phone: data.phone || null,
+              assistantId: data.assistantId || null
+            },
+            update: {
+              pronouns: data.pronouns || null,
+              age: data.age ? parseInt(data.age) : null,
+              relationshipStatus: data.relationshipStatus || 'Married',
+              therapyType: data.therapyType || null,
+              notificationPrefs: data.notificationPrefs || 'email',
+              partnerName: data.partnerName || null,
+              partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
+              currentConcerns: data.goals || data.currentConcerns || null,
+              emergencyContact: data.emergencyContact || null,
+              sessionPreference: data.sessionTime || data.sessionPreference || null,
+              preferredDays: data.preferredDays || null,
+              sessionFrequency: data.sessionFrequency || null,
+              recurringSession: data.recurringSession || null,
+              reminderTiming: data.reminderTiming || null,
+              communicationStyle: data.communicationStyle || null,
+              additionalNotes: data.additionalNotes || null,
+              phone: data.phone || null,
+              assistantId: data.assistantId || null
+            }
+          })
+          
+          // Delete existing family members
+          await tx.familyMember.deleteMany({
+            where: { userId: userUpdate.id }
+          })
+          
+          // Create new family members
+          const familyMembersToCreate = []
+          for (let i = 1; i <= 7; i++) {
+            const memberName = data[`familyMember${i}`]
+            if (memberName) {
+              familyMembersToCreate.push({
+                userId: userUpdate.id,
+                name: memberName,
+                age: data[`familyMember${i}Age`] ? parseInt(data[`familyMember${i}Age`]) : null,
+                relationship: data[`familyMember${i}Relation`] || '',
+                order: i - 1,
+                isActive: true
+              })
+            }
           }
+          
+          if (familyMembersToCreate.length > 0) {
+            await tx.familyMember.createMany({
+              data: familyMembersToCreate
+            })
+          }
+          
+          return userUpdate
         })
         
         return NextResponse.json({ 
@@ -323,9 +382,16 @@ export async function PUT(request: Request) {
     console.log("Updating profile for:", session.user.email, "with data:", data)
     
     try {
-      // Find user by email
+      // Find user by email with profile and family members
       let user = await prisma.user.findUnique({
-        where: { email: session.user.email }
+        where: { email: session.user.email },
+        include: {
+          profile: true,
+          familyMembers: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' }
+          }
+        }
       })
       
       // Auto-create user if they don't exist
@@ -333,47 +399,75 @@ export async function PUT(request: Request) {
         console.log("Creating new user during profile update")
         
         try {
-          // Create basic user with required fields
-          const createData: any = {
-            email: session.user.email,
-            name: data.name,
-            password: 'SESSION_CREATED_USER',
-            partnerName: data.partnerName || null,
-            relationshipStatus: data.relationshipStatus || 'Married'
-          }
-          
-          // Only include family member fields if they're in the database schema
-          try {
-            if (data.familyMember1) createData.familyMember1 = data.familyMember1
-            if (data.familyMember2) createData.familyMember2 = data.familyMember2
-            if (data.familyMember3) createData.familyMember3 = data.familyMember3
-            if (data.familyMember4) createData.familyMember4 = data.familyMember4
-          } catch (e) {
-            console.log("Note: Family member fields might not be in schema yet:", e)
-          }
-          
+          // Create user with profile
           user = await prisma.user.create({
-            data: createData
+            data: {
+              email: session.user.email,
+              name: data.name,
+              password: 'SESSION_CREATED_USER',
+              profile: {
+                create: {
+                  partnerName: data.partnerName || null,
+                  partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
+                  relationshipStatus: data.relationshipStatus || 'Married',
+                  age: data.age ? parseInt(data.age) : null,
+                  therapyType: data.therapyType || 'couple',
+                  phone: data.phone || null,
+                  notificationPrefs: data.notificationPrefs || 'email'
+                }
+              }
+            },
+            include: {
+              profile: true,
+              familyMembers: true
+            }
           })
           
           console.log("User created successfully:", user.id)
           
+          // Create family members if provided
+          const familyMembersToCreate = []
+          for (let i = 1; i <= 7; i++) {
+            const memberName = data[`familyMember${i}`]
+            if (memberName) {
+              familyMembersToCreate.push({
+                userId: user.id,
+                name: memberName,
+                age: data[`familyMember${i}Age`] ? parseInt(data[`familyMember${i}Age`]) : null,
+                relationship: data[`familyMember${i}Relation`] || '',
+                order: i - 1,
+                isActive: true
+              })
+            }
+          }
+          
+          if (familyMembersToCreate.length > 0) {
+            await prisma.familyMember.createMany({
+              data: familyMembersToCreate
+            })
+          }
+          
           // Return a safe user object with all expected fields
+          const profile = (user as any).profile
+          const familyMembers = (user as any).familyMembers || []
+          
+          // Map family members to the old format for backward compatibility
+          const familyMemberData: any = {}
+          for (let i = 0; i < 7; i++) {
+            const member = familyMembers[i]
+            const num = i + 1
+            familyMemberData[`familyMember${num}`] = member?.name || ""
+            familyMemberData[`familyMember${num}Age`] = member?.age || null
+          }
+          
           const safeUser = {
             name: user.name || "",
             email: user.email,
-            age: user.age || null,
-            partnerName: user.partnerName || "",
-            partnerAge: user.partnerAge || null,
-            relationshipStatus: user.relationshipStatus || "Married",
-            familyMember1: user.familyMember1 || "",
-            familyMember1Age: user.familyMember1Age || null,
-            familyMember2: user.familyMember2 || "",
-            familyMember2Age: user.familyMember2Age || null,
-            familyMember3: user.familyMember3 || "",
-            familyMember3Age: user.familyMember3Age || null,
-            familyMember4: user.familyMember4 || "",
-            familyMember4Age: user.familyMember4Age || null
+            age: profile?.age || null,
+            partnerName: profile?.partnerName || "",
+            partnerAge: profile?.partnerAge || null,
+            relationshipStatus: profile?.relationshipStatus || "Married",
+            ...familyMemberData
           }
           
           return NextResponse.json({ 
@@ -400,98 +494,141 @@ export async function PUT(request: Request) {
         }
       }
       
-      // Update the existing user profile with safe handling for schema differences
+      // Update the existing user profile with proper schema handling
       try {
-        // Create update data with base fields
-        const updateData = {
-          name: data.name,
-          pronouns: data.pronouns,
-          age: data.age ? parseInt(data.age) : null,
-          partnerName: data.partnerName,
-          partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
-          relationshipStatus: data.relationshipStatus,
-          familyMember1: data.familyMember1,
-          familyMember1Age: data.familyMember1Age ? parseInt(data.familyMember1Age) : null,
-          familyMember1Relation: data.familyMember1Relation,
-          familyMember2: data.familyMember2,
-          familyMember2Age: data.familyMember2Age ? parseInt(data.familyMember2Age) : null,
-          familyMember2Relation: data.familyMember2Relation,
-          familyMember3: data.familyMember3,
-          familyMember3Age: data.familyMember3Age ? parseInt(data.familyMember3Age) : null,
-          familyMember3Relation: data.familyMember3Relation,
-          familyMember4: data.familyMember4,
-          familyMember4Age: data.familyMember4Age ? parseInt(data.familyMember4Age) : null,
-          familyMember4Relation: data.familyMember4Relation,
-          familyMember5: data.familyMember5,
-          familyMember5Age: data.familyMember5Age ? parseInt(data.familyMember5Age) : null,
-          familyMember5Relation: data.familyMember5Relation,
-          familyMember6: data.familyMember6,
-          familyMember6Age: data.familyMember6Age ? parseInt(data.familyMember6Age) : null,
-          familyMember6Relation: data.familyMember6Relation,
-          familyMember7: data.familyMember7,
-          familyMember7Age: data.familyMember7Age ? parseInt(data.familyMember7Age) : null,
-          familyMember7Relation: data.familyMember7Relation,
-          therapyType: data.therapyType,
-          currentConcerns: data.currentConcerns,
-          emergencyContact: data.emergencyContact,
-          sessionPreference: data.sessionPreference,
-          preferredDays: data.preferredDays,
-          sessionFrequency: data.sessionFrequency,
-          recurringSession: data.recurringSession,
-          reminderTiming: data.reminderTiming,
-          communicationStyle: data.communicationStyle,
-          additionalNotes: data.additionalNotes,
-          phone: data.phone,
-          notificationPrefs: data.notificationPrefs
-        }
-        
-        const updatedUser = await prisma.user.update({
-          where: { email: session.user.email },
-          data: updateData
+        // Use transaction to update user, profile, and family members
+        const updatedUser = await prisma.$transaction(async (tx) => {
+          // Update user base data
+          const userUpdate = await tx.user.update({
+            where: { email: session.user.email! },
+            data: {
+              name: data.name
+            },
+            include: {
+              profile: true,
+              familyMembers: true
+            }
+          })
+          
+          // Create or update profile
+          await tx.userProfile.upsert({
+            where: { userId: userUpdate.id },
+            create: {
+              userId: userUpdate.id,
+              pronouns: data.pronouns || null,
+              age: data.age ? parseInt(data.age) : null,
+              relationshipStatus: data.relationshipStatus || 'Married',
+              therapyType: data.therapyType || 'couple',
+              notificationPrefs: data.notificationPrefs || 'email',
+              partnerName: data.partnerName || null,
+              partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
+              currentConcerns: data.currentConcerns || null,
+              emergencyContact: data.emergencyContact || null,
+              sessionPreference: data.sessionPreference || null,
+              preferredDays: data.preferredDays || null,
+              sessionFrequency: data.sessionFrequency || null,
+              recurringSession: data.recurringSession || null,
+              reminderTiming: data.reminderTiming || null,
+              communicationStyle: data.communicationStyle || null,
+              additionalNotes: data.additionalNotes || null,
+              phone: data.phone || null
+            },
+            update: {
+              pronouns: data.pronouns || null,
+              age: data.age ? parseInt(data.age) : null,
+              relationshipStatus: data.relationshipStatus || 'Married',
+              therapyType: data.therapyType || 'couple',
+              notificationPrefs: data.notificationPrefs || 'email',
+              partnerName: data.partnerName || null,
+              partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
+              currentConcerns: data.currentConcerns || null,
+              emergencyContact: data.emergencyContact || null,
+              sessionPreference: data.sessionPreference || null,
+              preferredDays: data.preferredDays || null,
+              sessionFrequency: data.sessionFrequency || null,
+              recurringSession: data.recurringSession || null,
+              reminderTiming: data.reminderTiming || null,
+              communicationStyle: data.communicationStyle || null,
+              additionalNotes: data.additionalNotes || null,
+              phone: data.phone || null
+            }
+          })
+          
+          // Delete existing family members
+          await tx.familyMember.deleteMany({
+            where: { userId: userUpdate.id }
+          })
+          
+          // Create new family members
+          const familyMembersToCreate = []
+          for (let i = 1; i <= 7; i++) {
+            const memberName = data[`familyMember${i}`]
+            if (memberName) {
+              familyMembersToCreate.push({
+                userId: userUpdate.id,
+                name: memberName,
+                age: data[`familyMember${i}Age`] ? parseInt(data[`familyMember${i}Age`]) : null,
+                relationship: data[`familyMember${i}Relation`] || '',
+                order: i - 1,
+                isActive: true
+              })
+            }
+          }
+          
+          if (familyMembersToCreate.length > 0) {
+            await tx.familyMember.createMany({
+              data: familyMembersToCreate
+            })
+          }
+          
+          // Re-fetch with all relations
+          return await tx.user.findUnique({
+            where: { id: userUpdate.id },
+            include: {
+              profile: true,
+              familyMembers: {
+                where: { isActive: true },
+                orderBy: { order: 'asc' }
+              }
+            }
+          })
         })
         
         // Return a safe user object with all expected fields
+        const profile = updatedUser?.profile
+        const familyMembers = updatedUser?.familyMembers || []
+        
+        // Map family members to the old format for backward compatibility
+        const familyMemberData: any = {}
+        for (let i = 0; i < 7; i++) {
+          const member = familyMembers[i]
+          const num = i + 1
+          familyMemberData[`familyMember${num}`] = member?.name || ""
+          familyMemberData[`familyMember${num}Age`] = member?.age || null
+          familyMemberData[`familyMember${num}Relation`] = member?.relationship || ""
+        }
+        
         const safeUser = {
-          name: updatedUser.name || "",
-          email: updatedUser.email,
-          pronouns: updatedUser.pronouns || "",
-          age: updatedUser.age || null,
-          partnerName: updatedUser.partnerName || "",
-          partnerAge: updatedUser.partnerAge || null,
-          relationshipStatus: updatedUser.relationshipStatus || "Married",
-          familyMember1: updatedUser.familyMember1 || "",
-          familyMember1Age: updatedUser.familyMember1Age || null,
-          familyMember1Relation: (updatedUser as any).familyMember1Relation || "",
-          familyMember2: updatedUser.familyMember2 || "",
-          familyMember2Age: updatedUser.familyMember2Age || null,
-          familyMember2Relation: (updatedUser as any).familyMember2Relation || "",
-          familyMember3: updatedUser.familyMember3 || "",
-          familyMember3Age: updatedUser.familyMember3Age || null,
-          familyMember3Relation: (updatedUser as any).familyMember3Relation || "",
-          familyMember4: updatedUser.familyMember4 || "",
-          familyMember4Age: updatedUser.familyMember4Age || null,
-          familyMember4Relation: (updatedUser as any).familyMember4Relation || "",
-          familyMember5: (updatedUser as any).familyMember5 || "",
-          familyMember5Age: (updatedUser as any).familyMember5Age || null,
-          familyMember5Relation: (updatedUser as any).familyMember5Relation || "",
-          familyMember6: (updatedUser as any).familyMember6 || "",
-          familyMember6Age: (updatedUser as any).familyMember6Age || null,
-          familyMember6Relation: (updatedUser as any).familyMember6Relation || "",
-          familyMember7: (updatedUser as any).familyMember7 || "",
-          familyMember7Age: (updatedUser as any).familyMember7Age || null,
-          familyMember7Relation: (updatedUser as any).familyMember7Relation || "",
-          therapyType: updatedUser.therapyType || "",
-          currentConcerns: updatedUser.currentConcerns || null,
-          emergencyContact: updatedUser.emergencyContact || "",
-          sessionPreference: updatedUser.sessionPreference || "",
-          preferredDays: updatedUser.preferredDays || null,
-          sessionFrequency: updatedUser.sessionFrequency || "",
-          recurringSession: updatedUser.recurringSession || "",
-          reminderTiming: updatedUser.reminderTiming || "",
-          communicationStyle: updatedUser.communicationStyle || "",
-          additionalNotes: updatedUser.additionalNotes || "",
-          phone: updatedUser.phone || "",
-          notificationPrefs: updatedUser.notificationPrefs || "email"
+          name: updatedUser?.name || "",
+          email: updatedUser?.email || session.user.email,
+          pronouns: profile?.pronouns || "",
+          age: profile?.age || null,
+          partnerName: profile?.partnerName || "",
+          partnerAge: profile?.partnerAge || null,
+          relationshipStatus: profile?.relationshipStatus || "Married",
+          ...familyMemberData,
+          therapyType: profile?.therapyType || "",
+          currentConcerns: profile?.currentConcerns || null,
+          emergencyContact: profile?.emergencyContact || "",
+          sessionPreference: profile?.sessionPreference || "",
+          preferredDays: profile?.preferredDays || null,
+          sessionFrequency: profile?.sessionFrequency || "",
+          recurringSession: profile?.recurringSession || "",
+          reminderTiming: profile?.reminderTiming || "",
+          communicationStyle: profile?.communicationStyle || "",
+          additionalNotes: profile?.additionalNotes || "",
+          phone: profile?.phone || "",
+          notificationPrefs: profile?.notificationPrefs || "email"
         }
         
         return NextResponse.json({ 

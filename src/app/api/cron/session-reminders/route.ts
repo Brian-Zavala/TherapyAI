@@ -71,7 +71,7 @@ export async function GET(request: Request) {
                 duration: session.duration,
                 notes: session.notes || '',
                 baseUrl: baseUrl,
-              }),
+              }) as any,
             });
             updates.emailReminderSent = true;
             console.log(`Email reminder sent for session ${session.id}`);
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
                 notes: session.notes || '',
                 isOneHourReminder: true, // Add this to customize the email template
                 baseUrl: baseUrl,
-              }),
+              }) as any,
             });
             
             // Update the session to mark 1-hour reminder as sent
@@ -183,7 +183,7 @@ export async function GET(request: Request) {
               sessionType: session.theme || 'Therapy Session',
               nextAvailableSlots: formattedSlots.length > 0 ? formattedSlots : undefined,
               baseUrl: baseUrl,
-            }),
+            }) as any,
           });
           console.log(`Missed session email sent for session ${session.id}`);
         } catch (error) {

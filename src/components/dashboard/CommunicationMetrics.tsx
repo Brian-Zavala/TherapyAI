@@ -1,4 +1,4 @@
-// src/components/dashboard/CommunicationMetrics.tsx
+// src/components/dashboard/CommunicationMetric.tsx
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -43,7 +43,7 @@ interface MetricDataItem {
   focusArea?: boolean; // Whether this is a recommended focus area
 }
 
-export default function CommunicationMetrics() {
+export default function CommunicationMetric() {
   // Track when component has mounted to prevent client/server mismatches with animations
   const [isMounted, setIsMounted] = useState(false);
 
@@ -670,9 +670,9 @@ export default function CommunicationMetrics() {
   );
 
   // Simple console logging for debugging
-  console.log("CommunicationMetrics render - therapyType:", therapyType);
+  console.log("CommunicationMetric render - therapyType:", therapyType);
   console.log(
-    "CommunicationMetrics render - metrics data length:",
+    "CommunicationMetric render - metrics data length:",
     metricsData.length
   );
 

@@ -4,7 +4,7 @@
  */
 
 import { prisma, withTransaction, withRetry } from './prisma-enhanced'
-import { createSupabaseServerClient } from './supabase-server'
+import { getSupabaseClient } from './supabase-singleton'
 import { RealTimeMetricsCalculator } from './real-time-metrics-optimized'
 import { validateTranscriptEntry, extractConversationMetrics } from './vapi-message-validator'
 import { z } from 'zod'
@@ -185,7 +185,8 @@ export class EnhancedTranscriptManager {
       // Broadcast metrics update via Supabase
       const metadata = this.sessionMetadata.get(entry.sessionId)
       if (metadata) {
-        const supabase = createSupabaseServerClient()
+        const { createSupabaseServerClient } = await import('./supabase-server')
+        const supabase = await createSupabaseServerClient()
         await supabase
           .channel(`session:${entry.sessionId}:metrics`)
           .send({
@@ -306,9 +307,9 @@ export class EnhancedTranscriptManager {
               await tx.session.update({
                 where: { id: sessionId },
                 data: {
-                  transcriptCount: { increment: entries.length },
+                  // transcriptCount field removed,
                   conversationTimeSeconds: { increment: Math.floor(entries.length * 2) }, // Rough estimate
-                  lastActivity: new Date()
+                  updatedAt: new Date()
                 }
               })
 
@@ -323,19 +324,14 @@ export class EnhancedTranscriptManager {
                     data: {
                       sessionId,
                       userId: metadata.userId,
-                      clarity: currentMetrics.clarity,
-                      empathy: currentMetrics.empathy,
-                      respect: currentMetrics.respect,
-                      overall: currentMetrics.overall,
-                      listening: currentMetrics.listening || 50,
-                      expression: currentMetrics.expression || 50,
+                      clarity: (currentMetrics as any).clarity || 50,
+                      empathy: (currentMetrics as any).empathy || 50,
+                      respect: (currentMetrics as any).respect || 50,
+                      overall: (currentMetrics as any).overall || 50,
+                      listening: (currentMetrics as any).listening || 50,
+                      expression: (currentMetrics as any).expression || 50,
                       metricType: 'real-time',
-                      calculatedAt: new Date(),
-                      metadata: {
-                        turnCount: conversationMetrics.turnCount,
-                        topics: conversationMetrics.topics,
-                        emotionalTone: conversationMetrics.emotionalTone
-                      }
+                      calculatedAt: new Date()
                     }
                   })
                 }

@@ -3,8 +3,7 @@
 import React, { useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useFeatureFlags } from '@/lib/feature-flags'
-import TherapyButton from './TherapyButton' // Original component
-import { TherapyButtonRefactored } from './TherapyButtonRefactored' // New component
+import { TherapyButtonRefactored } from './TherapyButtonRefactored' // Primary component
 import type { TherapyType } from '@/types/therapy-session'
 
 interface TherapyButtonWrapperProps {
@@ -33,20 +32,15 @@ export function TherapyButtonWrapper(props: TherapyButtonWrapperProps) {
     }
   }, [flags.useRefactoredTherapyButton, user?.id])
   
-  // Add error boundary to catch any issues with the refactored version
-  if (flags.useRefactoredTherapyButton) {
-    return (
-      <TherapyButtonErrorBoundary
-        fallback={<TherapyButton {...props} />}
-        userId={user?.id}
-      >
-        <TherapyButtonRefactored {...props} />
-      </TherapyButtonErrorBoundary>
-    )
-  }
-  
-  // Use original version
-  return <TherapyButton {...props} />
+  // Always use refactored version since original is no longer available
+  return (
+    <TherapyButtonErrorBoundary
+      fallback={<div className="text-red-500">Therapy button temporarily unavailable</div>}
+      userId={user?.id}
+    >
+      <TherapyButtonRefactored {...props} />
+    </TherapyButtonErrorBoundary>
+  )
 }
 
 // Error boundary for safe rollback

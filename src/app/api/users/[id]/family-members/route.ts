@@ -9,7 +9,7 @@ const FamilyMemberSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1).max(255),
   age: z.number().int().min(0).max(150).nullable().optional(),
-  relation: z.string().max(100).nullable().optional(),
+  relationship: z.string().max(100).nullable().optional(),
   order: z.number().int().min(0).optional(),
   isActive: z.boolean().optional().default(true),
 })
@@ -45,68 +45,14 @@ export async function GET(
           id: true,
           name: true,
           age: true,
-          relation: true,
+          relationship: true,
           order: true,
           isActive: true,
         },
       })
     })
 
-    // Check for backward compatibility - if no family members, check old schema
-    if (familyMembers.length === 0) {
-      const user = await prisma.user.findUnique({
-        where: { id: params.id },
-        select: {
-          familyMember1: true,
-          familyMemberAge1: true,
-          familyMemberRelation1: true,
-          familyMember2: true,
-          familyMemberAge2: true,
-          familyMemberRelation2: true,
-          familyMember3: true,
-          familyMemberAge3: true,
-          familyMemberRelation3: true,
-          familyMember4: true,
-          familyMemberAge4: true,
-          familyMemberRelation4: true,
-          familyMember5: true,
-          familyMemberAge5: true,
-          familyMemberRelation5: true,
-          familyMember6: true,
-          familyMemberAge6: true,
-          familyMemberRelation6: true,
-          familyMember7: true,
-          familyMemberAge7: true,
-          familyMemberRelation7: true,
-        },
-      })
-
-      if (user) {
-        // Return legacy format if exists
-        const legacyMembers = []
-        for (let i = 1; i <= 7; i++) {
-          const name = user[`familyMember${i}` as keyof typeof user]
-          if (name && typeof name === 'string') {
-            legacyMembers.push({
-              id: `legacy-${i}`,
-              name,
-              age: user[`familyMemberAge${i}` as keyof typeof user] as number | null,
-              relation: user[`familyMemberRelation${i}` as keyof typeof user] as string | null,
-              order: i - 1,
-              isActive: true,
-              isLegacy: true,
-            })
-          }
-        }
-        
-        if (legacyMembers.length > 0) {
-          return NextResponse.json({
-            familyMembers: legacyMembers,
-            isLegacyFormat: true,
-          })
-        }
-      }
-    }
+    // No backward compatibility needed - old schema fields have been migrated
 
     return NextResponse.json({
       familyMembers,
@@ -157,7 +103,7 @@ export async function PUT(
             data: {
               name: member.name,
               age: member.age ?? null,
-              relation: member.relation ?? null,
+              relationship: member.relationship ?? '',
               order: i,
               isActive: true,
               updatedAt: new Date(),
@@ -171,7 +117,7 @@ export async function PUT(
               userId: params.id,
               name: member.name,
               age: member.age ?? null,
-              relation: member.relation ?? null,
+              relationship: member.relationship ?? '',
               order: i,
               isActive: true,
             },

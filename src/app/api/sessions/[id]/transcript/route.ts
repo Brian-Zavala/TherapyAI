@@ -157,21 +157,9 @@ export async function POST(
       const speakerPrefix = normalizedSpeaker === 'user' ? 'USER' : 'THERAPIST';
       const cleanText = text.trim();
       
-      if (therapySession.transcript) {
-        await prisma.session.update({
-          where: { id: sessionId },
-          data: {
-            transcript: `${therapySession.transcript}\n${speakerPrefix}: ${cleanText}`
-          }
-        });
-      } else {
-        await prisma.session.update({
-          where: { id: sessionId },
-          data: {
-            transcript: `${speakerPrefix}: ${cleanText}`
-          }
-        });
-      }
+      // Legacy transcript field has been removed from Session model
+      // All transcript data is now stored in TranscriptEntry table
+      console.log(`Transcript entries are now stored in TranscriptEntry table for session ${sessionId}`);
       
       console.log(`Successfully updated legacy transcript field for session ${sessionId}`);
     } catch (transcriptUpdateError) {
@@ -281,17 +269,9 @@ export async function GET(
       return true;
     });
     
-    // If we have no transcript entries and there's a legacy transcript in the session
-    if (dedupedEntries.length === 0 && therapySession?.transcript) {
-      console.log('No transcript entries found, returning legacy transcript');
-      dedupedEntries.push({
-        id: 'legacy-transcript',
-        sessionId: sessionId,
-        speaker: 'system',
-        text: `Legacy transcript: ${therapySession.transcript}`,
-        timestamp: new Date(),
-        isFinal: true
-      });
+    // If we have no transcript entries, log it
+    if (dedupedEntries.length === 0) {
+      console.log('No transcript entries found for session', sessionId);
     }
     
     console.log(`API returning ${dedupedEntries.length} entries`);
@@ -390,14 +370,7 @@ export async function DELETE(
       orderBy: { timestamp: 'asc' }
     })
     
-    const newTranscript = allEntries
-      .map(entry => `${entry.speaker}: ${entry.text}`)
-      .join('\n')
-    
-    await prisma.session.update({
-      where: { id: sessionId },
-      data: { transcript: newTranscript || null }
-    })
+    // No need to update session transcript field - transcript is stored in TranscriptEntry records
     
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -42,42 +42,50 @@ export async function GET(request: Request) {
       select: {
         id: true,
         duration: true,
-        transcript: true,
         date: true
       }
     });
 
-    // Analyze recent session transcripts if available
+    // Get transcript entries for recent sessions
     let transcriptAnalysis = null;
-    if (recentSessions.length > 0 && recentSessions.some(s => s.transcript)) {
-      const sessionsWithTranscript = recentSessions.filter(s => s.transcript);
-      if (sessionsWithTranscript.length > 0) {
+    if (recentSessions.length > 0) {
+      const sessionIds = recentSessions.map(s => s.id);
+      const transcriptEntries = await prisma.transcriptEntry.findMany({
+        where: {
+          sessionId: { in: sessionIds }
+        },
+        orderBy: {
+          timestamp: 'asc'
+        }
+      });
+      
+      if (transcriptEntries.length > 0) {
         // Import the analysis function from metrics-helper
         const { analyzeTranscriptForMetrics } = await import('@/app/api/sessions/[id]/metrics-helper');
         
-        // Concatenate multiple transcripts with markers for better analysis
-        const combinedTranscript = sessionsWithTranscript.map(s => 
-          `SESSION_DATE: ${s.date.toISOString()}\n${s.transcript}`
-        ).join('\n\n---\n\n');
+        // Combine transcript entries into a single transcript
+        const combinedTranscript = transcriptEntries
+          .map(entry => `${entry.speaker}: ${entry.text}`)
+          .join('\n');
         
         // Analyze the transcripts
-        const avgDuration = sessionsWithTranscript.reduce((sum, s) => sum + (s.duration || 0), 0) / sessionsWithTranscript.length;
-        transcriptAnalysis = analyzeTranscriptForMetrics(combinedTranscript, 70, 5);
+        const avgDuration = recentSessions.reduce((sum, s) => sum + (s.duration || 0), 0) / recentSessions.length;
+        transcriptAnalysis = analyzeTranscriptForMetrics(combinedTranscript, 70, 5, therapyType);
       }
     }
 
-    // Get communication metrics from the CommunicationMetrics table
+    // Get communication metrics from the CommunicationMetric table
     // Use assistantId if available, otherwise use the latest metrics
-    const metrics = await prisma.communicationMetrics.findFirst({
+    const metrics = await prisma.communicationMetric.findFirst({
       where: {
         userId: user.id,
         // Filter by therapy type using assistantId pattern matching
-        ...(therapyType === 'couple' && { assistantId: { contains: 'COUPLE' } }),
-        ...(therapyType === 'solo' && { assistantId: { contains: 'INDIVIDUAL' } }),
-        ...(therapyType === 'family' && { assistantId: { contains: 'FAMILY' } })
+        ...(therapyType === 'couple' && { metricType: { not: 'real-time' } }),
+        ...(therapyType === 'solo' && { metricType: { not: 'real-time' } }),
+        ...(therapyType === 'family' && { metricType: { not: 'real-time' } })
       },
       orderBy: {
-        date: 'desc'
+        calculatedAt: 'desc'
       }
     });
     
@@ -85,18 +93,18 @@ export async function GET(request: Request) {
     if (transcriptAnalysis && metrics) {
       // Create a weighted blend: 70% from metrics, 30% from recent transcript analysis
       const blendedMetrics = {
-        activeListeningScore: Math.round(metrics.activeListeningScore * 0.7 + transcriptAnalysis.activeListeningScore * 0.3),
-        expressingNeedsScore: Math.round(metrics.expressingNeedsScore * 0.7 + transcriptAnalysis.expressingNeedsScore * 0.3),
-        conflictResolutionScore: Math.round(metrics.conflictResolutionScore * 0.7 + transcriptAnalysis.conflictResolutionScore * 0.3),
-        emotionalSupportScore: Math.round(metrics.emotionalSupportScore * 0.7 + transcriptAnalysis.emotionalSupportScore * 0.3)
+        listening: Math.round((metrics.listening || 50) * 0.7 + transcriptAnalysis.activeListeningScore * 0.3),
+        expression: Math.round((metrics.expression || 50) * 0.7 + transcriptAnalysis.expressingNeedsScore * 0.3),
+        respect: Math.round(metrics.respect * 0.7 + transcriptAnalysis.conflictResolutionScore * 0.3),
+        empathy: Math.round(metrics.empathy * 0.7 + transcriptAnalysis.emotionalSupportScore * 0.3)
       };
       
       // Return the blended metrics
       return NextResponse.json([
-        { name: "Active Listening", value: blendedMetrics.activeListeningScore },
-        { name: "Expressing Needs", value: blendedMetrics.expressingNeedsScore },
-        { name: "Conflict Resolution", value: blendedMetrics.conflictResolutionScore },
-        { name: "Emotional Support", value: blendedMetrics.emotionalSupportScore }
+        { name: "Active Listening", value: blendedMetrics.listening },
+        { name: "Expressing Needs", value: blendedMetrics.expression },
+        { name: "Conflict Resolution", value: blendedMetrics.respect },
+        { name: "Emotional Support", value: blendedMetrics.empathy }
       ]);
     }
 
@@ -122,7 +130,16 @@ export async function GET(request: Request) {
         const sessionCount = completedSessions.length;
         const totalDuration = completedSessions.reduce((sum, session) => sum + (session.duration || 0), 0);
         const avgDuration = totalDuration / sessionCount;
-        const hasTranscript = completedSessions.filter(s => s.transcript && s.transcript.length > 0).length;
+        // Check for transcript entries instead of transcript field
+        const sessionIds = completedSessions.map(s => s.id);
+        const transcriptCounts = await prisma.transcriptEntry.groupBy({
+          by: ['sessionId'],
+          where: {
+            sessionId: { in: sessionIds }
+          },
+          _count: true
+        });
+        const hasTranscript = transcriptCounts.length;
         const transcriptRatio = hasTranscript / sessionCount * 100;
         
         // Generate metrics based on actual session data and therapy type
@@ -186,10 +203,10 @@ export async function GET(request: Request) {
       if (completedSessions > 0) {
         // Calculate metrics from base metrics or session count
         return NextResponse.json([
-          { name: "Self-awareness", value: Math.min(100, metrics ? metrics.activeListeningScore : 30 + Math.round(completedSessions * 2)) },
-          { name: "Emotional Regulation", value: Math.min(100, metrics ? metrics.expressingNeedsScore : 35 + Math.round(completedSessions * 1.5)) },
-          { name: "Personal Growth", value: Math.min(100, metrics ? metrics.conflictResolutionScore : 40 + Math.round(completedSessions * 3)) },
-          { name: "Coping Skills", value: Math.min(100, metrics ? metrics.emotionalSupportScore : 45 + Math.round(completedSessions)) }
+          { name: "Self-awareness", value: Math.min(100, metrics ? (metrics.listening || 50) : 30 + Math.round(completedSessions * 2)) },
+          { name: "Emotional Regulation", value: Math.min(100, metrics ? (metrics.expression || 50) : 35 + Math.round(completedSessions * 1.5)) },
+          { name: "Personal Growth", value: Math.min(100, metrics ? metrics.respect : 40 + Math.round(completedSessions * 3)) },
+          { name: "Coping Skills", value: Math.min(100, metrics ? metrics.empathy : 45 + Math.round(completedSessions)) }
         ]);
       } else {
         // No completed sessions for individual therapy
@@ -208,10 +225,10 @@ export async function GET(request: Request) {
       // Only return metrics if there are completed sessions
       if (completedSessions > 0) {
         return NextResponse.json([
-          { name: "Family Communication", value: Math.min(100, metrics ? metrics.activeListeningScore : 35 + Math.round(completedSessions * 1.5)) },
-          { name: "Role Definition", value: Math.min(100, metrics ? metrics.expressingNeedsScore : 40 + Math.round(completedSessions * 2)) },
-          { name: "Conflict Management", value: Math.min(100, metrics ? metrics.conflictResolutionScore : 30 + Math.round(completedSessions)) },
-          { name: "Family Bonding", value: Math.min(100, metrics ? metrics.emotionalSupportScore : 45 + Math.round(completedSessions * 2.5)) }
+          { name: "Family Communication", value: Math.min(100, metrics ? (metrics.listening || 50) : 35 + Math.round(completedSessions * 1.5)) },
+          { name: "Role Definition", value: Math.min(100, metrics ? (metrics.expression || 50) : 40 + Math.round(completedSessions * 2)) },
+          { name: "Conflict Management", value: Math.min(100, metrics ? metrics.respect : 30 + Math.round(completedSessions)) },
+          { name: "Family Bonding", value: Math.min(100, metrics ? metrics.empathy : 45 + Math.round(completedSessions * 2.5)) }
         ]);
       } else {
         // No completed sessions for family therapy
@@ -244,10 +261,10 @@ export async function GET(request: Request) {
       } else {
         // Use existing metrics
         const formattedMetrics = [
-          { name: "Active Listening", value: metrics.activeListeningScore },
-          { name: "Expressing Needs", value: metrics.expressingNeedsScore },
-          { name: "Conflict Resolution", value: metrics.conflictResolutionScore },
-          { name: "Emotional Support", value: metrics.emotionalSupportScore }
+          { name: "Active Listening", value: metrics.listening || 50 },
+          { name: "Expressing Needs", value: metrics.expression || 50 },
+          { name: "Conflict Resolution", value: metrics.respect },
+          { name: "Emotional Support", value: metrics.empathy }
         ];
         
         return NextResponse.json(formattedMetrics);

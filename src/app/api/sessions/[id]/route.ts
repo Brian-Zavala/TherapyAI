@@ -431,6 +431,12 @@ async function handleSessionUpdate(
       }
     }
     
+    // Check if update was successful
+    if (!updatedSession) {
+      console.error('Failed to update session after all retries');
+      return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
+    }
+    
     // Invalidate caches
     sessionCache.invalidate(cacheKeys.sessionDetails(sessionId));
     sessionCache.invalidate(cacheKeys.userSessions(user.id));

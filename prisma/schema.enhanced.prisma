@@ -439,7 +439,7 @@ model TherapySession {
   @@index([sessionDate])
   @@index([status])
   
-  // @deprecated - Use Session model instead
+  @@deprecated("Use Session model instead")
 }
 
 // Note: The old CommunicationMetrics model has been replaced by CommunicationMetric

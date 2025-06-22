@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get('userId') || session.user.id
 
     // Check authorization
-    if (userId !== session.user.id && session.user.role !== 'admin') {
+    if (userId !== session.user.id && (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -107,7 +107,7 @@ async function calculateActiveStreak(userId: string) {
 
   // Convert to unique dates
   const uniqueDates = Array.from(
-    new Set(sessions.map(s => s.date.toISOString().split('T')[0]))
+    new Set(sessions.map((s: any) => s.date.toISOString().split('T')[0]))
   ).sort().reverse()
 
   let currentStreak = 0
@@ -123,8 +123,8 @@ async function calculateActiveStreak(userId: string) {
     
     // Count consecutive days
     for (let i = 1; i < uniqueDates.length; i++) {
-      const prevDate = new Date(uniqueDates[i - 1])
-      const currDate = new Date(uniqueDates[i])
+      const prevDate = new Date(uniqueDates[i - 1] as string)
+      const currDate = new Date(uniqueDates[i] as string)
       const dayDiff = Math.floor((prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24))
       
       if (dayDiff === 1) {
@@ -185,7 +185,7 @@ async function getSessionPreferences(userId: string) {
   const hourCounts: Record<number, number> = {}
   const dayCounts: Record<number, number> = {}
 
-  completedSessions.forEach(session => {
+  completedSessions.forEach((session: any) => {
     const date = session.startTime || session.date
     const hour = date.getHours()
     const day = date.getDay()
@@ -212,7 +212,7 @@ async function getSessionPreferences(userId: string) {
 
 // Get session distribution by theme
 async function getThemeDistribution(userId: string) {
-  const themes = await prisma.session.groupBy({
+  const themes = await (prisma.session as any).groupBy({
     by: ['theme'],
     where: {
       userId,
@@ -230,7 +230,7 @@ async function getThemeDistribution(userId: string) {
     take: 5,
   })
 
-  return themes.map(t => ({
+  return themes.map((t: any) => ({
     theme: t.theme || 'General',
     count: t._count.theme,
   }))
@@ -247,7 +247,7 @@ async function getFamilyParticipationStats(userId: string) {
     select: {
       id: true,
       name: true,
-      relation: true,
+      relationship: true,
     },
   })
 
@@ -259,10 +259,10 @@ async function getFamilyParticipationStats(userId: string) {
   // participated in each session. For now, return basic structure
   return {
     totalMembers: familyMembers.length,
-    members: familyMembers.map(member => ({
+    members: familyMembers.map((member: any) => ({
       id: member.id,
       name: member.name,
-      relation: member.relation,
+      relation: member.relationship,
       sessionsAttended: 0, // Would be calculated from session participation data
       lastSession: null,
     })),

@@ -29,6 +29,7 @@ export default function RecoveryHandler({
         originalStart: sessionData.startTime,
         recoveredAt: new Date().toISOString(),
         conversationTimeSeconds: sessionData.conversationTimeSeconds || 0,
+        conversationTimeMinutes: Math.floor((sessionData.conversationTimeSeconds || 0) / 60),
         totalPausedTimeSeconds: sessionData.totalPausedTimeSeconds || 0,
         remainingMinutes: Math.floor((sessionData.duration * 60 - (sessionData.conversationTimeSeconds || 0)) / 60),
         autoRestarted: true,

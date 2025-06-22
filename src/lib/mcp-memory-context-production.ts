@@ -24,7 +24,8 @@ export async function searchMemoryProduction(keywords: string[]): Promise<any> {
 export async function getAllEntitiesProduction(): Promise<any[]> {
   try {
     const graph = await mcpMemoryOps.readGraph();
-    return graph.entities || [];
+    const entities = graph?.entities;
+    return Array.isArray(entities) ? entities : [];
   } catch (error) {
     console.error('[Memory Context Production] Read error:', error);
     return [];

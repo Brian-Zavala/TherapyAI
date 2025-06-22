@@ -243,10 +243,10 @@ vapi.on('call-end', handleCallEnd);`}
                 >
                   <div className="text-3xl font-bold text-purple-600">{metric.value}</div>
                   <div className="text-gray-700 mt-1">{metric.label}</div>
-                  {metric.growth && (
+                  {'growth' in metric && metric.growth && (
                     <div className="text-sm text-green-600 mt-2">{metric.growth}</div>
                   )}
-                  {metric.subtext && (
+                  {'subtext' in metric && metric.subtext && (
                     <div className="text-sm text-gray-500 mt-2">{metric.subtext}</div>
                   )}
                 </motion.div>

@@ -55,13 +55,13 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
       const summaryMatch = transcript.match(/summary|conclusion|progress|next steps|key points|key insights|session notes|impression|assessment|plan/i);
       if (summaryMatch) {
         // Found a potential summary section
-        const startIndex = summaryMatch.index;
+        const startIndex = summaryMatch.index || 0;
         // Extract a larger portion (400 chars) to get more context
-        let extractedText = transcript.substring(startIndex, startIndex + 400);
+        let extractedText = transcript.substring(startIndex, Math.min(startIndex + 400, transcript.length));
         
         // Try to find the end of the summary section
         const nextSectionMatch = extractedText.match(/\n\n|\r\n\r\n|next session|homework|follow up/i);
-        if (nextSectionMatch && nextSectionMatch.index > 30) {
+        if (nextSectionMatch && nextSectionMatch.index && nextSectionMatch.index > 30) {
           // If we find a clear end to the section, trim to that
           extractedText = extractedText.substring(0, nextSectionMatch.index);
         }
@@ -94,7 +94,7 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
           
           // Try to start at a clean line break for readability
           const firstLineBreak = lastPortion.match(/\n/);
-          if (firstLineBreak && firstLineBreak.index > 20) {
+          if (firstLineBreak && firstLineBreak.index && firstLineBreak.index > 20) {
             notes = "..." + lastPortion.substring(firstLineBreak.index);
           } else {
             notes = "..." + lastPortion;
@@ -121,19 +121,23 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
       }
     });
     
-    // Create communication metrics data
-    await prisma.communicationMetrics.create({
+    // Create communication metrics data using the new schema
+    await prisma.communicationMetric.create({
       data: {
         userId,
-        activeListeningScore: metrics.activeListeningScore,
-        expressingNeedsScore: metrics.expressingNeedsScore,
-        conflictResolutionScore: metrics.conflictResolutionScore,
-        emotionalSupportScore: metrics.emotionalSupportScore,
-        assistantId // Include the assistant ID in communication metrics
+        sessionId: sessionId || '', // Provide empty string if no sessionId
+        clarity: metrics.activeListeningScore,
+        empathy: metrics.emotionalSupportScore,
+        respect: metrics.conflictResolutionScore,
+        overall: Math.round((metrics.closenessScore + metrics.communicationScore) / 2),
+        listening: metrics.activeListeningScore,
+        expression: metrics.expressingNeedsScore,
+        metricType: 'manual',
+        calculatedAt: new Date()
       }
     });
     
-    // Family therapy type has been handled by CommunicationMetrics
+    // Family therapy type has been handled by CommunicationMetric
     
     console.log(`Successfully generated ${therapyType} metrics for user ${userId} based on session transcript analysis`);
   } catch (error) {

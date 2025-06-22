@@ -102,7 +102,7 @@ export const TextSpotlight = ({
         "--spotlight-color": spotlightColor,
         "--size": `${size}px`,
         "--strength": strength,
-      }}
+      } as React.CSSProperties}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}

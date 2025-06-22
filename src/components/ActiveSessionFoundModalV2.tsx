@@ -479,6 +479,7 @@ export default function ActiveSessionFoundModalV2({
                   <div className="bg-green-50 rounded-lg px-3 py-2">
                     <div className="text-green-600 font-medium text-center mb-1">Time Remaining</div>
                     <SessionTimerV2
+                      sessionId={sessionData.sessionId}
                       durationMinutes={sessionData.sessionData.duration}
                       conversationTimeSeconds={liveConversationTime}
                       isConversationActive={false} // Session is paused while modal is open

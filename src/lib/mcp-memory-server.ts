@@ -60,8 +60,9 @@ export const mcpMemoryOps = {
   async searchNodes(query: string) {
     const client = await initializeMCPClient();
     
-    const result = await client.callTool('mcp__memory__search_nodes', {
-      query
+    const result = await client.callTool({
+      name: 'mcp__memory__search_nodes',
+      arguments: { query }
     });
 
     return result;
@@ -70,8 +71,9 @@ export const mcpMemoryOps = {
   async createEntities(entities: z.infer<typeof EntitySchema>[]) {
     const client = await initializeMCPClient();
     
-    const result = await client.callTool('mcp__memory__create_entities', {
-      entities
+    const result = await client.callTool({
+      name: 'mcp__memory__create_entities',
+      arguments: { entities }
     });
 
     return result;
@@ -80,8 +82,9 @@ export const mcpMemoryOps = {
   async createRelations(relations: z.infer<typeof RelationSchema>[]) {
     const client = await initializeMCPClient();
     
-    const result = await client.callTool('mcp__memory__create_relations', {
-      relations
+    const result = await client.callTool({
+      name: 'mcp__memory__create_relations',
+      arguments: { relations }
     });
 
     return result;
@@ -90,7 +93,10 @@ export const mcpMemoryOps = {
   async readGraph() {
     const client = await initializeMCPClient();
     
-    const result = await client.callTool('mcp__memory__read_graph', {});
+    const result = await client.callTool({
+      name: 'mcp__memory__read_graph',
+      arguments: {}
+    });
 
     return result;
   },
@@ -101,8 +107,9 @@ export const mcpMemoryOps = {
   }>) {
     const client = await initializeMCPClient();
     
-    const result = await client.callTool('mcp__memory__add_observations', {
-      observations
+    const result = await client.callTool({
+      name: 'mcp__memory__add_observations',
+      arguments: { observations }
     });
 
     return result;

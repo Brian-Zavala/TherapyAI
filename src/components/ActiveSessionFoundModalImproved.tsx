@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import SessionTimer from './SessionTimer'
 import { createClient } from '@/utils/supabase/client'
-import type { RealtimeChannel, RealtimeChannelState } from '@supabase/supabase-js'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import { REALTIME_CHANNEL_STATES } from '@supabase/supabase-js'
 import type { SessionData } from '@/types/therapy-session'
 
 interface ActiveSessionData {
@@ -59,7 +60,7 @@ export default function ActiveSessionFoundModal({
   const [isClient, setIsClient] = useState(false)
   const [elapsedTimeSeconds, setElapsedTimeSeconds] = useState<number>(0)
   const [connectionError, setConnectionError] = useState<string | null>(null)
-  const [subscriptionState, setSubscriptionState] = useState<RealtimeChannelState>('closed')
+  const [subscriptionState, setSubscriptionState] = useState<string>('closed')
   
   // Refs for cleanup and state tracking
   const fetchControllerRef = useRef<AbortController | null>(null)
@@ -490,7 +491,7 @@ export default function ActiveSessionFoundModal({
               </div>
 
               {/* Connection status */}
-              {(connectionError || subscriptionState !== 'SUBSCRIBED') && (
+              {(connectionError || subscriptionState !== 'subscribed') && (
                 <div className="px-6 py-2 bg-yellow-50 border-b border-yellow-200">
                   <div className="flex items-center space-x-2 text-sm text-yellow-700">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -523,11 +524,11 @@ export default function ActiveSessionFoundModal({
                   
                   <div className="border-t pt-3">
                     <SessionTimer
-                      startTime={new Date(sessionData.originalStart)}
-                      duration={sessionData.sessionData.duration}
-                      isPaused={false}
+                      durationMinutes={sessionData.sessionData.duration}
                       conversationTimeSeconds={elapsedTimeSeconds}
-                      onTimeUpdate={(remaining) => setCurrentRemainingMinutes(Math.ceil(remaining / 60))}
+                      isConversationActive={true}
+                      conversationStartTime={new Date(sessionData.originalStart)}
+                      onTimeUpdate={(remainingMinutes, remainingSeconds) => setCurrentRemainingMinutes(remainingMinutes)}
                     />
                   </div>
                 </div>

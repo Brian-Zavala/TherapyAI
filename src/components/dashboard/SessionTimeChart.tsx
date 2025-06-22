@@ -34,6 +34,7 @@ export default function SessionTimeChart() {
     sessionCount: number;
     avgSessionLength: number;
     growth: number;
+    date?: string; // Add date property for calculations
   }
 
   const [sessionData, setSessionData] = useState<SessionDataItem[]>([]);
@@ -436,7 +437,7 @@ export default function SessionTimeChart() {
       // Calculate additional insights
       // Find historical average session length
       const allPreviousMonths = sessionData.filter(
-        (item) => new Date(item.date) <= new Date(monthData.date) && item.sessionCount > 0
+        (item) => item.date && monthData.date && new Date(item.date) <= new Date(monthData.date) && item.sessionCount > 0
       );
       let historicalAvg = 0;
       if (allPreviousMonths.length > 0) {
@@ -448,6 +449,7 @@ export default function SessionTimeChart() {
       // Calculate longer-term trend
       const threeMonthsAgo = sessionData.filter(
         (item) => {
+          if (!item.date || !monthData.date) return false;
           const currentDate = new Date(monthData.date);
           const itemDate = new Date(item.date);
           const monthsDiff = (currentDate.getFullYear() - itemDate.getFullYear()) * 12 + 

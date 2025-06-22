@@ -74,8 +74,9 @@ export async function POST(
           sessionDate: sessionDate,
           duration: existingSession.duration,
           theme: existingSession.theme,
-          notes: existingSession.notes,
-        }),
+          notes: existingSession.notes || undefined,
+          baseUrl: process.env.NEXTAUTH_URL || 'https://therapyai.us',
+        }) as any,
       });
     } catch (emailError) {
       console.error('Error sending rescheduling confirmation email:', emailError);

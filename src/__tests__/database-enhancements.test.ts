@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals'
+// Test file - Jest globals will be available in test environment
+// @ts-ignore
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals'
 import { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma-enhanced'
 import { createMockUser, createMockSession, cleanupTestData } from './test-utils'
@@ -36,9 +38,9 @@ describe('Database Enhancements', () => {
 
     it('should create family members with proper relationships', async () => {
       const familyMembers = [
-        { name: 'John Doe', age: 45, relation: 'Father' },
-        { name: 'Jane Doe', age: 43, relation: 'Mother' },
-        { name: 'Jack Doe', age: 16, relation: 'Son' },
+        { name: 'John Doe', age: 45, relationship: 'Father' },
+        { name: 'Jane Doe', age: 43, relationship: 'Mother' },
+        { name: 'Jack Doe', age: 16, relationship: 'Son' },
       ]
 
       const createdMembers = await testPrisma.familyMember.createMany({
@@ -68,6 +70,7 @@ describe('Database Enhancements', () => {
         data: {
           userId: testUser.id,
           name: 'Test Member',
+          relationship: 'Sibling',
           order: 0,
           isActive: true,
         },
@@ -196,10 +199,15 @@ describe('Database Enhancements', () => {
         metrics.push({
           userId: testUser.id,
           date: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
-          clarityScore: 50 + Math.random() * 50,
-          empathyScore: 50 + Math.random() * 50,
-          respectScore: 50 + Math.random() * 50,
-          overallScore: 50 + Math.random() * 50,
+          sessionId: `session-${i}`,
+          clarity: 50 + Math.random() * 50,
+          empathy: 50 + Math.random() * 50,
+          respect: 50 + Math.random() * 50,
+          overall: 50 + Math.random() * 50,
+          listening: 50 + Math.random() * 50,
+          expression: 50 + Math.random() * 50,
+          metricType: 'manual' as const,
+          calculatedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
         })
       }
 
@@ -210,11 +218,11 @@ describe('Database Enhancements', () => {
       const weekMetrics = await testPrisma.communicationMetric.findMany({
         where: {
           userId: testUser.id,
-          date: {
+          calculatedAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
           },
         },
-        orderBy: { date: 'desc' },
+        orderBy: { calculatedAt: 'desc' },
       })
       const duration = Date.now() - start
 
@@ -243,6 +251,7 @@ describe('Database Enhancements', () => {
               userId: testUser.id,
               assistantId: 'test-assistant',
               status: 'active',
+              date: new Date(),
             },
           })
 
@@ -251,7 +260,12 @@ describe('Database Enhancements', () => {
             data: {
               sessionId: session.id,
               userId: testUser.id,
-              messages: [],
+              assistantId: 'test-assistant',
+              sessionStartTime: new Date(),
+              lastActiveTime: new Date(),
+              messages: {
+                create: []
+              },
             },
           })
 
@@ -293,6 +307,7 @@ describe('Database Enhancements', () => {
             userId: testUser.id,
             assistantId: 'test-assistant',
             duration: -10, // Invalid negative duration
+            date: new Date(),
           },
         })
       ).rejects.toThrow()
@@ -303,10 +318,13 @@ describe('Database Enhancements', () => {
         testPrisma.communicationMetric.create({
           data: {
             userId: testUser.id,
-            clarityScore: 150, // Invalid score > 100
-            empathyScore: 50,
-            respectScore: 50,
-            overallScore: 50,
+            sessionId: 'test-session',
+            clarity: 150, // Invalid score > 100
+            empathy: 50,
+            respect: 50,
+            overall: 50,
+            metricType: 'manual',
+            calculatedAt: new Date(),
           },
         })
       ).rejects.toThrow()
@@ -317,6 +335,7 @@ describe('Database Enhancements', () => {
         data: {
           userId: testUser.id,
           name: 'Member 1',
+          relationship: 'Sibling',
           order: 0,
         },
       })
@@ -326,6 +345,7 @@ describe('Database Enhancements', () => {
           data: {
             userId: testUser.id,
             name: 'Member 2',
+            relationship: 'Sibling',
             order: 0, // Duplicate order
           },
         })
@@ -339,19 +359,25 @@ describe('Database Enhancements', () => {
       const legacyUser = await testPrisma.user.create({
         data: {
           email: 'legacy@test.com',
-          hashedPassword: 'hashed',
-          familyMember1: 'John',
-          familyMemberAge1: 45,
-          familyMemberRelation1: 'Father',
-          familyMember2: 'Jane',
-          familyMemberAge2: 43,
-          familyMemberRelation2: 'Mother',
+          password: 'hashed',
         },
       })
 
-      // Verify legacy data exists
-      expect(legacyUser.familyMember1).toBe('John')
-      expect(legacyUser.familyMember2).toBe('Jane')
+      // Create family members in normalized structure
+      await testPrisma.familyMember.createMany({
+        data: [
+          { userId: legacyUser.id, name: 'John', age: 45, relationship: 'Father', order: 0 },
+          { userId: legacyUser.id, name: 'Jane', age: 43, relationship: 'Mother', order: 1 },
+        ],
+      })
+      
+      // Verify normalized data exists
+      const familyMembers = await testPrisma.familyMember.findMany({
+        where: { userId: legacyUser.id },
+        orderBy: { order: 'asc' },
+      })
+      expect(familyMembers[0].name).toBe('John')
+      expect(familyMembers[1].name).toBe('Jane')
 
       // Clean up
       await testPrisma.user.delete({ where: { id: legacyUser.id } })

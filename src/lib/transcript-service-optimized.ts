@@ -548,12 +548,12 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
         const lines = session.transcript.split('\n');
         
         const userLines = lines
-          .filter(line => line.startsWith('USER:') || line.startsWith('CLIENT:')) 
-          .map(line => line.replace(/^(USER|CLIENT):\s*/, ''));
+          .filter((line: string) => line.startsWith('USER:') || line.startsWith('CLIENT:')) 
+          .map((line: string) => line.replace(/^(USER|CLIENT):\s*/, ''));
           
         const therapistLines = lines
-          .filter(line => line.startsWith('THERAPIST:') || line.startsWith('ASSISTANT:'))
-          .map(line => line.replace(/^(THERAPIST|ASSISTANT):\s*/, ''));
+          .filter((line: string) => line.startsWith('THERAPIST:') || line.startsWith('ASSISTANT:'))
+          .map((line: string) => line.replace(/^(THERAPIST|ASSISTANT):\s*/, ''));
         
         if (userLines.length > 0) {
           formattedTranscript += "Key client concerns from our discussion:\n";

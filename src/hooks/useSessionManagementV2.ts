@@ -140,7 +140,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
     }, [sessionId, conversationStartTime]),
     onExpire: useCallback(() => {
       console.log('⏰ Session timer expired')
-      endSession('timer_expired')
+      // Will be handled after endSession is defined
     }, [])
   })
   
@@ -294,7 +294,17 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         elapsedTimeSeconds: currentConversationTime,
         totalPausedTimeSeconds: activeSession.totalPausedTimeSeconds || 0,
         therapyType: activeSession.therapyType,
-        sessionDuration: activeSession.duration
+        sessionDuration: activeSession.duration,
+        autoRestarted: false,
+        sessionData: {
+          id: activeSession.id,
+          startTime: activeSession.startTime,
+          duration: activeSession.duration,
+          status: activeSession.status,
+          theme: activeSession.theme || activeSession.therapyType,
+          therapyType: activeSession.therapyType,
+          isPaused: activeSession.isPaused
+        }
       }
       
       return recoveryData
@@ -314,7 +324,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       
       setSessionId(recoveryData.sessionId)
       setSessionStartTime(new Date(recoveryData.originalStart))
-      setSessionDuration(recoveryData.sessionDuration || DEFAULT_SESSION_DURATION)
+      setSessionDuration((recoveryData.sessionDuration || DEFAULT_SESSION_DURATION) as 30 | 60)
       setInitialConversationTime(recoveryData.conversationTimeSeconds)
       setInitialPausedTime(recoveryData.totalPausedTimeSeconds || 0)
       setSessionRecovered(true)
@@ -513,6 +523,13 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
     
     return () => clearInterval(backupInterval)
   }, [sessionId, sessionStartTime, timer.conversationTimeSeconds, timer.pausedTimeSeconds, isSessionPaused])
+
+  // Set up timer expiration handler after endSession is defined
+  useEffect(() => {
+    if (timer.isExpired) {
+      endSession('timer_expired')
+    }
+  }, [timer.isExpired, endSession])
   
   // Restore pause state on mount
   useEffect(() => {

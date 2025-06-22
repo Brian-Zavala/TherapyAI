@@ -791,9 +791,8 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   firstMessage:
     "Hello {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. Welcome to our first session together. You know, I've been doing couples therapy for over fifteen years, and I want you to know that being here today takes real courage. It shows how much you both care about your relationship and about each other. This space is completely yours - a place where both of your voices matter equally, where you can be honest, and where we'll work together at whatever pace feels right for you. I'm genuinely honored to be part of this journey with you both. So, let me start by asking - how are you both feeling right now?",
   silenceTimeoutSeconds: 120, // Extended to allow for therapeutic processing time
-  responseDelaySeconds: 1.0,
-  llmRequestDelaySeconds: 0.4,
-  numWordsToInterruptAssistant: 2,
+  // NOTE: Removed invalid VAPI fields:
+  // responseDelaySeconds, llmRequestDelaySeconds, numWordsToInterruptAssistant
 };
 
 // Configuration for the individual therapy assistant
@@ -1355,7 +1354,7 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     }
 
     // Format the family members string naturally (just names for the main description)
-    const familyNames = familyMembers.map((member) => member.name);
+    const familyNames = familyMembers.map((member: any) => member.name);
     let familyMembersString;
     if (familyNames.length === 0) {
       familyMembersString = `${userProfile?.userName || "the client"} and family`;
@@ -1436,7 +1435,7 @@ CONVERSATION FLOW PRINCIPLES:
 FAMILY MEMBER REFERENCE EXAMPLES:
 ${familyMembers
   .map(
-    (member) =>
+    (member: any) =>
       `• ${member.name}: "At ${member.age} years old, ${member.name}, you might..." or "${member.name}, being ${member.age}..."`
   )
   .join("\n")}

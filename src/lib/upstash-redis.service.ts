@@ -8,8 +8,8 @@ class UpstashRedisService {
   private cache: Map<string, CacheEntry>;
   private metrics: RedisMetrics;
   private startTime: number;
-  private cleanupInterval: NodeJS.Timer | null = null;
-  private metricsInterval: NodeJS.Timer | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private metricsInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     // Initialize Redis connection
@@ -62,19 +62,19 @@ class UpstashRedisService {
 
     const { requests, window, algorithm = 'slidingWindow', prefix = 'ratelimit' } = config;
 
-    let limiter: Ratelimit.Algorithm;
+    let limiter: any; // Algorithm type from Ratelimit
 
     switch (algorithm) {
       case 'fixedWindow':
-        limiter = Ratelimit.fixedWindow(requests, window);
+        limiter = Ratelimit.fixedWindow(requests, window as any);
         break;
       case 'tokenBucket':
         // Token bucket: refill rate, window, burst capacity
-        limiter = Ratelimit.tokenBucket(requests, window, requests * 2);
+        limiter = Ratelimit.tokenBucket(requests, window as any, requests * 2);
         break;
       case 'slidingWindow':
       default:
-        limiter = Ratelimit.slidingWindow(requests, window);
+        limiter = Ratelimit.slidingWindow(requests, window as any);
         break;
     }
 
@@ -198,7 +198,7 @@ class UpstashRedisService {
     options?: { ex?: number; px?: number; nx?: boolean; xx?: boolean }
   ): Promise<boolean> {
     try {
-      const result = await this.redis.set(key, value, options);
+      const result = await this.redis.set(key, value, options as any);
       
       // Update local cache
       if (options?.ex || options?.px) {
@@ -284,7 +284,8 @@ class UpstashRedisService {
 
   async zadd(key: string, score: number, member: string): Promise<number> {
     try {
-      return await this.redis.zadd(key, { score, member });
+      const result = await this.redis.zadd(key, { score, member });
+      return result || 0;
     } catch (error) {
       console.error('Redis ZADD error:', error);
       this.metrics.errorCount++;

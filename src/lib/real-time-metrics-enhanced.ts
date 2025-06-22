@@ -1,7 +1,7 @@
 import { TranscriptEntry } from '@/types/therapy-session'
 
 // Enhanced metrics types matching new schema
-export interface EnhancedCommunicationMetrics {
+export interface EnhancedCommunicationMetric {
   clarity: number
   empathy: number
   respect: number
@@ -100,7 +100,7 @@ export class EnhancedRealTimeMetricsCalculator {
   private sessionDurationMinutes: number
   private startTime: number
   private transcriptEntries: TranscriptEntry[] = []
-  private currentMetrics: EnhancedCommunicationMetrics
+  private currentMetrics: EnhancedCommunicationMetric
   private scoreHistory: Map<string, number[]> = new Map()
   private familyMemberIds: string[] = []
 
@@ -155,7 +155,7 @@ export class EnhancedRealTimeMetricsCalculator {
     }
   }
 
-  async addTranscriptEntry(entry: TranscriptEntry): Promise<EnhancedCommunicationMetrics> {
+  async addTranscriptEntry(entry: TranscriptEntry): Promise<EnhancedCommunicationMetric> {
     this.transcriptEntries.push(entry)
 
     // Update word counts
@@ -187,9 +187,9 @@ export class EnhancedRealTimeMetricsCalculator {
     return { ...this.currentMetrics }
   }
 
-  private calculateEntryMetrics(entry: TranscriptEntry): Partial<EnhancedCommunicationMetrics> {
+  private calculateEntryMetrics(entry: TranscriptEntry): Partial<EnhancedCommunicationMetric> {
     const text = entry.text.toLowerCase()
-    const metrics: Partial<EnhancedCommunicationMetrics> = {}
+    const metrics: Partial<EnhancedCommunicationMetric> = {}
 
     // Calculate each metric based on pattern matching
     Object.entries(METRIC_PATTERNS).forEach(([metricName, patterns]) => {
@@ -225,7 +225,7 @@ export class EnhancedRealTimeMetricsCalculator {
       const impact = Math.min(Math.max(score * density * 10, -15), 15) // Limit change per entry
       const newScore = Math.min(Math.max(currentScore + impact, 0), 100)
       
-      metrics[metricName as keyof typeof metrics] = newScore
+      ;(metrics as any)[metricName] = newScore
     })
 
     // Apply therapy type modifiers
@@ -238,7 +238,7 @@ export class EnhancedRealTimeMetricsCalculator {
     return metrics
   }
 
-  private updateMetricsWithHistory(newMetrics: Partial<EnhancedCommunicationMetrics>) {
+  private updateMetricsWithHistory(newMetrics: Partial<EnhancedCommunicationMetric>) {
     const smoothingFactor = 0.3 // How much weight to give new values
 
     Object.entries(newMetrics).forEach(([metric, value]) => {
@@ -265,7 +265,7 @@ export class EnhancedRealTimeMetricsCalculator {
         const smoothedValue = weightedSum / totalWeight
         
         // Update current metric
-        this.currentMetrics[metric as keyof EnhancedCommunicationMetrics] = 
+        ;(this.currentMetrics as any)[metric] = 
           Math.round(smoothedValue * 10) / 10
       }
     })
@@ -349,7 +349,7 @@ export class EnhancedRealTimeMetricsCalculator {
     }
   }
 
-  async finalizeSession(): Promise<EnhancedCommunicationMetrics> {
+  async finalizeSession(): Promise<EnhancedCommunicationMetric> {
     // Persist final metrics
     await this.persistMetrics()
     

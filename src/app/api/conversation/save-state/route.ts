@@ -77,15 +77,15 @@ export async function POST(request: NextRequest) {
             lastActiveTime: new Date(validatedData.sessionMetadata.lastActiveTime),
             totalDuration: validatedData.sessionMetadata.totalDuration,
             messageCount: validatedData.messages.length,
-            variableValues: validatedData.variableValues || {},
+            variableValues: validatedData.variableValues || {} as any,
             isPaused: true,
             isActive: false,
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             updatedAt: new Date(),
             // Store inline config in metadata if provided
             metadata: validatedData.assistantConfig 
-              ? { assistantConfig: validatedData.assistantConfig } as Record<string, unknown>
-              : existingState.metadata || {} as Record<string, unknown>
+              ? { assistantConfig: validatedData.assistantConfig } as any
+              : existingState.metadata || {} as any
           }
         })
 
@@ -119,14 +119,14 @@ export async function POST(request: NextRequest) {
             lastActiveTime: new Date(validatedData.sessionMetadata.lastActiveTime),
             totalDuration: validatedData.sessionMetadata.totalDuration,
             messageCount: validatedData.messages.length,
-            variableValues: validatedData.variableValues || {},
+            variableValues: validatedData.variableValues || {} as any,
             isPaused: true,
             isActive: false,
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             // Store inline config in metadata if provided
             metadata: validatedData.assistantConfig 
-              ? { assistantConfig: validatedData.assistantConfig } as Record<string, unknown>
-              : {} as Record<string, unknown>
+              ? { assistantConfig: validatedData.assistantConfig } as any
+              : {} as any
           }
         })
 

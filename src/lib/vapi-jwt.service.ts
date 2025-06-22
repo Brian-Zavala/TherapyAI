@@ -5,7 +5,7 @@ class VapiJWTService {
   private readonly privateKey: string;
   private readonly defaultExpiration = 3600; // 1 hour
   private tokenCache = new Map<string, { token: VapiTokenResponse; validUntil: number }>();
-  private cleanupInterval: NodeJS.Timer | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.orgId = process.env.VAPI_ORG_ID!;

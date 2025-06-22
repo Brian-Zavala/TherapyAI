@@ -269,10 +269,10 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       }
     };
 
-    window.addEventListener('vapi-auth-error', handleAuthError as EventListener);
+    window.addEventListener('vapi-auth-error', handleAuthError as unknown as EventListener);
     
     return () => {
-      window.removeEventListener('vapi-auth-error', handleAuthError as EventListener);
+      window.removeEventListener('vapi-auth-error', handleAuthError as unknown as EventListener);
     };
   }, [refreshToken, createVapiInstance]);
   
@@ -308,8 +308,8 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       let reason = 'No reason provided'
       if (typeof event === 'string') {
         reason = event
-      } else if (event?.reason) {
-        reason = String(event.reason)
+      } else if ((event as any)?.reason) {
+        reason = String((event as any).reason)
       }
       
       setVapiState(prev => ({ 
@@ -522,13 +522,13 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         console.log('🎭 Starting VAPI call with inline configuration')
         
         // Check if this is an inline config (has model, voice, transcriber) or assistant ID config
-        if (assistantIdOrConfig.model && assistantIdOrConfig.voice && assistantIdOrConfig.transcriber) {
+        if ('model' in assistantIdOrConfig && 'voice' in assistantIdOrConfig && 'transcriber' in assistantIdOrConfig) {
           // Full inline configuration
           await vapiManagerRef.current.startSession({
             assistantConfig: assistantIdOrConfig,
             resumeFromMessages: resumeMessages
           })
-        } else if (assistantIdOrConfig.assistantId) {
+        } else if ('assistantId' in assistantIdOrConfig && assistantIdOrConfig.assistantId) {
           // Assistant ID with overrides
           console.log(`🎯 Starting VAPI call with assistant ID: ${assistantIdOrConfig.assistantId}`)
           

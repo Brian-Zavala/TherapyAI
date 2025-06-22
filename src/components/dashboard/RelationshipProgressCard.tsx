@@ -461,10 +461,10 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
   const scrollX = window.scrollX || document.documentElement.scrollLeft;
   
   // Use client coordinates (viewport-relative) for tooltip positioning
-  const posX = tooltipX;
+  const posX = tooltipX || 0;
   const posY = Math.min(
     // Default position
-    tooltipY - scrollY,
+    (tooltipY || 0) - scrollY,
     // Don't let it go off the bottom of the screen
     viewportHeight - (isSmallScreen ? 200 : 300)
   );
@@ -942,7 +942,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
     }
   }, [isLargeScreen, tooltipData, isTooltipHovered]); // Add isTooltipHovered to dependencies
 
-  const renderChart = useMemo(() => {
+  const renderChart = useMemo((): React.ReactElement => {
     const commonProps = {
       data: data,
       margin: { 
@@ -953,7 +953,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
       },
       className: "mx-auto",
       onMouseMove: handleMouseMove,
-      onMouseLeave: (e) => {
+      onMouseLeave: (e: any) => {
         // Trigger the tooltip persistent display using the same logic as in handleMouseMove
         // Don't immediately close the tooltip
         if (isTooltipHovered) {
@@ -1163,7 +1163,7 @@ const PortalTooltip = ({ active, payload, label, x, y, chartType, isSmallScreen,
         </ComposedChart>
       );
     }
-    return null; // Should not happen with current logic, but good practice
+    return <div />; // Return empty div instead of null for type safety
   }, [chartType, data, isSmallScreen, handleMouseMove]); // Updated dependencies
 
   // --- Conditional Rendering (Loading State) ---

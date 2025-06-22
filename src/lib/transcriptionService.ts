@@ -4,7 +4,7 @@
  */
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import EventEmitter from "events";
-import FileLogger from "./fileLogger";
+import FileLogger, { createNamedLogger } from "./fileLogger";
 
 // Constants
 const PUNCTUATION_TERMINATORS = [".", "!", "?"];
@@ -35,7 +35,7 @@ export class TranscriptionService extends EventEmitter {
     super();
     this.config = config;
     this.logger = logger;
-    this.flowLogger = FileLogger.createNamedLogger("transcriber-flow.log");
+    this.flowLogger = createNamedLogger("transcriber-flow.log");
 
     if (!DEEPGRAM_API_KEY) {
       throw new Error("Missing Deepgram API Key");
@@ -202,7 +202,7 @@ export class TranscriptionService extends EventEmitter {
    * with improved sentence handling and deduplication
    */
   private emitTranscription() {
-    for (const chan of ["customer", "assistant"]) {
+    for (const chan of ["customer", "assistant"] as const) {
       const textBuffer = this.finalResult[chan].trim();
       
       if (!textBuffer) continue;

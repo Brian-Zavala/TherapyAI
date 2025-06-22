@@ -140,8 +140,8 @@ export const ImagesSlider = ({
     setLoading(true);
 
     // Create an array to track which images are already cached
-    const cachedImages = [];
-    const imagesToLoad = [];
+    const cachedImages: string[] = [];
+    const imagesToLoad: string[] = [];
 
     // Check if images are already in browser cache
     images.forEach((image) => {
@@ -161,7 +161,7 @@ export const ImagesSlider = ({
 
     // If all images are already cached, use them immediately
     if (cachedImages.length === images.length) {
-      setLoadedImages(cachedImages);
+      setLoadedImages(cachedImages as string[]);
       setLoading(false);
       console.log("All images were already cached");
       return;
@@ -176,7 +176,7 @@ export const ImagesSlider = ({
         // Set highest priority for loading
         img.loading = "eager";
         img.fetchPriority = "high";
-        img.decode = "sync";
+        img.decoding = "sync";
 
         img.onload = () => {
           console.log(`Loaded image: ${imageSrc}`);
@@ -202,16 +202,16 @@ export const ImagesSlider = ({
     // Combine cached and newly loaded images
     Promise.all(loadPromises)
       .then((newlyLoadedImages) => {
-        const allLoadedImages = [...cachedImages, ...newlyLoadedImages];
+        const allLoadedImages = [...cachedImages, ...(newlyLoadedImages as string[])];
         console.log(`Total images loaded: ${allLoadedImages.length}`);
-        setLoadedImages(allLoadedImages);
+        setLoadedImages(allLoadedImages as string[]);
         setLoading(false);
       })
       .catch((error) => {
         console.error("Error loading images:", error);
         // If there was an error, still use whatever images we have
         if (cachedImages.length > 0) {
-          setLoadedImages(cachedImages);
+          setLoadedImages(cachedImages as string[]);
           setLoading(false);
         }
       });
@@ -321,7 +321,7 @@ export const ImagesSlider = ({
                 ? "upExit"
                 : !initialLoad
                   ? "downExit"
-                  : false
+                  : undefined
             }
             variants={slideVariants}
             className="absolute inset-0 w-full h-full min-h-[100vh]"
@@ -336,7 +336,10 @@ export const ImagesSlider = ({
                 typeof currentImage === "string"
                   ? { 
                       src: loadedImages[safeIndex],
-                      objectFit: "cover",
+                      width: 1920,
+                      height: 1080,
+                      sizes: "(max-width: 768px) 100vw, 100vw",
+                      objectFit: "cover" as const,
                       objectPosition: "center center",
                       quality: 100, // Maximum quality for production
                     }
@@ -373,7 +376,7 @@ export const ImagesSlider = ({
                   style={{
                     width: "100%", // Always use full width
                     height: "100%", // Always use full height
-                    objectFit: imageConfig.objectFit || "cover",
+                    objectFit: (imageConfig.objectFit || "cover") as any,
                     objectPosition: imageConfig.objectPosition || "center",
                     minHeight: "100vh", // Ensure it covers full viewport height
                     transition: "none", // Disable CSS transitions that might conflict

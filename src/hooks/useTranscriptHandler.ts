@@ -92,22 +92,20 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       setTranscriptChunks(prev => [...prev, newChunk])
       onTranscriptUpdate?.([...transcriptChunks, newChunk])
       
-      // Save to database
-      const transcriptEntry: TranscriptEntry = {
-        speaker: 'assistant',
-        text: consolidatedText,
-        timestamp: new Date().toISOString(),
-        isFinal: true,
-        messageType: 'assistant',
-        wordCount: consolidatedText.split(' ').filter(word => word.length > 0).length,
-        characterCount: consolidatedText.length
+      // Save to database - convert to transcript service format
+      if (sessionId) {
+        await addTranscriptEntry({
+          sessionId,
+          speaker: 'assistant',
+          text: consolidatedText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        })
       }
-      
-      await addTranscriptEntry(transcriptEntry)
       console.log('✅ Saved assistant transcript to database')
       
       // Update metrics
-      const wordCount = transcriptEntry.wordCount || 0
+      const wordCount = consolidatedText.split(' ').filter(word => word.length > 0).length
       onMetricsUpdate?.({
         userWords: 0,
         assistantWords: wordCount
@@ -139,22 +137,20 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       setTranscriptChunks(prev => [...prev, newChunk])
       onTranscriptUpdate?.([...transcriptChunks, newChunk])
       
-      // Save to database
-      const transcriptEntry: TranscriptEntry = {
-        speaker: 'user',
-        text: consolidatedText,
-        timestamp: new Date().toISOString(),
-        isFinal: true,
-        messageType: 'user',
-        wordCount: consolidatedText.split(' ').filter(word => word.length > 0).length,
-        characterCount: consolidatedText.length
+      // Save to database - convert to transcript service format
+      if (sessionId) {
+        await addTranscriptEntry({
+          sessionId,
+          speaker: 'user',
+          text: consolidatedText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        })
       }
-      
-      await addTranscriptEntry(transcriptEntry)
       console.log('✅ Saved user transcript to database')
       
       // Update metrics
-      const wordCount = transcriptEntry.wordCount || 0
+      const wordCount = consolidatedText.split(' ').filter(word => word.length > 0).length
       onMetricsUpdate?.({
         userWords: wordCount,
         assistantWords: 0
@@ -276,19 +272,12 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
         const newMessages = conversationMessages.slice(transcriptChunks.length)
         for (const msg of newMessages) {
           if (msg.role === 'user' || msg.role === 'assistant') {
-            const entry: TranscriptEntry = {
-              role: msg.role,
-              text: msg.content,
-              timestamp: msg.timestamp || new Date().toISOString(),
-              sessionId
-            }
-            
             // Add to transcript chunks
             const formattedChunk = `${msg.role === 'assistant' ? 'AI' : 'You'}: ${msg.content}`
             setTranscriptChunks(prev => [...prev, formattedChunk])
             
-            // Call the transcript update callback
-            onTranscriptUpdate?.(entry)
+            // Call the transcript update callback with the formatted chunk
+            onTranscriptUpdate?.([...transcriptChunks, formattedChunk])
           }
         }
       }

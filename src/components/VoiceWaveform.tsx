@@ -195,8 +195,7 @@ function VoiceWaveform({ audioLevel }: VoiceWaveformProps) {
           ref={canvasRef} 
           className="absolute inset-0 w-full h-full z-10"
           style={{ 
-            willChange: 'transform', /* Hint for browser to optimize */
-            imageRendering: 'high-quality' 
+            willChange: 'transform' /* Hint for browser to optimize */
           }}
         />
         

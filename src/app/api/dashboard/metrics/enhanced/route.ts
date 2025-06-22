@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     const validatedQuery = MetricsQuerySchema.parse(query)
 
     // Check authorization if requesting another user's data
-    if (validatedQuery.userId !== session.user.id && session.user.role !== 'admin') {
+    if (validatedQuery.userId !== session.user.id && (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -100,15 +100,11 @@ export async function GET(req: NextRequest) {
               lte: endDate,
             },
           },
-          orderBy: { weekNumber: 'asc' },
           select: {
-            weekNumber: true,
-            goalsAchieved: true,
-            totalGoals: true,
-            weeklyScore: true,
-            improvementRate: true,
-            achievements: true,
-            challenges: true,
+            closenessScore: true,
+            communicationScore: true,
+            therapyType: true,
+            notes: true,
             date: true,
           },
         })
@@ -128,7 +124,7 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             name: true,
-            relation: true,
+            relationship: true,
             age: true,
           },
         })
@@ -229,15 +225,14 @@ export async function POST(req: NextRequest) {
       data: {
         userId: session.user.id,
         sessionId,
-        date: new Date(),
-        clarityScore: metrics.clarity || 50,
-        empathyScore: metrics.empathy || 50,
-        respectScore: metrics.respect || 50,
-        overallScore: metrics.overall || 50,
-        listeningScore: metrics.listening || 50,
-        expressionScore: metrics.expression || 50,
-        conflictScore: metrics.conflict || 50,
-        metricType: 'realtime',
+        clarity: metrics.clarity || 50,
+        empathy: metrics.empathy || 50,
+        respect: metrics.respect || 50,
+        overall: metrics.overall || 50,
+        listening: metrics.listening || 50,
+        expression: metrics.expression || 50,
+        metricType: 'real-time',
+        calculatedAt: new Date(),
       },
     })
 

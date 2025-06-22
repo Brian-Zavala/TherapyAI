@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const { sessionDate, duration, notes, userId, theme } = await request.json();
     
     // Validate user has permission (e.g., if admin scheduling for someone else)
-    if (session.user.id !== userId && session.user.role !== 'admin') {
+    if (session.user.id !== userId && (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
     

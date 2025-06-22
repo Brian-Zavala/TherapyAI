@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
     const progressData: ProgressDataPoint[] = []
     let previousMetrics: any = null
     
-    sessions.forEach((session, index) => {
+    sessions.forEach((session: any, index: number) => {
       const metrics = session.communicationMetrics[0]
       if (!metrics) return // Skip sessions without metrics
       
@@ -238,7 +238,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       progress: progressData,
       aggregateStats,
-      milestones: milestones.map(m => ({
+      milestones: milestones.map((m: any) => ({
         date: m.date,
         milestone: m.notes,
         scores: {
