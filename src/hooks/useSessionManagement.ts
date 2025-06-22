@@ -445,21 +445,24 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
     
     // Update session in database
     if (currentSessionId) {
-      fetch(`/api/sessions/${currentSessionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationStartTime: now.toISOString()
-        })
-      }).then(response => {
-        // Validate session still exists after async operation
-        if (!response.ok && response.status === 404) {
-          console.error('Session no longer exists, clearing state')
-          clearSessionState()
+      (async () => {
+        try {
+          const response = await fetch(`/api/sessions/${currentSessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationStartTime: now.toISOString()
+            })
+          })
+          // Validate session still exists after async operation
+          if (!response.ok && response.status === 404) {
+            console.error('Session no longer exists, clearing state')
+            clearSessionState()
+          }
+        } catch (error) {
+          console.error('Failed to update conversation start time:', error)
         }
-      }).catch(error => {
-        console.error('Failed to update conversation start time:', error)
-      })
+      })()
     }
   }, [sessionId, conversationStartTime])
   

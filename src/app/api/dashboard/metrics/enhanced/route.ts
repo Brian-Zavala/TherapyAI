@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma, withRetry } from '@/lib/prisma-enhanced'
+import { prisma } from '@/lib/prisma'
+import { withRetry } from '@/lib/prisma-enhanced'
 import { z } from 'zod'
 import { startOfDay, endOfDay, subDays, startOfWeek, endOfWeek } from 'date-fns'
 

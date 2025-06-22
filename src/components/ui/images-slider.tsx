@@ -136,7 +136,7 @@ export const ImagesSlider = ({
     console.log(`Slider state: initialLoad=${initialLoad}, startSlider=${startSlider}`);
   }, [initialLoad, startSlider]);
 
-  const loadImages = () => {
+  const loadImages = async () => {
     setLoading(true);
 
     // Create an array to track which images are already cached
@@ -200,21 +200,20 @@ export const ImagesSlider = ({
     });
 
     // Combine cached and newly loaded images
-    Promise.all(loadPromises)
-      .then((newlyLoadedImages) => {
-        const allLoadedImages = [...cachedImages, ...(newlyLoadedImages as string[])];
-        console.log(`Total images loaded: ${allLoadedImages.length}`);
-        setLoadedImages(allLoadedImages as string[]);
+    try {
+      const newlyLoadedImages = await Promise.all(loadPromises);
+      const allLoadedImages = [...cachedImages, ...(newlyLoadedImages as string[])];
+      console.log(`Total images loaded: ${allLoadedImages.length}`);
+      setLoadedImages(allLoadedImages as string[]);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      // If there was an error, still use whatever images we have
+      if (cachedImages.length > 0) {
+        setLoadedImages(cachedImages as string[]);
         setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error loading images:", error);
-        // If there was an error, still use whatever images we have
-        if (cachedImages.length > 0) {
-          setLoadedImages(cachedImages as string[]);
-          setLoading(false);
-        }
-      });
+      }
+    }
   };
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

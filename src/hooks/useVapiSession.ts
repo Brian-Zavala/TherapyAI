@@ -374,15 +374,18 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
           if (typeof window !== 'undefined') {
             const assistantId = sessionIdRef.current
             if (assistantId) {
-              fetch(`/api/vapi/assistant/validate?assistantId=${assistantId}`)
-                .then(res => res.json())
-                .then(data => {
+              (async () => {
+                try {
+                  const res = await fetch(`/api/vapi/assistant/validate?assistantId=${assistantId}`)
+                  const data = await res.json()
                   console.error('Assistant validation result:', data)
                   if (!data.valid) {
                     console.error('Assistant validation failed:', data.diagnosis)
                   }
-                })
-                .catch(err => console.error('Failed to validate assistant:', err))
+                } catch (err) {
+                  console.error('Failed to validate assistant:', err)
+                }
+              })()
             }
           }
         } else if ('message' in errorObj) {
