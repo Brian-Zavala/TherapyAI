@@ -413,14 +413,29 @@ const formSteps: FormStep[] = [
         ],
       },
       {
+        name: "phone",
+        label: "Phone number (for SMS notifications)",
+        type: "tel",
+        placeholder: "(555) 123-4567",
+        required: false,
+      },
+      {
         name: "notificationPrefs",
-        label: "Would you like to receive email session reminders?",
-        type: "select",
+        label: "How would you like to receive session reminders?",
+        type: "multiselect",
         options: [
-          { value: "email", label: "Yes, send me email reminders" },
-          { value: "none", label: "No, I don't want reminders" },
+          { value: "email", label: "Email reminders" },
+          { value: "sms", label: "SMS text reminders" },
+          { value: "none", label: "No reminders" },
         ],
         required: true,
+      },
+      {
+        name: "smsConsent",
+        label: "SMS Consent Agreement",
+        type: "consent",
+        placeholder: "By checking this box, I consent to receive automated text messages from TherapyAI at the phone number provided. Message and data rates may apply. Reply STOP to opt out at any time. Reply HELP for help.",
+        required: false,
       },
       {
         name: "reminderTiming",
@@ -1667,6 +1682,34 @@ export default function WelcomePage() {
                                   </motion.button>
                                 );
                               })}
+                            </div>
+                          )}
+
+                          {field.type === "consent" && (
+                            <div className="space-y-4">
+                              <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                                <p className="text-white/80 text-sm leading-relaxed">
+                                  {field.placeholder}
+                                </p>
+                              </div>
+                              <motion.label
+                                className="flex items-start gap-3 cursor-pointer"
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.99 }}
+                              >
+                                <motion.input
+                                  type="checkbox"
+                                  name={field.name}
+                                  checked={formData[field.name] === "true"}
+                                  onChange={(e) =>
+                                    handleInputChange(field.name, e.target.checked ? "true" : "false")
+                                  }
+                                  className="mt-0.5 w-5 h-5 text-blue-500 bg-white/10 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
+                                />
+                                <span className="text-white/90 text-sm font-medium">
+                                  I agree to receive SMS notifications
+                                </span>
+                              </motion.label>
                             </div>
                           )}
                         </div>

@@ -22,6 +22,23 @@ model User {
   onboardingCompleted   Boolean                @default(false)
   onboardingData        Json?
   hasSeenIntro          Boolean                @default(false)
+  
+  // Welcome message tracking
+  welcomeMessageSent    Boolean                @default(false)
+  welcomeMessageSentAt  DateTime?
+  
+  // Soft deletion and compliance
+  isDeleted             Boolean                @default(false)
+  deletedAt             DateTime?
+  deletionReason        String?
+  dataRetentionUntil    DateTime?              // Legal compliance retention period
+  canRecover            Boolean                @default(true)      // Whether user can recover account
+  
+  // Subscription and billing status
+  subscriptionStatus    String?                @default("free")    // free, active, cancelled, past_due
+  subscriptionId        String?                // External subscription ID
+  billingEmail          String?                // May differ from main email
+  
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   
@@ -33,9 +50,15 @@ model User {
   communicationMetrics  CommunicationMetric[]
   progressTracking      ProgressTracking[]
   profile               UserProfile?
+  auditLogs             AuditLog[]
+  calendarIntegrations  CalendarIntegration[]
+  smsOptOuts            SMSOptOut[]
   
   @@index([email])
   @@index([createdAt])
+  @@index([isDeleted, deletedAt])
+  @@index([subscriptionStatus])
+  @@index([dataRetentionUntil])
 }
 
 model UserProfile {
@@ -52,11 +75,16 @@ model UserProfile {
   therapyType           String?                @default("couple")
   sessionPreference     String?
   communicationStyle    String?
-  notificationPrefs     String?                @default("email")
+  notificationPrefs     Json?                  @default("[]")
   sessionFrequency      String?
   preferredDays         Json?
   recurringSession      String?
   reminderTiming        String?
+  
+  // SMS Consent and Compliance (TCPA)
+  smsConsent            Boolean?               @default(false)
+  smsConsentDate        DateTime?              // When consent was given
+  phoneValidated        Boolean?               @default(false)
   
   // Relationship details
   partnerName           String?
@@ -124,7 +152,8 @@ model Session {
   
   // Session type and status
   sessionType            String                @default("couple") // couple, family, individual
-  status                 String                @default("scheduled") // scheduled, active, paused, completed, cancelled
+  status                 String                @default("scheduled") // scheduled, active, paused, completed, cancelled, terminated
+  terminationReason      String?               // user_deletion, technical_error, manual, etc.
   
   // Conversation tracking
   conversationTimeSeconds Int                  @default(0)
@@ -185,7 +214,7 @@ model SessionFamilyMember {
 
 model CommunicationMetric {
   id                    String                 @id @default(cuid())
-  sessionId             String
+  sessionId             String?
   userId                String
   
   // Core metrics (0-100 scale)
@@ -207,7 +236,7 @@ model CommunicationMetric {
   updatedAt             DateTime               @updatedAt
   
   // Relations
-  session               Session                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session               Session?               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([sessionId, metricType])
@@ -238,7 +267,7 @@ model ProgressTracking {
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   session               Session?               @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   
-  @@unique([userId, sessionId])
+  @@index([userId, sessionId]) // Allow multiple progress entries per user
   @@index([userId, therapyType, date])
   @@index([userId, date])
   @@index([therapyType])
@@ -379,6 +408,188 @@ model VerificationToken {
 }
 
 // ========================================
+// SMS OPT-OUT TRACKING
+// ========================================
+
+model SMSOptOut {
+  id                    String                 @id @default(cuid())
+  phoneNumber           String
+  userId                String?                // User ID if known
+  
+  // Opt-out details
+  keyword               String                 // STOP, UNSUBSCRIBE, etc.
+  optOutAt              DateTime               @default(now())
+  optInAt               DateTime?              // If they resubscribe
+  active                Boolean                @default(true)
+  
+  // Tracking
+  source                String                 @default("sms") // sms, web, support
+  metadata              Json?                  // Additional context
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@unique([phoneNumber, active])
+  @@index([phoneNumber])
+  @@index([userId])
+  @@index([active, optOutAt])
+}
+
+// ========================================
+// AUDIT & COMPLIANCE
+// ========================================
+
+model AuditLog {
+  id                    String                 @id @default(cuid())
+  userId                String?                // Null for system events
+  sessionId             String?                // Associated session if applicable
+  
+  // Event details
+  action                String                 // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, DATA_EXPORT, ACCOUNT_DELETION
+  entityType            String                 // User, Session, Profile, etc.
+  entityId              String?                // ID of affected entity
+  
+  // Change tracking
+  oldValues             Json?                  // Previous state
+  newValues             Json?                  // New state
+  changedFields         String[]               // List of changed field names
+  
+  // Context
+  ipAddress             String?
+  userAgent             String?
+  requestId             String?                // For tracing requests
+  metadata              Json?                  // Additional context
+  
+  // Compliance
+  reason                String?                // Business reason for change
+  complianceFlags       String[]               @default([]) // GDPR, HIPAA, etc.
+  
+  // Legal hold
+  isLegalHold           Boolean                @default(false)
+  legalHoldUntil        DateTime?
+  
+  createdAt             DateTime               @default(now())
+  
+  // Relations
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId, createdAt])
+  @@index([action, entityType])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([isLegalHold, legalHoldUntil])
+}
+
+// Data export requests for GDPR compliance
+model DataExportRequest {
+  id                    String                 @id @default(cuid())
+  userId                String
+  
+  // Request details
+  requestType           String                 @default("full") // full, partial, deletion_prep
+  status                String                 @default("pending") // pending, processing, completed, failed, expired
+  format                String                 @default("json") // json, csv, pdf
+  
+  // Export content
+  includeTranscripts    Boolean                @default(true)
+  includeMetrics        Boolean                @default(true)
+  includeProfile        Boolean                @default(true)
+  includeSessions       Boolean                @default(true)
+  
+  // Processing
+  downloadUrl           String?                // Signed URL for download
+  expiresAt             DateTime?              // When download link expires
+  fileSize              Int?                   // Size in bytes
+  processedAt           DateTime?
+  downloadedAt          DateTime?              // When user downloaded
+  
+  // Error handling
+  errorMessage          String?
+  retryCount            Int                    @default(0)
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([expiresAt])
+}
+
+// Account recovery for soft-deleted users
+model AccountRecovery {
+  id                    String                 @id @default(cuid())
+  userId                String                 @unique
+  email                 String
+  
+  // Recovery details
+  recoveryToken         String                 @unique
+  recoveryCode          String?                // Optional SMS/email code
+  expiresAt             DateTime               // When recovery window closes
+  
+  // Data snapshot
+  userSnapshot          Json                   // Snapshot of user data at deletion
+  profileSnapshot       Json?                  // Snapshot of profile data
+  sessionCount          Int                    @default(0)
+  
+  // Recovery attempts
+  attemptCount          Int                    @default(0)
+  lastAttemptAt         DateTime?
+  
+  // Status
+  isRecovered           Boolean                @default(false)
+  recoveredAt           DateTime?
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  @@index([recoveryToken])
+  @@index([email, expiresAt])
+  @@index([expiresAt, isRecovered])
+}
+
+// ========================================
+// CALENDAR INTEGRATIONS
+// ========================================
+
+model CalendarIntegration {
+  id                    String                 @id @default(cuid())
+  userId                String
+  provider              String                 // google, outlook, exchange
+  
+  // Connection details
+  enabled               Boolean                @default(false)
+  accountEmail          String?
+  calendarId            String?                // Primary calendar ID for the provider
+  
+  // OAuth tokens
+  accessToken           String?                @db.Text
+  refreshToken          String?                @db.Text
+  expiresAt             DateTime?
+  
+  // Sync status
+  lastSync              DateTime?
+  syncStatus            String                 @default("disconnected") // connected, syncing, error, disconnected
+  errorMessage          String?
+  
+  // Metadata
+  providerMetadata      Json?                  // Additional provider-specific data
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, provider]) // One integration per provider per user
+  @@index([userId, enabled])
+  @@index([provider, syncStatus])
+  @@index([expiresAt])
+}
+
+// ========================================
 // NOTIFICATION & SCHEDULING
 // ========================================
 
@@ -407,6 +618,9 @@ model Notification {
   readAt                DateTime?
   actionUrl             String?
   actionTaken           String?
+  
+  // Additional metadata for tracking
+  metadata              Json?
   
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt

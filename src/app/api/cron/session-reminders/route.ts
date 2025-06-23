@@ -4,11 +4,42 @@ import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
 import SessionMissedEmail from '@/emails/SessionMissed';
-// import { sendSessionReminder } from '@/lib/sms-service'; // Currently using mock implementation
+import { sendSessionReminder } from '@/lib/sms-service';
 
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 const CRON_SECRET = process.env.CRON_SECRET;
+
+// Helper function to check if user wants SMS notifications
+function shouldSendSMS(session: any): boolean {
+  const profile = session.user?.profile;
+  if (!profile || !profile.phone || !profile.smsConsent) {
+    return false;
+  }
+
+  // Check if user has SMS in their notification preferences
+  const notificationPrefs = profile.notificationPrefs;
+  if (Array.isArray(notificationPrefs)) {
+    return notificationPrefs.includes('sms');
+  }
+  
+  // Fallback for string format (backwards compatibility)
+  return notificationPrefs === 'sms';
+}
+
+// Helper function to check if user wants email notifications
+function shouldSendEmail(session: any): boolean {
+  const profile = session.user?.profile;
+  if (!profile) return true; // Default to email if no profile
+
+  const notificationPrefs = profile.notificationPrefs;
+  if (Array.isArray(notificationPrefs)) {
+    return notificationPrefs.includes('email');
+  }
+  
+  // Fallback for string format (backwards compatibility)
+  return notificationPrefs === 'email' || notificationPrefs !== 'none';
+}
 
 export async function GET(request: Request) {
   // Security check for cron job
@@ -32,7 +63,11 @@ export async function GET(request: Request) {
         },
       },
       include: {
-        user: true, // Include user data for email
+        user: {
+          include: {
+            profile: true, // Include user profile for notification preferences and phone
+          }
+        }
       },
     });
 
@@ -47,18 +82,21 @@ export async function GET(request: Request) {
         },
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            profile: true, // Include user profile for notification preferences and phone
+          }
+        }
       },
     });
 
     // Process 24-hour reminders
     const reminder24hResults = await Promise.allSettled(
       upcomingSessions24h.map(async (session) => {
-        // Always use email for notifications
-        const updates: { emailReminderSent?: boolean } = {};
+        const updates: { emailReminderSent?: boolean; smsReminderSent?: boolean } = {};
         
-        // Send email reminder if needed
-        if (!session.emailReminderSent && session.user.email) {
+        // Send email reminder if user wants email and hasn't been sent
+        if (!session.emailReminderSent && session.user.email && shouldSendEmail(session)) {
           try {
             const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
             await resend.emails.send({
@@ -79,6 +117,31 @@ export async function GET(request: Request) {
             console.error(`Failed to send email reminder for session ${session.id}:`, emailError);
           }
         }
+
+        // Send SMS reminder if user wants SMS and hasn't been sent
+        if (!session.smsReminderSent && shouldSendSMS(session)) {
+          try {
+            const smsResult = await sendSessionReminder(
+              session.user.profile.phone,
+              session.date,
+              session.duration,
+              {
+                userId: session.user.id,
+                sessionId: session.id,
+                priority: 'high'
+              }
+            );
+            
+            if (smsResult.success) {
+              updates.smsReminderSent = true;
+              console.log(`SMS reminder sent for session ${session.id} to ${session.user.profile.phone}`);
+            } else {
+              console.error(`Failed to send SMS reminder for session ${session.id}:`, smsResult.error);
+            }
+          } catch (smsError) {
+            console.error(`SMS service error for session ${session.id}:`, smsError);
+          }
+        }
         
         // Update the session with reminder status
         if (Object.keys(updates).length > 0) {
@@ -95,7 +158,11 @@ export async function GET(request: Request) {
     // Process 1-hour reminders
     const reminder1hResults = await Promise.allSettled(
       upcomingSessions1h.map(async (session) => {
-        if (!session.oneHourReminderSent && session.user.email) {
+        const updates: any = {};
+        let sentReminder = false;
+        
+        // Send email 1-hour reminder if user wants email
+        if (session.user.email && shouldSendEmail(session)) {
           try {
             const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
             await resend.emails.send({
@@ -111,17 +178,44 @@ export async function GET(request: Request) {
                 baseUrl: baseUrl,
               }) as any,
             });
-            
-            // Update the session to mark 1-hour reminder as sent
-            await prisma.session.update({
-              where: { id: session.id },
-              data: { oneHourReminderSent: true },
-            });
-            
-            console.log(`1-hour reminder sent for session ${session.id}`);
+            sentReminder = true;
+            console.log(`1-hour email reminder sent for session ${session.id}`);
           } catch (emailError) {
-            console.error(`Failed to send 1-hour reminder for session ${session.id}:`, emailError);
+            console.error(`Failed to send 1-hour email reminder for session ${session.id}:`, emailError);
           }
+        }
+
+        // Send SMS 1-hour reminder if user wants SMS
+        if (shouldSendSMS(session)) {
+          try {
+            const smsResult = await sendSessionReminder(
+              session.user.profile.phone,
+              session.date,
+              session.duration,
+              {
+                userId: session.user.id,
+                sessionId: session.id,
+                priority: 'high'
+              }
+            );
+            
+            if (smsResult.success) {
+              sentReminder = true;
+              console.log(`1-hour SMS reminder sent for session ${session.id} to ${session.user.profile.phone}`);
+            } else {
+              console.error(`Failed to send 1-hour SMS reminder for session ${session.id}:`, smsResult.error);
+            }
+          } catch (smsError) {
+            console.error(`1-hour SMS service error for session ${session.id}:`, smsError);
+          }
+        }
+        
+        // Mark 1-hour reminder as sent if any notification was successful
+        if (sentReminder) {
+          await prisma.session.update({
+            where: { id: session.id },
+            data: { oneHourReminderSent: true },
+          });
         }
       })
     );

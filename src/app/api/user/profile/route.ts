@@ -3,6 +3,86 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { formatPhoneNumber, validatePhoneNumber } from "@/lib/sms-service"
+import { sendWelcomeMessages, type WelcomeUser } from "@/lib/welcome-messages"
+
+// Helper function to process notification preferences and SMS consent
+function processNotificationData(data: any) {
+  // Parse notification preferences - can be string or array
+  let notificationPrefs = data.notificationPrefs || []
+  if (typeof notificationPrefs === 'string') {
+    notificationPrefs = notificationPrefs === 'none' ? [] : [notificationPrefs]
+  }
+  if (!Array.isArray(notificationPrefs)) {
+    notificationPrefs = []
+  }
+
+  // Process phone number
+  let formattedPhone = null
+  let phoneValidated = false
+  if (data.phone) {
+    try {
+      formattedPhone = formatPhoneNumber(data.phone, 'US')
+      phoneValidated = validatePhoneNumber(formattedPhone)
+    } catch (error) {
+      console.warn('Phone number validation failed:', error)
+      formattedPhone = data.phone // Keep original if formatting fails
+    }
+  }
+
+  // Process SMS consent
+  const smsConsent = data.smsConsent === 'true' || data.smsConsent === true
+  const hasSmsInPrefs = notificationPrefs.includes('sms')
+  
+  // SMS consent should be true if they selected SMS notifications and agreed to consent
+  const finalSmsConsent = smsConsent && hasSmsInPrefs
+
+  return {
+    notificationPrefs,
+    phone: formattedPhone,
+    phoneValidated,
+    smsConsent: finalSmsConsent,
+    smsConsentDate: finalSmsConsent ? new Date() : null
+  }
+}
+
+// Helper function to create WelcomeUser object for welcome messages
+function createWelcomeUser(user: any, profile: any, onboardingData: any): WelcomeUser {
+  return {
+    id: user.id,
+    name: user.name || onboardingData.nickname || 'Friend',
+    email: user.email,
+    notificationPrefs: profile?.notificationPrefs || onboardingData.notificationPrefs || [],
+    phone: profile?.phone || onboardingData.phone,
+    smsConsent: profile?.smsConsent || false,
+    therapyGoals: profile?.currentConcerns || onboardingData.goals || onboardingData.currentConcerns,
+    relationshipStatus: profile?.relationshipStatus || onboardingData.relationshipStatus,
+    age: profile?.age || (onboardingData.age ? parseInt(onboardingData.age) : undefined),
+    timeZone: 'UTC' // TODO: Add timezone to user profile
+  };
+}
+
+// Async helper to send welcome messages without blocking the response
+async function sendWelcomeMessagesAsync(welcomeUser: WelcomeUser) {
+  try {
+    console.log(`🎉 Sending welcome messages to ${welcomeUser.name} (${welcomeUser.email})`);
+    const results = await sendWelcomeMessages(welcomeUser);
+    
+    if (results.email.success || results.sms.success) {
+      console.log(`✅ Welcome messages sent successfully:`, {
+        email: results.email.success ? 'sent' : results.email.error,
+        sms: results.sms.success ? 'sent' : results.sms.error
+      });
+    } else {
+      console.warn(`⚠️ Welcome messages failed:`, {
+        email: results.email.error,
+        sms: results.sms.error
+      });
+    }
+  } catch (error) {
+    console.error('🚨 Welcome message service error:', error);
+  }
+}
 
 // GET handler to fetch user profile
 export async function GET() {
@@ -212,7 +292,16 @@ export async function PATCH(request: Request) {
                 age: data.age ? parseInt(data.age) : null,
                 relationshipStatus: data.relationshipStatus || 'Married',
                 therapyType: data.therapyType || null,
-                notificationPrefs: data.notificationPrefs || 'email',
+                ...(() => {
+                  const notificationData = processNotificationData(data)
+                  return {
+                    notificationPrefs: notificationData.notificationPrefs,
+                    phone: notificationData.phone,
+                    phoneValidated: notificationData.phoneValidated,
+                    smsConsent: notificationData.smsConsent,
+                    smsConsentDate: notificationData.smsConsentDate,
+                  }
+                })(),
                 partnerName: data.partnerName || null,
                 partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
                 currentConcerns: data.currentConcerns || null,
@@ -224,13 +313,20 @@ export async function PATCH(request: Request) {
                 reminderTiming: data.reminderTiming || null,
                 communicationStyle: data.communicationStyle || null,
                 additionalNotes: data.additionalNotes || null,
-                phone: data.phone || null,
                 assistantId: data.assistantId || null
               }
             }
           }
         })
         console.log("User created during onboarding:", user.id)
+        
+        // 🎉 Send welcome messages for new user (async, non-blocking)
+        if (user && user.profile) {
+          const welcomeUser = createWelcomeUser(user, user.profile, data);
+          sendWelcomeMessagesAsync(welcomeUser).catch(err => 
+            console.error('Welcome messages failed for new user:', err)
+          );
+        }
       } catch (createError) {
         console.error("Error creating user during onboarding:", createError)
       }
@@ -264,7 +360,16 @@ export async function PATCH(request: Request) {
               age: data.age ? parseInt(data.age) : null,
               relationshipStatus: data.relationshipStatus || 'Married',
               therapyType: data.therapyType || null,
-              notificationPrefs: data.notificationPrefs || 'email',
+              ...(() => {
+                const notificationData = processNotificationData(data)
+                return {
+                  notificationPrefs: notificationData.notificationPrefs,
+                  phone: notificationData.phone,
+                  phoneValidated: notificationData.phoneValidated,
+                  smsConsent: notificationData.smsConsent,
+                  smsConsentDate: notificationData.smsConsentDate,
+                }
+              })(),
               partnerName: data.partnerName || null,
               partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
               currentConcerns: data.goals || data.currentConcerns || null,
@@ -276,7 +381,6 @@ export async function PATCH(request: Request) {
               reminderTiming: data.reminderTiming || null,
               communicationStyle: data.communicationStyle || null,
               additionalNotes: data.additionalNotes || null,
-              phone: data.phone || null,
               assistantId: data.assistantId || null
             },
             update: {
@@ -284,7 +388,16 @@ export async function PATCH(request: Request) {
               age: data.age ? parseInt(data.age) : null,
               relationshipStatus: data.relationshipStatus || 'Married',
               therapyType: data.therapyType || null,
-              notificationPrefs: data.notificationPrefs || 'email',
+              ...(() => {
+                const notificationData = processNotificationData(data)
+                return {
+                  notificationPrefs: notificationData.notificationPrefs,
+                  phone: notificationData.phone,
+                  phoneValidated: notificationData.phoneValidated,
+                  smsConsent: notificationData.smsConsent,
+                  smsConsentDate: notificationData.smsConsentDate,
+                }
+              })(),
               partnerName: data.partnerName || null,
               partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
               currentConcerns: data.goals || data.currentConcerns || null,
@@ -296,7 +409,6 @@ export async function PATCH(request: Request) {
               reminderTiming: data.reminderTiming || null,
               communicationStyle: data.communicationStyle || null,
               additionalNotes: data.additionalNotes || null,
-              phone: data.phone || null,
               assistantId: data.assistantId || null
             }
           })
@@ -331,6 +443,14 @@ export async function PATCH(request: Request) {
           return userUpdate
         })
         
+        // 🎉 Send welcome messages for completed onboarding (async, non-blocking)
+        if (updatedUser && updatedUser.profile) {
+          const welcomeUser = createWelcomeUser(updatedUser, updatedUser.profile, data);
+          sendWelcomeMessagesAsync(welcomeUser).catch(err => 
+            console.error('Welcome messages failed for updated user:', err)
+          );
+        }
+        
         return NextResponse.json({ 
           message: "Onboarding completed successfully",
           user: updatedUser
@@ -343,6 +463,29 @@ export async function PATCH(request: Request) {
     // Even if database operations fail, return success to prevent onboarding loop
     // The frontend will handle the onboarding state
     console.log("Returning success despite database errors to prevent onboarding loop")
+    
+    // 🎉 Send welcome messages even with fallback user (async, non-blocking)
+    try {
+      const fallbackWelcomeUser: WelcomeUser = {
+        id: 'session-' + session.user.email,
+        name: data.nickname || session.user.name || session.user.email.split('@')[0],
+        email: session.user.email,
+        notificationPrefs: data.notificationPrefs || [],
+        phone: data.phone,
+        smsConsent: data.smsConsent === 'true' || data.smsConsent === true,
+        therapyGoals: data.goals || data.currentConcerns,
+        relationshipStatus: data.relationshipStatus,
+        age: data.age ? parseInt(data.age) : undefined,
+        timeZone: 'UTC'
+      };
+      
+      sendWelcomeMessagesAsync(fallbackWelcomeUser).catch(err => 
+        console.error('Welcome messages failed for fallback user:', err)
+      );
+    } catch (welcomeError) {
+      console.error('Failed to create fallback welcome user:', welcomeError);
+    }
+    
     return NextResponse.json({ 
       message: "Onboarding completed successfully",
       user: {
