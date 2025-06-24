@@ -187,9 +187,13 @@ export const sendSMS = async (options: SMSOptions): Promise<SMSResult> => {
     try {
       const messageOptions: any = {
         body: validated.body,
-        to: validated.to,
-        statusCallback: smsConfig.statusWebhookUrl
+        to: validated.to
       };
+      
+      // Only add statusCallback if it's a public URL (not localhost)
+      if (smsConfig.statusWebhookUrl && !smsConfig.statusWebhookUrl.includes('localhost')) {
+        messageOptions.statusCallback = smsConfig.statusWebhookUrl;
+      }
       
       // Use Messaging Service if available (better for high volume)
       if (smsConfig.messagingServiceSid) {

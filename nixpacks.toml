@@ -1,0 +1,26 @@
+# nixpacks.toml - Railway build configuration
+
+[phases.setup]
+nixPkgs = ["nodejs", "npm", "openssl"]
+
+[phases.install]
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = [
+  "npx prisma generate",
+  "npm run build"
+]
+
+[start]
+cmd = "npm run start"
+
+[variables]
+NODE_ENV = "production"
+
+# Ensure proper caching for builds
+[phases.build.cache]
+paths = [
+  ".next/cache",
+  "node_modules/.cache"
+]

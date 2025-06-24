@@ -917,3 +917,27 @@ body:has(.welcome-page) {
     min-height: -webkit-fill-available;
   }
 }
+
+/* SMS Overlay Custom Scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-gray-700::-webkit-scrollbar-thumb {
+  background-color: rgba(55, 65, 81, 0.5);
+  border-radius: 4px;
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Ensure modal root exists */
+#modal-root {
+  position: relative;
+  z-index: 10000;
+}

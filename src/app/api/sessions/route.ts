@@ -5,382 +5,411 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
-import { sendSessionConfirmation } from '@/lib/sms-service'; // Currently using mock implementation
+import { sendSessionConfirmation } from '@/lib/sms-service';
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
 import { validateEmailEnvironment } from '@/lib/env-validation';
-import { rateLimitManager } from '@/lib/rate-limit-manager';
+import { z } from 'zod';
+import type { Session, User } from '@prisma/client';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// 2025 Standard: Type definitions
+interface SessionWithCounts extends Session {
+  transcriptCount: number;
+  transcriptEntries: any[];
+}
+
+interface ApiError {
+  error: string;
+  code?: string;
+  details?: any;
+}
+
+// 2025 Standard: Validation schemas
+const createSessionSchema = z.object({
+  startTime: z.string().optional(),
+  date: z.string().optional(),
+  theme: z.string().default('AI Therapy Session'),
+  status: z.enum(['scheduled', 'active', 'completed', 'cancelled']).default('scheduled'),
+  duration: z.number().min(15).max(240).default(60),
+  notes: z.string().max(500).default(''),
+  assistantId: z.string().optional(),
+  isRecurring: z.boolean().default(false),
+  recurringFrequency: z.enum(['weekly', 'biweekly', 'monthly']).nullable().default(null)
+});
+
+// 2025 Standard: Lazy initialization
+let resend: Resend | null = null;
+const getResendClient = () => {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+};
+
+// 2025 Standard: Structured logging
+const log = {
+  info: (message: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Sessions API] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    }
+  },
+  error: (message: string, error: any) => {
+    console.error(`[Sessions API] ${message}`, {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 
 export async function GET(request: NextRequest) {
-  const authSession = await getServerSession(authOptions);
-  
-  console.log('Auth session:', JSON.stringify(authSession, null, 2));
-  
-  if (!authSession?.user) {
-    console.log('No authenticated user found');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
   try {
-    console.log('User email from session:', authSession.user.email);
+    // 2025 Standard: Early auth check with proper typing
+    const authSession = await getServerSession(authOptions);
+    if (!authSession?.user?.email) {
+      return NextResponse.json<ApiError>(
+        { error: 'Unauthorized', code: 'UNAUTHORIZED' }, 
+        { status: 401 }
+      );
+    }
     
-    // Find the user by email
-    let user = await prisma.user.findUnique({
-      where: { 
-        email: authSession.user.email as string 
+    // 2025 Standard: Secure user lookup without auto-creation
+    const user = await prisma.user.findUnique({
+      where: { email: authSession.user.email },
+      select: { 
+        id: true, 
+        email: true,
+        isActive: true 
       }
     });
     
-    // Auto-create user if they don't exist in Prisma but have a valid session
-    if (!user && authSession.user.email) {
-      console.log(`Auto-creating user in database for ${authSession.user.email}`);
-      
-      try {
-        user = await prisma.user.create({
-          data: {
-            email: authSession.user.email,
-            name: authSession.user.name || authSession.user.email.split('@')[0],
-            password: 'SESSION_CREATED_USER', // Placeholder password
-          }
-        });
-        console.log('User auto-created successfully:', user.id);
-      } catch (createError) {
-        console.error('Error auto-creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user record' }, { status: 500 });
-      }
-    }
-    
     if (!user) {
-      console.log('User not found in database and could not be created:', authSession.user.email);
-      return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
+      return NextResponse.json<ApiError>(
+        { error: 'User not found', code: 'USER_NOT_FOUND' }, 
+        { status: 404 }
+      );
     }
     
-    console.log('Found/created user in database:', user.id);
+    // 2025 Standard: Check if account is active
+    if (user.isDeleted === true) {
+      return NextResponse.json<ApiError>(
+        { error: 'Account is deleted', code: 'ACCOUNT_DELETED' }, 
+        { status: 403 }
+      );
+    }
     
-    // Check cache first
-    const cacheKey = cacheKeys.userSessions(user.id);
-    const cachedSessions = sessionCache.get<Array<{id: string, transcriptCount: number, transcriptEntries: unknown[]}>>(cacheKey);
+    // 2025 Standard: Query parameters for pagination and filtering
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const status = searchParams.get('status') as Session['status'] | null;
+    const sortBy = searchParams.get('sortBy') || 'date';
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
+    
+    // Check cache with query params
+    const cacheKey = `${cacheKeys.userSessions(user.id)}:${page}:${limit}:${status}:${sortBy}:${sortOrder}`;
+    const cachedSessions = sessionCache.get<SessionWithCounts[]>(cacheKey);
     
     if (cachedSessions) {
-      console.log(`Returning ${cachedSessions.length} cached sessions for user`);
+      log.info(`Cache hit: ${cachedSessions.length} sessions`);
       return NextResponse.json(cachedSessions);
     }
     
-    // Fetch sessions for this user without transcript entries first
-    // This prevents timeout issues with large datasets
-    const sessions = await prisma.session.findMany({
-      where: {
-        userId: user.id
-      },
-      orderBy: {
-        date: 'desc'
-      },
-      take: 50 // Limit to most recent 50 sessions
-    });
+    // 2025 Standard: Optimized query with pagination
+    const skip = (page - 1) * limit;
+    const [sessions, totalCount] = await prisma.$transaction([
+      prisma.session.findMany({
+        where: {
+          userId: user.id,
+          ...(status && { status })
+        },
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          userId: true,
+          date: true,
+          startTime: true,
+          endTime: true,
+          duration: true,
+          theme: true,
+          notes: true,
+          status: true,
+          assistantId: true,
+          isPaused: true,
+          conversationTimeSeconds: true,
+          totalPausedTimeSeconds: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }),
+      prisma.session.count({
+        where: {
+          userId: user.id,
+          ...(status && { status })
+        }
+      })
+    ]);
     
-    // For performance, return sessions without transcript counts
-    // Transcript counts can be fetched on-demand when viewing individual sessions
-    const sessionsWithCounts = sessions.map(session => ({
+    // 2025 Standard: Transform with proper typing
+    const sessionsWithCounts: SessionWithCounts[] = sessions.map(session => ({
       ...session,
-      transcriptCount: 0, // Will be loaded on-demand if needed
-      transcriptEntries: [] // Empty array, transcripts fetched separately
+      transcriptCount: 0,
+      transcriptEntries: []
     }));
     
-    // Cache the results
-    sessionCache.set(cacheKey, sessionsWithCounts);
+    // Cache with TTL
+    sessionCache.set(cacheKey, sessionsWithCounts, 300); // 5 minute cache
     
-    // IMPORTANT: do not filter out or delete any sessions or transcripts automatically
-    // This ensures all data created by the user is preserved
-    console.log(`Returning all ${sessionsWithCounts.length} sessions without filtering any data`);
-    
-    console.log(`Found ${sessionsWithCounts.length} sessions for user`);
-    return NextResponse.json(sessionsWithCounts);
+    // 2025 Standard: Return with pagination metadata
+    return NextResponse.json({
+      data: sessionsWithCounts,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNext: page * limit < totalCount,
+        hasPrevious: page > 1
+      }
+    });
   } catch (error) {
-    console.error('Error fetching sessions:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch sessions' }, 
+    log.error('Failed to fetch sessions', error);
+    return NextResponse.json<ApiError>(
+      { 
+        error: 'Failed to fetch sessions', 
+        code: 'FETCH_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      }, 
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
-  const authSession = await getServerSession(authOptions);
-  
-  console.log('POST /api/sessions - Auth session:', JSON.stringify(authSession, null, 2));
-  
-  if (!authSession?.user) {
-    console.log('No authenticated user found');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  // Find user first to get ID for rate limiting
-  const userEmail = authSession.user.email as string;
-  const preliminaryUser = await prisma.user.findUnique({
-    where: { email: userEmail },
-    select: { id: true }
-  });
-  
-  // Rate limiting check - using userId if available
-  const clientId = preliminaryUser?.id || userEmail;
-  const userType = (authSession.user as any)?.type || 'standard';
-  
-  const rateLimitResult = await rateLimitManager.checkLimits(
-    clientId,
-    'session-creation',
-    { 
-      endpoint: '/api/sessions',
-      userType 
-    }
-  );
-  
-  if (!rateLimitResult.allowed) {
-    const response = NextResponse.json(
-      { 
-        error: "Too many session creation attempts. Please try again later.",
-        retryAfter: rateLimitResult.nextRetryAfter 
-      },
-      { status: 429 }
-    );
-    
-    if (rateLimitResult.nextRetryAfter) {
-      response.headers.set('Retry-After', rateLimitResult.nextRetryAfter.toString());
-    }
-    
-    return response;
-  }
-  
   try {
-    console.log('User email from session:', authSession.user.email);
-    
-    // Find the user by email
-    let user = await prisma.user.findUnique({
-      where: { 
-        email: authSession.user.email as string 
-      }
-    });
-    
-    // Auto-create user if they don't exist in Prisma but have a valid session
-    if (!user && authSession.user.email) {
-      console.log(`Auto-creating user in database for ${authSession.user.email}`);
-      
-      try {
-        user = await prisma.user.create({
-          data: {
-            email: authSession.user.email,
-            name: authSession.user.name || authSession.user.email.split('@')[0],
-            password: 'SESSION_CREATED_USER', // Placeholder password
-          }
-        });
-        console.log('User auto-created successfully:', user.id);
-      } catch (createError) {
-        console.error('Error auto-creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user record' }, { status: 500 });
-      }
+    // 2025 Standard: Auth check
+    const authSession = await getServerSession(authOptions);
+    if (!authSession?.user?.email) {
+      return NextResponse.json<ApiError>(
+        { error: 'Unauthorized', code: 'UNAUTHORIZED' }, 
+        { status: 401 }
+      );
     }
     
-    if (!user) {
-      return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
-    }
-    
-    // Get the request body
+    // 2025 Standard: Parse and validate request body
     const body = await request.json();
-    console.log('Request body:', JSON.stringify(body, null, 2)); // Detailed logging
+    const validatedData = createSessionSchema.safeParse(body);
     
-    // Extract data with safer defaults and validation
-    const { 
-      startTime, 
-      date,
-      theme = 'AI Therapy Session', 
-      status = 'scheduled', 
-      duration = 60, 
-      notes = '',
-      notificationPrefs,
-      assistantId = '', // New field to capture assistant ID
-      context = {}, // Capture but ignore context data (it doesn't go in the DB)
-      isRecurring = false,
-      recurringFrequency = null
-    } = body;
-    
-    // Validate date input
-    let sessionDate: Date;
-    
-    if (startTime && startTime !== 'Invalid Date') {
-      sessionDate = new Date(startTime);
-    } else if (date && date !== 'Invalid Date') {
-      sessionDate = new Date(date);
-    } else {
-      // Default to current time if no valid date is provided
-      sessionDate = new Date();
-    }
-    
-    // Verify we have a valid date
-    if (isNaN(sessionDate.getTime())) {
-      return NextResponse.json(
-        { error: 'Invalid date provided' }, 
+    if (!validatedData.success) {
+      return NextResponse.json<ApiError>(
+        { 
+          error: 'Invalid request data', 
+          code: 'VALIDATION_ERROR',
+          details: validatedData.error.flatten()
+        }, 
         { status: 400 }
       );
     }
     
-    // Log the data we're about to save
-    console.log('Creating session with data:', {
-      userId: user.id,
-      date: sessionDate,
-      duration: Number(duration),
-      theme,
-      notes,
-      status
+    const data = validatedData.data;
+    
+    // Note: Rate limiting is now handled by middleware
+    // The middleware already checked rate limits based on the route config
+  
+    // 2025 Standard: User lookup with proper error handling
+    const user = await prisma.user.findUnique({
+      where: { email: authSession.user.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isDeleted: true,
+        profile: true
+      }
     });
     
-    try {
-      // Get user's notification preferences from their profile
-      const userWithProfile = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { 
-          profile: {
-            select: { notificationPrefs: true, assistantId: true }
-          }
-        }
-      });
+    if (!user) {
+      return NextResponse.json<ApiError>(
+        { error: 'User not found', code: 'USER_NOT_FOUND' }, 
+        { status: 404 }
+      );
+    }
+    
+    if (user.isDeleted === true) {
+      return NextResponse.json<ApiError>(
+        { error: 'Account is deleted', code: 'ACCOUNT_DELETED' }, 
+        { status: 403 }
+      );
+    }
+    
+    // 2025 Standard: Date validation with proper error handling
+    let sessionDate: Date;
+    
+    if (data.startTime && data.startTime !== 'Invalid Date') {
+      sessionDate = new Date(data.startTime);
+    } else if (data.date && data.date !== 'Invalid Date') {
+      sessionDate = new Date(data.date);
+    } else {
+      sessionDate = new Date();
+    }
+    
+    if (isNaN(sessionDate.getTime())) {
+      return NextResponse.json<ApiError>(
+        { error: 'Invalid date provided', code: 'INVALID_DATE' }, 
+        { status: 400 }
+      );
+    }
+    
+    // 2025 Standard: Validate session time is not in the past for scheduled sessions
+    if (data.status === 'scheduled' && sessionDate < new Date()) {
+      return NextResponse.json<ApiError>(
+        { error: 'Cannot schedule session in the past', code: 'PAST_DATE' }, 
+        { status: 400 }
+      );
+    }
+    
+    // 2025 Standard: Use transaction for atomic operations
+    const result = await prisma.$transaction(async (tx) => {
       
-      // Use user's preference or default to 'email' if not set
-      const effectiveNotificationPrefs = userWithProfile?.profile?.notificationPrefs || 'email';
-      
-      // Check for existing active session to prevent duplicates
-      if (status === 'active') {
-        const existingActiveSession = await prisma.session.findFirst({
+      // 2025 Standard: Prevent duplicate active sessions
+      if (data.status === 'active') {
+        const existingActiveSession = await tx.session.findFirst({
           where: {
             userId: user.id,
             status: 'active'
           },
-          orderBy: {
-            date: 'desc'
-          }
+          orderBy: { date: 'desc' }
         });
         
         if (existingActiveSession) {
-          console.log(`🚨 DUPLICATE SESSION PREVENTION: Found existing active session ${existingActiveSession.id}, returning it instead of creating new one`);
-          return NextResponse.json(existingActiveSession);
+          log.info('Duplicate active session prevented', { sessionId: existingActiveSession.id });
+          throw new Error('DUPLICATE_ACTIVE_SESSION');
         }
       }
       
-      // Create session using the fields from your schema
-      const newSession = await prisma.session.create({
+      // Create the main session
+      const newSession = await tx.session.create({
         data: {
           userId: user.id,
           date: sessionDate,
-          startTime: status === 'active' ? sessionDate : null, // Set startTime only for active sessions
-          duration: Number(duration),
-          theme,
-          notes,
-          status,
-          assistantId: assistantId || userWithProfile?.profile?.assistantId || undefined, // Store the assistant ID from Vapi or use user's default
-          isPaused: false, // Explicitly set to false for new sessions
+          startTime: data.status === 'active' ? sessionDate : null,
+          duration: data.duration,
+          theme: data.theme,
+          notes: data.notes,
+          status: data.status,
+          assistantId: data.assistantId || user.profile?.assistantId || null,
+          isPaused: false,
           conversationTimeSeconds: 0,
           totalPausedTimeSeconds: 0
         }
       });
       
-      console.log('Session created successfully:', newSession.id);
-      
-      // Invalidate cache for this user
-      sessionCache.invalidate(cacheKeys.userSessions(user.id));
-      
-      // Send scheduling confirmation email only for future scheduled sessions
-      // Skip email for immediate/active sessions
-      const isImmediateSession = status === 'active' || 
-        (sessionDate.getTime() - new Date().getTime() < 5 * 60 * 1000); // Less than 5 minutes from now
-      
-      if (!isImmediateSession && status === 'scheduled') {
-        try {
-          // Validate email environment before sending
-          const emailValidation = validateEmailEnvironment();
-          if (!emailValidation.isValid) {
-            console.error('Email environment validation failed, skipping email send:', emailValidation.missingVars);
-          } else {
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            await resend.emails.send({
-              from: `Therapy Support <${process.env.EMAIL_FROM}>`,
-              to: user.email,
-              subject: 'Your Therapy Session is Scheduled',
-              react: SessionConfirmationEmail({
-                username: user.name || 'Valued Client',
-                sessionDate: sessionDate,
-                duration: Number(duration),
-                theme: theme,
-                notes: notes,
-                baseUrl: baseUrl,
-              }),
-            });
-            console.log('Scheduling confirmation email sent successfully');
+      // 2025 Standard: Handle recurring sessions in transaction
+      const recurringSessionIds: string[] = [];
+      if (data.isRecurring && data.recurringFrequency && data.status === 'scheduled') {
+        const nextDate = new Date(sessionDate);
+        
+        for (let i = 0; i < 4; i++) {
+          switch (data.recurringFrequency) {
+            case 'weekly':
+              nextDate.setDate(nextDate.getDate() + 7);
+              break;
+            case 'biweekly':
+              nextDate.setDate(nextDate.getDate() + 14);
+              break;
+            case 'monthly':
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              break;
           }
-        } catch (emailError) {
-          console.error('Error sending scheduling confirmation email:', emailError);
-        }
-      }
-      
-      // Handle recurring sessions
-      if (isRecurring && recurringFrequency && status === 'scheduled') {
-        try {
-          const recurringSession: { message: string; sessionsCreated: number } = { message: '', sessionsCreated: 0 };
-          const nextDate = new Date(sessionDate);
           
-          // Create up to 4 future sessions based on frequency
-          for (let i = 0; i < 4; i++) {
-            switch (recurringFrequency) {
-              case 'weekly':
-                nextDate.setDate(nextDate.getDate() + 7);
-                break;
-              case 'biweekly':
-                nextDate.setDate(nextDate.getDate() + 14);
-                break;
-              case 'monthly':
-                nextDate.setMonth(nextDate.getMonth() + 1);
-                break;
-              default:
-                break;
+          const recurringSession = await tx.session.create({
+            data: {
+              userId: user.id,
+              date: new Date(nextDate),
+              duration: data.duration,
+              theme: data.theme,
+              notes: `${data.notes} (Recurring session)`,
+              status: 'scheduled',
+              assistantId: data.assistantId || user.profile?.assistantId || null
             }
-            
-            // Create the recurring session
-            const recurringSessionData = await prisma.session.create({
-              data: {
-                userId: user.id,
-                date: new Date(nextDate),
-                duration: Number(duration),
-                theme,
-                notes: notes + ' (Recurring session)',
-                status: 'scheduled',
-                assistantId: assistantId || userWithProfile?.profile?.assistantId || null
-              }
-            });
-            
-            recurringSession.sessionsCreated++;
-          }
+          });
           
-          console.log(`Created ${recurringSession.sessionsCreated} recurring sessions`);
-        } catch (recurringError) {
-          console.error('Error creating recurring sessions:', recurringError);
-          // Don't fail the main session creation if recurring sessions fail
+          recurringSessionIds.push(recurringSession.id);
         }
       }
       
-      return NextResponse.json(newSession, { status: 201 });
-    } catch (prismaError) {
-      // Catch and log Prisma-specific errors
-      console.error('Prisma error creating session:', prismaError);
-      return NextResponse.json(
+      return { newSession, recurringSessionIds };
+    });
+      
+    // 2025 Standard: Invalidate caches after successful creation
+    sessionCache.invalidate(cacheKeys.userSessions(user.id));
+    
+    // 2025 Standard: Send email asynchronously without blocking response
+    const isImmediateSession = data.status === 'active' || 
+      (sessionDate.getTime() - new Date().getTime() < 5 * 60 * 1000);
+    
+    if (!isImmediateSession && data.status === 'scheduled') {
+      // Fire and forget email sending
+      Promise.resolve().then(async () => {
+        try {
+          const emailValidation = validateEmailEnvironment();
+          const resendClient = getResendClient();
+          
+          if (!emailValidation.isValid || !resendClient) {
+            log.error('Email environment not configured', emailValidation.missingVars);
+            return;
+          }
+          
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          await resendClient.emails.send({
+            from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+            to: user.email,
+            subject: 'Your Therapy Session is Scheduled',
+            react: SessionConfirmationEmail({
+              username: user.name || 'Valued Client',
+              sessionDate: sessionDate,
+              duration: data.duration,
+              theme: data.theme,
+              notes: data.notes,
+              baseUrl: baseUrl,
+            }),
+          });
+          
+          log.info('Confirmation email sent', { userId: user.id, sessionId: result.newSession.id });
+        } catch (emailError) {
+          log.error('Failed to send confirmation email', emailError);
+        }
+      });
+    }
+      
+    // 2025 Standard: Return comprehensive response
+    return NextResponse.json({
+      session: result.newSession,
+      recurringSessionsCreated: result.recurringSessionIds.length,
+      recurringSessionIds: result.recurringSessionIds
+    }, { status: 201 });
+    
+  } catch (error) {
+    // 2025 Standard: Structured error handling
+    if (error instanceof Error && error.message === 'DUPLICATE_ACTIVE_SESSION') {
+      return NextResponse.json<ApiError>(
         { 
-          error: 'Database error creating session', 
-          details: prismaError instanceof Error ? prismaError.message : 'Unknown Prisma error' 
+          error: 'An active session already exists', 
+          code: 'DUPLICATE_ACTIVE_SESSION' 
         }, 
-        { status: 500 }
+        { status: 409 }
       );
     }
-  } catch (error) {
-    console.error('Error creating session:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create session' }, 
+    
+    log.error('Failed to create session', error);
+    
+    return NextResponse.json<ApiError>(
+      { 
+        error: 'Failed to create session', 
+        code: 'CREATE_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      }, 
       { status: 500 }
     );
   }

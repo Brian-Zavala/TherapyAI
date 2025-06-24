@@ -1,0 +1,29 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm run build"
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "startCommand": "npm run start",
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "services": [
+    {
+      "name": "couple-therapy-web",
+      "source": {
+        "repo": "."
+      },
+      "variables": {
+        "NODE_ENV": "production",
+        "PORT": "${{PORT}}",
+        "RAILWAY_STATIC_URL": "${{RAILWAY_STATIC_URL}}",
+        "RAILWAY_PUBLIC_DOMAIN": "${{RAILWAY_PUBLIC_DOMAIN}}"
+      }
+    }
+  ]
+}

@@ -685,14 +685,14 @@ export default function Home() {
                       {/* Simple fade-in for this inner card */}
                       <motion.div
                         ref={statsCostsAIPulse1.ref}
-                        className="rounded-2xl p-4 pt-8 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300"
+                        className="rounded-2xl p-4 pt-4 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
                       >
                         {/* Original card title */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 inline-block text-sm sm:text-base shadow-md">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-2 mb-3 inline-block text-sm sm:text-base shadow-md max-w-fit">
                           30-Minute Session
                         </div>
                         {/* Original price section */}
@@ -759,14 +759,14 @@ export default function Home() {
                       {/* Simple fade-in for this inner card */}
                       <motion.div
                         ref={statsCostsAIPulse2.ref}
-                        className="rounded-2xl p-4 pt-8 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300"
+                        className="rounded-2xl p-4 pt-4 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.2 }}
                       >
                         {/* Original card title */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-7 mb-3 inline-block text-sm sm:text-base shadow-md">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-2 mb-3 inline-block text-sm sm:text-base shadow-md max-w-fit">
                           60-Minute Session
                         </div>
                         {/* Original price section */}

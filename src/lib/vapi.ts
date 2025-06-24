@@ -1,207 +1,294 @@
 import Vapi from "@vapi-ai/web";
 
-/**
- * Initialize Vapi with API key or JWT token
- * Optionally configure with custom transcriber settings
- */
-export const initVapi = async (
-  token: string,
-  options: {
-    useCustomTranscriber?: boolean;
-    reconnectEnabled?: boolean;
-    iceServers?: Array<{
-      urls: string | string[];
-      username?: string;
-      credential?: string;
-    }>;
-  } = {}
-) => {
-  try {
-    // Validate token before creating instance
-    if (!token) {
-      console.error("❌ No token provided to initVapi");
-      throw new Error("JWT token is required to initialize Vapi");
+// 2025 Standard: Type definitions
+export interface VapiInitOptions {
+  useCustomTranscriber?: boolean;
+  reconnectEnabled?: boolean;
+  iceServers?: RTCIceServer[];
+}
+
+export interface VapiEvent {
+  type: string;
+  data?: any;
+  state?: string;
+  error?: {
+    message: string;
+    code?: string;
+  };
+}
+
+export interface VapiInstance extends Vapi {
+  _transportState?: string;
+  _transcriberConfig?: any;
+  _isCallActive?: boolean;
+  _currentAssistantId?: string;
+}
+
+// 2025 Standard: Structured logging
+const logger = {
+  info: (message: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[VAPI] ${message}`, data || '');
     }
-
-    // Create a simple Vapi instance - explicitly provide the API URL as second parameter
-    console.log(
-      "Creating Vapi instance with explicit API URL as constructor parameter"
-    );
-
-    // Create Vapi instance by passing the token and API URL directly in the constructor
-    // This is the recommended way according to the Vapi API docs
-    const vapiInstance = new Vapi(token);
-    console.log(
-      "✅ Created Vapi instance with token:", token ? token.substring(0, 8) + "..." : "NO TOKEN"
-    );
-
-    // Double-check that window.fetch isn't modified in a way that could cause issues
-    // Only if running in browser
-    if (typeof window !== "undefined") {
-      const originalWindowFetch = window.fetch;
-      const origFetchDesc = Object.getOwnPropertyDescriptor(window, "fetch");
-
-      // Restore original fetch if it was previously modified
-      if (origFetchDesc && origFetchDesc.writable) {
-        window.fetch = originalWindowFetch;
-        console.log("Restored original window.fetch function");
-      }
-    }
-
-    // Store the connection state for monitoring
-    (vapiInstance as any)._transportState = "new";
-
-    // Add transport state tracking with minimal logging
-    (vapiInstance as any).on("transport-state-change", (data: any) => {
-      // Only log state changes, not full data dump for performance
-      console.log(`🔄 VAPI TRANSPORT: ${data?.state || 'unknown'}`);
-      if (data && data.state) {
-        (vapiInstance as any)._transportState = data.state;
-      }
+  },
+  error: (message: string, error: any) => {
+    console.error(`[VAPI Error] ${message}`, {
+      error: error instanceof Error ? error.message : error,
+      timestamp: new Date().toISOString()
     });
-
-    // Selective event logging - critical events get full logging, others minimal
-    const criticalEvents = ["call-start", "call-end", "error", "ice-connection-state-change", "connection-state-change"];
-    const verboseEvents = ["message", "transcript", "transcript-response", "model-output", "status-update"];
-
-    // Log critical events in detail
-    criticalEvents.forEach((eventType) => {
-      (vapiInstance as any).on(eventType, (data: any) => {
-        console.log(`🔥 VAPI [${eventType}]:`, data);
-        
-        // Handle authentication errors specifically
-        if (eventType === "error" && data) {
-          // Extract error message from various possible formats
-          let errorMessage = '';
-          if (typeof data === 'string') {
-            errorMessage = data;
-          } else if (data?.error?.message) {
-            errorMessage = data.error.message;
-          } else if (data?.message) {
-            errorMessage = data.message;
-          } else if (data?.error) {
-            errorMessage = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-          }
-          
-          const isAuthError = errorMessage && typeof errorMessage === 'string' &&
-            (errorMessage.toLowerCase().includes('unauthorized') ||
-            errorMessage.toLowerCase().includes('401') ||
-            errorMessage.toLowerCase().includes('token') ||
-            errorMessage.toLowerCase().includes('auth') ||
-            errorMessage.toLowerCase().includes('jwt'));
-          
-          if (isAuthError) {
-            console.error('🔒 VAPI Authentication Error Detected:', errorMessage);
-            console.error('💡 Fix: Token may be expired or invalid. Try refreshing the token.');
-            
-            // Emit a custom event that the hook can listen to
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('vapi-auth-error', { 
-                detail: { error: data, timestamp: Date.now() } 
-              }));
-            }
-          }
-        }
-      });
-    });
-
-    // Log verbose events with minimal info to reduce overhead
-    verboseEvents.forEach((eventType) => {
-      (vapiInstance as any).on(eventType, (data: any) => {
-        // Minimal logging for high-frequency events to improve performance
-        if (eventType === "message" && data?.type) {
-          console.log(`📨 VAPI MSG: ${data.type}`);
-        } else {
-          console.log(`📡 VAPI: ${eventType}`);
-        }
-      });
-    });
-
-    // If custom transcriber is enabled, prepare the configuration for later use
-    if (options.useCustomTranscriber) {
-      try {
-        // Get the base URL for the custom transcriber
-        const baseUrl =
-          typeof window !== "undefined"
-            ? window.location.origin
-            : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-        console.log("Getting transcriber config from API...");
-
-        // Get configuration from the API
-        const configResponse = await fetch(`${baseUrl}/api/vapi/transcriber`);
-
-        if (configResponse.ok) {
-          const transcriberConfig = await configResponse.json();
-          console.log("Using Deepgram transcriber config (API key redacted)");
-
-          // Store the config on the instance for use during calls
-          // This is safer than trying to use setTranscriberOptions which might not exist
-          (vapiInstance as any)._transcriberConfig = transcriberConfig;
-          console.log("✅ Custom transcriber config stored successfully");
-        } else {
-          console.warn("Failed to get transcriber config from API");
-        }
-      } catch (error) {
-        console.error("Error getting custom transcriber config:", error);
-        // Continue without custom transcriber
-      }
-    }
-
-    // Add resilience by responding to browser visibility changes
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", () => {
-        // When page becomes visible again after being hidden
-        if (document.visibilityState === "visible") {
-          if (
-            (vapiInstance as any)._transportState === "disconnected" ||
-            (vapiInstance as any)._transportState === "failed"
-          ) {
-            console.log(
-              "Page visibility changed to visible, checking WebRTC connection..."
-            );
-            // If we have an active call that's disconnected, try to recover
-            if (
-              (vapiInstance as any)._isCallActive &&
-              (vapiInstance as any)._currentAssistantId
-            ) {
-              console.log("Attempting to recover disconnected call");
-              // This is a simplified recovery approach - in a production app
-              // you might want to implement a more sophisticated reconnection strategy
-            }
-          }
-        }
-      });
-    }
-
-    return vapiInstance;
-  } catch (error) {
-    console.error("Error initializing Vapi:", error);
-    throw error;
+  },
+  warn: (message: string, data?: any) => {
+    console.warn(`[VAPI Warning] ${message}`, data || '');
   }
 };
 
-// Helper type for assistant configuration with system prompt and first message
-export type AssistantConfig = {
+/**
+ * Initialize Vapi with API key or JWT token
+ * 2025 Standard: Enhanced error handling and type safety
+ */
+export const initVapi = async (
+  token: string,
+  options: VapiInitOptions = {}
+): Promise<VapiInstance> => {
+  try {
+    // 2025 Standard: Input validation
+    if (!token || typeof token !== 'string') {
+      throw new Error("Valid JWT token is required to initialize Vapi");
+    }
+
+    // 2025 Standard: Token validation (basic check)
+    if (token.length < 20) {
+      throw new Error("Invalid token format");
+    }
+
+    logger.info("Initializing Vapi instance", { 
+      tokenLength: token.length,
+      options: { ...options, iceServers: options.iceServers?.length }
+    });
+
+    // Create Vapi instance with type safety
+    const vapiInstance = new Vapi(token) as VapiInstance;
+    
+    logger.info("Vapi instance created successfully");
+
+    // 2025 Standard: Initialize state tracking
+    vapiInstance._transportState = "new";
+    vapiInstance._isCallActive = false;
+
+    // 2025 Standard: Event configuration
+    const eventConfig = {
+      critical: ["call-start", "call-end", "error", "ice-connection-state-change", "connection-state-change"],
+      verbose: ["message", "transcript", "transcript-response", "model-output", "status-update"],
+      transport: ["transport-state-change"]
+    };
+
+    // 2025 Standard: Transport state tracking
+    vapiInstance.on("transport-state-change" as any, (data: VapiEvent) => {
+      const state = data?.state || 'unknown';
+      logger.info(`Transport state: ${state}`);
+      vapiInstance._transportState = state;
+    });
+
+    // 2025 Standard: Enhanced event handling with error management
+    eventConfig.critical.forEach((eventType) => {
+      vapiInstance.on(eventType as any, (data: VapiEvent) => {
+        // Handle different event types
+        switch (eventType) {
+          case "call-start":
+            vapiInstance._isCallActive = true;
+            logger.info("Call started", { assistantId: data?.data?.assistantId });
+            break;
+            
+          case "call-end":
+            vapiInstance._isCallActive = false;
+            logger.info("Call ended", { duration: data?.data?.duration });
+            break;
+            
+          case "error":
+            handleVapiError(data, vapiInstance);
+            break;
+            
+          default:
+            logger.info(`Event: ${eventType}`, data);
+        }
+      });
+    });
+
+    // 2025 Standard: Optimized verbose event handling
+    if (process.env.NODE_ENV === 'development') {
+      eventConfig.verbose.forEach((eventType) => {
+        vapiInstance.on(eventType as any, (data: VapiEvent) => {
+          if (eventType === "message" && data?.type) {
+            logger.info(`Message: ${data.type}`);
+          } else if (eventType === "transcript") {
+            logger.info("Transcript received");
+          }
+        });
+      });
+    }
+
+    // 2025 Standard: Custom transcriber configuration
+    if (options.useCustomTranscriber) {
+      await configureCustomTranscriber(vapiInstance);
+    }
+
+    // 2025 Standard: Browser lifecycle management
+    if (typeof document !== "undefined") {
+      setupBrowserLifecycleHandlers(vapiInstance);
+    }
+
+    logger.info("Vapi initialization complete");
+    return vapiInstance;
+    
+  } catch (error) {
+    logger.error("Failed to initialize Vapi", error);
+    throw error instanceof Error ? error : new Error("Failed to initialize Vapi");
+  }
+};
+
+// 2025 Standard: Error handling helper
+function handleVapiError(event: VapiEvent, instance: VapiInstance) {
+  const errorInfo = extractErrorInfo(event);
+  
+  logger.error("Vapi error occurred", errorInfo);
+  
+  if (errorInfo.isAuthError) {
+    logger.error("Authentication error detected - token may be expired");
+    
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vapi-auth-error', { 
+        detail: { 
+          error: errorInfo.message, 
+          timestamp: Date.now(),
+          code: errorInfo.code 
+        } 
+      }));
+    }
+  }
+}
+
+// 2025 Standard: Error extraction helper
+function extractErrorInfo(event: VapiEvent): {
+  message: string;
+  code?: string;
+  isAuthError: boolean;
+} {
+  let message = '';
+  let code: string | undefined;
+  
+  if (typeof event === 'string') {
+    message = event;
+  } else if (event?.error?.message) {
+    message = event.error.message;
+    code = event.error.code;
+  } else if (event?.message) {
+    message = event.message;
+  } else if (event?.error) {
+    message = typeof event.error === 'string' ? event.error : JSON.stringify(event.error);
+  }
+  
+  const isAuthError = message.toLowerCase().match(/unauthorized|401|token|auth|jwt/) !== null;
+  
+  return { message, code, isAuthError };
+}
+
+// 2025 Standard: Custom transcriber configuration
+async function configureCustomTranscriber(instance: VapiInstance): Promise<void> {
+  try {
+    const baseUrl = typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    logger.info("Fetching transcriber configuration");
+
+    const response = await fetch(`${baseUrl}/api/vapi/transcriber`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transcriber config: ${response.status}`);
+    }
+
+    const transcriberConfig = await response.json();
+    instance._transcriberConfig = transcriberConfig;
+    
+    logger.info("Custom transcriber configured successfully");
+  } catch (error) {
+    logger.warn("Failed to configure custom transcriber", error);
+    // Continue without custom transcriber
+  }
+}
+
+// 2025 Standard: Browser lifecycle management
+function setupBrowserLifecycleHandlers(instance: VapiInstance): void {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      const isDisconnected = instance._transportState === "disconnected" || 
+                           instance._transportState === "failed";
+      
+      if (isDisconnected && instance._isCallActive) {
+        logger.info("Page visible with disconnected call - recovery may be needed");
+        // Emit event for recovery handling
+        window.dispatchEvent(new CustomEvent('vapi-connection-recovery-needed', {
+          detail: { 
+            transportState: instance._transportState,
+            assistantId: instance._currentAssistantId 
+          }
+        }));
+      }
+    }
+  };
+  
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  
+  // Cleanup on page unload
+  window.addEventListener("beforeunload", () => {
+    if (instance._isCallActive) {
+      logger.warn("Page unloading with active call");
+    }
+  });
+}
+
+// 2025 Standard: Enhanced type definitions
+export interface AssistantMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface AssistantModel {
+  provider: string;
+  model: string;
+  messages: AssistantMessage[];
+  temperature?: number;
+  maxTokens?: number;
+}
+
+export interface AssistantVoice {
+  provider: string;
+  voiceId: string;
+  model?: string;
+}
+
+export interface AssistantTranscriber {
+  provider: string;
+  model: string;
+  language: string;
+  smartFormat?: boolean;
+  keywords?: string[];
+}
+
+export interface AssistantConfig {
   id?: string;
   name?: string;
-  type?: string;
-  model: {
-    provider?: string;
-    model?: string;
-    messages: Array<{
-      role: string;
-      content: string;
-    }>;
-    temperature?: number;
-    maxTokens?: number;
-  };
+  type?: 'couple' | 'solo' | 'family';
+  model: AssistantModel;
+  voice: AssistantVoice;
+  transcriber?: AssistantTranscriber;
   firstMessage?: string;
-  voice?: {
-    provider?: string;
-    voiceId?: string;
-  };
-};
+  clientMessages?: string[];
+  silenceTimeoutSeconds?: number;
+  maxDurationSeconds?: number;
+  functions?: any[];
+  metadata?: Record<string, any>;
+}
 
 // Format session transcript for the AI assistant (limited to avoid payload size issues)
 export const formatSessionHistory = (sessions: any[] = []) => {

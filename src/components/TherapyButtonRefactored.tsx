@@ -22,6 +22,8 @@ import {
   PausedOverlay,
   ErrorDisplay 
 } from './therapy'
+import TranscriptOverlay from './therapy/TranscriptOverlay'
+import LiveTranscriptButton from './therapy/LiveTranscriptButton'
 import type { TherapyType, SessionRecoveryData } from '@/types/therapy-session'
 
 // Loading messages that cycle through
@@ -33,6 +35,17 @@ const loadingMessages = [
   "Getting everything ready for our talk...",
   "Almost there... just a moment more..."
 ]
+
+// Recovery timing constants for consistency
+const RECOVERY_CONSTANTS = {
+  COOLDOWN_MS: 2000,               // Cooldown between recovery attempts
+  STALE_DATA_MS: 60000,           // When recovery data is considered stale (60s)
+  AUTO_START_VALIDITY_MS: 60000,   // How long auto-start data is valid (60s - matches modal)
+  VAPI_READY_TIMEOUT_MS: 15000,    // Max wait for VAPI to be ready (15s)
+  VAPI_READY_CHECK_INTERVAL_MS: 500, // How often to check VAPI readiness
+  DEFERRED_RECOVERY_DELAY_MS: 200,   // Delay for deferred recovery dispatch
+  CLEANUP_INTERVAL_MS: 30000        // How often to clean up old recovery data (30s)
+}
 
 interface TherapyButtonRefactoredProps {
   therapyType: TherapyType
@@ -361,6 +374,8 @@ export function TherapyButtonRefactored({
   const [messageIndex, setMessageIndex] = useState(0)
   const [isRecoveredSession, setIsRecoveredSession] = useState(false)
   const [forceHidePhoneUI, setForceHidePhoneUI] = useState(false)
+  const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false)
+  const [hasNewTranscriptMessages, setHasNewTranscriptMessages] = useState(false)
   
   // Create refs for callbacks to avoid re-renders
   const isLoadingRef = useRef(isLoading)
@@ -380,10 +395,13 @@ export function TherapyButtonRefactored({
   // Mute functionality
   const [isMuted, setIsMuted] = useState(false)
   
-  // Recovery deduplication
+  // Recovery deduplication with timestamp tracking for proper cleanup
   const [isProcessingRecovery, setIsProcessingRecovery] = useState(false)
-  const recoveryProcessedRef = useRef(new Set<string>())
+  const recoveryProcessedRef = useRef(new Map<string, number>()) // Map of sessionId -> timestamp
   const lastRecoveryAttemptRef = useRef<number>(0)
+  
+  // Deferred recovery state for when auth is loading
+  const [deferredRecoveryData, setDeferredRecoveryData] = useState<any>(null)
   
   // Timer expiry handling
   const isHandlingExpiryRef = useRef(false)
@@ -409,9 +427,10 @@ export function TherapyButtonRefactored({
       const now = Date.now()
       
       // Prevent duplicate processing and React StrictMode double effects
+      const previousProcessTime = recoveryProcessedRef.current.get(sessionId)
       if (isProcessingRecovery || 
-          recoveryProcessedRef.current.has(sessionId) ||
-          (now - lastRecoveryAttemptRef.current) < 2000) { // 2 second cooldown
+          (previousProcessTime && (now - previousProcessTime) < RECOVERY_CONSTANTS.COOLDOWN_MS) ||
+          (now - lastRecoveryAttemptRef.current) < RECOVERY_CONSTANTS.COOLDOWN_MS) {
         console.log('⚠️ Recovery already processed or in cooldown for session:', sessionId)
         return
       }
@@ -420,7 +439,7 @@ export function TherapyButtonRefactored({
       
       // Mark as processing immediately
       setIsProcessingRecovery(true)
-      recoveryProcessedRef.current.add(sessionId)
+      recoveryProcessedRef.current.set(sessionId, now) // Store with timestamp
       lastRecoveryAttemptRef.current = now
       setIsRecoveredSession(true)
       
@@ -436,12 +455,16 @@ export function TherapyButtonRefactored({
         // Check if authentication is still loading
         if (isAuthLoading) {
           console.log('⏳ Authentication still loading, deferring recovery...')
-          // Defer recovery by re-triggering the event after a delay
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('sessionRecoveryComplete', { detail: event.detail }))
-          }, 1000)
+          // Store the recovery data for later processing
+          setDeferredRecoveryData({
+            sessionId,
+            sessionData,
+            detectedType,
+            assistant,
+            event: event.detail
+          })
           setIsProcessingRecovery(false)
-          recoveryProcessedRef.current.delete(sessionId)
+          recoveryProcessedRef.current.delete(sessionId) // Remove from map on deferral
           return
         }
         
@@ -494,25 +517,27 @@ export function TherapyButtonRefactored({
           
           setError('Unable to recover session due to authentication error. Please refresh the page and try again.')
           setIsProcessingRecovery(false)
+          recoveryProcessedRef.current.delete(sessionId) // Allow retry after auth error
+          lastRecoveryAttemptRef.current = 0 // Reset cooldown
           return
         }
         
         // Wait for VAPI to be ready
         let vapiReadyAttempts = 0
-        const maxVapiAttempts = 30 // 15 seconds max wait
+        const maxVapiAttempts = RECOVERY_CONSTANTS.VAPI_READY_TIMEOUT_MS / RECOVERY_CONSTANTS.VAPI_READY_CHECK_INTERVAL_MS
         
         while ((vapi.isAuthLoading || !vapi.isInstanceReady()) && vapiReadyAttempts < maxVapiAttempts) {
           console.log(`⏳ Waiting for VAPI to be ready... Attempt ${vapiReadyAttempts + 1}/${maxVapiAttempts}`)
           console.log('Auth loading:', vapi.isAuthLoading)
           console.log('Instance ready:', vapi.isInstanceReady())
           
-          await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms between checks
+          await new Promise(resolve => setTimeout(resolve, RECOVERY_CONSTANTS.VAPI_READY_CHECK_INTERVAL_MS))
           vapiReadyAttempts++
         }
         
         // Final check after waiting
         if (!vapi.isInstanceReady()) {
-          console.error('❌ VAPI failed to initialize after 15 seconds')
+          console.error(`❌ VAPI failed to initialize after ${RECOVERY_CONSTANTS.VAPI_READY_TIMEOUT_MS / 1000} seconds`)
           
           // Clear recovery data to prevent repeated attempts
           sessionStorage.removeItem('session-recovery-pending')
@@ -521,6 +546,8 @@ export function TherapyButtonRefactored({
           
           setError('Voice session initialization timed out. Please refresh the page and try again.')
           setIsProcessingRecovery(false)
+          recoveryProcessedRef.current.delete(sessionId) // Allow retry after timeout
+          lastRecoveryAttemptRef.current = 0 // Reset cooldown
           return
         }
         
@@ -626,15 +653,16 @@ export function TherapyButtonRefactored({
         const { sessionId, sessionData, detectedType, timestamp } = JSON.parse(autoStartData)
         
         // Check if already processed
-        if (recoveryProcessedRef.current.has(sessionId)) {
+        const previousProcessTime = recoveryProcessedRef.current.get(sessionId)
+        if (previousProcessTime) {
           console.log('⚠️ Auto-start data already processed, removing...')
           sessionStorage.removeItem('session-auto-start')
           return
         }
         
-        // Check if auto-start data is recent (within 10 seconds)
+        // Check if auto-start data is recent (within validity period)
         const age = Date.now() - timestamp
-        if (age < 10000) {
+        if (age < RECOVERY_CONSTANTS.AUTO_START_VALIDITY_MS) {
           console.log('🔄 Found recent auto-start data, triggering auto-start...')
           
           // Simulate the event for auto-start
@@ -659,11 +687,21 @@ export function TherapyButtonRefactored({
     
     // Cleanup processed sessions periodically to prevent memory leaks
     const cleanupInterval = setInterval(() => {
-      if (recoveryProcessedRef.current.size > 10) {
-        console.log('🧹 Cleaning up old recovery sessions...')
-        recoveryProcessedRef.current.clear()
+      const now = Date.now()
+      let cleanedCount = 0
+      
+      // Clean up entries older than stale data timeout
+      for (const [sessionId, timestamp] of recoveryProcessedRef.current) {
+        if (now - timestamp > RECOVERY_CONSTANTS.STALE_DATA_MS) {
+          recoveryProcessedRef.current.delete(sessionId)
+          cleanedCount++
+        }
       }
-    }, 60000) // Every minute
+      
+      if (cleanedCount > 0) {
+        console.log(`🧹 Cleaned up ${cleanedCount} old recovery sessions`)
+      }
+    }, RECOVERY_CONSTANTS.CLEANUP_INTERVAL_MS)
     
     // Cleanup
     return () => {
@@ -673,6 +711,26 @@ export function TherapyButtonRefactored({
       // The ref will be reset naturally when component remounts
     }
   }, [vapi, therapyType, user?.id, isAuthLoading, authError, setSessionActive])
+  
+  // Process deferred recovery when authentication completes
+  useEffect(() => {
+    if (!isAuthLoading && !authError && deferredRecoveryData) {
+      console.log('🔄 Authentication ready, processing deferred recovery...')
+      
+      // Re-dispatch the recovery event with the stored data
+      const recoveryEvent = new CustomEvent('sessionRecoveryComplete', { 
+        detail: deferredRecoveryData.event 
+      })
+      
+      // Clear deferred data first to prevent loops
+      setDeferredRecoveryData(null)
+      
+      // Delay to ensure all auth state is fully propagated
+      setTimeout(() => {
+        window.dispatchEvent(recoveryEvent)
+      }, RECOVERY_CONSTANTS.DEFERRED_RECOVERY_DELAY_MS)
+    }
+  }, [isAuthLoading, authError, deferredRecoveryData])
   
   // Cleanup session-active class on unmount to prevent stuck states
   useEffect(() => {
@@ -1111,6 +1169,23 @@ export function TherapyButtonRefactored({
   const handleRemoveFamilyMember = useCallback((index: number) => {
     setFamilyMembers(prev => prev.filter((_, i) => i !== index))
   }, [])
+  
+  // Track new transcript messages
+  useEffect(() => {
+    if (transcript.transcriptChunks.length > 0 && !showTranscriptOverlay) {
+      setHasNewTranscriptMessages(true)
+    }
+  }, [transcript.transcriptChunks.length, showTranscriptOverlay])
+  
+  // Reset new message indicator when overlay opens
+  const handleOpenTranscriptOverlay = useCallback(() => {
+    setShowTranscriptOverlay(true)
+    setHasNewTranscriptMessages(false)
+  }, [])
+  
+  const handleCloseTranscriptOverlay = useCallback(() => {
+    setShowTranscriptOverlay(false)
+  }, [])
 
   
   // Monitor session state and ensure session-active class is in sync
@@ -1184,10 +1259,10 @@ export function TherapyButtonRefactored({
     )
   }
   
-  // Show session UI if we have a session ID OR if VAPI reports as active OR if loading
+  // Show session UI if we have a session ID OR if VAPI reports as active OR if loading OR if recovered session
   // This ensures the phone container appears immediately when starting a session
   // But also ensures it hides properly when session ends
-  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading || isLoading) && !session.isEndingSession && !forceHidePhoneUI
+  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading || isLoading || isRecoveredSession) && !session.isEndingSession && !forceHidePhoneUI
   
   if (showPhoneUI || isLoading) {
 
@@ -1243,7 +1318,8 @@ export function TherapyButtonRefactored({
           />
           
           {/* Loading Animation - Show when loading but call not started */}
-          {(isLoading || vapi.vapiState.isLoading) ? (
+          {/* For recovered sessions, show UI immediately even if VAPI is still initializing */}
+          {(isLoading || vapi.vapiState.isLoading) && !isRecoveredSession ? (
             <motion.div 
               className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-gradient-to-b from-black/90 via-black/95 to-black rounded-[28px] backdrop-blur-sm"
               initial={{ opacity: 0 }}
@@ -1480,12 +1556,25 @@ export function TherapyButtonRefactored({
           </p>
         )}
         
-        {/* Transcript only - NO NOTES in phone UI - Only show when session is active */}
-        {!isLoading && !vapi.vapiState.isLoading && transcript.transcriptChunks.length > 0 && (
-          <div className="mt-4">
-            <SessionTranscript sessionId={session.sessionId || ''} />
+        {/* Live Transcript Button - Only show when session is active and on mobile */}
+        {!isLoading && !vapi.vapiState.isLoading && vapi.vapiState.isActive && (
+          <div className="mt-4 flex justify-center sm:hidden">
+            <LiveTranscriptButton 
+              onClick={handleOpenTranscriptOverlay}
+              hasNewMessages={hasNewTranscriptMessages}
+            />
           </div>
         )}
+        
+        {/* Transcript Overlay for Mobile */}
+        <TranscriptOverlay
+          isOpen={showTranscriptOverlay}
+          onClose={handleCloseTranscriptOverlay}
+          sessionId={session.sessionId || ''}
+          therapistName={getTherapistName()}
+          therapyType={therapyType}
+          transcriptChunks={transcript.transcriptChunks}
+        />
         
         {/* Error Display */}
         {error && (

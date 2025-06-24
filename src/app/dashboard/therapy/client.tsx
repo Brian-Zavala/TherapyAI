@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
@@ -14,9 +14,11 @@ import {
   INDIVIDUAL_THERAPY_ASSISTANT_CONFIG,
   FAMILY_THERAPY_ASSISTANT_CONFIG,
 } from "@/lib/vapi";
+import { useProfile } from "@/providers/ProfileProvider";
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
+  const { profile } = useProfile();
   
   // Session recovery hook - only runs on therapy page
   const { isChecking: isCheckingForSession, hasActiveSession, shouldAutoRestart } = useTherapySessionRecovery();
@@ -111,12 +113,13 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       // If no recovery data and no active session, wait a bit more then show selector
       if (!hasActiveSession) {
         // Give the modal extra time to detect recovery data (up to 2 seconds total)
+        // Reduced frequency to avoid performance issues
         const checkInterval = setInterval(() => {
           if (checkRecoveryData()) {
             clearInterval(checkInterval);
             return;
           }
-        }, 100);
+        }, 500); // Check every 500ms instead of 100ms
         
         // After 2 seconds, if still no recovery data, show the type selector
         const timeout = setTimeout(() => {
@@ -150,7 +153,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Quick actions menu state
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   // User profile data
-  const [userProfile, setUserProfile] = useState<{
+  // Remove local userProfile state - now using ProfileProvider
+  const userProfile = profile;
+  const [_unusedUserProfile, _setUnusedUserProfile] = useState<{
     name?: string;
     partnerName?: string;
     familyMember1?: string;
@@ -176,34 +181,50 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     familyMember7Relation?: string;
   }>({});
 
-  // Digital clock state
-  const [hours, setHours] = useState<string>("");
-  const [minutes, setMinutes] = useState<string>("");
-  const [seconds, setSeconds] = useState<string>("");
-  const [ampm, setAmPm] = useState<string>("");
-  const [day, setDay] = useState<string>("");
-  const [month, setMonth] = useState<string>("");
-  const [date, setDate] = useState<number>(0);
-  const [year, setYear] = useState<number>(0);
+  // Digital clock state - optimized to single state update
+  const [clockData, setClockData] = useState({
+    hours: "",
+    minutes: "",
+    seconds: "",
+    ampm: "",
+    day: "",
+    month: "",
+    date: 0,
+    year: 0
+  });
 
-  // Fetch user profile data
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const profileResponse = await fetch("/api/user/profile");
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          setUserProfile(profileData);
-        }
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-      }
-    };
+  // Removed - now using ProfileProvider
 
-    if (userId) {
-      fetchUserProfile();
-    }
-  }, [userId]);
+  // Update time function for digital clock - optimized with single state update
+  const updateClock = useCallback(() => {
+    const now = new Date();
+    
+    const hour24 = now.getHours();
+    const isAM = hour24 < 12;
+    let hour12 = hour24;
+    if (hour12 === 0) hour12 = 12; // Convert midnight (0) to 12
+    if (hour12 > 12) hour12 -= 12; // Convert 13-23 to 1-11
+
+    const monthList = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ];
+    const dayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // Single state update to prevent multiple re-renders
+    setClockData({
+      hours: hour12 < 10 ? "0" + hour12 : hour12.toString(),
+      minutes: now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes().toString(),
+      seconds: now.getSeconds() < 10 ? "0" + now.getSeconds() : now.getSeconds().toString(),
+      ampm: isAM ? "AM" : "PM",
+      day: dayList[now.getDay()],
+      month: monthList[now.getMonth()],
+      date: now.getDate(),
+      year: now.getFullYear()
+    });
+    
+    setCurrentTime(now);
+  }, []);
 
   useEffect(() => {
     const checkActive = () => {
@@ -240,54 +261,6 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     
     window.addEventListener('sessionStateChanged', handleSessionStateChange);
 
-    // Update time every second for digital clock
-    const updateClock = () => {
-      const now = new Date();
-      setCurrentTime(now);
-
-      // Hours in 12-hour format
-      let hour = now.getHours();
-      const isAM = hour < 12;
-      if (hour === 0) hour = 12; // Convert midnight (0) to 12
-      if (hour > 12) hour -= 12; // Convert 13-23 to 1-11
-
-      // Update time components
-      setHours(hour < 10 ? "0" + hour : hour.toString());
-      setMinutes(
-        now.getMinutes() < 10
-          ? "0" + now.getMinutes()
-          : now.getMinutes().toString()
-      );
-      setSeconds(
-        now.getSeconds() < 10
-          ? "0" + now.getSeconds()
-          : now.getSeconds().toString()
-      );
-      setAmPm(isAM ? "AM" : "PM");
-
-      // Update date components
-      const monthList = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ];
-      const dayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-      setDay(dayList[now.getDay()]);
-      setMonth(monthList[now.getMonth()]);
-      setDate(now.getDate());
-      setYear(now.getFullYear());
-    };
-
     // Initial update
     updateClock();
 
@@ -299,6 +272,26 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       clearInterval(timer);
       window.removeEventListener('sessionStateChanged', handleSessionStateChange);
     };
+  }, [updateClock]);
+  
+  // Listen for session ended event to show therapy type selector
+  useEffect(() => {
+    const handleSessionEnded = () => {
+      console.log('🎯 Therapy page received sessionEnded event, showing type selector');
+      // Reset all session-related state
+      setSelectedAssistant(null);
+      setSessionType(null);
+      setMeditationStep("none");
+      setIsSessionActive(false);
+      
+      // Show the therapy type selector after a small delay
+      setTimeout(() => {
+        setShowTypeSelector(true);
+      }, 800);
+    };
+    
+    window.addEventListener('sessionEnded', handleSessionEnded);
+    return () => window.removeEventListener('sessionEnded', handleSessionEnded);
   }, []);
 
   // Handle selecting therapy type (used by both popup and UI elements within the page)
@@ -379,7 +372,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   }).format(currentTime);
 
   // Format date in the style from the digital clock component
-  const digitalClockDate = `${day}, ${month} ${date} ${year}`;
+  const digitalClockDate = `${clockData.day}, ${clockData.month} ${clockData.date} ${clockData.year}`;
 
   // Function to open therapist selection modal
   const openTherapistSelector = () => {
@@ -891,7 +884,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                             key: "hours",
                             className: "hours",
                           },
-                          hours
+                          clockData.hours
                         ),
                         React.createElement(
                           "div",
@@ -907,7 +900,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                             key: "minutes",
                             className: "minutes",
                           },
-                          minutes
+                          clockData.minutes
                         ),
                         React.createElement(
                           "div",
@@ -923,7 +916,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                             key: "seconds",
                             className: "seconds",
                           },
-                          seconds
+                          clockData.seconds
                         ),
                         React.createElement(
                           "div",
@@ -931,7 +924,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                             key: "am-pm",
                             className: "am-pm",
                           },
-                          ampm
+                          clockData.ampm
                         ),
                       ]
                     ),

@@ -9,7 +9,13 @@ import React, {
   Suspense,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Lottie from "lottie-react";
+import dynamic from 'next/dynamic';
+
+// Dynamically import Lottie to reduce initial bundle size
+const Lottie = dynamic(() => import('lottie-react'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-white/10 animate-pulse rounded-lg" />
+});
 import { useRouter } from "next/navigation";
 import GlassCard from "@/components/ui/glass-card";
 // Global animation cache for better performance
@@ -396,6 +402,7 @@ export default function IntroWelcomeScreen() {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, []);
+
 
   const handleNext = useCallback(() => {
     if (currentStep < therapySteps.length - 1) {

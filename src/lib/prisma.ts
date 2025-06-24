@@ -1,25 +1,40 @@
 // src/lib/prisma.ts
-import { PrismaClient } from '@prisma/client'
+// Production-ready Prisma client with connection pooling and retry logic
+export { 
+  prisma, 
+  checkDatabaseConnection,
+  Prisma,
+  type PrismaClient 
+} from './prisma-optimized'
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
+// Re-export legacy functions for compatibility
+import { prisma as prismaClient } from './prisma-optimized'
 
-// Log DATABASE_URL status (not the actual URL for security)
-if (process.env.NODE_ENV === 'development') {
-  console.log('DATABASE_URL defined:', !!process.env.DATABASE_URL)
-  console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length || 0)
-  // Check for common issues
-  if (process.env.DATABASE_URL) {
-    const hasSpecialChars = /[<>'"{}|\\^`\[\]]/g.test(process.env.DATABASE_URL)
-    if (hasSpecialChars) {
-      console.warn('DATABASE_URL contains special characters that may need escaping')
-    }
+// Legacy query statistics function (for compatibility)
+export function getQueryStatistics() {
+  if (process.env.NODE_ENV !== 'development') {
+    return null
+  }
+  
+  return {
+    totalQueries: 0, // Would need to be tracked in middleware
+    slowQueries: [],
+    connectionStatus: 'connected'
   }
 }
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+// Legacy disconnect function (for compatibility)
+export async function disconnectPrisma() {
+  try {
+    await prismaClient.$disconnect()
+    console.log('[Prisma] Disconnected successfully')
+  } catch (error) {
+    console.error('[Prisma] Error during disconnect:', error)
+  }
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Handle process termination
+if (process.env.NODE_ENV === 'production') {
+  process.on('SIGINT', disconnectPrisma)
+  process.on('SIGTERM', disconnectPrisma)
+}

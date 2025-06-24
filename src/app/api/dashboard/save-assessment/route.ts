@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const savedMetrics = await prisma.communicationMetric.create({
       data: {
         userId: user.id,
-        sessionId: '', // Assessment metric, not tied to a specific session
+        sessionId: null, // Assessment metric, not tied to a specific session
         clarity: adjustedCommunicationScore,
         empathy: adjustedTrustScore,
         respect: adjustedConflictScore,

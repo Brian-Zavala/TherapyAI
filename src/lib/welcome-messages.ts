@@ -29,7 +29,7 @@ export type WelcomeUser = z.infer<typeof WelcomeUserSchema>;
 
 // Ultra-crafted welcome message templates that make users feel amazing
 export const WELCOME_TEMPLATES = {
-  SMS: (name: string) => `💝 ${name}, what you just did took real courage. Welcome to TherapyAI - your safe space for growth! You're not just starting a program, you're investing in the relationships that matter most. We believe in you completely. Reply STOP to unsubscribe.`,
+  SMS: (name: string) => `Hi ${name}! Welcome to TherapyAI. Your journey to stronger relationships starts now. Reply STOP to unsubscribe.`,
   
   EMAIL_SUBJECT: (name: string) => `${name}, you've just made a beautiful choice 🌱`,
 }
@@ -50,6 +50,8 @@ export const sendWelcomeSMS = async (user: WelcomeUser): Promise<{ success: bool
     const message = WELCOME_TEMPLATES.SMS(displayName);
 
     // Send SMS with high priority
+    console.log(`📱 Attempting to send welcome SMS to ${user.phone}: "${message}"`);
+    
     const result = await sendSMS({
       to: user.phone,
       body: message,
@@ -57,10 +59,14 @@ export const sendWelcomeSMS = async (user: WelcomeUser): Promise<{ success: bool
       priority: 'high'
     });
 
+    console.log(`📱 SMS send result:`, result);
+
     if (result.success) {
       // Log welcome message sent
       await logWelcomeMessage(user.id, 'sms', result.messageId);
       console.log(`✅ Welcome SMS sent to ${user.phone}`);
+    } else {
+      console.error(`❌ SMS send failed:`, result.error);
     }
 
     return result;
@@ -76,6 +82,12 @@ export const sendWelcomeSMS = async (user: WelcomeUser): Promise<{ success: bool
 // Email Welcome Message Service  
 export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Check if Resend API key is configured
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY environment variable not set');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     // Check if user has email enabled
     const notificationPrefs = Array.isArray(user.notificationPrefs) ? user.notificationPrefs : [];
     if (!notificationPrefs.includes('email')) {
@@ -90,8 +102,10 @@ export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: bo
     const emailContent = generateWelcomeEmailHTML(user);
 
     // Send email
+    console.log(`📧 Attempting to send welcome email to ${user.email} from ${process.env.EMAIL_FROM || 'TherapyAI Team <welcome@therapyai.us>'}`);
+    
     const response = await resend.emails.send({
-      from: `TherapyAI Team <welcome@${process.env.EMAIL_DOMAIN || 'therapyai.com'}>`,
+      from: process.env.EMAIL_FROM || 'TherapyAI Team <welcome@therapyai.us>',
       to: user.email,
       subject,
       html: emailContent,
@@ -105,13 +119,16 @@ export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: bo
       ]
     });
 
+    console.log(`📧 Resend API response:`, response);
+
     if (response.data?.id) {
       // Log welcome message sent
       await logWelcomeMessage(user.id, 'email', response.data.id);
       console.log(`✅ Welcome email sent to ${user.email}`);
       return { success: true };
     } else {
-      return { success: false, error: 'Failed to send email' };
+      console.error(`❌ Email send failed - no response ID. Response:`, response);
+      return { success: false, error: 'Failed to send email - no response ID' };
     }
     
   } catch (error) {

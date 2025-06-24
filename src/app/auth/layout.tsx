@@ -14,14 +14,14 @@ export default function AuthLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Add overflow-hidden to body on mount, remove on unmount
+  // Clean up any potential scroll issues
   useEffect(() => {
-    document.documentElement.classList.add('overflow-hidden');
-    document.body.classList.add('overflow-hidden');
+    // Reset any overflow constraints that might interfere
+    document.documentElement.classList.remove('overflow-hidden');
+    document.body.classList.remove('overflow-hidden');
     
     return () => {
-      document.documentElement.classList.remove('overflow-hidden');
-      document.body.classList.remove('overflow-hidden');
+      // No cleanup needed - allow normal scrolling
     };
   }, []);
 
@@ -46,7 +46,7 @@ export default function AuthLayout({
   // Only render the layout if the user is unauthenticated
   if (status === "unauthenticated") {
     return (
-      <div className="fixed inset-0 w-full bg-gray-900 overflow-hidden">
+      <div className="min-h-screen w-full bg-gray-900">
         {children}
       </div>
     );

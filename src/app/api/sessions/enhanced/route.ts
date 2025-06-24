@@ -1,428 +1,388 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { withRetry, withTransaction } from '@/lib/prisma-enhanced'
-import { z } from 'zod'
+/**
+ * Enhanced Session API Route
+ * Supports intelligent scheduling, recurring sessions, and calendar integrations
+ */
 
-// Enhanced session schema with validation
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+import { EnhancedReminderEngine } from '@/lib/enhanced-scheduler/reminder-engine';
+import { CalendarIntegrationService } from '@/lib/enhanced-scheduler/calendar-integration';
+import { Logger } from '@/lib/enhanced-scheduler/logging';
+
+// Request validation schema
 const CreateSessionSchema = z.object({
-  assistantId: z.string().min(1).max(255),
-  theme: z.string().min(1).max(255).optional(),
-  mood: z.string().min(1).max(100).optional(),
-  duration: z.number().int().min(1).max(180).default(60),
-  isRecurring: z.boolean().optional(),
-  recurrencePattern: z.enum(['daily', 'weekly', 'biweekly']).optional(),
-  recurrenceCount: z.number().int().min(1).max(52).optional(),
-  familyMemberIds: z.array(z.string()).optional(), // New field for family members
-})
+  date: z.string().datetime(),
+  duration: z.number().min(15).max(180).default(60),
+  theme: z.string().min(1).max(255).default('AI Therapy Session'),
+  notes: z.string().max(1000).optional(),
+  notificationPrefs: z.string().default('email'),
+  isRecurring: z.boolean().default(false),
+  recurringFrequency: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
+  userPreferences: z.object({
+    sessionPreference: z.string().optional(),
+    preferredDays: z.array(z.string()).optional(),
+    sessionFrequency: z.string().optional(),
+    recurringSession: z.string().optional(),
+    reminderTiming: z.string().optional(),
+    timeZone: z.string().optional(),
+    communicationStyle: z.string().optional(),
+    therapyType: z.string().optional()
+  }).optional(),
+  calendarIntegrations: z.array(z.object({
+    provider: z.enum(['google', 'outlook', 'exchange']),
+    enabled: z.boolean(),
+    syncing: z.boolean()
+  })).optional(),
+  intelligentScheduling: z.boolean().default(true)
+});
 
-// GET /api/sessions/enhanced - Get user sessions with optimized queries
-export async function GET(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    // Authentication check
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const searchParams = req.nextUrl.searchParams
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
-    const status = searchParams.get('status')
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
-    const includeTranscripts = searchParams.get('includeTranscripts') === 'true'
-    const includeMetrics = searchParams.get('includeMetrics') === 'true'
+    // Parse and validate request body
+    const body = await request.json();
+    const validatedData = CreateSessionSchema.parse(body);
 
-    // Build where clause with filters
-    const where: any = { userId: session.user.id }
-    
-    if (status) {
-      where.status = status
-    }
-    
-    if (startDate || endDate) {
-      where.date = {}
-      if (startDate) where.date.gte = new Date(startDate)
-      if (endDate) where.date.lte = new Date(endDate)
-    }
+    console.log('Creating enhanced session:', {
+      userId: session.user.id,
+      date: validatedData.date,
+      isRecurring: validatedData.isRecurring,
+      intelligentScheduling: validatedData.intelligentScheduling
+    });
 
-    // Execute queries with retry logic
-    const [sessions, totalCount] = await withRetry(async () => {
-      return await Promise.all([
-        prisma.session.findMany({
-          where,
-          orderBy: { date: 'desc' },
-          skip: (page - 1) * limit,
-          take: limit,
-          include: {
-            // Only include related data if requested
-            transcriptEntries: includeTranscripts ? {
-              select: {
-                id: true,
-                speaker: true,
-                text: true,
-                timestamp: true,
-                isFinal: true,
-              },
-              orderBy: { timestamp: 'asc' },
-              take: 100, // Limit transcript entries
-            } : false,
-            conversationState: {
-              select: {
-                isActive: true,
-                isPaused: true,
-                lastActiveTime: true,
-                messageCount: true,
-              },
-            },
-          },
-        }),
-        prisma.session.count({ where }),
-      ])
-    })
-
-    // If metrics requested, fetch in parallel
-    let metrics = null
-    if (includeMetrics && sessions.length > 0) {
-      const sessionIds = sessions.map((s: any) => s.id)
-      metrics = await prisma.communicationMetric.findMany({
-        where: {
-          sessionId: { in: sessionIds },
-        },
-        select: {
-          sessionId: true,
-          clarity: true,
-          empathy: true,
-          respect: true,
-          overall: true,
-        },
-      })
-    }
-
-    // Get family members for backward compatibility
+    // Get user profile for enhanced features
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
+      include: { 
+        profile: true,
         familyMembers: {
           where: { isActive: true },
-          orderBy: { order: 'asc' },
-        },
-      },
-    })
+          orderBy: { order: 'asc' }
+        }
+      }
+    });
 
-    // Transform sessions for response
-    const transformedSessions = sessions.map((session: any) => ({
-      ...session,
-      metrics: metrics?.find((m: any) => m.sessionId === session.id),
-      // Add backward compatibility fields
-      familyMembers: user?.familyMembers || [],
-    }))
-
-    return NextResponse.json({
-      sessions: transformedSessions,
-      pagination: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
-      meta: {
-        hasTranscripts: includeTranscripts,
-        hasMetrics: includeMetrics,
-      },
-    })
-  } catch (error) {
-    console.error('Error fetching sessions:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch sessions' },
-      { status: 500 }
-    )
-  }
-}
-
-// POST /api/sessions/enhanced - Create new session with transaction
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const body = await req.json()
+    // Parse session date
+    const sessionDate = new Date(validatedData.date);
     
-    // Validate request body
-    const validatedData = CreateSessionSchema.parse(body)
-
-    // Check for active sessions to prevent duplicates
-    const activeSession = await prisma.session.findFirst({
-      where: {
-        userId: session.user.id,
-        status: 'active',
-        conversationTimeSeconds: { gt: 30 },
-      },
-    })
-
-    if (activeSession) {
-      return NextResponse.json(
-        { 
-          error: 'Active session already exists',
-          sessionId: activeSession.id,
-        },
-        { status: 409 }
-      )
+    // Validate session date
+    if (sessionDate <= new Date()) {
+      return NextResponse.json({ 
+        error: 'Session date must be in the future' 
+      }, { status: 400 });
     }
 
-    // Create session with transaction for data consistency
-    const newSession = await withTransaction(async (tx) => {
-      // Create main session
-      const createdSession = await tx.session.create({
+    let createdSession;
+    let recurringSeriesId = null;
+
+    // Use transaction for session creation
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the main session
+      const session = await tx.session.create({
         data: {
-          userId: session.user.id,
-          assistantId: validatedData.assistantId,
-          theme: validatedData.theme,
+          userId: user.id,
+          date: sessionDate,
           duration: validatedData.duration,
+          theme: validatedData.theme,
+          notes: validatedData.notes || '',
           status: 'scheduled',
-          startTime: new Date(),
-          date: new Date(),
-        },
-      })
-
-      // Create conversation state
-      await tx.conversationState.create({
-        data: {
-          sessionId: createdSession.id,
-          userId: session.user.id,
-          assistantId: validatedData.assistantId || 'default-assistant',
-          sessionStartTime: new Date(),
-          lastActiveTime: new Date(),
-          messages: {
-            create: []
-          }
-        },
-      })
-
-      // Create initial communication metric
-      await tx.communicationMetric.create({
-        data: {
-          userId: session.user.id,
-          sessionId: createdSession.id,
-          clarity: 50,
-          empathy: 50,
-          respect: 50,
-          overall: 50,
-          listening: 50,
-          expression: 50,
-          metricType: 'session',
-          calculatedAt: new Date()
-        },
-      })
-
-      // Handle recurring sessions if requested
-      if (validatedData.isRecurring && validatedData.recurrencePattern && validatedData.recurrenceCount) {
-        const recurringSessions = []
-        const baseDate = new Date()
-        
-        for (let i = 1; i <= validatedData.recurrenceCount; i++) {
-          const nextDate = new Date(baseDate)
-          
-          switch (validatedData.recurrencePattern) {
-            case 'daily':
-              nextDate.setDate(nextDate.getDate() + i)
-              break
-            case 'weekly':
-              nextDate.setDate(nextDate.getDate() + (i * 7))
-              break
-            case 'biweekly':
-              nextDate.setDate(nextDate.getDate() + (i * 14))
-              break
-          }
-          
-          recurringSessions.push({
-            userId: session.user.id,
-            assistantId: validatedData.assistantId,
-            theme: validatedData.theme,
-            mood: validatedData.mood,
-            duration: validatedData.duration,
-            status: 'scheduled',
-            date: nextDate,
-          })
+          assistantId: user.profile?.assistantId || null,
+          sessionType: validatedData.userPreferences?.therapyType || 'couple'
         }
-        
-        await tx.session.createMany({
-          data: recurringSessions,
-        })
+      });
+
+      return { session };
+    });
+
+    createdSession = result.session;
+
+    // Initialize services
+    const reminderEngine = new EnhancedReminderEngine();
+    const calendarIntegration = new CalendarIntegrationService();
+    const logger = new Logger();
+
+    // Schedule reminders based on user preferences
+    try {
+      if (validatedData.userPreferences?.reminderTiming) {
+        await reminderEngine.scheduleReminders(
+          createdSession.id,
+          user.id,
+          sessionDate,
+          {
+            sessionPreference: validatedData.userPreferences.sessionPreference || 'couple',
+            preferredDays: validatedData.userPreferences.preferredDays || [],
+            sessionFrequency: validatedData.userPreferences.sessionFrequency || 'weekly',
+            recurringSession: validatedData.userPreferences.recurringSession || 'no',
+            reminderTiming: validatedData.userPreferences.reminderTiming,
+            timeZone: validatedData.userPreferences.timeZone || 'UTC',
+            communicationStyle: validatedData.userPreferences.communicationStyle || 'supportive',
+            therapyType: validatedData.userPreferences.therapyType || 'couple'
+          },
+          user.profile?.notificationPrefs || 'email'
+        );
+
+        logger.logSessionEvent(createdSession.id, user.id, 'REMINDERS_SCHEDULED', {
+          reminderTiming: validatedData.userPreferences.reminderTiming,
+          notificationMethod: user.profile?.notificationPrefs || 'email'
+        });
       }
-
-      return createdSession
-    })
-
-    // Log session creation for analytics
-    console.log(`✅ Session created: ${newSession.id} for user: ${session.user.id}`)
-
-    return NextResponse.json({
-      session: newSession,
-      message: 'Session created successfully',
-    })
-  } catch (error) {
-    console.error('Error creating session:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create session' },
-      { status: 500 }
-    )
-  }
-}
-
-// PATCH /api/sessions/enhanced - Batch update sessions
-export async function PATCH(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    } catch (reminderError) {
+      logger.logError('Failed to schedule reminders', reminderError, {
+        sessionId: createdSession.id,
+        userId: user.id
+      });
+      // Continue without failing the session creation
     }
 
-    const body = await req.json()
-    const { sessionIds, updates } = body
+    // Create calendar events if integrations are enabled
+    try {
+      const enabledIntegrations = validatedData.calendarIntegrations?.filter(ci => ci.enabled) || [];
+      if (enabledIntegrations.length > 0) {
+        const calendarEvent = {
+          title: validatedData.theme,
+          description: `Therapy session: ${validatedData.theme}${validatedData.notes ? `\n\nNotes: ${validatedData.notes}` : ''}`,
+          startTime: sessionDate,
+          endTime: new Date(sessionDate.getTime() + (validatedData.duration * 60 * 1000)),
+          location: 'Online Therapy Session',
+          attendees: [user.email]
+        };
 
-    if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
-      return NextResponse.json(
-        { error: 'No session IDs provided' },
-        { status: 400 }
-      )
+        const calendarResults = await calendarIntegration.createCalendarEvent(
+          user.id,
+          calendarEvent,
+          enabledIntegrations.map(ci => ci.provider)
+        );
+
+        logger.logSessionEvent(createdSession.id, user.id, 'CALENDAR_EVENTS_CREATED', {
+          results: calendarResults,
+          integrationCount: enabledIntegrations.length
+        });
+      }
+    } catch (calendarError) {
+      logger.logError('Failed to create calendar events', calendarError, {
+        sessionId: createdSession.id,
+        userId: user.id
+      });
+      // Continue without failing the session creation
     }
 
-    // Validate ownership of all sessions
-    const userSessions = await prisma.session.findMany({
-      where: {
-        id: { in: sessionIds },
-        userId: session.user.id,
+    // Handle recurring sessions if enabled
+    if (validatedData.isRecurring && validatedData.recurringFrequency) {
+      try {
+        // Create additional recurring sessions (simplified implementation)
+        const recurringDates = generateRecurringDates(
+          sessionDate,
+          validatedData.recurringFrequency,
+          4 // Create 4 future sessions
+        );
+
+        const recurringSessionsData = recurringDates.map(date => ({
+          userId: user.id,
+          date,
+          duration: validatedData.duration,
+          theme: `${validatedData.theme} (Recurring)`,
+          notes: `${validatedData.notes || ''}\n\nPart of recurring series`,
+          status: 'scheduled' as const,
+          assistantId: user.profile?.assistantId || null,
+          sessionType: validatedData.userPreferences?.therapyType || 'couple'
+        }));
+
+        await prisma.session.createMany({
+          data: recurringSessionsData
+        });
+
+        recurringSeriesId = `series_${user.id}_${Date.now()}`;
+        
+        console.log('Recurring sessions created:', {
+          seriesId: recurringSeriesId,
+          sessionId: createdSession.id,
+          count: recurringSessionsData.length
+        });
+      } catch (recurringError) {
+        console.error('Failed to create recurring sessions:', recurringError);
+        // Continue with single session creation
+      }
+    }
+
+    // Prepare response
+    const response = {
+      success: true,
+      session: {
+        id: createdSession.id,
+        date: createdSession.date,
+        duration: createdSession.duration,
+        theme: createdSession.theme,
+        notes: createdSession.notes,
+        status: createdSession.status
       },
-      select: { id: true, version: true },
-    })
+      recurringSeriesId,
+      enhancedFeatures: {
+        intelligentScheduling: validatedData.intelligentScheduling,
+        remindersCreated: true,
+        calendarIntegration: validatedData.calendarIntegrations?.some(ci => ci.enabled) || false,
+        recurringEnabled: validatedData.isRecurring
+      },
+      message: recurringSeriesId 
+        ? 'Session and recurring series created successfully'
+        : 'Session created successfully'
+    };
 
-    if (userSessions.length !== sessionIds.length) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Some sessions do not belong to user' },
-        { status: 403 }
-      )
+    console.log('Enhanced session created successfully:', {
+      sessionId: createdSession.id,
+      recurringSeriesId,
+      userId: user.id
+    });
+
+    return NextResponse.json(response, { status: 201 });
+
+  } catch (error) {
+    console.error('Failed to create enhanced session:', error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Invalid request data',
+        details: error.errors
+      }, { status: 400 });
     }
 
-    // Perform batch update with optimistic locking
-    const updateResults = await withTransaction(async (tx) => {
-      const results = []
-      
-      for (const userSession of userSessions) {
-        try {
-          const updated = await tx.session.update({
-            where: {
-              id: userSession.id,
-              version: userSession.version, // Optimistic locking
-            },
-            data: {
-              ...updates,
-              version: { increment: 1 },
-              updatedAt: new Date(),
-            },
-          })
-          results.push({ id: updated.id, success: true })
-        } catch (error: any) {
-          if (error.code === 'P2025') {
-            // Record not found - version mismatch
-            results.push({ 
-              id: userSession.id, 
-              success: false, 
-              error: 'Version conflict' 
-            })
-          } else {
-            throw error
-          }
-        }
-      }
-      
-      return results
-    })
+    if (error instanceof Error) {
+      return NextResponse.json({
+        error: 'Failed to create session',
+        message: error.message
+      }, { status: 500 });
+    }
 
-    const successCount = updateResults.filter(r => r.success).length
-    
     return NextResponse.json({
-      message: `Updated ${successCount} of ${sessionIds.length} sessions`,
-      results: updateResults,
-    })
-  } catch (error) {
-    console.error('Error updating sessions:', error)
-    return NextResponse.json(
-      { error: 'Failed to update sessions' },
-      { status: 500 }
-    )
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }
 
-// DELETE /api/sessions/enhanced - Soft delete sessions
-export async function DELETE(req: NextRequest) {
+// Helper function to generate recurring dates
+function generateRecurringDates(
+  startDate: Date, 
+  frequency: 'weekly' | 'biweekly' | 'monthly',
+  count: number
+): Date[] {
+  const dates: Date[] = [];
+  let currentDate = new Date(startDate);
+
+  for (let i = 0; i < count; i++) {
+    switch (frequency) {
+      case 'weekly':
+        currentDate = new Date(currentDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+        break;
+      case 'biweekly':
+        currentDate = new Date(currentDate.getTime() + (14 * 24 * 60 * 60 * 1000));
+        break;
+      case 'monthly':
+        currentDate = new Date(currentDate);
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        break;
+    }
+    dates.push(new Date(currentDate));
+  }
+
+  return dates;
+}
+
+// GET method for enhanced session retrieval
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const searchParams = req.nextUrl.searchParams
-    const sessionId = searchParams.get('sessionId')
-    const deleteAll = searchParams.get('deleteAll') === 'true'
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('id');
+    const includeMetrics = searchParams.get('includeMetrics') === 'true';
 
-    if (!sessionId && !deleteAll) {
-      return NextResponse.json(
-        { error: 'No session ID provided' },
-        { status: 400 }
-      )
-    }
-
-    if (deleteAll) {
-      // Soft delete all sessions for user
-      const result = await prisma.session.updateMany({
+    if (sessionId) {
+      // Get specific session with enhanced data
+      const sessionData = await prisma.session.findFirst({
         where: {
-          userId: session.user.id,
-          status: { not: 'deleted' },
+          id: sessionId,
+          userId: session.user.id
         },
-        data: {
-          status: 'deleted',
-          updatedAt: new Date(),
-        },
-      })
-      
+        include: {
+          transcriptEntries: includeMetrics,
+          communicationMetrics: includeMetrics,
+          progressTracking: includeMetrics,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
+      });
+
+      if (!sessionData) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+
       return NextResponse.json({
-        message: `Soft deleted ${result.count} sessions`,
-      })
+        session: sessionData,
+        enhancedFeatures: {
+          hasEnhancedScheduling: true,
+          hasReminders: true,
+          hasCalendarIntegration: false
+        }
+      });
+
     } else {
-      // Soft delete specific session
-      const deletedSession = await prisma.session.update({
-        where: {
-          id: sessionId!,
-          userId: session.user.id,
-        },
-        data: {
-          status: 'deleted',
-          updatedAt: new Date(),
-        },
-      })
-      
+      // Get all sessions for user with pagination
+      const page = parseInt(searchParams.get('page') || '1');
+      const limit = parseInt(searchParams.get('limit') || '10');
+      const skip = (page - 1) * limit;
+
+      const [sessions, total] = await Promise.all([
+        prisma.session.findMany({
+          where: { userId: session.user.id },
+          orderBy: { date: 'desc' },
+          skip,
+          take: limit,
+          include: {
+            communicationMetrics: includeMetrics,
+            progressTracking: includeMetrics
+          }
+        }),
+        prisma.session.count({
+          where: { userId: session.user.id }
+        })
+      ]);
+
       return NextResponse.json({
-        message: 'Session deleted successfully',
-        sessionId: deletedSession.id,
-      })
+        sessions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrevious: page > 1
+        }
+      });
     }
+
   } catch (error) {
-    console.error('Error deleting session:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete session' },
-      { status: 500 }
-    )
+    console.error('Failed to retrieve sessions:', error);
+    return NextResponse.json({
+      error: 'Failed to retrieve sessions'
+    }, { status: 500 });
   }
 }

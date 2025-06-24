@@ -3,32 +3,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
-import { Line, Bar } from 'react-chartjs-2'
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
   Legend,
-  Filler,
-} from 'chart.js'
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-)
+  ResponsiveContainer,
+} from 'recharts'
 
 interface MetricData {
   date: string
@@ -182,83 +166,32 @@ export default function CommunicationMetricEnhanced({
     }
   }
 
-  // Prepare chart data
+  // Prepare chart data for recharts
   const prepareChartData = () => {
-    const labels = metrics.map(m => format(new Date(m.date), 'MMM dd'))
-    
-    const datasets = []
-    
-    if (selectedMetric === 'all' || selectedMetric === 'clarity') {
-      datasets.push({
-        label: 'Clarity',
-        data: metrics.map(m => m.clarityScore),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
-      })
-    }
-    
-    if (selectedMetric === 'all' || selectedMetric === 'empathy') {
-      datasets.push({
-        label: 'Empathy',
-        data: metrics.map(m => m.empathyScore),
-        borderColor: 'rgb(16, 185, 129)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        tension: 0.4,
-      })
-    }
-    
-    if (selectedMetric === 'all' || selectedMetric === 'respect') {
-      datasets.push({
-        label: 'Respect',
-        data: metrics.map(m => m.respectScore),
-        borderColor: 'rgb(251, 146, 60)',
-        backgroundColor: 'rgba(251, 146, 60, 0.1)',
-        tension: 0.4,
-      })
-    }
-
-    return { labels, datasets }
+    return metrics.map(m => ({
+      date: format(new Date(m.date), 'MMM dd'),
+      overall: m.overallScore,
+      clarity: m.clarityScore,
+      empathy: m.empathyScore,
+      respect: m.respectScore,
+    }))
   }
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: {
-          color: 'rgba(255, 255, 255, 0.8)',
-        },
-      },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'white',
-        bodyColor: 'white',
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
-        },
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.7)',
-        },
-      },
-      y: {
-        min: 0,
-        max: 100,
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
-        },
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.7)',
-        },
-      },
-    },
+  // Custom tooltip for recharts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-black/90 backdrop-blur-sm p-3 rounded-lg border border-white/20">
+          <p className="text-white text-sm font-medium mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {entry.value.toFixed(1)}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
   }
 
   if (loading) {
@@ -393,7 +326,62 @@ export default function CommunicationMetricEnhanced({
               exit={{ opacity: 0 }}
               className="h-64"
             >
-              <Line data={chartData} options={chartOptions} />
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.7)" />
+                  <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.7)" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ color: 'rgba(255,255,255,0.8)' }}
+                    iconType="line"
+                  />
+                  {(selectedMetric === 'all') && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="overall" 
+                      stroke="rgb(147, 51, 234)" 
+                      strokeWidth={3}
+                      name="Overall"
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  )}
+                  {(selectedMetric === 'all' || selectedMetric === 'clarity') && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="clarity" 
+                      stroke="rgb(59, 130, 246)" 
+                      strokeWidth={2}
+                      name="Clarity"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {(selectedMetric === 'all' || selectedMetric === 'empathy') && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="empathy" 
+                      stroke="rgb(16, 185, 129)" 
+                      strokeWidth={2}
+                      name="Empathy"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {(selectedMetric === 'all' || selectedMetric === 'respect') && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="respect" 
+                      stroke="rgb(251, 146, 60)" 
+                      strokeWidth={2}
+                      name="Respect"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
             </motion.div>
           ) : (
             <motion.div

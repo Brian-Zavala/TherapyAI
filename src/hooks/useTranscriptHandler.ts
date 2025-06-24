@@ -89,8 +89,11 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       
       // Update UI
       const newChunk = `AI: ${consolidatedText}`
-      setTranscriptChunks(prev => [...prev, newChunk])
-      onTranscriptUpdate?.([...transcriptChunks, newChunk])
+      setTranscriptChunks(prev => {
+        const updated = [...prev, newChunk]
+        onTranscriptUpdate?.(updated)
+        return updated
+      })
       
       // Save to database - convert to transcript service format
       if (sessionId) {
@@ -115,7 +118,7 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       console.error('Error processing assistant message:', error)
       onError?.(error as Error)
     }
-  }, [sessionId, transcriptChunks, onTranscriptUpdate, onMetricsUpdate, onError])
+  }, [sessionId, onTranscriptUpdate, onMetricsUpdate, onError])
   
   // Process consolidated user message
   const processConsolidatedUserMessage = useCallback(async (consolidatedText: string) => {
@@ -134,8 +137,11 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       
       // Update UI
       const newChunk = `You: ${consolidatedText}`
-      setTranscriptChunks(prev => [...prev, newChunk])
-      onTranscriptUpdate?.([...transcriptChunks, newChunk])
+      setTranscriptChunks(prev => {
+        const updated = [...prev, newChunk]
+        onTranscriptUpdate?.(updated)
+        return updated
+      })
       
       // Save to database - convert to transcript service format
       if (sessionId) {
@@ -160,7 +166,7 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       console.error('Error processing user message:', error)
       onError?.(error as Error)
     }
-  }, [sessionId, transcriptChunks, onTranscriptUpdate, onMetricsUpdate, onError])
+  }, [sessionId, onTranscriptUpdate, onMetricsUpdate, onError])
   
   // Handle VAPI messages
   const handleVapiMessage = useCallback(async (message: VapiMessage, vapiInstance: ExtendedVapi | null) => {
