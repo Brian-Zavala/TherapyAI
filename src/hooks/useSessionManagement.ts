@@ -132,8 +132,8 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         throw new Error('Failed to create session')
       }
       
-      const session = await response.json()
-      const newSessionId = session.id
+      const data = await response.json()
+      const newSessionId = data.session.id
       
       // Update state
       setSessionId(newSessionId)

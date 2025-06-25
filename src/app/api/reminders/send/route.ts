@@ -58,7 +58,9 @@ export async function POST(request: NextRequest) {
 
     // Check user's notification preferences
     const notificationPrefs = user.profile?.notificationPrefs || 'email';
-    const preferredMethods = notificationPrefs.split(',').map(m => m.trim());
+    const preferredMethods = typeof notificationPrefs === 'string' 
+      ? notificationPrefs.split(',').map((m: string) => m.trim())
+      : Array.isArray(notificationPrefs) ? notificationPrefs : ['email'];
 
     // Override with specific method if provided and allowed
     const effectiveMethod = preferredMethods.includes(validatedData.method) 
@@ -140,7 +142,7 @@ export async function POST(request: NextRequest) {
       where: { id: validatedData.notificationId },
       data: {
         deliveryStatus,
-        deliveryMethod: effectiveMethod,
+        deliveryMethod: String(effectiveMethod),
         sentAt: new Date(),
         deliveredAt: deliveryStatus === 'delivered' ? new Date() : null,
         deliveryAttempts: {

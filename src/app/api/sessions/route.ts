@@ -12,7 +12,26 @@ import { z } from 'zod';
 import type { Session, User } from '@prisma/client';
 
 // 2025 Standard: Type definitions
-interface SessionWithCounts extends Session {
+// Define a type for the selected session fields to avoid type mismatches
+type SelectedSessionFields = {
+  id: string;
+  userId: string;
+  date: Date;
+  startTime: Date | null;
+  endTime: Date | null;
+  duration: number;
+  theme: string;
+  notes: string | null;
+  status: string;
+  assistantId: string | null;
+  isPaused: boolean;
+  conversationTimeSeconds: number;
+  totalPausedTimeSeconds: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+interface SessionWithCounts extends SelectedSessionFields {
   transcriptCount: number;
   transcriptEntries: any[];
 }
@@ -78,7 +97,7 @@ export async function GET(request: NextRequest) {
       select: { 
         id: true, 
         email: true,
-        isActive: true 
+        isDeleted: true 
       }
     });
     

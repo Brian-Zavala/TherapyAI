@@ -18,13 +18,8 @@ Sentry.init({
   enabled: process.env.NODE_ENV === 'production' || process.env.SENTRY_ENABLED === 'true',
   
   // Server-specific options
-  autoSessionTracking: true,
-  
-  // Integrations
-  integrations: [
-    // Automatically instrument Node.js libraries and frameworks
-    ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
-  ],
+  // Note: autoSessionTracking has been removed in Sentry v8
+  // Performance monitoring integrations are now automatic
   
   // Filtering
   beforeSend(event, hint) {

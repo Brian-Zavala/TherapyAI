@@ -132,7 +132,8 @@ export async function middleware(request: NextRequest) {
     pathname.includes('.') ||
     pathname === '/' ||
     pathname.startsWith('/auth/login') ||
-    pathname.startsWith('/auth/register')
+    pathname.startsWith('/auth/register') ||
+    pathname.startsWith('/api/auth/') // NextAuth API routes
   ) {
     return NextResponse.next();
   }

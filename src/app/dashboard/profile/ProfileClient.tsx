@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { User, Users, LogOut } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { useProfile } from "@/providers/ProfileProvider"
-import { FamilyMemberSelectionModal } from "@/components/therapy/FamilyMemberSelectionModal"
+import FamilyMemberSelectionModal from "@/components/FamilyMemberSelectionModal"
 import Navigation from "@/components/Navigation"
 
 interface FormData {
@@ -398,8 +398,20 @@ export default function ProfileClient() {
         <FamilyMemberSelectionModal
           isOpen={showFamilyModal}
           onClose={() => setShowFamilyModal(false)}
-          existingMembers={[]}
-          onSelect={() => {}}
+          familyMembers={[
+            ...(formData.familyMember1 ? [{ name: formData.familyMember1, age: parseInt(formData.familyMember1Age) || 0, relation: 'Family Member' }] : []),
+            ...(formData.familyMember2 ? [{ name: formData.familyMember2, age: parseInt(formData.familyMember2Age) || 0, relation: 'Family Member' }] : []),
+            ...(formData.familyMember3 ? [{ name: formData.familyMember3, age: parseInt(formData.familyMember3Age) || 0, relation: 'Family Member' }] : []),
+            ...(formData.familyMember4 ? [{ name: formData.familyMember4, age: parseInt(formData.familyMember4Age) || 0, relation: 'Family Member' }] : []),
+            ...(formData.familyMember5 ? [{ name: formData.familyMember5, age: parseInt(formData.familyMember5Age) || 0, relation: 'Family Member' }] : []),
+            ...(formData.familyMember6 ? [{ name: formData.familyMember6, age: parseInt(formData.familyMember6Age) || 0, relation: 'Family Member' }] : []),
+            ...(formData.familyMember7 ? [{ name: formData.familyMember7, age: parseInt(formData.familyMember7Age) || 0, relation: 'Family Member' }] : []),
+          ]}
+          onSelectMembers={(selectedMembers) => {
+            // Handle selection - this modal seems to be used for display purposes in this context
+            setShowFamilyModal(false)
+          }}
+          onRemoveMember={handleRemoveMember}
         />
       )}
 

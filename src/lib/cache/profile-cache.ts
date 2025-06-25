@@ -1,5 +1,6 @@
 // Profile caching service with Redis/memory fallback
 import { Redis } from '@upstash/redis'
+import { redisHealthMonitor, isRedisHealthy } from './redis-health'
 
 // Initialize Redis client if available
 let redis: Redis | null = null
@@ -19,12 +20,16 @@ const CACHE_TTL = 5 * 60 * 1000
 export const profileCache = {
   async get(key: string): Promise<any | null> {
     try {
-      // Try Redis first
-      if (redis) {
-        const cached = await redis.get(key)
-        if (cached) {
-          console.log(`[ProfileCache] Redis hit for key: ${key}`)
-          return cached
+      // Try Redis first if healthy
+      if (redis && isRedisHealthy()) {
+        try {
+          const cached = await redis.get(key)
+          if (cached) {
+            console.log(`[ProfileCache] Redis hit for key: ${key}`)
+            return cached
+          }
+        } catch (redisError) {
+          console.warn('[ProfileCache] Redis get error, falling back to memory:', redisError)
         }
       }
       
@@ -50,10 +55,14 @@ export const profileCache = {
 
   async set(key: string, value: any, ttl: number = CACHE_TTL): Promise<void> {
     try {
-      // Set in Redis if available
-      if (redis) {
-        await redis.set(key, value, { px: ttl })
-        console.log(`[ProfileCache] Set in Redis: ${key}`)
+      // Set in Redis if available and healthy
+      if (redis && isRedisHealthy()) {
+        try {
+          await redis.set(key, value, { px: ttl })
+          console.log(`[ProfileCache] Set in Redis: ${key}`)
+        } catch (redisError) {
+          console.warn('[ProfileCache] Redis set error, using memory only:', redisError)
+        }
       }
       
       // Always set in memory cache as backup
@@ -79,8 +88,12 @@ export const profileCache = {
 
   async invalidate(key: string): Promise<void> {
     try {
-      if (redis) {
-        await redis.del(key)
+      if (redis && isRedisHealthy()) {
+        try {
+          await redis.del(key)
+        } catch (redisError) {
+          console.warn('[ProfileCache] Redis delete error:', redisError)
+        }
       }
       memoryCache.delete(key)
       console.log(`[ProfileCache] Invalidated: ${key}`)
@@ -100,20 +113,24 @@ export const profileCache = {
         }
       }
       
-      // For Redis, use scan and delete
-      if (redis) {
-        let cursor = 0
-        do {
-          const [newCursor, keys] = await redis.scan(cursor, {
-            match: pattern,
-            count: 100
-          })
-          cursor = parseInt(newCursor)
-          
-          if (keys.length > 0) {
-            await redis.del(...keys)
-          }
-        } while (cursor !== 0)
+      // For Redis, use scan and delete if healthy
+      if (redis && isRedisHealthy()) {
+        try {
+          let cursor = 0
+          do {
+            const [newCursor, keys] = await redis.scan(cursor, {
+              match: pattern,
+              count: 100
+            })
+            cursor = parseInt(newCursor)
+            
+            if (keys.length > 0) {
+              await redis.del(...keys)
+            }
+          } while (cursor !== 0)
+        } catch (redisError) {
+          console.warn('[ProfileCache] Redis pattern delete error:', redisError)
+        }
       }
       
       console.log(`[ProfileCache] Invalidated pattern: ${pattern}`)

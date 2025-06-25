@@ -93,10 +93,8 @@ function createPrismaClient() {
     throw lastError
   })
 
-  // Add connection event handlers
-  client.$on('beforeExit' as never, async () => {
-    console.log('[Prisma] Client disconnecting...')
-  })
+  // Note: Since Prisma 5.0.0, the library engine handles cleanup automatically
+  // No need for beforeExit handlers - the engine will be garbage collected properly
 
   return client
 }
@@ -192,20 +190,13 @@ async function getPrismaClient(): Promise<PrismaClient> {
 }
 
 // Export prisma getter - handle async initialization
+let prismaPromise: Promise<PrismaClient> | undefined
 let prismaInstance: PrismaClient | undefined
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get: (target, prop) => {
-    if (!prismaInstance) {
-      throw new Error('[Prisma] Client not initialized. Make sure to import prisma at the module level.')
-    }
-    return Reflect.get(prismaInstance, prop)
-  }
-})
-
-// Initialize prisma asynchronously
+// Initialize prisma immediately
 if (typeof window === 'undefined') {
-  getPrismaClient().then(client => {
+  prismaPromise = getPrismaClient()
+  prismaPromise.then(client => {
     prismaInstance = client
     console.log('[Prisma] Client initialized and ready')
   }).catch(error => {
@@ -213,6 +204,56 @@ if (typeof window === 'undefined') {
     process.exit(1)
   })
 }
+
+// Export a proxy that waits for initialization
+export const prisma = new Proxy({} as PrismaClient, {
+  get: (target, prop) => {
+    // If already initialized, use it directly
+    if (prismaInstance) {
+      return Reflect.get(prismaInstance, prop)
+    }
+    
+    // For query methods, return a function that waits for initialization
+    const queryMethods = ['findUnique', 'findFirst', 'findMany', 'create', 'update', 'delete', 'upsert', 'createMany', 'updateMany', 'deleteMany', 'count', 'aggregate', 'groupBy', '$transaction', '$queryRaw', '$executeRaw', '$connect', '$disconnect']
+    
+    if (typeof prop === 'string' && (queryMethods.includes(prop) || prop.startsWith('$'))) {
+      return async (...args: any[]) => {
+        if (!prismaPromise) {
+          throw new Error('[Prisma] Client initialization not started')
+        }
+        const client = await prismaPromise
+        const method = Reflect.get(client, prop)
+        if (typeof method === 'function') {
+          return method.apply(client, args)
+        }
+        return method
+      }
+    }
+    
+    // For model access (e.g., prisma.user), return a proxy that handles async methods
+    if (typeof prop === 'string' && !prop.startsWith('$') && prop !== 'then') {
+      return new Proxy({}, {
+        get: (_, subProp) => {
+          return async (...args: any[]) => {
+            if (!prismaPromise) {
+              throw new Error('[Prisma] Client initialization not started')
+            }
+            const client = await prismaPromise
+            const model = Reflect.get(client, prop)
+            const method = Reflect.get(model, subProp)
+            if (typeof method === 'function') {
+              return method.apply(model, args)
+            }
+            return method
+          }
+        }
+      })
+    }
+    
+    // For other properties, wait for initialization
+    throw new Error(`[Prisma] Cannot access property '${String(prop)}' before initialization`)
+  }
+})
 
 // Export helper to check connection health
 export async function checkDatabaseConnection(): Promise<{
@@ -236,12 +277,29 @@ export async function checkDatabaseConnection(): Promise<{
   }
 }
 
-// Graceful shutdown handler
+// Graceful shutdown handler (optional with library engine)
+// The library engine handles cleanup automatically, but explicit disconnect can help in dev
 if (process.env.NODE_ENV !== 'production') {
-  process.on('beforeExit', async () => {
-    console.log('[Prisma] Disconnecting client...')
-    await prisma.$disconnect()
-  })
+  const gracefulShutdown = async (signal: string) => {
+    console.log(`[Prisma] Received ${signal}, disconnecting client...`)
+    try {
+      // Only disconnect if client is initialized
+      if (prismaInstance) {
+        await prismaInstance.$disconnect()
+        console.log('[Prisma] Client disconnected successfully')
+      } else {
+        console.log('[Prisma] Client not initialized, skipping disconnect')
+      }
+    } catch (error) {
+      console.error('[Prisma] Error during disconnect:', error)
+    }
+  }
+
+  // Handle various shutdown signals
+  process.once('SIGINT', () => gracefulShutdown('SIGINT'))
+  process.once('SIGTERM', () => gracefulShutdown('SIGTERM'))
+  // Note: beforeExit is still valid for process-level events, just not for Prisma client events
+  process.once('beforeExit', () => gracefulShutdown('beforeExit'))
 }
 
 // Export types

@@ -305,11 +305,13 @@ export async function PATCH(request: Request) {
       return user
     })
     
-    // Invalidate cache
-    await profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email))
-    if (updatedUser.id) {
-      await profileCache.invalidate(cacheKeys.userProfile(updatedUser.id))
-    }
+    // Invalidate cache comprehensively
+    await Promise.all([
+      profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email)),
+      updatedUser.id ? profileCache.invalidate(cacheKeys.userProfile(updatedUser.id)) : Promise.resolve(),
+      // Also invalidate pattern to clear any related cache entries
+      profileCache.invalidatePattern(`profile:*${session.user.email}*`)
+    ])
     
     // Queue welcome messages asynchronously
     const welcomeUser: WelcomeUser = {
@@ -433,11 +435,13 @@ export async function PUT(request: Request) {
       return user
     })
     
-    // Invalidate cache
-    await profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email))
-    if (updatedUser.id) {
-      await profileCache.invalidate(cacheKeys.userProfile(updatedUser.id))
-    }
+    // Invalidate cache comprehensively
+    await Promise.all([
+      profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email)),
+      updatedUser.id ? profileCache.invalidate(cacheKeys.userProfile(updatedUser.id)) : Promise.resolve(),
+      // Also invalidate pattern to clear any related cache entries
+      profileCache.invalidatePattern(`profile:*${session.user.email}*`)
+    ])
     
     return NextResponse.json({ 
       message: "Profile updated successfully",

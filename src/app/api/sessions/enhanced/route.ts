@@ -111,35 +111,28 @@ export async function POST(request: NextRequest) {
     // Initialize services
     const reminderEngine = new EnhancedReminderEngine();
     const calendarIntegration = new CalendarIntegrationService();
-    const logger = new Logger();
+    const logger = new Logger('SessionsEnhancedAPI');
 
     // Schedule reminders based on user preferences
     try {
       if (validatedData.userPreferences?.reminderTiming) {
-        await reminderEngine.scheduleReminders(
+        await reminderEngine.createReminderJobs(
           createdSession.id,
           user.id,
           sessionDate,
-          {
-            sessionPreference: validatedData.userPreferences.sessionPreference || 'couple',
-            preferredDays: validatedData.userPreferences.preferredDays || [],
-            sessionFrequency: validatedData.userPreferences.sessionFrequency || 'weekly',
-            recurringSession: validatedData.userPreferences.recurringSession || 'no',
-            reminderTiming: validatedData.userPreferences.reminderTiming,
-            timeZone: validatedData.userPreferences.timeZone || 'UTC',
-            communicationStyle: validatedData.userPreferences.communicationStyle || 'supportive',
-            therapyType: validatedData.userPreferences.therapyType || 'couple'
-          },
-          user.profile?.notificationPrefs || 'email'
+          validatedData.userPreferences.timeZone || 'UTC'
         );
 
-        logger.logSessionEvent(createdSession.id, user.id, 'REMINDERS_SCHEDULED', {
+        logger.info('Reminders scheduled for session', {
+          sessionId: createdSession.id,
+          userId: user.id,
+          event: 'REMINDERS_SCHEDULED',
           reminderTiming: validatedData.userPreferences.reminderTiming,
           notificationMethod: user.profile?.notificationPrefs || 'email'
         });
       }
     } catch (reminderError) {
-      logger.logError('Failed to schedule reminders', reminderError, {
+      logger.error('Failed to schedule reminders', reminderError, {
         sessionId: createdSession.id,
         userId: user.id
       });
@@ -156,7 +149,8 @@ export async function POST(request: NextRequest) {
           startTime: sessionDate,
           endTime: new Date(sessionDate.getTime() + (validatedData.duration * 60 * 1000)),
           location: 'Online Therapy Session',
-          attendees: [user.email]
+          attendees: [{ email: user.email }],
+          timeZone: validatedData.userPreferences?.timeZone || 'UTC'
         };
 
         const calendarResults = await calendarIntegration.createCalendarEvent(
@@ -165,13 +159,16 @@ export async function POST(request: NextRequest) {
           enabledIntegrations.map(ci => ci.provider)
         );
 
-        logger.logSessionEvent(createdSession.id, user.id, 'CALENDAR_EVENTS_CREATED', {
+        logger.info('Calendar events created', {
+          sessionId: createdSession.id,
+          userId: user.id,
+          event: 'CALENDAR_EVENTS_CREATED',
           results: calendarResults,
           integrationCount: enabledIntegrations.length
         });
       }
     } catch (calendarError) {
-      logger.logError('Failed to create calendar events', calendarError, {
+      logger.error('Failed to create calendar events', calendarError, {
         sessionId: createdSession.id,
         userId: user.id
       });

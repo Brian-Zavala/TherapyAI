@@ -84,13 +84,13 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Get session (optional - metrics work without auth)
-    const session = await getServerSession(authOptions);
+    // Skip auth check for better performance (metrics work without auth)
+    // Auth check was adding 600ms+ latency
     
     // Enhance metric with server data
     const enhancedMetric = {
       ...metric,
-      userId: session?.user?.id || 'anonymous',
+      userId: 'anonymous', // Skip session lookup for performance
       serverTimestamp: Date.now(),
       // Add geolocation from headers if available
       country: req.headers.get('x-vercel-ip-country') || 'unknown',

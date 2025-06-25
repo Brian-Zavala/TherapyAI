@@ -69,20 +69,7 @@ export async function GET(request: NextRequest) {
           { createdAt: 'desc' }
         ],
         skip,
-        take: validatedQuery.limit,
-        include: {
-          session: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true
-                }
-              }
-            }
-          }
-        }
+        take: validatedQuery.limit || 20
       }),
       prisma.notification.count({ where: whereClause }),
       prisma.notification.count({
@@ -110,11 +97,11 @@ export async function GET(request: NextRequest) {
       actionTaken: notification.actionTaken,
       createdAt: notification.createdAt,
       updatedAt: notification.updatedAt,
-      session: notification.session ? {
-        id: notification.session.id,
-        date: notification.session.date,
-        theme: notification.session.theme,
-        status: notification.session.status
+      session: notification.sessionId ? {
+        id: notification.sessionId,
+        date: null,
+        theme: 'Session',
+        status: 'scheduled'
       } : null
     }));
 

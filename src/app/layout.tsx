@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import { ReactNode } from "react";
 import { ClientProviders } from "@/components/ClientComponents";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import "./globals.css";
 import "./menu-styles.css";
@@ -83,11 +84,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth bg-gray-900">
       <body className="w-full overflow-x-hidden bg-gray-900">
-        <ClientProviders>
-          <main className="overflow-x-hidden w-full">
-            {children}
-          </main>
-        </ClientProviders>
+        <ErrorBoundary level="page" resetOnPropsChange>
+          <ClientProviders>
+            <main className="overflow-x-hidden w-full">
+              <ErrorBoundary level="section">
+                {children}
+              </ErrorBoundary>
+            </main>
+          </ClientProviders>
+        </ErrorBoundary>
         <div id="modal-root"></div>
       </body>
     </html>

@@ -119,7 +119,7 @@ export async function GET(request: Request) {
         }
 
         // Send SMS reminder if user wants SMS and hasn't been sent
-        if (!session.smsReminderSent && shouldSendSMS(session)) {
+        if (!session.smsReminderSent && shouldSendSMS(session) && session.user.profile?.phone) {
           try {
             const smsResult = await sendSessionReminder(
               session.user.profile.phone,
@@ -134,7 +134,7 @@ export async function GET(request: Request) {
             
             if (smsResult.success) {
               updates.smsReminderSent = true;
-              console.log(`SMS reminder sent for session ${session.id} to ${session.user.profile.phone}`);
+              console.log(`SMS reminder sent for session ${session.id} to ${session.user.profile?.phone}`);
             } else {
               console.error(`Failed to send SMS reminder for session ${session.id}:`, smsResult.error);
             }
@@ -186,7 +186,7 @@ export async function GET(request: Request) {
         }
 
         // Send SMS 1-hour reminder if user wants SMS
-        if (shouldSendSMS(session)) {
+        if (shouldSendSMS(session) && session.user.profile?.phone) {
           try {
             const smsResult = await sendSessionReminder(
               session.user.profile.phone,
@@ -201,7 +201,7 @@ export async function GET(request: Request) {
             
             if (smsResult.success) {
               sentReminder = true;
-              console.log(`1-hour SMS reminder sent for session ${session.id} to ${session.user.profile.phone}`);
+              console.log(`1-hour SMS reminder sent for session ${session.id} to ${session.user.profile?.phone}`);
             } else {
               console.error(`Failed to send 1-hour SMS reminder for session ${session.id}:`, smsResult.error);
             }

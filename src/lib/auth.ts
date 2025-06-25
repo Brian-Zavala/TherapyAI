@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
               name: true,
               password: true,
               emailVerified: true,
-              isActive: true
+              isDeleted: false
             }
           })
 
@@ -93,8 +93,8 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid credentials")
           }
 
-          // 2025 Standard: Check if account is active
-          if (user.isActive === false) {
+          // 2025 Standard: Check if account is deleted
+          if (user.isDeleted === true) {
             throw new Error("Account is deactivated")
           }
 

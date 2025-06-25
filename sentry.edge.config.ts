@@ -18,10 +18,8 @@ Sentry.init({
   enabled: process.env.NODE_ENV === 'production' || process.env.SENTRY_ENABLED === 'true',
   
   // Edge-specific options
-  transportOptions: {
-    // Reduce request size for edge runtime
-    maxValueLength: 250,
-  },
+  // Note: maxValueLength has been removed in Sentry v8
+  // Performance monitoring is now automatic
   
   // Filtering
   beforeSend(event) {
