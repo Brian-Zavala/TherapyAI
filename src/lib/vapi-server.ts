@@ -4,7 +4,7 @@ import { COUPLE_THERAPY_ASSISTANT_CONFIG } from './vapi';
 import jwt from 'jsonwebtoken';
 
 const VAPI_API_URL = 'https://api.vapi.ai';
-const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || process.env.NEXT_PUBLIC_VAPI_API_KEY;
+const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || process.env.VAPI_API_KEY;
 
 if (!VAPI_SERVER_API_KEY) {
   console.warn('VAPI_SERVER_API_KEY is not set. Using public key which has limited capabilities.');
@@ -63,7 +63,7 @@ export async function getAssistant(assistantId: string) {
 /**
  * Update an existing assistant
  */
-export async function updateAssistant(assistantId: string, config: any) {
+export async function updateAssistant(assistantId: string, config: Record<string, unknown>) {
   try {
     const response = await fetch(`${VAPI_API_URL}/assistant/${assistantId}`, {
       method: 'PUT',
@@ -121,8 +121,19 @@ export async function generateClientToken(userId: string) {
     const privateKey = process.env.VAPI_PRIVATE_KEY;
     
     if (!orgId || !privateKey) {
-      console.error('Missing VAPI_ORG_ID or VAPI_PRIVATE_KEY environment variables');
-      throw new Error('Missing required JWT authentication credentials');
+      console.error('[VAPI JWT] Missing required environment variables:', {
+        hasOrgId: !!orgId,
+        hasPrivateKey: !!privateKey,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Provide more helpful error message
+      const missingVars = [];
+      if (!orgId) missingVars.push('VAPI_ORG_ID');
+      if (!privateKey) missingVars.push('VAPI_PRIVATE_KEY');
+      
+      throw new Error(`Missing required JWT authentication credentials: ${missingVars.join(', ')}. Please check your .env file.`);
     }
     
     // For Vapi, we need to construct the payload according to their requirements
@@ -143,10 +154,8 @@ export async function generateClientToken(userId: string) {
     };
     
     try {
-      // For Vapi API keys in UUID format, we need to use them directly as the secret
-      // This approach uses the privateKey directly as the secret
       const token = jwt.sign(payload, privateKey, { 
-        algorithm: 'HS256', // Using HMAC for UUID-format API keys
+        algorithm: 'RS256',
         expiresIn: '1h' 
       });
       
@@ -154,22 +163,11 @@ export async function generateClientToken(userId: string) {
       return token;
     } catch (jwtError) {
       console.error('JWT signing failed:', jwtError);
-      
-      // As a fallback, return the direct API key - make sure this matches what Vapi expects
-      console.log('Falling back to direct API key');
-      const apiKey = process.env.VAPI_SERVER_API_KEY || process.env.NEXT_PUBLIC_VAPI_API_KEY;
-      return apiKey;
+      throw new Error('Failed to sign JWT');
     }
     
   } catch (error) {
     console.error('Error generating client token:', error);
-    
-    // Fall back to API key if JWT generation fails
-    if (VAPI_SERVER_API_KEY) {
-      console.warn('Falling back to API key due to JWT generation failure');
-      return VAPI_SERVER_API_KEY;
-    }
-    
     throw error;
   }
 }

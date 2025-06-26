@@ -49,7 +49,6 @@ export async function GET(request: Request) {
     const progressData = await prisma.progressTracking.findMany({
       where: {
         userId: user.id,
-        therapyType: therapyType as string,
         ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
       },
       select: {
@@ -57,7 +56,6 @@ export async function GET(request: Request) {
         closenessScore: true,
         communicationScore: true,
         notes: true,
-        therapyType: true,
         sessionId: true,
         assistantId: true // Include assistant ID
       },

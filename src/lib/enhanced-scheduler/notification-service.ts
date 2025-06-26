@@ -434,7 +434,6 @@ export class NotificationService {
       baseUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       language,
       // Add personalization based on user's therapy type and concerns
-      therapyType: user?.profile?.therapyType,
       currentConcerns: user?.profile?.currentConcerns,
       sessionTheme: session.theme
     }));

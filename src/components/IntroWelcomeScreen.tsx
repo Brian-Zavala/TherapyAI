@@ -3,7 +3,6 @@
 import React, {
   useState,
   useEffect,
-  useRef,
   useMemo,
   useCallback,
   Suspense,
@@ -140,11 +139,6 @@ const LottieAnimation = React.memo(({ url, title }: LottieAnimationProps) => {
 
   const handleComplete = useCallback(() => {
     // Animation completed
-  }, []);
-
-  const handleError = useCallback(() => {
-    setHasError(true);
-    setIsLoading(false);
   }, []);
 
   if (hasError) {

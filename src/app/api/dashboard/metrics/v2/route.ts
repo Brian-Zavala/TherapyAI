@@ -60,7 +60,6 @@ const getCachedUser = cache(async (email: string) => {
       email: true,
       profile: {
         select: {
-          therapyType: true,
           sessionFrequency: true
         }
       }

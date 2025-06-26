@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface VoiceWaveformProps {
   audioLevel: number;
+  isTransitioning?: boolean;
 }
 
-function VoiceWaveform({ audioLevel }: VoiceWaveformProps) {
+function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -15,13 +16,16 @@ function VoiceWaveform({ audioLevel }: VoiceWaveformProps) {
   
   // Update speaking state based on audio level
   useEffect(() => {
+    // Don't update during transitions to prevent flickering
+    if (isTransitioning) return;
+    
     // Simple, reliable thresholds - only count significant audio
     if (audioLevel > 30 && !isSpeaking) {
       setIsSpeaking(true);
     } else if (audioLevel < 20 && isSpeaking) {
       setIsSpeaking(false);
     }
-  }, [audioLevel, isSpeaking]);
+  }, [audioLevel, isSpeaking, isTransitioning]);
   
   // Canvas initialization
   useEffect(() => {
@@ -30,6 +34,12 @@ function VoiceWaveform({ audioLevel }: VoiceWaveformProps) {
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    
+    // Preserve state during transitions
+    if (isTransitioning) {
+      console.log('🎨 VoiceWaveform: Preserving state during transition');
+      return;
+    }
     
     // Resize handling
     const resizeCanvas = () => {

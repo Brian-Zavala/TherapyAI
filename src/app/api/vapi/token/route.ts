@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { vapiJWTRedisService, isRedisEnabled } from '@/lib/vapi-jwt-redis.service';
+import { vapiPublicTokenService } from '@/lib/vapi-public-token-service';
 import { upstashRedis } from '@/lib/upstash-redis.service';
+import { validateVapiKey } from '@/lib/vapi-key-validator';
 import type { VapiTokenRequest, VapiError } from '@/lib/vapi-jwt.service';
 
 /**
@@ -45,21 +47,48 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now();
 
     try {
-      // Check if JWT service is available
-      if (!vapiJWTRedisService) {
-        console.error('[VAPI Token] JWT service not initialized - missing VAPI_ORG_ID or VAPI_PRIVATE_KEY environment variables');
-        return NextResponse.json({
-          error: 'Voice service configuration error. Please contact support.',
-          code: 'SERVICE_NOT_CONFIGURED',
-          statusCode: 503,
-        } as VapiError, { status: 503 });
+      let tokenData;
+      let tokenType: 'jwt' | 'api-key' = 'jwt';
+      
+      // Check if we have JWT token generation available (preferred method)
+      if (vapiJWTRedisService && process.env.VAPI_PRIVATE_KEY && process.env.VAPI_ORG_ID) {
+        // Use JWT token generation - this is the recommended approach
+        console.log('[VAPI Token] Using JWT token generation for web client');
+        tokenData = await vapiJWTRedisService.getOrCreateToken(userId, scope, userType);
+        tokenType = 'jwt';
+      } else {
+        // Fallback: Check if we have a public API key available
+        const apiKey = process.env.VAPI_API_KEY;
+        const validation = apiKey ? validateVapiKey(apiKey) : null;
+        
+        if (validation?.isValid && validation.type === 'public') {
+          // Use the public API key directly as a fallback
+          console.log('[VAPI Token] Using public API key directly (fallback method)');
+          
+          tokenData = {
+            token: apiKey,
+            expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour for cache
+            scope,
+            issuedAt: Math.floor(Date.now() / 1000),
+            cached: false,
+          };
+          tokenType = 'api-key';
+        } else {
+          console.error('[VAPI Token] No valid authentication method available');
+          console.error('[VAPI Token] Please set either:');
+          console.error('[VAPI Token] 1. VAPI_PRIVATE_KEY and VAPI_ORG_ID for JWT authentication (recommended)');
+          console.error('[VAPI Token] 2. VAPI_API_KEY with a public key (pk_) as a fallback');
+          return NextResponse.json({
+            error: 'Voice service authentication not configured. Please contact support.',
+            code: 'AUTH_NOT_CONFIGURED',
+            statusCode: 503,
+            details: 'VAPI authentication requires either JWT token setup or a public API key',
+          } as VapiError, { status: 503 });
+        }
       }
       
-      // Generate token with Redis caching and rate limiting
-      const tokenData = await vapiJWTRedisService.getOrCreateToken(userId, scope, userType);
-      
       const responseTime = Date.now() - startTime;
-      console.log(`Generated JWT token for user ${session.user.email} with scope: ${scope} in ${responseTime}ms`);
+      console.log(`Generated ${tokenType} token for user ${session.user.email} with scope: ${scope} in ${responseTime}ms`);
       
       // Set security headers
       const response = NextResponse.json(tokenData);
@@ -70,6 +99,7 @@ export async function POST(req: NextRequest) {
       response.headers.set('X-Cache-Status', tokenData.cached ? 'HIT' : 'MISS');
       response.headers.set('X-Rate-Limit-Profile', userType === 'premium' ? 'premium' : 'vapi-token');
       response.headers.set('X-Backend-Type', isRedisEnabled ? 'redis' : 'memory');
+      response.headers.set('X-Token-Type', tokenType);
       
       return response;
     } catch (error) {

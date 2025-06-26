@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
           deliveryStatus,
           deliveredAt: deliveryStatus === 'delivered' ? new Date() : null,
           metadata: {
-            ...notification.metadata,
+            ...(notification.metadata as object || {}),
             twilioStatus: MessageStatus,
             errorCode: ErrorCode,
             errorMessage: ErrorMessage

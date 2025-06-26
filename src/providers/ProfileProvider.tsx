@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, ReactNode, useRef, useCallback } from 'react'
+import React, { createContext, useContext, ReactNode, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -14,7 +14,6 @@ interface UserProfile {
   partnerName?: string
   partnerAge?: number | null
   relationshipStatus?: string
-  therapyType?: string
   currentConcerns?: any
   emergencyContact?: string
   sessionPreference?: string
@@ -99,7 +98,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     // Create new promise
     const promise = (async () => {
       try {
-        console.log('[ProfileProvider] Fetching profile for:', email)
+        // 2025 Standard: Only log in debug mode
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_PROFILE === 'true') {
+          console.log('[ProfileProvider] Fetching profile for:', email)
+        }
         
         const res = await fetch('/api/user/profile', {
           headers: {
@@ -208,6 +210,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[ProfileProvider] Update failed:', errorData)
+        
+        // Extract error details for better debugging
+        if (errorData.details) {
+          console.error('[ProfileProvider] Validation details:', errorData.details)
+        }
+        
         throw new Error(errorData.error || 'Failed to update profile')
       }
       

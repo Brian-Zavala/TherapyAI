@@ -138,7 +138,6 @@ export async function GET() {
           age: null,
           partnerName: "",
           relationshipStatus: "",
-          therapyType: "",
           currentConcerns: [],
           emergencyContact: "",
           sessionPreference: "",
@@ -197,7 +196,6 @@ export async function GET() {
         partnerAge: profile?.partnerAge || null,
         relationshipStatus: profile?.relationshipStatus || "Married",
         ...familyMemberData,
-        therapyType: profile?.therapyType || "",
         currentConcerns: profile?.currentConcerns || null,
         emergencyContact: profile?.emergencyContact || "",
         sessionPreference: profile?.sessionPreference || "",
@@ -270,7 +268,8 @@ export async function PATCH(request: Request) {
     // First, try to find the user
     try {
       user = await prisma.user.findUnique({
-        where: { email: session.user.email }
+        where: { email: session.user.email },
+        include: { profile: true }
       })
     } catch (findError) {
       console.error("Error finding user during onboarding:", findError)
@@ -291,7 +290,6 @@ export async function PATCH(request: Request) {
                 pronouns: data.pronouns || null,
                 age: data.age ? parseInt(data.age) : null,
                 relationshipStatus: data.relationshipStatus || 'Married',
-                therapyType: data.therapyType || null,
                 ...(() => {
                   const notificationData = processNotificationData(data)
                   return {
@@ -316,6 +314,9 @@ export async function PATCH(request: Request) {
                 assistantId: data.assistantId || null
               }
             }
+          },
+          include: {
+            profile: true
           }
         })
         console.log("User created during onboarding:", user.id)
@@ -355,7 +356,6 @@ export async function PATCH(request: Request) {
               pronouns: data.pronouns || null,
               age: data.age ? parseInt(data.age) : null,
               relationshipStatus: data.relationshipStatus || 'Married',
-              therapyType: data.therapyType || null,
               ...(() => {
                 const notificationData = processNotificationData(data)
                 return {
@@ -383,7 +383,6 @@ export async function PATCH(request: Request) {
               pronouns: data.pronouns || null,
               age: data.age ? parseInt(data.age) : null,
               relationshipStatus: data.relationshipStatus || 'Married',
-              therapyType: data.therapyType || null,
               ...(() => {
                 const notificationData = processNotificationData(data)
                 return {
@@ -507,7 +506,6 @@ export async function PATCH(request: Request) {
         pronouns: data.pronouns || null,
         age: data.age ? parseInt(data.age) : null,
         relationshipStatus: data.relationshipStatus || 'Married',
-        therapyType: data.therapyType || null,
         notificationPrefs: data.notificationPrefs || 'email',
       }
     })
@@ -564,7 +562,6 @@ export async function PUT(request: Request) {
                   partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
                   relationshipStatus: data.relationshipStatus || 'Married',
                   age: data.age ? parseInt(data.age) : null,
-                  therapyType: data.therapyType || 'couple',
                   phone: data.phone || null,
                   notificationPrefs: data.notificationPrefs || 'email'
                 }
@@ -671,7 +668,6 @@ export async function PUT(request: Request) {
               pronouns: data.pronouns || null,
               age: data.age ? parseInt(data.age) : null,
               relationshipStatus: data.relationshipStatus || 'Married',
-              therapyType: data.therapyType || 'couple',
               notificationPrefs: data.notificationPrefs || 'email',
               partnerName: data.partnerName || null,
               partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -690,7 +686,6 @@ export async function PUT(request: Request) {
               pronouns: data.pronouns || null,
               age: data.age ? parseInt(data.age) : null,
               relationshipStatus: data.relationshipStatus || 'Married',
-              therapyType: data.therapyType || 'couple',
               notificationPrefs: data.notificationPrefs || 'email',
               partnerName: data.partnerName || null,
               partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -770,8 +765,7 @@ export async function PUT(request: Request) {
           partnerAge: profile?.partnerAge || null,
           relationshipStatus: profile?.relationshipStatus || "Married",
           ...familyMemberData,
-          therapyType: profile?.therapyType || "",
-          currentConcerns: profile?.currentConcerns || null,
+            currentConcerns: profile?.currentConcerns || null,
           emergencyContact: profile?.emergencyContact || "",
           sessionPreference: profile?.sessionPreference || "",
           preferredDays: profile?.preferredDays || null,

@@ -57,6 +57,53 @@ const MOBILE_BREAKPOINT = 768; // px
 // Relies on CSS `scroll-behavior: smooth;` for anchor links now.
 // Button clicks will use element.scrollIntoView().
 
+// Hero images - moved outside component to prevent recreation on each render
+// 2025 Standard: Optimize initial load by only loading first few images
+const MOBILE_HERO_IMAGES = [
+  "/images/home/3.jpg", // First image - the one that should show immediately
+  "/images/home/2.jpg",
+  "/images/home/happy-person.jpg",
+  "/images/home/group.jpg",
+  "/images/home/4.jpg",
+  "/images/home/5.jpg",
+  "/images/home/9.jpg",
+  "/images/home/10.jpg",
+  "/images/home/happy-couple.jpg",
+  "/images/home/hands.jpg",
+  "/images/home/7.jpg",
+  "/images/home/6.jpg",
+];
+
+const DESKTOP_HERO_IMAGES = [
+  "/images/home/large/1-lg.jpg", // First image - the one that should show immediately
+  "/images/home/large/2-lg.jpg",
+  "/images/home/large/3-lg.jpg",
+  "/images/home/large/4-lg.jpg",
+  "/images/home/large/5-lg.jpg",
+  "/images/home/large/6-lg.jpg",
+  "/images/home/large/7-lg.jpg",
+  "/images/home/large/8-lg.jpg",
+  "/images/home/large/9-lg.jpg",
+  "/images/home/large/10-lg.jpg",
+  "/images/home/large/11-lg.jpg",
+  "/images/home/large/12-lg.jpg",
+];
+
+// 2025 Standard: Only preload the first 3 images for faster LCP
+// The rest will be loaded as needed
+const PRIORITY_HERO_IMAGES = [
+  MOBILE_HERO_IMAGES[0],
+  DESKTOP_HERO_IMAGES[0],
+  MOBILE_HERO_IMAGES[1],
+  DESKTOP_HERO_IMAGES[1]
+];
+
+// Combined array for lazy preloading remaining images
+const DEFERRED_HERO_IMAGES = [
+  ...MOBILE_HERO_IMAGES.slice(2),
+  ...DESKTOP_HERO_IMAGES.slice(2)
+];
+
 // --- Standard Animation Variants ---
 // (Copied directly from your original code)
 const fadeInUp = {
@@ -114,39 +161,16 @@ export default function Home() {
     return true; // Default to mobile for SSR
   });
 
-  // Preload all hero images immediately - mobile and desktop
-  const mobileHeroImages = [
-    "/images/home/3.jpg", // First image - the one that should show immediately
-    "/images/home/2.jpg",
-    "/images/home/happy-person.jpg",
-    "/images/home/group.jpg",
-    "/images/home/4.jpg",
-    "/images/home/5.jpg",
-    "/images/home/9.jpg",
-    "/images/home/10.jpg",
-    "/images/home/happy-couple.jpg",
-    "/images/home/hands.jpg",
-    "/images/home/7.jpg",
-    "/images/home/6.jpg",
-  ];
+  // Track mounted state to prevent hydration mismatches
+  const [mounted, setMounted] = useState(false);
 
-  const desktopHeroImages = [
-    "/images/home/large/1-lg.jpg", // First image - the one that should show immediately
-    "/images/home/large/2-lg.jpg",
-    "/images/home/large/3-lg.jpg",
-    "/images/home/large/4-lg.jpg",
-    "/images/home/large/5-lg.jpg",
-    "/images/home/large/6-lg.jpg",
-    "/images/home/large/7-lg.jpg",
-    "/images/home/large/8-lg.jpg",
-    "/images/home/large/9-lg.jpg",
-    "/images/home/large/10-lg.jpg",
-    "/images/home/large/11-lg.jpg",
-    "/images/home/large/12-lg.jpg",
-  ];
+  // Set mounted state on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Select appropriate images based on screen size
-  const heroImages = isMobileView ? mobileHeroImages : desktopHeroImages;
+  const heroImages = isMobileView ? MOBILE_HERO_IMAGES : DESKTOP_HERO_IMAGES;
 
   // Video sources - not preloaded to avoid console warnings
   // Videos will be loaded when needed
@@ -391,11 +415,20 @@ export default function Home() {
           object-fit: cover;
         }
       `}</style>
-      {/* Preload all hero images - both mobile and desktop */}
+      {/* 2025 Standard: Prioritize critical images for better LCP */}
       <ImagePreloader
-        key="all-hero-images-preloader"
-        imagePaths={[...mobileHeroImages, ...desktopHeroImages]}
+        key="priority-hero-images-preloader"
+        imagePaths={PRIORITY_HERO_IMAGES}
+        priority={true}
       />
+      {/* Lazy load remaining images after initial load */}
+      {mounted && (
+        <ImagePreloader
+          key="deferred-hero-images-preloader"
+          imagePaths={DEFERRED_HERO_IMAGES}
+          priority={false}
+        />
+      )}
       {/* Hero section with 3D Background */}
       <section
         ref={heroRef} // Assign ref

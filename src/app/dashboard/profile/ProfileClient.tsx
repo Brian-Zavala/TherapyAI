@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { User, Users, LogOut } from "lucide-react"
+import { User, Users, LogOut, Settings, RefreshCw, AlertTriangle } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
+import Link from "next/link"
 import { useProfile } from "@/providers/ProfileProvider"
-import FamilyMemberSelectionModal from "@/components/FamilyMemberSelectionModal"
+import AddFamilyMemberModal from "@/components/AddFamilyMemberModal"
+import ProfileResetModal from "@/components/ProfileResetModal"
 import Navigation from "@/components/Navigation"
 
 interface FormData {
@@ -32,7 +34,6 @@ interface FormData {
   familyMember6Age: string
   familyMember7: string
   familyMember7Age: string
-  therapyType: string
   currentConcerns: string[]
   emergencyContact: string
   sessionPreference: string
@@ -48,9 +49,10 @@ interface FormData {
 export default function ProfileClient() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { profile, isLoading, updateProfile } = useProfile()
-  const [showFamilyModal, setShowFamilyModal] = useState(false)
+  const { profile, isLoading, updateProfile, invalidateProfile } = useProfile()
+  const [showAddFamilyModal, setShowAddFamilyModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState<number | null>(null)
   const [updating, setUpdating] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -79,7 +81,6 @@ export default function ProfileClient() {
     familyMember6Age: "",
     familyMember7: "",
     familyMember7Age: "",
-    therapyType: "",
     currentConcerns: [],
     emergencyContact: "",
     sessionPreference: "",
@@ -118,7 +119,6 @@ export default function ProfileClient() {
         familyMember6Age: profile.familyMember6Age?.toString() || "",
         familyMember7: profile.familyMember7 || "",
         familyMember7Age: profile.familyMember7Age?.toString() || "",
-        therapyType: profile.therapyType || "",
         currentConcerns: profile.currentConcerns || [],
         emergencyContact: profile.emergencyContact || "",
         sessionPreference: profile.sessionPreference || "",
@@ -128,7 +128,9 @@ export default function ProfileClient() {
         reminderTiming: profile.reminderTiming || "",
         communicationStyle: profile.communicationStyle || "",
         additionalNotes: profile.additionalNotes || "",
-        notificationPrefs: profile.notificationPrefs || "email"
+        notificationPrefs: Array.isArray(profile.notificationPrefs) 
+          ? profile.notificationPrefs.join(',') 
+          : profile.notificationPrefs || "email"
       })
     }
   }, [profile])
@@ -191,9 +193,34 @@ export default function ProfileClient() {
     setMemberToRemove(null)
   }
 
+  const handleAddFamilyMember = (member: { name: string; age: string }) => {
+    // Find the first empty slot
+    for (let i = 1; i <= 7; i++) {
+      if (!formData[`familyMember${i}` as keyof FormData]) {
+        setFormData(prev => ({
+          ...prev,
+          [`familyMember${i}`]: member.name,
+          [`familyMember${i}Age`]: member.age
+        }))
+        break;
+      }
+    }
+  }
+
+  const getExistingFamilyMembers = () => {
+    const members: string[] = [];
+    for (let i = 1; i <= 7; i++) {
+      const memberName = formData[`familyMember${i}` as keyof FormData]
+      if (memberName && typeof memberName === 'string') {
+        members.push(memberName);
+      }
+    }
+    return members;
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white">Loading profile...</div>
       </div>
     )
@@ -203,7 +230,7 @@ export default function ProfileClient() {
     <>
       <Navigation />
       
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 pt-20">
+      <div className="min-h-screen bg-gray-900 pt-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -271,6 +298,36 @@ export default function ProfileClient() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    name="age"
+                    value={formData.age}
+                    onChange={handleInputChange}
+                    placeholder="30"
+                    min="18"
+                    max="120"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Pronouns
+                  </label>
+                  <input
+                    type="text"
+                    name="pronouns"
+                    value={formData.pronouns}
+                    onChange={handleInputChange}
+                    placeholder="he/him, she/her, they/them"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Phone
                   </label>
                   <input
@@ -285,19 +342,16 @@ export default function ProfileClient() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Notification Preferences
+                    Emergency Contact
                   </label>
-                  <select
-                    name="notificationPrefs"
-                    value={formData.notificationPrefs}
+                  <input
+                    type="text"
+                    name="emergencyContact"
+                    value={formData.emergencyContact}
                     onChange={handleInputChange}
+                    placeholder="Name - Phone"
                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
-                  >
-                    <option value="email">Email Only</option>
-                    <option value="sms">SMS Only</option>
-                    <option value="both">Email & SMS</option>
-                    <option value="none">No Notifications</option>
-                  </select>
+                  />
                 </div>
               </div>
             </div>
@@ -323,6 +377,22 @@ export default function ProfileClient() {
                   />
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Partner's Age
+                  </label>
+                  <input
+                    type="number"
+                    name="partnerAge"
+                    value={formData.partnerAge}
+                    onChange={handleInputChange}
+                    placeholder="30"
+                    min="18"
+                    max="120"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Relationship Status
@@ -352,10 +422,11 @@ export default function ProfileClient() {
                   Family Members
                 </h2>
                 <button
-                  onClick={() => setShowFamilyModal(true)}
-                  className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300"
+                  onClick={() => setShowAddFamilyModal(true)}
+                  className="px-4 py-2 bg-blue-500/80 hover:bg-blue-600/80 text-white rounded-lg transition-all duration-300"
+                  disabled={getExistingFamilyMembers().length >= 7}
                 >
-                  Add Family Member
+                  {getExistingFamilyMembers().length >= 7 ? 'Maximum Reached' : 'Add Family Member'}
                 </button>
               </div>
               
@@ -379,12 +450,161 @@ export default function ProfileClient() {
               </div>
             </div>
 
+            {/* Therapy Preferences */}
+            <div className="mt-8 space-y-6">
+              <h2 className="text-xl font-semibold text-white">Therapy Preferences</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Session Preference
+                  </label>
+                  <select
+                    name="sessionPreference"
+                    value={formData.sessionPreference}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select preference</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Session Frequency
+                  </label>
+                  <select
+                    name="sessionFrequency"
+                    value={formData.sessionFrequency}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select frequency</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Bi-weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="as-needed">As Needed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Communication Style
+                  </label>
+                  <select
+                    name="communicationStyle"
+                    value={formData.communicationStyle}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select style</option>
+                    <option value="direct">Direct</option>
+                    <option value="gentle">Gentle</option>
+                    <option value="structured">Structured</option>
+                    <option value="exploratory">Exploratory</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Notification Preferences
+                  </label>
+                  <select
+                    name="notificationPrefs"
+                    value={formData.notificationPrefs}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="email">Email Only</option>
+                    <option value="sms">SMS Only</option>
+                    <option value="both">Email & SMS</option>
+                    <option value="none">No Notifications</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="mt-8 space-y-6">
+              <h2 className="text-xl font-semibold text-white">Additional Information</h2>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Additional Notes
+                </label>
+                <textarea
+                  name="additionalNotes"
+                  value={formData.additionalNotes}
+                  onChange={handleInputChange}
+                  rows={4}
+                  placeholder="Any additional information you'd like to share..."
+                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Account Settings */}
+            <div className="mt-8 space-y-6 border-t border-white/10 pt-8">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-gray-400" />
+                Account Settings
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Profile Reset */}
+                <div className="p-6 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                        <RefreshCw className="w-5 h-5 text-blue-400" />
+                        Fresh Start
+                      </h3>
+                      <p className="text-white/60 text-sm mt-1">
+                        Clear your profile data and preferences while keeping your account
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowResetModal(true)}
+                      className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300"
+                    >
+                      Reset Profile
+                    </button>
+                  </div>
+                </div>
+
+                {/* Account Deletion */}
+                <div className="p-6 bg-red-900/10 rounded-lg border border-red-900/20">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-red-400" />
+                        Delete Account
+                      </h3>
+                      <p className="text-white/60 text-sm mt-1">
+                        Temporarily disable your account with 30-day recovery option
+                      </p>
+                    </div>
+                    <Link
+                      href="/auth/delete-account"
+                      className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all duration-300"
+                    >
+                      Delete Account
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Update Button */}
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleUpdate}
                 disabled={updating}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-blue-500/80 hover:bg-blue-600/80 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updating ? "Updating..." : "Update Profile"}
               </button>
@@ -394,26 +614,84 @@ export default function ProfileClient() {
       </div>
 
       {/* Modals */}
-      {showFamilyModal && (
-        <FamilyMemberSelectionModal
-          isOpen={showFamilyModal}
-          onClose={() => setShowFamilyModal(false)}
-          familyMembers={[
-            ...(formData.familyMember1 ? [{ name: formData.familyMember1, age: parseInt(formData.familyMember1Age) || 0, relation: 'Family Member' }] : []),
-            ...(formData.familyMember2 ? [{ name: formData.familyMember2, age: parseInt(formData.familyMember2Age) || 0, relation: 'Family Member' }] : []),
-            ...(formData.familyMember3 ? [{ name: formData.familyMember3, age: parseInt(formData.familyMember3Age) || 0, relation: 'Family Member' }] : []),
-            ...(formData.familyMember4 ? [{ name: formData.familyMember4, age: parseInt(formData.familyMember4Age) || 0, relation: 'Family Member' }] : []),
-            ...(formData.familyMember5 ? [{ name: formData.familyMember5, age: parseInt(formData.familyMember5Age) || 0, relation: 'Family Member' }] : []),
-            ...(formData.familyMember6 ? [{ name: formData.familyMember6, age: parseInt(formData.familyMember6Age) || 0, relation: 'Family Member' }] : []),
-            ...(formData.familyMember7 ? [{ name: formData.familyMember7, age: parseInt(formData.familyMember7Age) || 0, relation: 'Family Member' }] : []),
-          ]}
-          onSelectMembers={(selectedMembers) => {
-            // Handle selection - this modal seems to be used for display purposes in this context
-            setShowFamilyModal(false)
-          }}
-          onRemoveMember={handleRemoveMember}
-        />
-      )}
+      <AddFamilyMemberModal
+        isOpen={showAddFamilyModal}
+        onClose={() => setShowAddFamilyModal(false)}
+        onAdd={handleAddFamilyMember}
+        existingMembers={getExistingFamilyMembers()}
+      />
+
+      <ProfileResetModal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={async (options) => {
+          try {
+            const response = await fetch('/api/user/profile-reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ options })
+            });
+            
+            if (response.ok) {
+              // Small delay to ensure server transaction completes
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // 2025 Standard: Properly invalidate cache and refetch instead of page reload
+              await invalidateProfile();
+              
+              // Reset form data to empty state for cleared fields
+              setFormData(prev => {
+                const newData = { ...prev };
+                
+                if (options.clearPersonalInfo) {
+                  newData.pronouns = "";
+                  newData.age = "";
+                  newData.phone = "";
+                  newData.emergencyContact = "";
+                }
+                
+                if (options.clearPartnerInfo) {
+                  newData.partnerName = "";
+                  newData.partnerAge = "";
+                  newData.relationshipStatus = "Married";
+                }
+                
+                if (options.clearFamilyMembers) {
+                  for (let i = 1; i <= 7; i++) {
+                    newData[`familyMember${i}` as keyof FormData] = "";
+                    newData[`familyMember${i}Age` as keyof FormData] = "";
+                  }
+                }
+                
+                if (options.clearTherapyPreferences) {
+                  newData.currentConcerns = [];
+                  newData.sessionPreference = "";
+                  newData.preferredDays = [];
+                  newData.sessionFrequency = "";
+                  newData.recurringSession = "";
+                  newData.reminderTiming = "";
+                  newData.communicationStyle = "";
+                  newData.additionalNotes = "";
+                }
+                
+                return newData;
+              });
+              
+              setIsSuccess(true);
+              setShowResetModal(false);
+              
+              // Clear success message after 3 seconds
+              setTimeout(() => setIsSuccess(false), 3000);
+            } else {
+              const errorData = await response.json().catch(() => ({ error: 'Failed to reset profile' }));
+              setError(errorData.error || 'Failed to reset profile. Please try again.');
+            }
+          } catch (error) {
+            console.error('Error resetting profile:', error);
+            setError('Failed to reset profile. Please try again.');
+          }
+        }}
+      />
 
       {showRemoveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

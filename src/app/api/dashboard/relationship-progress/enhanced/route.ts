@@ -222,7 +222,6 @@ export async function GET(req: NextRequest) {
     const milestones = await prisma.progressTracking.findMany({
       where: {
         userId: session.user.id,
-        therapyType: query.therapyType,
         ...(startDate && {
           date: {
             gte: startDate,
@@ -316,7 +315,6 @@ export async function POST(req: NextRequest) {
         data: {
           userId: session.user.id,
           sessionId: validatedData.sessionId,
-          therapyType: validatedData.therapyType,
           closenessScore: validatedData.closenessScore,
           communicationScore: validatedData.communicationScore,
           notes: validatedData.notes,

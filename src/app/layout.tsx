@@ -3,6 +3,11 @@ import { ReactNode } from "react";
 import { ClientProviders } from "@/components/ClientComponents";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+// Run VAPI startup check on server
+if (typeof window === 'undefined') {
+  import('@/lib/vapi-startup-check');
+}
+
 import "./globals.css";
 import "./menu-styles.css";
 import "./fonts.css";
@@ -19,7 +24,7 @@ export const viewport = {
 export const metadata = {
   title: "TherapyAI",
   description: "AI-powered therapy to help couples build stronger, healthier relationships",
-  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   applicationName: "TherapyAI",
   appleWebApp: {
     capable: true,

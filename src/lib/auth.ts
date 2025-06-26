@@ -42,6 +42,14 @@ const validateOAuthConfig = () => {
   return providers
 }
 
+// 2025 Standard: Ensure proper URL configuration for NextAuth
+const getBaseUrl = () => {
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
+
 export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   adapter: PrismaAdapter(prisma),
@@ -56,6 +64,20 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/login",
     verifyRequest: "/auth/verify-request",
     newUser: "/welcome"
+  },
+  // 2025 Standard: Ensure cookies work properly in development
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token' 
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
   },
   providers: [
     ...validateOAuthConfig(),

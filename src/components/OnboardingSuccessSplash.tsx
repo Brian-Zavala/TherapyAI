@@ -25,13 +25,12 @@ export default function OnboardingSuccessSplash({ userData, onComplete }: Onboar
 
   // Extract user data for personalization messages
   const nickname = userData.nickname || 'your'
-  const therapyType = userData.therapyType || 'therapy'
   const relationshipStatus = userData.relationshipStatus || 'personal'
   
   // Personalized messages to show
   const personalizedMessages = [
     `Tailoring the experience for ${nickname}...`,
-    `Optimizing ${therapyType} sessions for your needs...`,
+    `Optimizing your sessions for your needs...`,
     `Building your ${relationshipStatus} growth path...`,
     'Almost there! Just a few more moments...'
   ]

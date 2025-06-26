@@ -35,7 +35,7 @@ const nextConfig = {
   },
 
   // Bundle optimization
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+  webpack: (config, { _buildId, dev, isServer, _defaultLoaders, _webpack }) => {
     // Bundle analyzer for development
     if (!dev && !isServer) {
       const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer')

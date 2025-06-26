@@ -9,6 +9,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 // Performance monitoring
 import { PerformanceProfiler, usePerformanceMonitoring } from '@/lib/performance-monitoring'
 import { useOptimizedQuery, queryKeys } from '@/lib/query-client-setup'
+import type { UserProfile } from '@/types/therapy-session'
 
 // Optimized imports - lazy load heavy components
 const CommunicationMetrics = lazy(() => 
@@ -27,6 +28,7 @@ const UpcomingSessions = lazy(() =>
 // Critical components - loaded immediately
 import NotificationBell from '@/components/ui/notification-bell'
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications'
+import Link from 'next/link'
 
 // Optimized skeleton components
 const DashboardSkeleton = memo(() => (
@@ -191,7 +193,7 @@ export default function OptimizedDashboard() {
     data: userProfile, 
     isLoading: isProfileLoading,
     error: profileError 
-  } = useQuery(useOptimizedQuery.userProfile(session?.user?.id || '', {
+  } = useQuery<UserProfile>(useOptimizedQuery.userProfile(session?.user?.id || '', {
     enabled: !!session?.user?.id && status === 'authenticated'
   }))
   
@@ -246,7 +248,7 @@ export default function OptimizedDashboard() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <NotificationBell unreadCount={unreadCount} />
+              <NotificationBell />
               
               <Link
                 href="/dashboard/profile"

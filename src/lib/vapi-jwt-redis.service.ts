@@ -123,13 +123,24 @@ class VapiJWTRedisService {
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = now + this.defaultExpiration;
 
+    // VAPI expects a specific JWT structure with a 'token' object
     const payload = {
       orgId: this.orgId,
       sub: userId,
       iat: now,
       exp: expiresAt,
       iss: 'vapi-therapy-app',
-      jti: `${userId}-${now}-${Math.random().toString(36).substring(2)}`, // Unique ID
+      // This is the required structure for VAPI JWT tokens
+      token: {
+        tag: scope,
+        restrictions: {
+          enabled: true,
+          allowedOrigins: process.env.NODE_ENV === 'production' 
+            ? [process.env.NEXTAUTH_URL || 'https://yourdomain.com']
+            : ['http://localhost:3000', 'http://0.0.0.0:3000'],
+          allowTransientAssistant: true, // Allow inline configurations
+        },
+      },
     };
 
     try {

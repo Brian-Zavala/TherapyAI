@@ -211,7 +211,6 @@ export async function POST(
           userId: therapySession.userId,
           closenessScore: finalMetric.overall,
           communicationScore: finalMetric.overall,
-          therapyType: therapyType,
           notes: `First session of week ${weekNumber} completed`
         }
       })

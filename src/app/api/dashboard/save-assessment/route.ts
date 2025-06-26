@@ -102,8 +102,7 @@ export async function POST(request: Request) {
         userId: user.id,
         closenessScore: Math.round((communicationScore + intimacyScore) / 2),
         communicationScore: Math.round(communicationScore),
-        date: new Date(),
-        therapyType: 'couple' // Default therapy type for assessments
+        date: new Date()
       },
     });
     

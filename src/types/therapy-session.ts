@@ -207,4 +207,5 @@ export interface UserProfile {
   communicationStyle?: string;
   sessionHistory?: string;
   familyMembers?: FamilyMember[];
+  onboardingCompleted?: boolean;
 }

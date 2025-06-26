@@ -267,3 +267,5 @@ pids
 .directory
 .Trash-*
 .nfs*
+*storybook.log
+storybook-static

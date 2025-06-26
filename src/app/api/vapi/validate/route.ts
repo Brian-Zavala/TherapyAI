@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     // Check environment variables
     const configCheck = {
       apiKey: !!process.env.VAPI_API_KEY,
-      publicKey: !!process.env.NEXT_PUBLIC_VAPI_API_KEY,
+      jwtConfigured: !!process.env.VAPI_ORG_ID && !!process.env.VAPI_PRIVATE_KEY,
       useInlineAssistant: process.env.NEXT_PUBLIC_USE_INLINE_ASSISTANT === 'true',
       assistantIds: {
         couple: !!process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID,
@@ -73,34 +73,39 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Test client-side VAPI API connectivity
+    // Client-side uses JWT tokens, not API keys
     let clientVapiStatus = {
       connected: false,
       error: null as string | null,
       accountInfo: null as any,
     };
 
-    if (configCheck.publicKey) {
+    // Test JWT generation instead of API key for client
+    if (configCheck.jwtConfigured) {
       try {
-        // Try to list assistants as a connectivity test
-        const clientResponse = await fetch('https://api.vapi.ai/assistant', {
+        // Check if JWT can be generated for client use
+        const testResponse = await fetch(`${req.nextUrl.origin}/api/vapi/token`, {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_VAPI_API_KEY}`,
             'Content-Type': 'application/json',
+            'Cookie': req.headers.get('cookie') || '',
           },
+          body: JSON.stringify({ scope: 'public' }),
         });
 
-        if (clientResponse.ok) {
+        if (testResponse.ok) {
+          const tokenData = await testResponse.json();
           clientVapiStatus.connected = true;
-          const assistants = await clientResponse.json();
           clientVapiStatus.accountInfo = { 
-            assistantCount: Array.isArray(assistants) ? assistants.length : 0,
-            message: 'Client API connection successful'
+            message: 'JWT generation successful',
+            tokenGenerated: true,
+            expiresAt: tokenData.expiresAt
           };
+          console.log('Client JWT generation successful');
         } else {
-          clientVapiStatus.error = `Client API returned ${clientResponse.status}: ${clientResponse.statusText}`;
-          const errorBody = await clientResponse.text();
-          console.error('Client VAPI API Error:', errorBody);
+          clientVapiStatus.error = `JWT generation failed: ${testResponse.status}`;
+          const errorBody = await testResponse.text();
+          console.error('JWT generation error:', errorBody);
         }
       } catch (error) {
         clientVapiStatus.error = error instanceof Error ? error.message : 'Unknown error';
@@ -180,25 +185,20 @@ function getRecommendations(configCheck: any, vapiStatus: any, clientVapiStatus:
     recommendations.push('❌ VAPI_API_KEY is missing - this is required for VAPI to work');
   }
 
-  if (!configCheck.publicKey) {
-    recommendations.push('❌ NEXT_PUBLIC_VAPI_API_KEY is missing - this is required for client-side VAPI');
+  if (!configCheck.jwtConfigured) {
+    recommendations.push('❌ JWT configuration missing - VAPI_ORG_ID and VAPI_PRIVATE_KEY are required for client authentication');
   }
 
   if (!vapiStatus.connected && configCheck.apiKey) {
     recommendations.push('❌ VAPI server API connection failed - check if your VAPI_API_KEY is valid and not expired');
   }
 
-  if (!clientVapiStatus.connected && configCheck.publicKey) {
-    recommendations.push('❌ VAPI client API connection failed - check if your NEXT_PUBLIC_VAPI_API_KEY is valid and not expired');
+  if (!clientVapiStatus.connected && configCheck.jwtConfigured) {
+    recommendations.push('❌ JWT generation failed - check your VAPI_ORG_ID and VAPI_PRIVATE_KEY configuration');
   }
 
-  if (clientVapiStatus.connected && vapiStatus.connected && configCheck.apiKey && configCheck.publicKey) {
-    const serverCredits = vapiStatus.accountInfo?.credits;
-    const clientCredits = clientVapiStatus.accountInfo?.credits;
-    
-    if (serverCredits !== clientCredits) {
-      recommendations.push('⚠️ Server and client API keys show different credit amounts - they may be for different accounts');
-    }
+  if (clientVapiStatus.connected && vapiStatus.connected) {
+    recommendations.push('✅ Both server API and client JWT authentication are working correctly');
   }
 
   // Since we're using /assistant endpoint, we can't check credits

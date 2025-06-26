@@ -114,7 +114,6 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
         userId,
         closenessScore: metrics.closenessScore,
         communicationScore: metrics.communicationScore,
-        therapyType,
         notes,
         sessionId,
         assistantId // Include the assistant ID in progress tracking

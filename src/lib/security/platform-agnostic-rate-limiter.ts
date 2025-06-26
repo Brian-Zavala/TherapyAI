@@ -1,5 +1,6 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import type { Redis } from '@upstash/redis'
+import type { Duration } from '@upstash/ratelimit'
 
 // Redis client factory for Upstash only
 async function createRedisClient(): Promise<Redis | null> {
@@ -21,29 +22,48 @@ async function createRedisClient(): Promise<Redis | null> {
   return null
 }
 
+// Helper function to parse Duration string to milliseconds
+function parseDurationToMs(duration: Duration): number {
+  const durationStr = duration as string
+  const match = durationStr.match(/^(\d+)\s*([smhd])$/)
+  if (!match) throw new Error(`Invalid duration format: ${durationStr}`)
+  
+  const [, num, unit] = match
+  const value = parseInt(num, 10)
+  
+  switch (unit) {
+    case 's': return value * 1000
+    case 'm': return value * 60 * 1000
+    case 'h': return value * 60 * 60 * 1000
+    case 'd': return value * 24 * 60 * 60 * 1000
+    default: throw new Error(`Unknown time unit: ${unit}`)
+  }
+}
+
 // In-memory fallback for development/testing
 class InMemoryRateLimiter {
   private limits: Map<string, { count: number; resetTime: number }> = new Map()
   
-  async limit(identifier: string, requests: number, window: number): Promise<{
+  async limit(identifier: string, requests: number, window: Duration): Promise<{
     success: boolean
     limit: number
     remaining: number
     reset: number
   }> {
     const now = Date.now()
+    const windowMs = parseDurationToMs(window)
     const entry = this.limits.get(identifier)
     
     if (!entry || now > entry.resetTime) {
       this.limits.set(identifier, {
         count: 1,
-        resetTime: now + window * 1000
+        resetTime: now + windowMs
       })
       return {
         success: true,
         limit: requests,
         remaining: requests - 1,
-        reset: now + window * 1000
+        reset: now + windowMs
       }
     }
     
@@ -72,7 +92,7 @@ let rateLimiterInstance: Ratelimit | InMemoryRateLimiter | null = null
 // Create Upstash rate limiter
 export async function createUpstashRateLimiter(
   requests: number = 60,
-  window: string = '1 m'
+  window: Duration = '1 m' as Duration
 ): Promise<Ratelimit | InMemoryRateLimiter | null> {
   // Return existing instance if available
   if (rateLimiterInstance) return rateLimiterInstance

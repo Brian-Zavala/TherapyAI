@@ -23,7 +23,10 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   
   // Function to register the music player
   const registerMusicPlayer = useCallback((playerRef: any) => {
-    console.log('Music player registered with sound provider')
+    // 2025 Standard: Only log in development if explicitly debugging
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_SOUND === 'true') {
+      console.log('Music player registered with sound provider')
+    }
     setMusicPlayerRef(playerRef)
   }, [])
   

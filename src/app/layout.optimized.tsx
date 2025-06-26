@@ -1,8 +1,10 @@
 import { Suspense } from 'react'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
+
+// Analytics and performance monitoring
+import { AnalyticsProvider } from '@/lib/analytics/posthog'
+import { PerformanceMonitoring } from '@/lib/analytics/web-vitals'
 
 // Optimized providers
 import { OptimizedProviders } from '@/components/providers/OptimizedProviders'
@@ -166,46 +168,43 @@ export default function OptimizedRootLayout({
         {/* Performance monitoring wrapper */}
         <PerformanceProfiler id="app-root">
           <Suspense fallback={<GlobalLoadingFallback />}>
-            <OptimizedProviders>
-              {/* Error boundary for the entire app */}
-              <Suspense fallback={<GlobalLoadingFallback />}>
-                {children}
+            <AnalyticsProvider>
+              <OptimizedProviders>
+                {/* Error boundary for the entire app */}
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  {children}
+                </Suspense>
+              </OptimizedProviders>
+              
+              {/* Performance monitoring - loaded after main content */}
+              <Suspense>
+                <PerformanceMonitoring />
               </Suspense>
-            </OptimizedProviders>
+            </AnalyticsProvider>
           </Suspense>
         </PerformanceProfiler>
-        
-        {/* Analytics - loaded after main content */}
-        <Suspense>
-          <Analytics />
-          <SpeedInsights />
-        </Suspense>
         
         {/* Performance monitoring script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Web Vitals monitoring
-              function sendToAnalytics(metric) {
-                if (window.gtag) {
-                  gtag('event', 'web-vital', {
-                    event_category: 'Performance',
-                    event_label: metric.name,
-                    value: Math.round(metric.value),
-                    non_interaction: true
-                  });
-                }
-              }
-              
-              // Load web-vitals library only if needed
-              if (window.location.hostname !== 'localhost') {
-                import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-                  getCLS(sendToAnalytics);
-                  getFID(sendToAnalytics);
-                  getFCP(sendToAnalytics);
-                  getLCP(sendToAnalytics);
-                  getTTFB(sendToAnalytics);
-                });
+              // Critical performance monitoring
+              if ('PerformanceObserver' in window) {
+                // Monitor layout shifts
+                new PerformanceObserver((list) => {
+                  for (const entry of list.getEntries()) {
+                    if (entry.value > 0.1) {
+                      console.warn('[Performance] Layout shift detected:', entry.value);
+                    }
+                  }
+                }).observe({ type: 'layout-shift', buffered: true });
+                
+                // Monitor largest contentful paint
+                new PerformanceObserver((list) => {
+                  const entries = list.getEntries();
+                  const lastEntry = entries[entries.length - 1];
+                  console.log('[Performance] LCP:', lastEntry.startTime);
+                }).observe({ type: 'largest-contentful-paint', buffered: true });
               }
             `
           }}

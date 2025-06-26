@@ -72,7 +72,6 @@ model UserProfile {
   emergencyContact      String?
   
   // Therapy preferences
-  therapyType           String?                @default("couple")
   sessionPreference     String?
   communicationStyle    String?
   notificationPrefs     Json?                  @default("[]")
@@ -255,7 +254,6 @@ model ProgressTracking {
   communicationScore    Int                    // 0-100
   
   // Metadata
-  therapyType           String                 @default("couple")
   notes                 String?
   assistantId           String?
   date                  DateTime               @default(now())
@@ -268,9 +266,7 @@ model ProgressTracking {
   session               Session?               @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   
   @@index([userId, sessionId]) // Allow multiple progress entries per user
-  @@index([userId, therapyType, date])
   @@index([userId, date])
-  @@index([therapyType])
   @@index([assistantId])
 }
 

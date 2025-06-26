@@ -13,7 +13,6 @@ import {
   DEFAULT_SESSION_DURATION,
   SessionDuration
 } from '@/lib/therapy-session/constants'
-import { isSessionExpired } from '@/lib/therapy-session/utils'
 import { useAccurateSessionTimer, useSessionRecoveryTimer, useSessionTimeAlerts } from './useAccurateSessionTimer'
 
 // Hook configuration interface
@@ -166,7 +165,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
   })
   
   // Recovery timer for session restoration
-  const recoveryState = useSessionRecoveryTimer({
+  useSessionRecoveryTimer({
     sessionId: sessionRecovered ? sessionId : null,
     onRecoveryComplete: useCallback((conversationTime: number) => {
       setInitialConversationTime(conversationTime)

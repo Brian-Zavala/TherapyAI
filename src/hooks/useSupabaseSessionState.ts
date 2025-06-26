@@ -285,7 +285,13 @@ export function useSupabaseSessionState({
       // Resume VAPI session with saved state
       if (onVapiResumeRef.current) {
         console.log('🎙️ Resuming VAPI session...')
-        await onVapiResumeRef.current(sessionId)
+        try {
+          await onVapiResumeRef.current(sessionId)
+          console.log('✅ VAPI session resumed successfully')
+        } catch (vapiError) {
+          console.error('Failed to resume VAPI session:', vapiError)
+          // Don't throw here - database update succeeded, just log VAPI error
+        }
       }
       
       // Broadcast state change

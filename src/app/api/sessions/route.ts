@@ -206,6 +206,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("[Sessions API] Received POST request");
   try {
     // 2025 Standard: Auth check
     const authSession = await getServerSession(authOptions);
@@ -216,8 +217,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // 2025 Standard: Parse and validate request body
+    // 2025 Standard: Parse and validate request body (only read once)
     const body = await request.json();
+    console.log("[Sessions API] Request body:", body);
     const validatedData = createSessionSchema.safeParse(body);
     
     if (!validatedData.success) {

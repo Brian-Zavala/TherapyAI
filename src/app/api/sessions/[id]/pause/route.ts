@@ -101,7 +101,7 @@ export async function POST(
         pausedAt: updatedSession.pausedAt,
         conversationTimeSeconds: updatedSession.conversationTimeSeconds,
         totalElapsedSeconds,
-        totalPausedTimeSeconds: totalElapsedSeconds - updatedSession.conversationTimeSeconds,
+        totalPausedTimeSeconds: updatedSession.totalPausedTimeSeconds || 0, // Return actual paused time, not calculated
       }
     })
 

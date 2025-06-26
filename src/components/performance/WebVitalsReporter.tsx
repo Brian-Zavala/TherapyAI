@@ -58,12 +58,13 @@ async function sendToAnalytics(metric: Metric) {
     });
   }
 
-  // Also log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Web Vitals] ${metric.name}:`, {
+  // 2025 Standard: Only log poor metrics to reduce console noise
+  if (process.env.NODE_ENV === 'development' && metric.rating === 'poor') {
+    console.warn(`[Web Vitals] Poor ${metric.name}:`, {
       value: metric.value,
       rating: metric.rating,
-      navigationType: metric.navigationType
+      navigationType: metric.navigationType,
+      threshold: thresholds[metric.name].poor
     });
   }
 }
@@ -126,7 +127,9 @@ export function WebVitalsReporter() {
       try {
         const observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
-            if (entry.duration > 50) {
+            // 2025 Standard: Only warn for significantly long tasks (>200ms)
+            // to reduce console noise while still tracking performance issues
+            if (entry.duration > 200) {
               console.warn('[Performance] Long task detected:', {
                 duration: entry.duration,
                 startTime: entry.startTime,

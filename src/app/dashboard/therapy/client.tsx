@@ -74,7 +74,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Track when initial session check is complete with minimum wait time
   useEffect(() => {
     if (!isCheckingForSession && !initialCheckComplete) {
-      console.log('🔍 Initial session check complete');
+      // 2025 Standard: Only log in debug mode
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_SESSION === 'true') {
+        console.log('🔍 Initial session check complete');
+      }
       setInitialCheckComplete(true);
     }
   }, [isCheckingForSession, initialCheckComplete]);
@@ -82,7 +85,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // Ensure minimum wait time before showing UI (prevents flash)
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log('⏱️ Minimum wait time complete');
+      // 2025 Standard: Only log in debug mode
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_SESSION === 'true') {
+        console.log('⏱️ Minimum wait time complete');
+      }
       setMinimumWaitComplete(true);
     }, 1500); // Wait 1.5 seconds minimum to allow recovery modal to catch up
     

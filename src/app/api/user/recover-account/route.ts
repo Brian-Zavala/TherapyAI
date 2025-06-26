@@ -181,7 +181,6 @@ export async function POST(request: NextRequest) {
               phone: profileSnapshot.phone,
               additionalNotes: profileSnapshot.additionalNotes,
               age: profileSnapshot.age,
-              therapyType: profileSnapshot.therapyType,
               sessionPreference: profileSnapshot.sessionPreference,
               communicationStyle: profileSnapshot.communicationStyle,
               notificationPrefs: profileSnapshot.notificationPrefs,

@@ -29,7 +29,6 @@ const CreateSessionSchema = z.object({
     reminderTiming: z.string().optional(),
     timeZone: z.string().optional(),
     communicationStyle: z.string().optional(),
-    therapyType: z.string().optional()
   }).optional(),
   calendarIntegrations: z.array(z.object({
     provider: z.enum(['google', 'outlook', 'exchange']),
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
           notes: validatedData.notes || '',
           status: 'scheduled',
           assistantId: user.profile?.assistantId || null,
-          sessionType: validatedData.userPreferences?.therapyType || 'couple'
+          sessionType: 'couple'
         }
       });
 
@@ -193,7 +192,7 @@ export async function POST(request: NextRequest) {
           notes: `${validatedData.notes || ''}\n\nPart of recurring series`,
           status: 'scheduled' as const,
           assistantId: user.profile?.assistantId || null,
-          sessionType: validatedData.userPreferences?.therapyType || 'couple'
+          sessionType: 'couple'
         }));
 
         await prisma.session.createMany({

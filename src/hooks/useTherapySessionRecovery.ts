@@ -43,7 +43,10 @@ export function useTherapySessionRecovery() {
     if (sessionKey !== lastSessionKey) {
       setHasCheckedThisSession(false)
       setLastSessionKey(sessionKey)
-      console.log('🔄 Session key changed, resetting recovery check status')
+      // 2025 Standard: Only log during debug mode
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_RECOVERY === 'true') {
+        console.log('🔄 Session key changed, resetting recovery check status')
+      }
     }
   }, [sessionKey, lastSessionKey])
 
@@ -105,7 +108,10 @@ export function useTherapySessionRecovery() {
       sessionStorage.removeItem('recovery-check-in-progress')
     }, 10000) // 10 second safety timeout
 
-    console.log('🔍 Checking for active therapy session...')
+    // 2025 Standard: Reduce console noise - only log significant events
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_RECOVERY === 'true') {
+      console.log('🔍 Checking for active therapy session...')
+    }
     
     // CRITICAL: Check if a session just ended to prevent recovery attempts
     const justEndedData = sessionStorage.getItem('session-just-ended')

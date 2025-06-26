@@ -10,7 +10,6 @@ interface ProfileData {
   name: string;
   phone: string;
   familyMembers: number;
-  therapyType: string;
   timeZone: string;
 }
 
@@ -40,7 +39,6 @@ export default function OptimisticProfileForm({
       name: formData.get('name') as string,
       phone: formData.get('phone') as string,
       familyMembers: parseInt(formData.get('familyMembers') as string),
-      therapyType: formData.get('therapyType') as string,
       timeZone: formData.get('timeZone') as string,
     };
 
@@ -152,25 +150,6 @@ export default function OptimisticProfileForm({
           </motion.select>
         </div>
 
-        {/* Therapy Type */}
-        <div>
-          <label htmlFor="therapyType" className="block text-sm font-medium text-white/90 mb-1">
-            Therapy Type
-          </label>
-          <motion.select
-            key={optimisticProfile.therapyType}
-            whileFocus={{ scale: 1.01 }}
-            id="therapyType"
-            name="therapyType"
-            defaultValue={optimisticProfile.therapyType}
-            className="w-full px-4 py-3 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 focus:ring-green-500/50 focus:border-green-500/50 text-white"
-          >
-            <option value="couple" className="bg-gray-800">Couple Therapy</option>
-            <option value="family" className="bg-gray-800">Family Therapy</option>
-            <option value="individual" className="bg-gray-800">Individual Therapy</option>
-            <option value="group" className="bg-gray-800">Group Therapy</option>
-          </motion.select>
-        </div>
 
         {/* Time Zone */}
         <div>
@@ -225,7 +204,6 @@ export default function OptimisticProfileForm({
           <div>Name: {optimisticProfile.name || 'Not set'}</div>
           <div>Phone: {optimisticProfile.phone || 'Not set'}</div>
           <div>Family: {optimisticProfile.familyMembers} member(s)</div>
-          <div>Type: {optimisticProfile.therapyType}</div>
           <div>Zone: {optimisticProfile.timeZone}</div>
         </div>
       </div>

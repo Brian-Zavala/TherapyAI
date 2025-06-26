@@ -68,7 +68,6 @@ export default function ScheduleClient() {
         reminderTiming: profile.reminderTiming,
         timeZone: 'UTC', // TODO: Add timezone to profile
         communicationStyle: profile.communicationStyle,
-        therapyType: profile.therapyType
       }
       setUserPreferences(prefs)
       
@@ -228,7 +227,7 @@ export default function ScheduleClient() {
                   <h3 className="font-semibold">Therapy Type</h3>
                 </div>
                 <p className="text-sm text-gray-300 capitalize">
-                  {profile?.therapyType || 'Not set'}
+                  Not set
                 </p>
               </motion.div>
             </div>

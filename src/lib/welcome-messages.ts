@@ -21,8 +21,7 @@ const WelcomeUserSchema = z.object({
   smsConsent: z.boolean().optional(),
   therapyGoals: z.string().optional(),
   relationshipStatus: z.string().optional(),
-  age: z.number().optional(),
-  timeZone: z.string().default('UTC')
+  age: z.number().optional()
 });
 
 export type WelcomeUser = z.infer<typeof WelcomeUserSchema>;

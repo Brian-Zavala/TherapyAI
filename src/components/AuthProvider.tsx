@@ -19,9 +19,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     <SessionProvider 
       refetchInterval={0} 
       refetchOnWindowFocus={false}
-      baseUrl={baseUrl}
+      basePath="/api/auth"
+      // Skip initial session fetch to prevent CLIENT_FETCH_ERROR
+      session={undefined}
     >
-      {mounted ? children : null}
+      {mounted ? children : <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />}
     </SessionProvider>
   )
 }

@@ -202,7 +202,6 @@ export class NotificationWorker {
               reminderTiming: userPrefs.reminderTiming,
               timeZone: userPrefs.timeZone || 'UTC',
               communicationStyle: userPrefs.communicationStyle || 'supportive',
-              therapyType: userPrefs.therapyType || 'couple'
             }
           );
 
@@ -216,12 +215,12 @@ export class NotificationWorker {
                   userId: session.userId,
                   sessionId: session.id,
                   type: 'reminder',
-                  title: timing.title,
-                  message: timing.message,
-                  priority: timing.priority as any,
+                  title: `Therapy Session Reminder - ${timing.type}`,
+                  message: `Your therapy session is scheduled for ${session.date.toLocaleString()}`,
+                  priority: 'medium',
                   deliveryMethod: userPrefs.notificationPrefs || 'email',
                   deliveryStatus: 'pending',
-                  scheduledFor: timing.sendAt
+                  scheduledFor: now
                 }
               });
 

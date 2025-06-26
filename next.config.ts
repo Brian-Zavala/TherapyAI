@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
   },
 
   // Configure the Webpack bundler specifically.
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer }) => {
     // Add raw-loader for HTML files
     config.module.rules.push({
       test: /\.html$/,

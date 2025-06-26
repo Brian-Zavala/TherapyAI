@@ -15,6 +15,7 @@ const FAQSection = lazy(() => import('@/components/sections/FAQSection'))
 // Critical components loaded immediately
 import ButtonWithSound from '@/components/ButtonWithSound'
 import ScrollDownArrow from '@/components/ScrollDownArrow'
+import Link from 'next/link'
 
 // Performance monitoring
 const usePerformanceMonitoring = () => {
@@ -145,19 +146,21 @@ export default function OptimizedLandingPage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <ButtonWithSound
-                className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-                href="/auth/register"
-              >
-                Start Your Journey
-              </ButtonWithSound>
+              <Link href="/auth/register">
+                <ButtonWithSound
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  Start Your Journey
+                </ButtonWithSound>
+              </Link>
               
-              <ButtonWithSound
-                className="border-2 border-white/20 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 hover:bg-white/10"
-                href="#features"
-              >
-                Learn More
-              </ButtonWithSound>
+              <Link href="#features">
+                <ButtonWithSound
+                  className="border-2 border-white/20 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 hover:bg-white/10"
+                >
+                  Learn More
+                </ButtonWithSound>
+              </Link>
             </div>
           </div>
         </div>

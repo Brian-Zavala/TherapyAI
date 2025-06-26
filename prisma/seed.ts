@@ -34,7 +34,6 @@ async function main() {
       userId: user.id,
       partnerName: 'Partner Name',
       relationshipStatus: 'Married',
-      therapyType: 'couple',
       assistantId: null
     }
   })

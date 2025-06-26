@@ -2,11 +2,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { prisma } from "@/lib/prisma-optimized"
 import { profileCache, cacheKeys } from "@/lib/cache/profile-cache"
 import { jobQueue, JobType } from "@/lib/queue/background-jobs"
 import { formatPhoneNumber, validatePhoneNumber } from "@/lib/sms-service"
 import type { WelcomeUser } from "@/lib/welcome-messages"
+import { notificationPrefsSchema, preferredDaysSchema, currentConcernsSchema, onboardingDataSchema } from "@/lib/zod-schemas";
 
 // Cache control headers
 const CACHE_HEADERS = {
@@ -87,7 +88,6 @@ export async function GET(req: NextRequest) {
             partnerName: true,
             partnerAge: true,
             relationshipStatus: true,
-            therapyType: true,
             currentConcerns: true,
             emergencyContact: true,
             sessionPreference: true,
@@ -162,7 +162,6 @@ export async function GET(req: NextRequest) {
       partnerAge: profile?.partnerAge || null,
       relationshipStatus: profile?.relationshipStatus || "Married",
       ...familyMemberData,
-      therapyType: profile?.therapyType || "",
       currentConcerns: profile?.currentConcerns || null,
       emergencyContact: profile?.emergencyContact || "",
       sessionPreference: profile?.sessionPreference || "",
@@ -203,20 +202,32 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
+    const userEmail = session.user.email
+    const userName = session.user.name
     const data = await request.json()
+
+    // Validate onboarding data structure
+    try {
+      if (data && typeof data === 'object') {
+        onboardingDataSchema.parse(data);
+      }
+    } catch (error) {
+      console.error('[Profile API] Onboarding validation error:', error);
+      return NextResponse.json({ error: "Invalid onboarding data", details: error }, { status: 400 });
+    }
     
     // Use transaction for atomic updates
     const updatedUser = await prisma.$transaction(async (tx) => {
       // Find or create user
       let user = await tx.user.findUnique({
-        where: { email: session.user.email }
+        where: { email: userEmail }
       })
       
       if (!user) {
         user = await tx.user.create({
           data: {
-            email: session.user.email,
-            name: data.nickname || session.user.name || session.user.email.split('@')[0],
+            email: userEmail,
+            name: data.nickname || userName || userEmail.split('@')[0],
             password: 'SESSION_CREATED_USER',
             onboardingData: data,
             onboardingCompleted: true
@@ -242,7 +253,6 @@ export async function PATCH(request: Request) {
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
           relationshipStatus: data.relationshipStatus || 'Married',
-          therapyType: data.therapyType || null,
           ...notificationData,
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -260,7 +270,6 @@ export async function PATCH(request: Request) {
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
           relationshipStatus: data.relationshipStatus || 'Married',
-          therapyType: data.therapyType || null,
           ...notificationData,
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -323,8 +332,7 @@ export async function PATCH(request: Request) {
       smsConsent: data.smsConsent === 'true' || data.smsConsent === true,
       therapyGoals: data.goals || data.currentConcerns,
       relationshipStatus: data.relationshipStatus,
-      age: data.age ? parseInt(data.age) : undefined,
-      timeZone: 'UTC'
+      age: data.age ? parseInt(data.age) : undefined
     }
     
     await jobQueue.enqueue(JobType.SEND_WELCOME_MESSAGES, welcomeUser)
@@ -350,7 +358,29 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
+    const userEmail = session.user.email
     const data = await request.json()
+    
+    console.log("[Profile API] PUT request data:", {
+      email: userEmail,
+      dataKeys: Object.keys(data)
+    })
+
+    // Validate the fields if they exist
+    try {
+      if (data.notificationPrefs !== undefined) {
+        notificationPrefsSchema.parse(data.notificationPrefs);
+      }
+      if (data.preferredDays !== undefined) {
+        preferredDaysSchema.parse(data.preferredDays);
+      }
+      if (data.currentConcerns !== undefined) {
+        currentConcernsSchema.parse(data.currentConcerns);
+      }
+    } catch (error) {
+      console.error('[Profile API] Validation error:', error);
+      return NextResponse.json({ error: "Invalid profile data", details: error }, { status: 400 });
+    }
     
     if (!data.name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
@@ -358,8 +388,22 @@ export async function PUT(request: Request) {
     
     // Update with transaction
     const updatedUser = await prisma.$transaction(async (tx) => {
+      // First check if user exists
+      const existingUser = await tx.user.findUnique({
+        where: { email: userEmail }
+      })
+      
+      console.log("[Profile API] Existing user check:", {
+        exists: !!existingUser,
+        userId: existingUser?.id
+      })
+      
+      if (!existingUser) {
+        throw new Error(`User not found with email: ${userEmail}`)
+      }
+      
       const user = await tx.user.update({
-        where: { email: session.user.email },
+        where: { email: userEmail },
         data: { name: data.name }
       })
       
@@ -370,7 +414,6 @@ export async function PUT(request: Request) {
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
           relationshipStatus: data.relationshipStatus || 'Married',
-          therapyType: data.therapyType || 'couple',
           notificationPrefs: data.notificationPrefs || 'email',
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -389,7 +432,6 @@ export async function PUT(request: Request) {
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
           relationshipStatus: data.relationshipStatus || 'Married',
-          therapyType: data.therapyType || 'couple',
           notificationPrefs: data.notificationPrefs || 'email',
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -450,6 +492,12 @@ export async function PUT(request: Request) {
     
   } catch (error) {
     console.error("[Profile API] Update error:", error)
+    console.error("[Profile API] Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      code: (error as any)?.code,
+      meta: (error as any)?.meta
+    })
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 })
   }
 }

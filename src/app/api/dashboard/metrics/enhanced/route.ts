@@ -104,7 +104,6 @@ export async function GET(req: NextRequest) {
           select: {
             closenessScore: true,
             communicationScore: true,
-            therapyType: true,
             notes: true,
             date: true,
           },

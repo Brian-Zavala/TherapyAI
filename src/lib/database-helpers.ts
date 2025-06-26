@@ -33,7 +33,6 @@ export async function createOrUpdateUserProfile(userId: string, data: any) {
     where: { userId },
     create: {
       userId,
-      therapyType: data.therapyType || 'couple',
       sessionPreference: data.sessionPreference,
       communicationStyle: data.communicationStyle,
       notificationPrefs: data.notificationPrefs || 'email',
@@ -53,7 +52,6 @@ export async function createOrUpdateUserProfile(userId: string, data: any) {
       emergencyContact: data.emergencyContact
     },
     update: {
-      therapyType: data.therapyType,
       sessionPreference: data.sessionPreference,
       communicationStyle: data.communicationStyle,
       notificationPrefs: data.notificationPrefs,

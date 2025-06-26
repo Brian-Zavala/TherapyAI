@@ -9,7 +9,7 @@ export interface VapiValidationResult {
   warnings: string[];
 }
 
-export function validateVapiInlineConfig(config: any): VapiValidationResult {
+export function validateVapiInlineConfig(config: Record<string, unknown>): VapiValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -47,7 +47,7 @@ export function validateVapiInlineConfig(config: any): VapiValidationResult {
         ];
         
         if (!validAnthropicModels.includes(config.model.model)) {
-          errors.push(`Invalid Anthropic model: ${config.model.model}. Valid models: ${validAnthropicModels.join(', ')}`);
+          warnings.push(`Model ${config.model.model} is not in the list of known Anthropic models. Please ensure it is a valid model.`);
         }
       }
     }
@@ -106,7 +106,7 @@ export function validateVapiInlineConfig(config: any): VapiValidationResult {
         'gohighlevel.contact.create', 'gohighlevel.contact.get', 'make', 'ghl'
       ];
 
-      config.model.tools.forEach((tool: any, index: number) => {
+      config.model.tools.forEach((tool: Record<string, any>, index: number) => {
         if (!tool.type) {
           errors.push(`Tool at index ${index} is missing required "type" field`);
         } else if (!validToolTypes.includes(tool.type)) {

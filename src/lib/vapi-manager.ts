@@ -40,8 +40,20 @@ export class VAPIManager {
       ...config
     }
 
-    this.vapi = new Vapi(this.config.publicKey)
-    this.setupEventListeners()
+    // Log token details for debugging
+    console.log('[VAPIManager] Initializing with token type:', {
+      tokenLength: this.config.publicKey.length,
+      isJWT: this.config.publicKey.includes('.'),
+      tokenPrefix: this.config.publicKey.substring(0, 20) + '...'
+    })
+
+    try {
+      this.vapi = new Vapi(this.config.publicKey)
+      this.setupEventListeners()
+    } catch (error) {
+      console.error('[VAPIManager] Failed to initialize VAPI client:', error)
+      throw error
+    }
   }
 
   private setupEventListeners() {
@@ -109,6 +121,16 @@ export class VAPIManager {
     const errorHandler = (error: any) => {
       if (this.isDestroyed) return
       console.error('VAPI Error:', error)
+      
+      // Check for authentication errors
+      if (error && typeof error === 'object') {
+        // Check for 403 or authentication errors
+        if (error.status === 403 || error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          console.error('[VAPIManager] Authentication error detected - token may be invalid or expired')
+          // Dispatch custom event for auth error handling
+          window.dispatchEvent(new CustomEvent('vapi-auth-error', { detail: error }))
+        }
+      }
     }
 
     // Store references for cleanup
@@ -189,6 +211,12 @@ export class VAPIManager {
         throw new Error('Either assistantId or assistantConfig must be provided')
       }
 
+      console.log('[VAPIManager] Starting VAPI session with config:', {
+        hasAssistantId: !!startConfig.assistantId,
+        hasInlineConfig: !startConfig.assistantId,
+        configKeys: Object.keys(startConfig),
+      });
+
       await this.vapi.start(startConfig)
       
       // After session starts, inject conversation history using add-message
@@ -239,6 +267,38 @@ export class VAPIManager {
 
     } catch (error) {
       console.error('Failed to start VAPI session:', error)
+      
+      // Check for specific error types
+      if (error && typeof error === 'object') {
+        const errorObj = error as any;
+        
+        // Check for 403 Forbidden errors
+        if (errorObj.status === 403 || errorObj.message?.includes('403') || errorObj.message?.includes('Forbidden')) {
+          console.error('[VAPIManager] 403 Forbidden error - Authentication failed');
+          console.error('Token details:', {
+            tokenLength: this.config.publicKey.length,
+            tokenPrefix: this.config.publicKey.substring(0, 30),
+            isJWT: this.config.publicKey.includes('.'),
+          });
+          
+          // Dispatch auth error event
+          window.dispatchEvent(new CustomEvent('vapi-auth-error', { 
+            detail: { 
+              error: errorObj,
+              type: '403-forbidden',
+              message: 'VAPI authentication failed. Token may be invalid or expired.'
+            }
+          }));
+          
+          throw new Error('VAPI authentication failed. Please try refreshing the page or contact support.');
+        }
+        
+        // Check for network errors
+        if (errorObj.message?.includes('Failed to fetch') || errorObj.message?.includes('NetworkError')) {
+          throw new Error('Network error connecting to VAPI. Please check your internet connection.');
+        }
+      }
+      
       throw new Error(`Failed to start VAPI session: ${(error as Error).message}`)
     }
   }

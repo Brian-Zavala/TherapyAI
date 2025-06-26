@@ -77,7 +77,6 @@ export async function POST(req: NextRequest) {
         data: {
           userId: session.user.id,
           sessionId,
-          therapyType,
           communicationScore: Math.round(communicationScore),
           closenessScore: Math.round(emotionalScore || communicationScore), // Use emotional score as proxy for closeness
           notes: JSON.stringify({

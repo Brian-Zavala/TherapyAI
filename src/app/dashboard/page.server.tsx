@@ -26,9 +26,7 @@ async function getUserServerData(userId: string) {
         onboardingCompleted: true,
         profile: {
           select: {
-            therapyType: true,
-            timeZone: true,
-            language: true
+            timeZone: true
           }
         }
       }
@@ -49,10 +47,10 @@ async function getSessionStatsServer(userId: string) {
     const prisma = new PrismaClient();
     
     const [sessionCount, lastSession] = await Promise.all([
-      prisma.therapySession.count({
+      prisma.session.count({
         where: { userId }
       }),
-      prisma.therapySession.findFirst({
+      prisma.session.findFirst({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         select: {

@@ -70,6 +70,9 @@ export function TherapyButtonRefactored({
   const sessionActiveManaged = useRef(false)
   const sessionActiveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
+  // Debounce ref for pause/resume operations
+  const pauseResumeDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  
   // Centralized function to manage session-active class
   const setSessionActive = useCallback((active: boolean) => {
     // Clear any pending timeout
@@ -376,6 +379,7 @@ export function TherapyButtonRefactored({
   const [forceHidePhoneUI, setForceHidePhoneUI] = useState(false)
   const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false)
   const [hasNewTranscriptMessages, setHasNewTranscriptMessages] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   
   // Create refs for callbacks to avoid re-renders
   const isLoadingRef = useRef(isLoading)
@@ -999,7 +1003,25 @@ export function TherapyButtonRefactored({
       
       // Reset UI state on error
       setForceHidePhoneUI(false) // Ensure proper cleanup
-      setSessionActive(false)
+      
+      // 2025 Standard: Only reset session-active if it's a permanent error
+      // For temporary errors (network, etc), keep the UI state to prevent flickering
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const isPermanentError = errorMessage.includes('authentication') || 
+                              errorMessage.includes('invalid') ||
+                              errorMessage.includes('not found') ||
+                              errorMessage.includes('deleted')
+      
+      if (isPermanentError) {
+        setSessionActive(false)
+      } else {
+        // For temporary errors, reset after a longer delay to prevent UI flicker
+        setTimeout(() => {
+          if (!session.sessionId && !vapi.vapiState.isActive) {
+            setSessionActive(false)
+          }
+        }, 2000)
+      }
     } finally {
       setIsLoading(false) // Stop loading
     }
@@ -1075,6 +1097,114 @@ export function TherapyButtonRefactored({
     }
   }, [vapi, session, sessionState, setSessionActive])
 
+  // Handle pause/resume with proper VAPI stop/restart to prevent billing
+  const handlePauseResume = useCallback(async () => {
+    // Debounce to prevent rapid clicking
+    if (pauseResumeDebounceRef.current) {
+      console.log('⏱️ Pause/resume operation in progress, ignoring...')
+      return
+    }
+    
+    // Set longer debounce for pause/resume operations
+    pauseResumeDebounceRef.current = setTimeout(() => {
+      pauseResumeDebounceRef.current = null
+    }, 3000) // 3 second debounce for complex operations
+    
+    try {
+      if (sessionState.isPaused) {
+        // RESUME: Full VAPI restart with saved state
+        console.log('🔄 Starting resume process...')
+        
+        // Set transitioning state to preserve UI
+        setIsTransitioning(true)
+        
+        // Preserve UI state during transition
+        const currentSessionActive = sessionActiveManaged.current
+        
+        // Announce resume intent before starting (if VAPI still exists)
+        if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
+          try {
+            vapi.vapiManagerRef.current.say("I'm reconnecting our session. Just a moment...", false)
+          } catch (e) {
+            // VAPI might already be stopped, ignore
+          }
+        }
+        
+        // Resume through sessionState which will trigger onVapiResume callback
+        await sessionState.resumeSession()
+        
+        // Wait a bit for VAPI to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Restore session-active state
+        if (currentSessionActive) {
+          setSessionActive(true)
+        }
+        
+        // Force UI components to refresh after a delay
+        // Use requestIdleCallback for better performance
+        const refreshUI = () => {
+          window.dispatchEvent(new Event('sessionResumed'))
+          window.dispatchEvent(new Event('vapiReconnected'))
+          setIsTransitioning(false)
+        }
+        
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(refreshUI, { timeout: 1500 })
+        } else {
+          setTimeout(refreshUI, 1000)
+        }
+        
+        console.log('✅ Resume complete')
+        
+      } else {
+        // PAUSE: Save state and stop VAPI to prevent billing
+        console.log('⏸️ Starting pause process...')
+        
+        // Set transitioning state
+        setIsTransitioning(true)
+        
+        // Announce pause before stopping
+        if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
+          vapi.vapiManagerRef.current.say("I'll pause our session. Your time won't be billed while paused. See you when you're ready.", false)
+          // Give time for message to be spoken
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+        
+        // Pause through sessionState which will trigger onVapiPause callback
+        // This saves conversation state and stops VAPI
+        await sessionState.pauseSession()
+        
+        // Keep UI in session-active state during pause
+        setSessionActive(true)
+        
+        // Dispatch event for UI components after a delay
+        const notifyPause = () => {
+          window.dispatchEvent(new Event('sessionPaused'))
+          window.dispatchEvent(new Event('vapiDisconnected'))
+          setIsTransitioning(false)
+        }
+        
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(notifyPause, { timeout: 750 })
+        } else {
+          setTimeout(notifyPause, 500)
+        }
+        
+        console.log('✅ Pause complete - VAPI stopped, billing paused')
+      }
+    } catch (error) {
+      console.error('Failed to pause/resume:', error)
+      setError(error instanceof Error ? error.message : 'Failed to pause/resume')
+      setIsTransitioning(false)
+      
+      // Clear debounce on error
+      if (pauseResumeDebounceRef.current) {
+        clearTimeout(pauseResumeDebounceRef.current)
+        pauseResumeDebounceRef.current = null
+      }
+    }
+  }, [sessionState, vapi, setSessionActive])
   
   // Handle time updates from the timer
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1218,7 +1348,45 @@ export function TherapyButtonRefactored({
     window.addEventListener('sessionEnded', handleSessionEnded)
     return () => window.removeEventListener('sessionEnded', handleSessionEnded)
   }, [])
-
+  
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      if (pauseResumeDebounceRef.current) {
+        clearTimeout(pauseResumeDebounceRef.current)
+      }
+      if (sessionActiveTimeoutRef.current) {
+        clearTimeout(sessionActiveTimeoutRef.current)
+      }
+    }
+  }, [])
+  
+  // Handle VAPI connection events for smoother transitions
+  useEffect(() => {
+    const handleVapiReconnected = () => {
+      console.log('🔄 VAPI reconnected, refreshing UI components')
+      // Force a re-render of audio-dependent components
+      if (vapi.vapiManagerRef.current) {
+        const vapiInstance = (vapi.vapiManagerRef.current as any).vapi
+        if (vapiInstance) {
+          // Trigger audio level update
+          vapiInstance.emit('volume-level', { volume: 0 })
+        }
+      }
+    }
+    
+    const handleVapiDisconnected = () => {
+      console.log('🔌 VAPI disconnected, preserving UI state')
+    }
+    
+    window.addEventListener('vapiReconnected', handleVapiReconnected)
+    window.addEventListener('vapiDisconnected', handleVapiDisconnected)
+    
+    return () => {
+      window.removeEventListener('vapiReconnected', handleVapiReconnected)
+      window.removeEventListener('vapiDisconnected', handleVapiDisconnected)
+    }
+  }, [vapi])
 
   // Get therapist name based on therapy type
   const getTherapistName = () => {
@@ -1259,10 +1427,10 @@ export function TherapyButtonRefactored({
     )
   }
   
-  // Show session UI if we have a session ID OR if VAPI reports as active OR if loading OR if recovered session
+  // Show session UI if we have a session ID OR if VAPI reports as active OR if loading OR if recovered session OR if transitioning
   // This ensures the phone container appears immediately when starting a session
   // But also ensures it hides properly when session ends
-  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading || isLoading || isRecoveredSession) && !session.isEndingSession && !forceHidePhoneUI
+  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading || isLoading || isRecoveredSession || isTransitioning || sessionState.isPaused) && !session.isEndingSession && !forceHidePhoneUI
   
   if (showPhoneUI || isLoading) {
 
@@ -1496,7 +1664,10 @@ export function TherapyButtonRefactored({
                 
                 {/* Voice Waveform */}
                 <div className="w-full my-2 sm:my-3 relative" style={{ minHeight: '80px' }}>
-                  <VoiceWaveform audioLevel={isMuted || sessionState.isPaused ? 0 : vapi.audioLevel} />
+                  <VoiceWaveform 
+                    audioLevel={isMuted || sessionState.isPaused ? 0 : vapi.audioLevel} 
+                    isTransitioning={isTransitioning}
+                  />
                   {isMuted && (
                     <div className="absolute inset-0 flex items-center justify-center z-20">
                       <div className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full animate-pulse shadow-md">
@@ -1536,7 +1707,7 @@ export function TherapyButtonRefactored({
                   isLoading={vapi.vapiState.isLoading || isLoading}
                   onMuteToggle={toggleMute}
                   onEndCall={handleEndSession}
-                  onPauseResume={() => sessionState.isPaused ? sessionState.resumeSession() : sessionState.pauseSession()}
+                  onPauseResume={handlePauseResume}
                 />
               </div>
             </>
@@ -1573,7 +1744,13 @@ export function TherapyButtonRefactored({
           sessionId={session.sessionId || ''}
           therapistName={getTherapistName()}
           therapyType={therapyType}
-          transcriptChunks={transcript.transcriptChunks}
+          transcriptChunks={transcript.transcriptChunks.map((chunk, index) => ({
+            id: `chunk-${index}`,
+            speaker: chunk.startsWith('AI:') ? 'therapist' : 'user',
+            text: chunk.replace(/^(AI:|User:)\s*/, ''),
+            timestamp: new Date().toISOString(),
+            isFinal: true
+          }))}
         />
         
         {/* Error Display */}
