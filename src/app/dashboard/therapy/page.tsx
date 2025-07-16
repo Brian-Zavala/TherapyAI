@@ -2,7 +2,7 @@
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { prisma } from '@/lib/prisma-optimized'
 import TherapyPageClient from "./client"
 
 export default async function TherapyPage() {

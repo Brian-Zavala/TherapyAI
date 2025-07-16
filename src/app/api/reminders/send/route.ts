@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { Resend } from 'resend';
 import { z } from 'zod';
 import { sendSMS, formatPhoneNumber } from '@/lib/sms-service';

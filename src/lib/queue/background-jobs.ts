@@ -6,7 +6,8 @@ export enum JobType {
   SEND_WELCOME_MESSAGES = 'send_welcome_messages',
   SEND_SESSION_REMINDER = 'send_session_reminder',
   PROCESS_SESSION_METRICS = 'process_session_metrics',
-  CLEANUP_OLD_SESSIONS = 'cleanup_old_sessions'
+  CLEANUP_OLD_SESSIONS = 'cleanup_old_sessions',
+  PROCESS_VAPI_WEBHOOK = 'process_vapi_webhook'
 }
 
 interface Job {
@@ -236,6 +237,11 @@ async function processJob(job: Job) {
       // Cleanup old sessions
       console.log('[JobQueue] Cleaning up old sessions')
       // Implementation would go here
+      break
+      
+    case JobType.PROCESS_VAPI_WEBHOOK:
+      const { processVapiWebhook } = await import('@/lib/vapi/webhook-processor')
+      await processVapiWebhook(job.data.webhookEventId, job.data.payload, job.data.correlationId)
       break
       
     default:

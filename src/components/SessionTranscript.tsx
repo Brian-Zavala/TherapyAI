@@ -199,6 +199,24 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   }
 
   const combinedError = transcriptError && `Transcript Error: ${transcriptError}`
+  
+  // For active sessions, show debug info about pending transcripts
+  useEffect(() => {
+    if (session?.status === 'active' && typeof window !== 'undefined') {
+      const debugInterval = setInterval(() => {
+        const debug = (window as any).__transcriptDebug
+        if (debug) {
+          const status = debug.getQueueStatus()
+          const sessionStatus = status.find((s: any) => s.sessionId === sessionId)
+          if (sessionStatus && sessionStatus.pendingCount > 0) {
+            console.log(`📝 Session ${sessionId} has ${sessionStatus.pendingCount} pending transcripts`)
+          }
+        }
+      }, 5000) // Check every 5 seconds
+      
+      return () => clearInterval(debugInterval)
+    }
+  }, [session?.status, sessionId])
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">

@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
-// import SessionRecoveryNotification from "@/components/SessionRecoveryNotification"; // Removed - using only ActiveSessionFoundModal
-import ActiveSessionFoundModal from "@/components/ActiveSessionFoundModal";
+import UnifiedSessionModal, { SessionModalMode } from "@/components/UnifiedSessionModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
 import type { TherapyType } from "@/types/therapy-session";
@@ -70,6 +69,52 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
+  
+  // Unified session modal state
+  const [sessionModalMode, setSessionModalMode] = useState<SessionModalMode>(null);
+  const [recoverySessionData, setRecoverySessionData] = useState<any>(null);
+  const [conflictSessionData, setConflictSessionData] = useState<any>(null);
+  
+  // Effect to detect recovery sessions and set modal mode
+  useEffect(() => {
+    const checkForRecoverySession = () => {
+      const pendingRecovery = sessionStorage.getItem('session-recovery-pending');
+      if (pendingRecovery) {
+        try {
+          const data = JSON.parse(pendingRecovery);
+          console.log('🔔 Recovery session detected, setting unified modal to recovery mode');
+          setRecoverySessionData(data);
+          setSessionModalMode('recovery');
+        } catch (error) {
+          console.error('Error parsing recovery data:', error);
+          sessionStorage.removeItem('session-recovery-pending');
+        }
+      }
+    };
+    
+    // Check immediately
+    checkForRecoverySession();
+    
+    // Listen for storage events
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'session-recovery-pending' && e.newValue) {
+        checkForRecoverySession();
+      }
+    };
+    
+    // Listen for custom events
+    const handleCustomEvent = () => {
+      checkForRecoverySession();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('session-recovery-ready', handleCustomEvent);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('session-recovery-ready', handleCustomEvent);
+    };
+  }, []);
 
   // Track when initial session check is complete with minimum wait time
   useEffect(() => {
@@ -597,11 +642,16 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     sessionStorage.removeItem('current-session-id')
     sessionStorage.removeItem('session-auto-start')
     
+    // Close the unified modal
+    setSessionModalMode(null)
+    setRecoverySessionData(null)
+    setConflictSessionData(null)
+    
     // Small delay to ensure modal closes and state resets before showing type selector
     setTimeout(() => {
       console.log('📝 Showing therapy type selector for new session')
       setShowTypeSelector(true)
-    }, 300) // 300ms delay to allow ActiveSessionFoundModal to close smoothly
+    }, 300) // 300ms delay to allow UnifiedSessionModal to close smoothly
   };
 
   // Close menu when clicking outside
@@ -1772,7 +1822,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   React.createElement(TherapyButton, {
                                     key: "therapy-button-main", // Add stable key to prevent remounting
                                     therapyType: (sessionType || "couple") as TherapyType,
-                                    disabled: false
+                                    disabled: false,
+                                    onSessionConflict: (conflictData: any) => {
+                                      console.log('🔴 Session conflict detected:', conflictData)
+                                      setConflictSessionData(conflictData)
+                                      setSessionModalMode('conflict')
+                                    }
                                   })
                                 ),
                               ]
@@ -1790,11 +1845,29 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       ]
     ),
 
-    // Active Session Found Modal (appears immediately when active session detected)
-    React.createElement(ActiveSessionFoundModal, {
-      key: "active-session-found-modal",
+    // Unified Session Modal (handles both recovery and conflict cases)
+    React.createElement(UnifiedSessionModal, {
+      key: "unified-session-modal",
+      mode: sessionModalMode,
+      sessionData: recoverySessionData,
+      conflictSession: conflictSessionData,
       onContinueSession: handleContinueActiveSession,
-      onStartNewSession: handleStartNewSession
+      onStartNewSession: handleStartNewSession,
+      onResume: () => {
+        // For conflict mode - resume button
+        console.log('Resume existing session from conflict modal');
+        setSessionModalMode(null);
+        setConflictSessionData(null);
+      },
+      onEndAndStartNew: () => {
+        // For conflict mode - end and start new
+        handleStartNewSession();
+      },
+      onClose: () => {
+        // Close the modal without action
+        setSessionModalMode(null);
+        setConflictSessionData(null);
+      }
     }),
 
     // Session Recovery Notification - REMOVED to eliminate duplicate modals

@@ -4,13 +4,7 @@
  */
 
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getSupabaseClient } from '@/lib/supabase-singleton';
 
 export interface RealtimeNotification {
   id: string;
@@ -40,6 +34,7 @@ export class NotificationRealtimeService {
     }
 
     // Create a new channel for this user's notifications
+    const supabase = getSupabaseClient();
     this.channel = supabase
       .channel(`notifications:${userId}`)
       .on(
@@ -239,6 +234,7 @@ export class NotificationRealtimeService {
    */
   async cleanup() {
     if (this.channel) {
+      const supabase = getSupabaseClient();
       await supabase.removeChannel(this.channel);
       this.channel = null;
     }

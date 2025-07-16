@@ -1,0 +1,305 @@
+import { prisma } from '@/lib/prisma-optimized';
+import { SessionStatus } from '@prisma/client';
+import { sessionCache } from '@/lib/session-cache';
+import { profileCache } from '@/lib/cache/profile-cache';
+import { logger } from '@/lib/logger';
+import { AxiosError } from 'axios';
+
+export type SessionLifecycleState = 
+  | 'active'
+  | 'ending'
+  | 'completing'
+  | 'calculating_metrics'
+  | 'completed'
+  | 'failed';
+
+interface SessionTransition {
+  fromStates: SessionLifecycleState[];
+  toState: SessionLifecycleState;
+  action: (sessionId: string) => Promise<void>;
+}
+
+export class SessionLifecycleManager {
+  private static instance: SessionLifecycleManager;
+  private sessionStates: Map<string, SessionLifecycleState> = new Map();
+  private processingLocks: Map<string, Promise<void>> = new Map();
+  
+  private constructor() {}
+  
+  static getInstance(): SessionLifecycleManager {
+    if (!SessionLifecycleManager.instance) {
+      SessionLifecycleManager.instance = new SessionLifecycleManager();
+    }
+    return SessionLifecycleManager.instance;
+  }
+
+  /**
+   * Get current lifecycle state for a session
+   */
+  async getSessionState(sessionId: string): Promise<SessionLifecycleState> {
+    // Check in-memory state first
+    const memoryState = this.sessionStates.get(sessionId);
+    if (memoryState) return memoryState;
+
+    // Check database state
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { status: true }
+    });
+
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    // Map database status to lifecycle state
+    const state = this.mapStatusToState(session.status);
+    this.sessionStates.set(sessionId, state);
+    return state;
+  }
+
+  /**
+   * Transition session to a new state with proper validation
+   */
+  async transitionSession(
+    sessionId: string,
+    toState: SessionLifecycleState,
+    action?: () => Promise<void>
+  ): Promise<void> {
+    // Prevent concurrent transitions
+    const existingLock = this.processingLocks.get(sessionId);
+    if (existingLock) {
+      logger.warn('Session transition already in progress', { sessionId, toState });
+      await existingLock;
+      return;
+    }
+
+    const transitionPromise = this.performTransition(sessionId, toState, action);
+    this.processingLocks.set(sessionId, transitionPromise);
+
+    try {
+      await transitionPromise;
+    } finally {
+      this.processingLocks.delete(sessionId);
+    }
+  }
+
+  private async performTransition(
+    sessionId: string,
+    toState: SessionLifecycleState,
+    action?: () => Promise<void>
+  ): Promise<void> {
+    const currentState = await this.getSessionState(sessionId);
+
+    // Validate transition
+    if (!this.isValidTransition(currentState, toState)) {
+      throw new Error(
+        `Invalid transition from ${currentState} to ${toState} for session ${sessionId}`
+      );
+    }
+
+    logger.info('Session state transition', {
+      sessionId,
+      fromState: currentState,
+      toState
+    });
+
+    // Update in-memory state
+    this.sessionStates.set(sessionId, toState);
+
+    try {
+      // Execute transition action if provided
+      if (action) {
+        await action();
+      }
+
+      // Update database state
+      await this.updateDatabaseState(sessionId, toState);
+
+      // Clear caches
+      await this.clearSessionCaches(sessionId);
+    } catch (error) {
+      // Rollback in-memory state on failure
+      this.sessionStates.set(sessionId, currentState);
+      logger.error('Session transition failed', {
+        sessionId,
+        fromState: currentState,
+        toState,
+        error
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Complete a session with proper state transitions
+   */
+  async completeSession(sessionId: string, userId: string): Promise<void> {
+    const currentState = await this.getSessionState(sessionId);
+
+    if (currentState === 'completed') {
+      logger.info('Session already completed', { sessionId });
+      return;
+    }
+
+    // Transition through states
+    await this.transitionSession(sessionId, 'ending');
+    await this.transitionSession(sessionId, 'completing');
+    
+    try {
+      // Ensure VAPI call is terminated
+      await this.terminateVapiCall(sessionId);
+      
+      // Calculate metrics (deduplication handled internally)
+      await this.transitionSession(sessionId, 'calculating_metrics', async () => {
+        const { calculateMetrics } = await import('@/lib/metrics/metrics-deduplication');
+        await calculateMetrics(sessionId, userId);
+      });
+
+      // Final transition to completed
+      await this.transitionSession(sessionId, 'completed');
+      
+    } catch (error) {
+      await this.transitionSession(sessionId, 'failed');
+      throw error;
+    }
+  }
+
+  /**
+   * Check if session can accept webhook events
+   */
+  async canProcessWebhook(sessionId: string): Promise<boolean> {
+    try {
+      const state = await this.getSessionState(sessionId);
+      // Only process webhooks for active sessions
+      return state === 'active';
+    } catch (error) {
+      logger.error('Error checking webhook processability', { sessionId, error });
+      return false;
+    }
+  }
+
+  /**
+   * Terminate VAPI call if active
+   */
+  private async terminateVapiCall(sessionId: string): Promise<void> {
+    try {
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { vapiCallId: true }
+      });
+
+      if (!session?.vapiCallId) {
+        logger.info('No VAPI call to terminate', { sessionId });
+        return;
+      }
+
+      const vapi = (await import('@/lib/vapi')).default;
+      await vapi.calls.update(session.vapiCallId, { 
+        endCallNow: true 
+      });
+
+      logger.info('VAPI call terminated', {
+        sessionId,
+        vapiCallId: session.vapiCallId
+      });
+    } catch (error) {
+      // Log but don't throw - call might already be ended
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        logger.info('VAPI call already ended', { sessionId });
+      } else {
+        logger.error('Failed to terminate VAPI call', { sessionId, error });
+      }
+    }
+  }
+
+  private isValidTransition(
+    from: SessionLifecycleState,
+    to: SessionLifecycleState
+  ): boolean {
+    const validTransitions: Record<SessionLifecycleState, SessionLifecycleState[]> = {
+      active: ['ending', 'failed'],
+      ending: ['completing', 'failed'],
+      completing: ['calculating_metrics', 'failed'],
+      calculating_metrics: ['completed', 'failed'],
+      completed: [], // Terminal state
+      failed: [] // Terminal state
+    };
+
+    return validTransitions[from]?.includes(to) ?? false;
+  }
+
+  private mapStatusToState(status: SessionStatus): SessionLifecycleState {
+    switch (status) {
+      case SessionStatus.ACTIVE:
+        return 'active';
+      case SessionStatus.COMPLETED:
+        return 'completed';
+      case SessionStatus.ABANDONED:
+      case SessionStatus.TECHNICAL_ISSUE:
+        return 'failed';
+      default:
+        return 'active';
+    }
+  }
+
+  private async updateDatabaseState(
+    sessionId: string,
+    state: SessionLifecycleState
+  ): Promise<void> {
+    const status = this.mapStateToStatus(state);
+    
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: { 
+        status,
+        ...(state === 'completed' && { completedAt: new Date() })
+      }
+    });
+  }
+
+  private mapStateToStatus(state: SessionLifecycleState): SessionStatus {
+    switch (state) {
+      case 'active':
+      case 'ending':
+      case 'completing':
+      case 'calculating_metrics':
+        return SessionStatus.ACTIVE;
+      case 'completed':
+        return SessionStatus.COMPLETED;
+      case 'failed':
+        return SessionStatus.TECHNICAL_ISSUE;
+      default:
+        return SessionStatus.ACTIVE;
+    }
+  }
+
+  private async clearSessionCaches(sessionId: string): Promise<void> {
+    await sessionCache.invalidate(sessionId);
+    
+    // Also clear user profile cache
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { userId: true }
+    });
+    
+    if (session?.userId) {
+      await profileCache.invalidate(session.userId);
+    }
+  }
+
+  /**
+   * Clean up old session states from memory
+   */
+  cleanupOldStates(maxAgeMs: number = 3600000): void {
+    // This would be called periodically to prevent memory leaks
+    // For now, we'll just clear completed/failed sessions older than maxAge
+    const cutoffTime = Date.now() - maxAgeMs;
+    
+    for (const [sessionId, state] of this.sessionStates.entries()) {
+      if (state === 'completed' || state === 'failed') {
+        // In production, we'd track timestamps
+        this.sessionStates.delete(sessionId);
+      }
+    }
+  }
+}

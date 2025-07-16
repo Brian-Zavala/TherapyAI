@@ -192,16 +192,22 @@ export function useEndSession() {
   });
 }
 
-// Notification Hooks
+// Notification Hooks - DEPRECATED: Use @/hooks/useNotifications instead
+// These are kept for backward compatibility but should not be used in new code
+/*
 export function useNotifications() {
   return useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
-      const res = await fetch('/api/notifications');
+      const res = await fetch('/api/notifications?limit=50');
       if (!res.ok) throw new Error('Failed to fetch notifications');
       return res.json();
     },
-    ...queryOptions.realtime,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic polling - use real-time updates instead
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 }
 
@@ -239,6 +245,7 @@ export function useMarkNotificationRead() {
     },
   });
 }
+*/
 
 // Assessment Hooks
 export function useAssessment(assessmentId?: string) {

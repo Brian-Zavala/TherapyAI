@@ -1,5 +1,5 @@
 // Database helper functions for the new enhanced schema
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma-optimized'
 import { Prisma } from '@prisma/client'
 
 export async function getUserWithProfile(userId: string) {

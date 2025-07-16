@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAssistant, getAssistant, updateAssistant } from '@/lib/vapi-server';
 import { getPersonalizedAssistantConfig } from '@/lib/vapi';
 import { getServerSession, Session } from 'next-auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { authOptions } from '@/lib/auth';
 import { cleanAndValidateVapiConfig } from '@/lib/vapi-config-cleaner';
 

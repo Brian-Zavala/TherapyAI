@@ -15,7 +15,7 @@ type Client = any;
 interface AuthenticationProvider {
   getAccessToken(): Promise<string>;
 }
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { Logger } from './logging';
 // TODO: Install ical-generator package
 // import ical from 'ical-generator';

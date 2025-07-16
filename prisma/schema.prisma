@@ -49,6 +49,7 @@ model User {
   familyMembers         FamilyMember[]
   communicationMetrics  CommunicationMetric[]
   progressTracking      ProgressTracking[]
+  sessionMetrics        SessionMetrics[]
   profile               UserProfile?
   auditLogs             AuditLog[]
   calendarIntegrations  CalendarIntegration[]
@@ -151,7 +152,7 @@ model Session {
   
   // Session type and status
   sessionType            String                @default("couple") // couple, family, individual
-  status                 String                @default("scheduled") // scheduled, active, paused, completed, cancelled, terminated
+  status                 SessionStatus         @default(SCHEDULED)
   terminationReason      String?               // user_deletion, technical_error, manual, etc.
   
   // Conversation tracking
@@ -162,6 +163,11 @@ model Session {
   resumedAt              DateTime?
   totalPausedTimeSeconds Int                   @default(0)
   pauseStartTime         DateTime?
+  
+  // VAPI integration
+  vapiCallId             String?
+  vapiCallCost           Float?
+  vapiRecordingUrl       String?
   
   // Notification tracking
   reminderSent           Boolean               @default(false)
@@ -182,6 +188,7 @@ model Session {
   communicationMetrics   CommunicationMetric[]
   sessionFamilyMembers   SessionFamilyMember[]
   progressTracking       ProgressTracking[]
+  sessionMetrics         SessionMetrics?
   
   @@index([userId, status])
   @@index([userId, startTime])
@@ -242,6 +249,41 @@ model CommunicationMetric {
   @@index([sessionId, calculatedAt])
   @@index([userId, calculatedAt])
   @@index([userId, metricType, calculatedAt])
+}
+
+model SessionMetrics {
+  id                    String                 @id @default(cuid())
+  sessionId             String                 @unique
+  userId                String
+  
+  // Basic metrics
+  duration              Int                    // Session duration in seconds
+  totalMessages         Int
+  userMessages          Int
+  assistantMessages     Int
+  
+  // Engagement metrics
+  engagementScore       Float
+  sentimentScore        Float
+  sentimentTrend        String                 // improving, declining, stable
+  
+  // Content analysis
+  topicsCovered         String[]
+  emotionalInsights     Json?                  // Detailed emotional analysis
+  
+  // Quality metrics
+  completionRate        Float                  @default(1.0)
+  qualityScore          Float
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  session               Session                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model ProgressTracking {
@@ -628,6 +670,39 @@ model Notification {
 }
 
 // ========================================
+// WEBHOOK TRACKING
+// ========================================
+
+model WebhookEvent {
+  id                    String                 @id @default(cuid())
+  webhookId             String                 @unique // VAPI's unique webhook ID for idempotency
+  messageType           String
+  callId                String?
+  sessionId             String?
+  
+  // Payload storage
+  payload               Json                   // Full webhook payload
+  
+  // Processing status
+  status                String                 @default("pending") // pending, processing, completed, failed
+  processedAt           DateTime?
+  error                 String?                @db.Text
+  retryCount            Int                    @default(0)
+  
+  // Metadata
+  correlationId         String?                // For request tracing
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  @@index([webhookId])
+  @@index([sessionId])
+  @@index([callId])
+  @@index([status, createdAt])
+  @@index([messageType, createdAt])
+}
+
+// ========================================
 // DEPRECATED MODELS (For backward compatibility)
 // ========================================
 
@@ -654,3 +729,18 @@ model TherapySession {
 
 // Note: The old CommunicationMetrics model has been replaced by CommunicationMetric
 // Migration script will be needed to transfer data from old schema to new
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum SessionStatus {
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  TERMINATED
+  ABANDONED
+  TECHNICAL_ISSUE
+}

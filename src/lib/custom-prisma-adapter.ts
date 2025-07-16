@@ -1,6 +1,6 @@
 // src/lib/custom-prisma-adapter.ts
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import { prisma } from "@/lib/prisma"
+import { prisma } from '@/lib/prisma-optimized'
 
 // Create the standard adapter
 const basePrismaAdapter = PrismaAdapter(prisma)

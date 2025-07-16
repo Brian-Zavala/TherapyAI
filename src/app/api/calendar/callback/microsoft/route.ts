@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { MicrosoftCalendarService } from '@/lib/calendar-oauth/microsoft-calendar';
 
 export async function GET(request: NextRequest) {

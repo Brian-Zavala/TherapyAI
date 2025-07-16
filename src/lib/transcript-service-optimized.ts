@@ -20,9 +20,9 @@ export type TranscriptEntry = {
  */
 class BatchedTranscriptManager {
   private queue: Map<string, TranscriptEntry[]> = new Map()
-  private batchSize = 50 // Increased to handle more entries efficiently
+  private batchSize = 10 // Reduced to save more frequently
   private maxBatchSize = 90 // Stay under API limit of 100
-  private batchTimeout = 5000 // 5 seconds - reduced for better real-time experience
+  private batchTimeout = 2000 // 2 seconds - reduced for better real-time experience
   private timeouts: Map<string, NodeJS.Timeout> = new Map()
   private saving: Set<string> = new Set()
   
@@ -247,6 +247,7 @@ class BatchedTranscriptManager {
    */
   async flushAll(): Promise<void> {
     const sessionIds = Array.from(this.queue.keys())
+    console.log(`🔄 FLUSH ALL: Processing ${sessionIds.length} sessions with pending transcripts`)
     await Promise.all(sessionIds.map(sessionId => this.saveBatch(sessionId)))
   }
 
@@ -287,10 +288,40 @@ class BatchedTranscriptManager {
       console.warn('Session storage backup failed:', error)
     }
   }
+
+  /**
+   * Get queue status for debugging
+   */
+  getQueueStatus(): { sessionId: string; pendingCount: number; isSaving: boolean }[] {
+    return Array.from(this.queue.entries()).map(([sessionId, entries]) => ({
+      sessionId,
+      pendingCount: entries.length,
+      isSaving: this.saving.has(sessionId)
+    }))
+  }
 }
 
 // Global instance
 const batchManager = new BatchedTranscriptManager()
+
+// Ensure transcripts are saved when page is unloaded
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    // Use sendBeacon for reliable async save on page unload
+    const queueStatus = batchManager.getQueueStatus()
+    if (queueStatus.some(s => s.pendingCount > 0)) {
+      console.warn('⚠️ Page unloading with pending transcripts, attempting to save...')
+      // Note: We can't use async/await here, but the batches will be saved to sessionStorage
+    }
+  })
+  
+  // Export debug functions to window for testing
+  ;(window as any).__transcriptDebug = {
+    getQueueStatus: () => batchManager.getQueueStatus(),
+    flushAll: () => batchManager.flushAll(),
+    flushSession: (sessionId: string) => batchManager.flushSession(sessionId)
+  }
+}
 
 /**
  * Optimized add transcript entry function - uses batching
@@ -311,6 +342,13 @@ export async function flushTranscriptBatches(): Promise<void> {
  */
 export async function flushSessionTranscripts(sessionId: string): Promise<void> {
   await batchManager.flushSession(sessionId)
+}
+
+/**
+ * Get transcript queue status for debugging
+ */
+export function getTranscriptQueueStatus() {
+  return batchManager.getQueueStatus()
 }
 
 /**

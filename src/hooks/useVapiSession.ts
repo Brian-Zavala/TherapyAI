@@ -518,7 +518,8 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         
         await vapiManagerRef.current.startSession({
           assistantId: assistantIdOrConfig,
-          resumeFromMessages: resumeMessages
+          resumeFromMessages: resumeMessages,
+          sessionId: sessionIdRef.current
         })
       } else {
         // Inline configuration approach
@@ -529,7 +530,8 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
           // Full inline configuration
           await vapiManagerRef.current.startSession({
             assistantConfig: assistantIdOrConfig,
-            resumeFromMessages: resumeMessages
+            resumeFromMessages: resumeMessages,
+            sessionId: sessionIdRef.current
           })
         } else if ('assistantId' in assistantIdOrConfig && assistantIdOrConfig.assistantId) {
           // Assistant ID with overrides
@@ -538,7 +540,8 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
           await vapiManagerRef.current.startSession({
             assistantId: assistantIdOrConfig.assistantId,
             resumeFromMessages: resumeMessages,
-            variableValues: assistantIdOrConfig.variableValues
+            variableValues: assistantIdOrConfig.variableValues,
+            sessionId: sessionIdRef.current
           })
         } else {
           throw new Error('Invalid configuration: must provide either assistantId or full inline config')

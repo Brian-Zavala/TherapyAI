@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useCallback, useRef } from "react";
 import useButtonSound from "@/hooks/useButtonSound";
@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const { isAuthenticated, logout, isLoading } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -208,7 +209,7 @@ export default function Navigation() {
                       onClick={(e) => {
                         e.preventDefault();
                         setIsMenuOpen(false);
-                        window.location.href = "/dashboard";
+                        router.push("/dashboard");
                       }}
                       tabIndex={isMenuOpen ? 0 : -1}
                     >
@@ -488,6 +489,7 @@ export default function Navigation() {
                   href="/dashboard"
                   className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/dashboard")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
                   onClick={() => setIsMenuOpen(false)}
+                  style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
                 >
                   <svg
                     className="w-7 h-7 mr-4"

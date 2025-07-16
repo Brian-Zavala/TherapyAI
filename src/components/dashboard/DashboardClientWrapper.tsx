@@ -5,7 +5,7 @@
 
 import { useState, useEffect, Suspense, lazy } from "react";
 import { motion } from "framer-motion";
-import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
+// Removed legacy useRealtimeNotifications import - now using NotificationProvider
 import NotificationBell from "@/components/ui/notification-bell";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -38,11 +38,13 @@ export default function DashboardClientWrapper({
   const [activeTab, setActiveTab] = useState("overview");
   
   // Initialize real-time notifications
-  const { unreadCount } = useRealtimeNotifications({
-    playSound: true,
-    showBrowserNotifications: true,
-    autoMarkAsRead: false
-  });
+  // Commented out to prevent duplicate notification requests
+  // The NotificationBell component handles its own notifications
+  // const { unreadCount } = useRealtimeNotifications({
+  //   playSound: true,
+  //   showBrowserNotifications: true,
+  //   autoMarkAsRead: false
+  // });
   
   // Mount notification bell in server-rendered shell
   useEffect(() => {

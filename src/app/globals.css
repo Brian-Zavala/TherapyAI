@@ -35,6 +35,29 @@
 /* Theme-specific styles */
 @layer theme {
   /* Component themes and color schemes */
+  :root {
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --ring: 215 20.2% 65.1%;
+  }
+  
+  .dark {
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+    --background: 224 71.4% 4.1%;
+    --foreground: 0 0% 100%;
+    --ring: 216 12.2% 83.9%;
+  }
+  
+  .text-muted-foreground {
+    color: hsl(var(--muted-foreground));
+  }
 }
 
 /* Utility classes */
@@ -45,6 +68,27 @@
 /* Animation definitions */
 @layer animations {
   /* All keyframes and animation classes */
+  
+  /* Slide animations for therapy insights */
+  @keyframes slide-in-from-top-2 {
+    from {
+      transform: translateY(-0.5rem);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .animate-in {
+    animation-duration: 0.2s;
+    animation-fill-mode: both;
+  }
+  
+  .slide-in-from-top-2 {
+    animation-name: slide-in-from-top-2;
+  }
 }
 
 /* High-specificity overrides */

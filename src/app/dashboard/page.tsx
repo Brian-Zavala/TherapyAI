@@ -61,11 +61,28 @@ const UpcomingSessions = dynamic(
     )
   }
 );
+
+const ComprehensiveTherapyInsights = dynamic(
+  () => import("@/components/dashboard/ComprehensiveTherapyInsights").then(mod => ({ default: mod.ComprehensiveTherapyInsights })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 animate-pulse">
+        <div className="h-8 bg-white/20 rounded w-2/3 mb-4"></div>
+        <div className="space-y-3">
+          <div className="h-32 bg-white/20 rounded"></div>
+          <div className="h-24 bg-white/20 rounded"></div>
+          <div className="h-28 bg-white/20 rounded"></div>
+        </div>
+      </div>
+    )
+  }
+);
+
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/ui/notification-bell";
-import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useProfile } from "@/hooks/useApiQuery";
 
 export default function Dashboard() {
@@ -80,12 +97,7 @@ export default function Dashboard() {
     error: profileError 
   } = useProfile();
   
-  // Initialize real-time notifications
-  const { unreadCount } = useRealtimeNotifications({
-    playSound: true,
-    showBrowserNotifications: true,
-    autoMarkAsRead: false
-  });
+  // Note: Notification state is now managed by NotificationProvider
   
   // Enable smooth scrolling for this page
   useEffect(() => {
@@ -104,7 +116,7 @@ export default function Dashboard() {
 
     if (status === "authenticated" && profile) {
       // Check if user has completed onboarding
-      if (!profile.onboardingCompleted) {
+      if (!(profile as any).onboardingCompleted) {
         router.push("/welcome");
       }
     }
@@ -165,7 +177,7 @@ export default function Dashboard() {
 
         {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-800">
-          {["overview", "progress", "sessions", "resources"].map((tab) => (
+          {["overview", "insights", "progress", "sessions", "resources"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -237,6 +249,24 @@ export default function Dashboard() {
             <motion.div variants={item} className="lg:col-span-3">
               <CommunicationMetrics />
             </motion.div>
+
+            {/* Therapy Insights Preview */}
+            <motion.div variants={item} className="lg:col-span-3">
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-white">Therapy Insights</h2>
+                  <button
+                    onClick={() => setActiveTab("insights")}
+                    className="text-green-500 hover:text-green-400 transition-colors text-sm"
+                  >
+                    View All →
+                  </button>
+                </div>
+                <p className="text-gray-400">
+                  Get personalized insights and recommendations based on your therapy progress.
+                </p>
+              </div>
+            </motion.div>
           </motion.div>
         )}
 
@@ -307,6 +337,16 @@ export default function Dashboard() {
                 />
               </svg>
             </Link>
+          </motion.div>
+        )}
+
+        {activeTab === "insights" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <ComprehensiveTherapyInsights />
           </motion.div>
         )}
       </div>

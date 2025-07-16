@@ -14,6 +14,7 @@ import {
   SessionDuration
 } from '@/lib/therapy-session/constants'
 import { useAccurateSessionTimer, useSessionRecoveryTimer, useSessionTimeAlerts } from './useAccurateSessionTimer'
+import { flushSessionTranscripts } from '@/lib/transcript-service-optimized'
 
 // Hook configuration interface
 interface UseSessionManagementV2Options {
@@ -213,11 +214,25 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       })
       
       if (!response.ok) {
+        // Handle session conflict
+        if (response.status === 409) {
+          const errorData = await response.json()
+          if (errorData.code === 'EXISTING_ACTIVE_SESSION') {
+            // Throw with the conflict data so caller can handle it
+            const conflictError = new Error('SESSION_CONFLICT')
+            ;(conflictError as any).conflictData = errorData
+            throw conflictError
+          }
+        }
         throw new Error('Failed to create session')
       }
       
       const data = await response.json()
       const newSessionId = data.session.id
+      
+      // Clean up any pending session data after successful creation
+      sessionStorage.removeItem('pending-session-duration')
+      sessionStorage.removeItem('pending-family-members')
       
       // Update state
       setSessionId(newSessionId)
@@ -439,6 +454,10 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         completedAt: new Date().toISOString(),
         completionNotes: reason !== 'normal' ? reason : undefined
       }
+      
+      // Flush any pending transcripts before completing the session
+      console.log('💾 Flushing pending transcripts before session completion...')
+      await flushSessionTranscripts(sessionId)
       
       // Complete session via API
       const response = await fetch(API_ENDPOINTS.SESSION_COMPLETE(sessionId), {

@@ -1,7 +1,7 @@
 // src/app/api/sessions/upcoming/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { authOptions } from '@/lib/auth';
 
 export async function GET() {
@@ -22,7 +22,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
     }
 
-    console.log(`Fetching upcoming sessions for user ID: ${user.id}`);
+    // Fetch upcoming sessions
 
     const now = new Date();
 
@@ -33,7 +33,7 @@ export async function GET() {
         date: {
           gte: now
         },
-        status: 'scheduled' // Only include scheduled sessions, not cancelled or completed
+        status: 'SCHEDULED' // Only include scheduled sessions, not cancelled or completed
       },
       select: {
         id: true,

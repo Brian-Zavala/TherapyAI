@@ -103,14 +103,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           console.log('[ProfileProvider] Fetching profile for:', email)
         }
         
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+        
         const res = await fetch('/api/user/profile', {
           headers: {
             'Content-Type': 'application/json',
           },
-          // Add timeout
-          signal: AbortSignal.timeout(30000), // 30 second timeout
+          signal: controller.signal,
           cache: 'no-store', // Bypass Next.js cache since we use React Query
         })
+        
+        clearTimeout(timeoutId)
         
         if (!res.ok) {
           if (res.status === 401) {
@@ -140,6 +144,22 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         retryCount.current = 0 // Reset retry count on success
         
         return data
+      } catch (error) {
+        // Handle fetch errors more gracefully
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            console.error('[ProfileProvider] Request timed out')
+            throw new Error('Request timed out')
+          }
+          
+          if (error.message.includes('fetch')) {
+            console.error('[ProfileProvider] Network error:', error.message)
+            throw new Error('Network error - please check your connection')
+          }
+        }
+        
+        console.error('[ProfileProvider] Fetch error:', error)
+        throw error
       } finally {
         // Clean up promise from map
         fetchPromises.delete(email)

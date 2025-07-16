@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma-optimized'
 import { getRateLimiterConfig } from '@/lib/security/platform-agnostic-rate-limiter'
 import { createClient } from '@supabase/supabase-js'
 

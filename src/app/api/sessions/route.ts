@@ -1,7 +1,7 @@
 // src/app/api/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { authOptions } from '@/lib/auth';
 import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
@@ -42,12 +42,24 @@ interface ApiError {
   details?: any;
 }
 
+// 2025 Standard: Status conversion helpers
+const apiStatusToPrisma = (status: string): string => {
+  return status.toUpperCase();
+};
+
+const prismaStatusToApi = (status: string): string => {
+  return status.toLowerCase();
+};
+
 // 2025 Standard: Validation schemas
 const createSessionSchema = z.object({
   startTime: z.string().optional(),
   date: z.string().optional(),
   theme: z.string().default('AI Therapy Session'),
+  // API accepts lowercase status values for consistency with frontend
+  // These are converted to uppercase for Prisma's SessionStatus enum
   status: z.enum(['scheduled', 'active', 'completed', 'cancelled']).default('scheduled'),
+  forceNew: z.boolean().optional().default(false),
   duration: z.number().min(15).max(240).default(60),
   notes: z.string().max(500).default(''),
   assistantId: z.string().optional(),
@@ -120,7 +132,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const status = searchParams.get('status') as Session['status'] | null;
+    const statusParam = searchParams.get('status');
+    const status = statusParam ? apiStatusToPrisma(statusParam) as Session['status'] : null;
     const sortBy = searchParams.get('sortBy') || 'date';
     const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
     
@@ -206,7 +219,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("[Sessions API] Received POST request");
   try {
     // 2025 Standard: Auth check
     const authSession = await getServerSession(authOptions);
@@ -219,7 +231,6 @@ export async function POST(request: NextRequest) {
     
     // 2025 Standard: Parse and validate request body (only read once)
     const body = await request.json();
-    console.log("[Sessions API] Request body:", body);
     const validatedData = createSessionSchema.safeParse(body);
     
     if (!validatedData.success) {
@@ -293,19 +304,85 @@ export async function POST(request: NextRequest) {
     // 2025 Standard: Use transaction for atomic operations
     const result = await prisma.$transaction(async (tx) => {
       
-      // 2025 Standard: Prevent duplicate active sessions
+      // 2025 Standard: Handle existing active sessions with user choice
       if (data.status === 'active') {
         const existingActiveSession = await tx.session.findFirst({
           where: {
             userId: user.id,
-            status: 'active'
+            status: 'ACTIVE'
           },
           orderBy: { date: 'desc' }
         });
         
         if (existingActiveSession) {
-          log.info('Duplicate active session prevented', { sessionId: existingActiveSession.id });
-          throw new Error('DUPLICATE_ACTIVE_SESSION');
+          // Check if the session is too old (more than 24 hours)
+          const sessionStartTime = existingActiveSession.startTime || existingActiveSession.date;
+          const hoursAgo = (Date.now() - new Date(sessionStartTime).getTime()) / (1000 * 60 * 60);
+          
+          // Check if the existing session has expired based on conversation time
+          const conversationTime = existingActiveSession.conversationTimeSeconds || 0;
+          const duration = existingActiveSession.duration || 60;
+          const remainingMinutes = duration - (conversationTime / 60);
+          
+          if (remainingMinutes <= 0 || hoursAgo > 24) {
+            // Session has expired - auto-end it
+            log.info('Auto-ending expired session', { 
+              sessionId: existingActiveSession.id,
+              conversationTime: conversationTime,
+              duration: duration,
+              hoursAgo: Math.round(hoursAgo),
+              reason: hoursAgo > 24 ? 'too old' : 'time expired'
+            });
+            
+            await tx.session.update({
+              where: { id: existingActiveSession.id },
+              data: { 
+                status: 'COMPLETED',
+                endTime: new Date(),
+                notes: existingActiveSession.notes + '\n\n[Session auto-ended: ' + 
+                       (hoursAgo > 24 ? 'session too old (>24 hours)' : 'time expired') + ']'
+              }
+            });
+            
+            // Continue with creating the new session
+          } else {
+            // Session is still valid - check if user wants to force new
+            const forceNew = data.forceNew === true;
+            
+            if (!forceNew) {
+              log.info('Existing active session found', { 
+                sessionId: existingActiveSession.id,
+                startTime: existingActiveSession.startTime,
+                remainingMinutes: remainingMinutes
+              });
+              
+              // Return existing session info with conflict status
+              throw new Error(JSON.stringify({
+                code: 'EXISTING_ACTIVE_SESSION',
+                existingSession: {
+                  id: existingActiveSession.id,
+                  theme: existingActiveSession.theme,
+                  startTime: existingActiveSession.startTime,
+                  duration: existingActiveSession.duration,
+                  conversationTimeSeconds: existingActiveSession.conversationTimeSeconds
+                }
+              }));
+            }
+            
+            // User explicitly wants new session - end the current one
+            log.info('Ending existing session to start new one', { 
+              existingSessionId: existingActiveSession.id 
+            });
+            
+            await tx.session.update({
+              where: { id: existingActiveSession.id },
+              data: { 
+                status: 'COMPLETED',
+                endTime: new Date(),
+                notes: existingActiveSession.notes + '\n\n[Session ended to start new session]'
+              }
+            });
+          }
         }
       }
       
@@ -318,7 +395,7 @@ export async function POST(request: NextRequest) {
           duration: data.duration,
           theme: data.theme,
           notes: data.notes,
-          status: data.status,
+          status: apiStatusToPrisma(data.status) as any, // Convert to uppercase for Prisma enum
           assistantId: data.assistantId || user.profile?.assistantId || null,
           isPaused: false,
           conversationTimeSeconds: 0,
@@ -351,7 +428,7 @@ export async function POST(request: NextRequest) {
               duration: data.duration,
               theme: data.theme,
               notes: `${data.notes} (Recurring session)`,
-              status: 'scheduled',
+              status: 'SCHEDULED',
               assistantId: data.assistantId || user.profile?.assistantId || null
             }
           });
@@ -413,14 +490,35 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     // 2025 Standard: Structured error handling
-    if (error instanceof Error && error.message === 'DUPLICATE_ACTIVE_SESSION') {
-      return NextResponse.json<ApiError>(
-        { 
-          error: 'An active session already exists', 
-          code: 'DUPLICATE_ACTIVE_SESSION' 
-        }, 
-        { status: 409 }
-      );
+    if (error instanceof Error) {
+      // Handle existing active session
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.code === 'EXISTING_ACTIVE_SESSION') {
+          return NextResponse.json(
+            { 
+              error: 'An active session already exists', 
+              code: 'EXISTING_ACTIVE_SESSION',
+              existingSession: errorData.existingSession,
+              message: 'Resume existing session or explicitly end it to start new' 
+            }, 
+            { status: 409 }
+          );
+        }
+      } catch {
+        // Not a JSON error, continue with normal error handling
+      }
+      
+      // Legacy duplicate session error
+      if (error.message === 'DUPLICATE_ACTIVE_SESSION') {
+        return NextResponse.json<ApiError>(
+          { 
+            error: 'An active session already exists', 
+            code: 'DUPLICATE_ACTIVE_SESSION' 
+          }, 
+          { status: 409 }
+        );
+      }
     }
     
     log.error('Failed to create session', error);

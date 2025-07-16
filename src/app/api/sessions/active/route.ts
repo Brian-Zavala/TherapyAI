@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    console.log('🔍 Checking for active sessions for userId:', userId);
+    // Check for active sessions
 
     if (!userId) {
       return NextResponse.json(
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const activeSession = await prisma.session.findFirst({
       where: {
         userId: userId,
-        status: 'active',
+        status: 'ACTIVE',
         // Additional safeguard: exclude any sessions that might be marked as completed elsewhere
         NOT: {
           notes: {
@@ -42,26 +42,15 @@ export async function GET(request: Request) {
     });
 
     if (!activeSession) {
-      console.log('📭 No active sessions found for userId:', userId);
       return NextResponse.json(null);
     }
 
     // ADDITIONAL SAFEGUARD: Double-check session status in case of race conditions
-    if (activeSession.status !== 'active') {
-      console.log(`🚫 Session ${activeSession.id} has status "${activeSession.status}" instead of "active" - not returning for recovery`);
+    if (activeSession.status !== 'ACTIVE') {
       return NextResponse.json(null);
     }
 
-    console.log('🎯 Found active session:', {
-      id: activeSession.id,
-      status: activeSession.status,
-      duration: activeSession.duration,
-      conversationTimeSeconds: activeSession.conversationTimeSeconds,
-      startTime: activeSession.startTime,
-      date: activeSession.date,
-      theme: activeSession.theme,
-      assistantId: activeSession.assistantId
-    });
+    // Found active session
 
     // Validate that the session hasn't exceeded its duration based on conversation time
     const sessionDurationMinutes = activeSession.duration;
@@ -69,10 +58,9 @@ export async function GET(request: Request) {
     const conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60);
     const remainingMinutes = sessionDurationMinutes - conversationTimeMinutes;
 
-    console.log(`📊 Session timing: ${conversationTimeMinutes}/${sessionDurationMinutes} minutes used, ${remainingMinutes} remaining`);
+    // Check session timing
 
     if (remainingMinutes <= 0) {
-      console.log('⏰ Session has expired based on conversation time, not returning as active');
       return NextResponse.json(null);
     }
 
@@ -81,14 +69,13 @@ export async function GET(request: Request) {
     const hoursAgo = (Date.now() - new Date(sessionDate).getTime()) / (1000 * 60 * 60);
     
     if (hoursAgo > 24) {
-      console.log(`⏰ Session is ${Math.round(hoursAgo)} hours old, too old to recover`);
       return NextResponse.json(null);
     }
 
-    console.log('✅ Valid active session found, returning for recovery');
+    // Return valid active session
     return NextResponse.json(activeSession);
   } catch (error) {
-    console.error('❌ Error fetching active session:', error);
+    // Error fetching active session
     return NextResponse.json(
       { error: 'Failed to fetch active session' },
       { status: 500 }

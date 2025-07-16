@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 
 /**
  * Batch endpoint for transcript entries - saves multiple entries in a single transaction
@@ -12,8 +12,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const authSession = await getServerSession(authOptions);
+    if (!authSession?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -35,11 +35,22 @@ export async function POST(
       }, { status: 400 });
     }
 
+    // First, find the user by email
+    const user = await prisma.user.findUnique({
+      where: { 
+        email: authSession.user.email
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     // Validate session exists and belongs to user
     const existingSession = await prisma.session.findFirst({
       where: {
         id: sessionId,
-        userId: session.user.id,
+        userId: user.id,
       },
     });
 
@@ -76,7 +87,8 @@ export async function POST(
       // Use createMany for better performance with large batches
       await tx.transcriptEntry.createMany({
         data: transcriptData,
-        skipDuplicates: true, // Skip any duplicate entries
+        // Remove skipDuplicates since TranscriptEntry has no unique constraints
+        // and we don't want to silently drop any entries
       });
 
       // Update session's last activity timestamp

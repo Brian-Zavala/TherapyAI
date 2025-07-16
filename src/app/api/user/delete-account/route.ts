@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { prisma } from '@/lib/prisma-optimized'
 import { Resend } from "resend"
 import { withAuth } from "@/lib/middleware/withAuth"
 import { createDeletionToken, verifySignedToken, createRecoveryToken } from "@/lib/security/tokens"

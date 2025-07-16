@@ -82,11 +82,7 @@ const nextConfig = {
   // Redirects for old routes
   async redirects() {
     return [
-      {
-        source: '/dashboard',
-        destination: '/dashboard/overview',
-        permanent: false,
-      },
+      // Remove dashboard redirect since we have a page.tsx at /dashboard
     ];
   },
 
@@ -112,6 +108,21 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': require('path').resolve(__dirname, 'src'),
+    };
+
+    // Optimize compilation speed
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      },
     };
 
     return config;

@@ -65,7 +65,8 @@ export default function SessionsPage() {
         
         const data = await response.json()
         console.log('Sessions data:', data)
-        setSessions(data)
+        // Handle paginated response structure
+        setSessions(data.data || data)
       } catch (err) {
         console.error('Error fetching sessions:', err)
         setError('Could not load sessions. Please try again later.')

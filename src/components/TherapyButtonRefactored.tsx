@@ -10,8 +10,10 @@ import { useButtonSound } from '@/hooks/useButtonSound'
 import { useSupabaseRealTimeMetrics } from '@/hooks/useSupabaseRealTimeMetrics'
 import { useSupabaseSessionState } from '@/hooks/useSupabaseSessionState'
 import { useVapiMetricsBridge } from '@/hooks/useVapiMetricsBridge'
+import { useSessionConflict } from '@/hooks/useSessionConflict'
 import { initializeSessionMetrics, cleanupSessionMetrics } from '@/lib/transcript-service-optimized'
 import SessionDurationModal from './SessionDurationModal'
+import { SessionConflictDialog } from './SessionConflictDialog'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
 import SessionTimerV2 from './SessionTimerV2'
 import VoiceWaveform from './VoiceWaveform'
@@ -50,14 +52,26 @@ const RECOVERY_CONSTANTS = {
 interface TherapyButtonRefactoredProps {
   therapyType: TherapyType
   disabled?: boolean
+  onSessionConflict?: (conflictData: any) => void
 }
 
 export function TherapyButtonRefactored({ 
   therapyType, 
-  disabled = false 
+  disabled = false,
+  onSessionConflict
 }: TherapyButtonRefactoredProps) {
   const { user } = useAuth()
   const playClick = useButtonSound()
+  
+  // Session conflict handling
+  const {
+    conflictSession,
+    isConflictDialogOpen,
+    setIsConflictDialogOpen,
+    handleSessionConflict,
+    resumeExistingSession,
+    formatSessionTime
+  } = useSessionConflict()
   
   // Core hooks for session management
   // Create vapi ref first
@@ -133,6 +147,26 @@ export function TherapyButtonRefactored({
   
   const handleVapiCallEnd = useCallback((reason?: string) => {
     console.log('[TherapyButton] VAPI call ended:', reason)
+    
+    // CRITICAL: Save conversation time when VAPI unexpectedly ends
+    // This ensures we don't lose billing data if connection drops
+    if (sessionRef.current?.sessionId && sessionRef.current?.conversationTimeSeconds > 0) {
+      console.log('💾 Saving conversation time on VAPI disconnect:', sessionRef.current.conversationTimeSeconds)
+      
+      // Force update conversation time to database
+      fetch(`/api/sessions/${sessionRef.current.sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationTimeSeconds: sessionRef.current.conversationTimeSeconds,
+          lastConversationStart: null, // Clear to indicate not actively in conversation
+          vapiDisconnectReason: reason || 'unknown'
+        })
+      }).catch(error => {
+        console.error('Failed to save conversation time on disconnect:', error)
+      })
+    }
+    
     // Remove session-active class when VAPI call ends
     // Only if we're not loading or in a modal
     if (!isLoadingRef.current && !showDurationModalRef.current && !showFamilySelectionModalRef.current) {
@@ -403,6 +437,7 @@ export function TherapyButtonRefactored({
   const [isProcessingRecovery, setIsProcessingRecovery] = useState(false)
   const recoveryProcessedRef = useRef(new Map<string, number>()) // Map of sessionId -> timestamp
   const lastRecoveryAttemptRef = useRef<number>(0)
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Deferred recovery state for when auth is loading
   const [deferredRecoveryData, setDeferredRecoveryData] = useState<any>(null)
@@ -424,6 +459,39 @@ export function TherapyButtonRefactored({
     return () => clearInterval(interval)
   }, [isLoading, vapi.vapiState.isLoading])
   
+  // Cleanup function for expired sessions
+  const cleanupExpiredSession = useCallback(async (sessionId: string, reason: string = 'expired') => {
+    console.log(`🧹 Cleaning up expired session ${sessionId}, reason: ${reason}`)
+    
+    try {
+      // End the session via API
+      await fetch(`/api/sessions/${sessionId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: reason,
+          forceComplete: true
+        })
+      })
+    } catch (error) {
+      console.error('Failed to cleanup expired session:', error)
+    }
+    
+    // Clear all related session storage
+    sessionStorage.removeItem('session-recovery-pending')
+    sessionStorage.removeItem('current-session-id')
+    sessionStorage.removeItem('session-auto-start')
+    sessionStorage.removeItem(`session-${sessionId}-backup`)
+    sessionStorage.removeItem(`session-${sessionId}-pause-state`)
+    
+    // Mark as just ended to prevent recovery
+    sessionStorage.setItem('session-just-ended', JSON.stringify({
+      sessionId: sessionId,
+      timestamp: Date.now(),
+      reason: reason
+    }))
+  }, [])
+
   // Listen for session recovery auto-start events
   useEffect(() => {
     const handleSessionRecoveryComplete = async (event: CustomEvent) => {
@@ -437,6 +505,35 @@ export function TherapyButtonRefactored({
           (now - lastRecoveryAttemptRef.current) < RECOVERY_CONSTANTS.COOLDOWN_MS) {
         console.log('⚠️ Recovery already processed or in cooldown for session:', sessionId)
         return
+      }
+      
+      // Check if session is expired based on conversation time
+      if (sessionData) {
+        const conversationTime = sessionData.conversationTimeSeconds || 0
+        const duration = sessionData.duration || 60
+        const remainingMinutes = duration - (conversationTime / 60)
+        
+        if (remainingMinutes <= 0) {
+          console.log('🚫 Cannot recover expired session, cleaning up...')
+          await cleanupExpiredSession(sessionId, 'expired-on-recovery')
+          return
+        }
+        
+        // Check if VAPI is already active for this session
+        if (vapi.vapiState.isActive && session.sessionId === sessionId) {
+          console.log('✅ VAPI already active for this session, skipping recovery')
+          return
+        }
+        
+        // Check if another session is active
+        if (vapi.vapiState.isActive && session.sessionId !== sessionId) {
+          console.log('⚠️ Another session is active, cannot recover', {
+            activeSessionId: session.sessionId,
+            recoverySessionId: sessionId
+          })
+          await cleanupExpiredSession(sessionId, 'another-session-active')
+          return
+        }
       }
       
       console.log('🔔 TherapyButtonRefactored: Session recovery event received:', event.detail)
@@ -582,6 +679,76 @@ export function TherapyButtonRefactored({
           
           // Update first message for recovery
           inlineConfig.firstMessage = 'Welcome back! I can see we were in the middle of our session together. Let\'s continue right where we left off. How are you feeling?'
+          
+          // Inject conversation history into model.messages with performance optimizations
+          if (sessionData.transcript && sessionData.transcript.length > 0 && inlineConfig.model) {
+            console.log('💬 Optimizing conversation history for VAPI session...')
+            
+            // Performance settings
+            const MAX_MESSAGES_TO_INJECT = 20 // Limit to prevent token overflow
+            const MAX_CONTENT_LENGTH = 500 // Truncate very long messages
+            const SUMMARIZE_THRESHOLD = 30 // If more than 30 messages, summarize older ones
+            
+            // Get the existing system message
+            const systemMessage = inlineConfig.model.messages?.[0] || {
+              role: "system",
+              content: inlineConfig.model.systemPrompt || "You are a helpful assistant."
+            }
+            
+            // Process transcript with performance optimizations
+            let processedHistory = []
+            const totalMessages = sessionData.transcript.length
+            
+            if (totalMessages > SUMMARIZE_THRESHOLD) {
+              // For long conversations, create a summary of older messages
+              const recentMessages = sessionData.transcript.slice(-MAX_MESSAGES_TO_INJECT)
+              const olderMessages = sessionData.transcript.slice(0, -MAX_MESSAGES_TO_INJECT)
+              
+              // Create a summary message for older content
+              const summaryMessage = {
+                role: "system",
+                content: `[Previous Conversation Summary] The session began ${sessionData.duration || 0} minutes ago with ${olderMessages.length} exchanges covering: relationship concerns, communication patterns, and therapeutic progress. The most recent conversation follows.`
+              }
+              
+              // Convert recent messages only
+              processedHistory = recentMessages.map((msg: any) => ({
+                role: msg.role === 'vapi' ? 'assistant' : msg.role,
+                content: msg.text.length > MAX_CONTENT_LENGTH 
+                  ? msg.text.substring(0, MAX_CONTENT_LENGTH) + '...' 
+                  : msg.text
+              }))
+              
+              // Add summary before recent messages
+              processedHistory.unshift(summaryMessage)
+            } else {
+              // For shorter conversations, include all messages but limit content length
+              processedHistory = sessionData.transcript.slice(-MAX_MESSAGES_TO_INJECT).map((msg: any) => ({
+                role: msg.role === 'vapi' ? 'assistant' : msg.role,
+                content: msg.text.length > MAX_CONTENT_LENGTH 
+                  ? msg.text.substring(0, MAX_CONTENT_LENGTH) + '...' 
+                  : msg.text
+              }))
+            }
+            
+            // Add a concise context message
+            const contextMessage = {
+              role: "system",
+              content: `[Recovered Session] Continuing session ${sessionData.id} after ${sessionData.duration || 0} minutes.`
+            }
+            
+            // Reconstruct messages array with optimized history
+            inlineConfig.model.messages = [
+              systemMessage,
+              contextMessage,
+              ...processedHistory
+            ]
+            
+            console.log(`📚 Optimized history: ${processedHistory.length} messages from ${totalMessages} total`)
+            
+            // Performance tracking
+            const estimatedTokens = processedHistory.reduce((sum, msg) => sum + (msg.content.length / 4), 0)
+            console.log(`⚡ Performance: ~${Math.round(estimatedTokens)} tokens, payload reduction: ${Math.round((1 - processedHistory.length / totalMessages) * 100)}%`)
+          }
           
           console.log('🔄 Starting recovered VAPI session with inline config...')
           
@@ -810,9 +977,77 @@ export function TherapyButtonRefactored({
   }, [user, isLoading, vapi.vapiState.isLoading, session.sessionId, vapi.vapiState.isActive, playClick, therapyType])
   
   // Handle duration selection
-  const handleDurationSelect = useCallback(async (duration: number) => {
+  // Handle ending existing session and starting new one
+  const handleEndAndStartNew = useCallback(async () => {
+    if (!conflictSession) return
+    
+    try {
+      // Close the conflict dialog
+      setIsConflictDialogOpen(false)
+      
+      // Save the duration that was selected
+      const savedDuration = sessionStorage.getItem('pending-session-duration')
+      const savedFamilyMembers = sessionStorage.getItem('pending-family-members')
+      
+      if (!savedDuration) {
+        console.error('No pending session duration found')
+        return
+      }
+      
+      const duration = parseInt(savedDuration)
+      const familyMembers = savedFamilyMembers ? JSON.parse(savedFamilyMembers) : selectedFamilyMembers
+      
+      // Create new session with forceNew flag
+      const sessionData = {
+        date: new Date().toISOString(),
+        duration,
+        theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
+        status: 'active',
+        familyMembers: familyMembers || [],
+        therapyType,
+        userName: user?.name || 'Guest',
+        partnerName: user?.profile?.partnerName,
+        familyMemberCount: familyMembers?.length || 0,
+        forceNew: true // This will end the existing session
+      }
+      
+      setIsLoading(true)
+      
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sessionData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to create new session')
+      }
+      
+      const data = await response.json()
+      
+      // Continue with the session start flow
+      handleDurationSelect(duration, familyMembers)
+      
+      // Clean up stored data
+      sessionStorage.removeItem('pending-session-duration')
+      sessionStorage.removeItem('pending-family-members')
+      
+    } catch (error) {
+      console.error('Failed to end and start new session:', error)
+      setError('Failed to start new session')
+      setIsLoading(false)
+    }
+  }, [conflictSession, selectedFamilyMembers, therapyType, user])
+
+  const handleDurationSelect = useCallback(async (duration: number, familyMembersOverride?: any[]) => {
     setShowDurationModal(false)
     setError(null)
+    
+    // Store pending session data in case of conflict
+    sessionStorage.setItem('pending-session-duration', duration.toString())
+    if (familyMembersOverride || selectedFamilyMembers.length > 0) {
+      sessionStorage.setItem('pending-family-members', JSON.stringify(familyMembersOverride || selectedFamilyMembers))
+    }
     
     // Reset forceHidePhoneUI when starting a new session
     setForceHidePhoneUI(false)
@@ -983,6 +1218,12 @@ export function TherapyButtonRefactored({
         
         console.log('✅ Client-side validation passed, starting VAPI call...')
         
+        // First, ensure VAPI instance is created with the sessionId
+        if (!vapi.isInstanceReady()) {
+          console.log('🎙️ Creating VAPI instance with sessionId:', newSession)
+          await vapi.createVapiInstance(newSession)
+        }
+        
         // Start VAPI with inline configuration through the hook
         await vapi.startCall(inlineConfig)
         
@@ -990,6 +1231,12 @@ export function TherapyButtonRefactored({
         console.log('📞 VAPI started, starting conversation timer with sessionId:', newSession)
         session.startConversationTimer(newSession)
       } else {
+        // First, ensure VAPI instance is created with the sessionId
+        if (!vapi.isInstanceReady()) {
+          console.log('🎙️ Creating VAPI instance with sessionId:', newSession)
+          await vapi.createVapiInstance(newSession)
+        }
+        
         // Use assistant ID approach
         await vapi.startCall(getAssistantId(therapyType))
         
@@ -999,6 +1246,103 @@ export function TherapyButtonRefactored({
       }
     } catch (error) {
       console.error('[TherapyButton] Failed to start session:', error)
+      
+      // Handle session conflict
+      if (error instanceof Error && error.message === 'SESSION_CONFLICT') {
+        const conflictData = (error as any).conflictData
+        
+        // Check if this is a recovery scenario - if user is trying to start after page refresh
+        const hasRecoveryPending = sessionStorage.getItem('session-recovery-pending')
+        const hasActiveSessionModal = document.querySelector('[data-active-session-modal]')
+        
+        if (hasRecoveryPending || hasActiveSessionModal) {
+          // This is a recovery scenario - don't show conflict dialog
+          // Instead, let the existing recovery modal handle it
+          console.log('🔄 Session conflict during recovery - letting ActiveSessionFoundModal handle it')
+          setIsLoading(false)
+          setError('Please use the session recovery options above')
+          return
+        }
+        
+        // Check if the existing session is too old to be valid
+        if (conflictData?.existingSession) {
+          // Use real-time conversation time from the session hook if available
+          // Otherwise fall back to database value
+          const realTimeConversationTime = session.conversationTimeSeconds
+          const dbConversationTime = conflictData.existingSession.conversationTimeSeconds || 0
+          
+          // Use the higher value to ensure we don't miss any time
+          const conversationTime = Math.max(realTimeConversationTime, dbConversationTime)
+          const duration = conflictData.existingSession.duration || 60
+          const remainingMinutes = duration - (conversationTime / 60)
+          
+          console.log('🕐 Session expiry check:', {
+            realTimeConversationTime,
+            dbConversationTime,
+            usedConversationTime: conversationTime,
+            duration,
+            remainingMinutes
+          })
+          
+          if (remainingMinutes <= 0) {
+            console.log('🧹 Existing session has expired, retrying with forceNew')
+            // The session is expired, retry the creation with forceNew
+            // This will cause the API to auto-end the expired session
+            setError(null)
+            
+            // Retry with forceNew flag
+            const retryData = {
+              date: new Date().toISOString(),
+              duration,
+              theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
+              status: 'active',
+              familyMembers: familyMembersOverride || selectedFamilyMembers || [],
+              therapyType,
+              userName: user?.name || 'Guest',
+              partnerName: user?.profile?.partnerName,
+              familyMemberCount: (familyMembersOverride || selectedFamilyMembers)?.length || 0,
+              forceNew: true // Force ending the expired session
+            }
+            
+            try {
+              const response = await fetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(retryData)
+              })
+              
+              if (response.ok) {
+                const data = await response.json()
+                const newSessionId = data.session.id
+                
+                // Continue with the flow by calling handleDurationSelect again
+                // This time it will succeed because the expired session is gone
+                console.log('✅ Expired session cleared, continuing with new session')
+                handleDurationSelect(duration, familyMembersOverride || selectedFamilyMembers)
+                return // Success - don't show error
+              }
+            } catch (retryError) {
+              console.error('Failed to retry with forceNew:', retryError)
+              // Fall through to regular error handling
+            }
+          }
+        }
+        
+        // If parent wants to handle conflicts, use that
+        if (onSessionConflict) {
+          onSessionConflict(conflictData)
+          setIsLoading(false)
+          setSessionActive(false)
+          return
+        } else if (handleSessionConflict(conflictData)) {
+          // Otherwise use built-in conflict dialog
+          setIsLoading(false)
+          // Clear the session active state since we're not starting yet
+          setSessionActive(false)
+          return
+        }
+      }
+      
       setError(error instanceof Error ? error.message : 'Failed to start session')
       
       // Reset UI state on error
@@ -1010,7 +1354,8 @@ export function TherapyButtonRefactored({
       const isPermanentError = errorMessage.includes('authentication') || 
                               errorMessage.includes('invalid') ||
                               errorMessage.includes('not found') ||
-                              errorMessage.includes('deleted')
+                              errorMessage.includes('deleted') ||
+                              errorMessage.includes('SESSION_CONFLICT')
       
       if (isPermanentError) {
         setSessionActive(false)
@@ -1125,7 +1470,7 @@ export function TherapyButtonRefactored({
         if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
           try {
             vapi.vapiManagerRef.current.say("I'm reconnecting our session. Just a moment...", false)
-          } catch (e) {
+          } catch {
             // VAPI might already be stopped, ignore
           }
         }
@@ -1140,6 +1485,11 @@ export function TherapyButtonRefactored({
         if (currentSessionActive) {
           setSessionActive(true)
         }
+        
+        // CRITICAL: Restart conversation timer after resume
+        // The timer should continue from where it left off
+        console.log('⏱️ Restarting conversation timer after resume')
+        session.startConversationTimer(session.sessionId || undefined)
         
         // Force UI components to refresh after a delay
         // Use requestIdleCallback for better performance
@@ -1170,6 +1520,10 @@ export function TherapyButtonRefactored({
           // Give time for message to be spoken
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
+        
+        // CRITICAL: Pause conversation timer before pausing VAPI
+        // This ensures accurate conversation time tracking
+        await session.pauseSession()
         
         // Pause through sessionState which will trigger onVapiPause callback
         // This saves conversation state and stops VAPI
@@ -1331,6 +1685,33 @@ export function TherapyButtonRefactored({
     }
   }, [session.sessionId, vapi.vapiState.isActive, isLoading, showDurationModal, showFamilySelectionModal, forceHidePhoneUI, setSessionActive])
   
+  // Monitor VAPI state and ensure conversation timer is in sync
+  useEffect(() => {
+    // Only run if we have an active session
+    if (!session.sessionId || !vapi.vapiState.isActive) return
+    
+    // Check every 10 seconds if conversation timer needs to be restarted
+    const syncInterval = setInterval(() => {
+      // If VAPI is active but conversation timer is not, restart it
+      if (vapi.vapiState.isActive && !session.isSessionPaused && session.conversationStartTime === null) {
+        console.log('⚠️ VAPI active but conversation timer not running, restarting...')
+        session.startConversationTimer(session.sessionId || undefined)
+      }
+      
+      // Log sync status for monitoring
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 VAPI-Timer Sync Check:', {
+          vapiActive: vapi.vapiState.isActive,
+          sessionPaused: session.isSessionPaused,
+          conversationActive: session.conversationStartTime !== null,
+          conversationTime: session.conversationTimeSeconds
+        })
+      }
+    }, 10000) // Check every 10 seconds
+    
+    return () => clearInterval(syncInterval)
+  }, [session.sessionId, vapi.vapiState.isActive, session.isSessionPaused, session.conversationStartTime, session.conversationTimeSeconds])
+  
   // Listen for explicit session end event to ensure proper cleanup
   useEffect(() => {
     const handleSessionEnded = () => {
@@ -1357,6 +1738,9 @@ export function TherapyButtonRefactored({
       }
       if (sessionActiveTimeoutRef.current) {
         clearTimeout(sessionActiveTimeoutRef.current)
+      }
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current)
       }
     }
   }, [])
@@ -1809,6 +2193,7 @@ export function TherapyButtonRefactored({
       <AnimatePresence>
         {showDurationModal && (
           <SessionDurationModal
+            key="duration-modal"
             isOpen={showDurationModal}
             onClose={() => {
               setShowDurationModal(false)
@@ -1824,6 +2209,7 @@ export function TherapyButtonRefactored({
         
         {showFamilySelectionModal && (
           <FamilyMemberSelectionModal
+            key="family-selection-modal"
             isOpen={showFamilySelectionModal}
             onClose={handleFamilySelectionClose}
             onSelectMembers={handleFamilyMembersSelected}
@@ -1834,6 +2220,19 @@ export function TherapyButtonRefactored({
         )}
         
         {/* Note: ActiveSessionFoundModal manages its own visibility based on sessionStorage */}
+        
+        {/* Session conflict dialog */}
+        {isConflictDialogOpen && (
+          <SessionConflictDialog
+            key="session-conflict-dialog"
+            open={isConflictDialogOpen}
+            onOpenChange={setIsConflictDialogOpen}
+            existingSession={conflictSession}
+            onResume={resumeExistingSession}
+            onEndAndStartNew={handleEndAndStartNew}
+            formatTime={formatSessionTime}
+          />
+        )}
       </AnimatePresence>
       
       {error && (
@@ -1859,14 +2258,4 @@ function getAssistantId(therapyType: TherapyType): string {
     family: process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID || ''
   }
   return assistantIds[therapyType] || assistantIds.individual
-}
-
-function getFirstMessage(therapyType: TherapyType): string {
-  const messages = {
-    couple: 'Hello! I\'m Dr. Maya Thompson. I\'m here to help you both navigate your relationship journey.',
-    individual: 'Hello! I\'m Dr. Elliot Mackaphy. I\'m here to support you on your personal journey.',
-    solo: 'Hello! I\'m Dr. Elliot Mackaphy. I\'m here to support you on your personal journey.',
-    family: 'Hello! I\'m Dr. Jada Pearson. I\'m here to help your family work through challenges together.'
-  }
-  return messages[therapyType] || messages.individual
 }

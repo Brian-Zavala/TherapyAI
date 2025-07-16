@@ -16,6 +16,13 @@ import {
 } from '@/lib/therapy-session/constants'
 import { addTranscriptEntry } from '@/lib/transcript-service-optimized'
 import { createConversationHash } from '@/lib/therapy-session/utils'
+import { 
+  getTranscriptStrategy,
+  logTranscriptStrategy,
+  shouldSaveTranscript,
+  shouldCalculateMetrics,
+  markTranscriptSource
+} from '@/lib/vapi/transcript-strategy'
 
 // Hook configuration interface
 interface UseTranscriptHandlerOptions {
@@ -49,6 +56,16 @@ interface UseTranscriptHandlerReturn {
 export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseTranscriptHandlerReturn {
   const { sessionId, onTranscriptUpdate, onMetricsUpdate, onError } = options
   
+  // Get transcript strategy
+  const strategyRef = useRef(getTranscriptStrategy())
+  
+  // Log strategy on mount
+  useEffect(() => {
+    if (sessionId) {
+      logTranscriptStrategy(sessionId)
+    }
+  }, [sessionId])
+  
   // UI state
   const [transcriptChunks, setTranscriptChunks] = useState<string[]>([])
   
@@ -67,6 +84,9 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   // Conversation deduplication
   const lastConversationMetadataRef = useRef<ConversationMetadata | null>(null)
   
+  // Track if component is mounted to prevent race conditions
+  const isMountedRef = useRef(true)
+  
   // Process consolidated assistant message
   const processConsolidatedAssistantMessage = useCallback(async (consolidatedText: string) => {
     if (!sessionId || !consolidatedText.trim()) return
@@ -74,38 +94,65 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     try {
       console.log('🤖 Processing consolidated assistant message')
       
-      // Save to session storage with multiple backup keys
-      const timestamp = Date.now()
-      const backupKey = `transcript-assistant-${sessionId}-${timestamp}`
-      sessionStorage.setItem(backupKey, consolidatedText)
+      // Save to session storage with error handling
+      try {
+        const timestamp = Date.now()
+        const backupKey = `transcript-assistant-${sessionId}-${timestamp}`
+        sessionStorage.setItem(backupKey, consolidatedText)
+        
+        // Also save with simpler key for easier recovery
+        const transcriptKey = `transcript-${sessionId}`
+        const existingTranscript = sessionStorage.getItem(transcriptKey) || ''
+        const updatedTranscript = existingTranscript + 
+          (existingTranscript ? '\n' : '') + 
+          `AI: ${consolidatedText}`
+        sessionStorage.setItem(transcriptKey, updatedTranscript)
+      } catch (storageError) {
+        console.warn('Failed to save to session storage:', storageError)
+        // Continue processing even if storage fails
+      }
       
-      // Also save with simpler key for easier recovery
-      const transcriptKey = `transcript-${sessionId}`
-      const existingTranscript = sessionStorage.getItem(transcriptKey) || ''
-      const updatedTranscript = existingTranscript + 
-        (existingTranscript ? '\n' : '') + 
-        `AI: ${consolidatedText}`
-      sessionStorage.setItem(transcriptKey, updatedTranscript)
-      
-      // Update UI
-      const newChunk = `AI: ${consolidatedText}`
-      setTranscriptChunks(prev => {
-        const updated = [...prev, newChunk]
-        onTranscriptUpdate?.(updated)
-        return updated
-      })
-      
-      // Save to database - convert to transcript service format
-      if (sessionId) {
-        await addTranscriptEntry({
-          sessionId,
-          speaker: 'assistant',
-          text: consolidatedText,
-          timestamp: new Date().toISOString(),
-          isFinal: true
+      // Update UI only if component is still mounted
+      if (isMountedRef.current) {
+        const newChunk = `AI: ${consolidatedText}`
+        setTranscriptChunks(prev => {
+          const updated = [...prev, newChunk]
+          onTranscriptUpdate?.(updated)
+          return updated
         })
       }
-      console.log('✅ Saved assistant transcript to database')
+      
+      // Save to database with retry logic (only if strategy allows)
+      if (sessionId && shouldSaveTranscript('realtime')) {
+        console.log(`🔄 Sending assistant transcript to batching service: "${consolidatedText.substring(0, 50)}..."`)
+        
+        let retries = 3
+        while (retries > 0) {
+          try {
+            const transcriptData = markTranscriptSource({
+              sessionId,
+              speaker: 'assistant',
+              text: consolidatedText,
+              timestamp: new Date().toISOString(),
+              isFinal: true
+            }, 'realtime')
+            
+            await addTranscriptEntry(transcriptData)
+            console.log('✅ Added assistant transcript to batch queue')
+            break
+          } catch (error) {
+            retries--
+            if (retries === 0) {
+              console.error('Failed to save transcript after 3 attempts:', error)
+              throw error
+            }
+            console.warn(`Transcript save failed, retrying... (${retries} attempts left)`)
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+      } else if (sessionId && !shouldSaveTranscript('realtime')) {
+        console.log('📋 Real-time transcript saving disabled by strategy - buffering for UI only')
+      }
       
       // Update metrics
       const wordCount = consolidatedText.split(' ').filter(word => word.length > 0).length
@@ -127,33 +174,60 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     try {
       console.log('👤 Processing consolidated user message')
       
-      // Save to session storage
-      const transcriptKey = `transcript-${sessionId}`
-      const existingTranscript = sessionStorage.getItem(transcriptKey) || ''
-      const updatedTranscript = existingTranscript + 
-        (existingTranscript ? '\n' : '') + 
-        `You: ${consolidatedText}`
-      sessionStorage.setItem(transcriptKey, updatedTranscript)
+      // Save to session storage with error handling
+      try {
+        const transcriptKey = `transcript-${sessionId}`
+        const existingTranscript = sessionStorage.getItem(transcriptKey) || ''
+        const updatedTranscript = existingTranscript + 
+          (existingTranscript ? '\n' : '') + 
+          `You: ${consolidatedText}`
+        sessionStorage.setItem(transcriptKey, updatedTranscript)
+      } catch (storageError) {
+        console.warn('Failed to save to session storage:', storageError)
+        // Continue processing even if storage fails
+      }
       
-      // Update UI
-      const newChunk = `You: ${consolidatedText}`
-      setTranscriptChunks(prev => {
-        const updated = [...prev, newChunk]
-        onTranscriptUpdate?.(updated)
-        return updated
-      })
-      
-      // Save to database - convert to transcript service format
-      if (sessionId) {
-        await addTranscriptEntry({
-          sessionId,
-          speaker: 'user',
-          text: consolidatedText,
-          timestamp: new Date().toISOString(),
-          isFinal: true
+      // Update UI only if component is still mounted
+      if (isMountedRef.current) {
+        const newChunk = `You: ${consolidatedText}`
+        setTranscriptChunks(prev => {
+          const updated = [...prev, newChunk]
+          onTranscriptUpdate?.(updated)
+          return updated
         })
       }
-      console.log('✅ Saved user transcript to database')
+      
+      // Save to database with retry logic (only if strategy allows)
+      if (sessionId && shouldSaveTranscript('realtime')) {
+        console.log(`🔄 Sending user transcript to batching service: "${consolidatedText.substring(0, 50)}..."`)
+        
+        let retries = 3
+        while (retries > 0) {
+          try {
+            const transcriptData = markTranscriptSource({
+              sessionId,
+              speaker: 'user',
+              text: consolidatedText,
+              timestamp: new Date().toISOString(),
+              isFinal: true
+            }, 'realtime')
+            
+            await addTranscriptEntry(transcriptData)
+            console.log('✅ Added user transcript to batch queue')
+            break
+          } catch (error) {
+            retries--
+            if (retries === 0) {
+              console.error('Failed to save transcript after 3 attempts:', error)
+              throw error
+            }
+            console.warn(`Transcript save failed, retrying... (${retries} attempts left)`)
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+      } else if (sessionId && !shouldSaveTranscript('realtime')) {
+        console.log('📋 Real-time transcript saving disabled by strategy - buffering for UI only')
+      }
       
       // Update metrics
       const wordCount = consolidatedText.split(' ').filter(word => word.length > 0).length
@@ -171,6 +245,9 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   // Handle VAPI messages
   const handleVapiMessage = useCallback(async (message: VapiMessage, vapiInstance: ExtendedVapi | null) => {
     try {
+      // Log message type for debugging
+      console.log(`📨 VAPI Message: ${message.type}`)
+      
       // Handle transcript messages (speech-to-text)
       if (isTranscriptMessage(message) && message.transcript) {
         // Transcript is a string, not an object
@@ -378,7 +455,11 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   
   // Process any pending buffers when session ends
   useEffect(() => {
+    isMountedRef.current = true
+    
     return () => {
+      isMountedRef.current = false
+      
       // Clear all timers on unmount
       if (assistantTimeoutRef.current) {
         clearTimeout(assistantTimeoutRef.current)
@@ -387,24 +468,67 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
         clearTimeout(userTimeoutRef.current)
       }
       
-      // Process any remaining buffered content
+      // Process any remaining buffered content synchronously
       const assistantText = assistantBufferRef.current.trim()
       const userText = userBufferRef.current.trim()
       
-      if (assistantText) {
-        processConsolidatedAssistantMessage(assistantText)
+      // Create a promise to handle async saves with timeout
+      const savePromises: Promise<void>[] = []
+      
+      if (assistantText && sessionId && shouldSaveTranscript('realtime')) {
+        const transcriptData = markTranscriptSource({
+          sessionId,
+          speaker: 'assistant',
+          text: assistantText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        }, 'realtime')
+        
+        savePromises.push(
+          addTranscriptEntry(transcriptData).catch(error => {
+            console.error('Failed to save assistant buffer on unmount:', error)
+          })
+        )
       }
-      if (userText) {
-        processConsolidatedUserMessage(userText)
+      
+      if (userText && sessionId && shouldSaveTranscript('realtime')) {
+        const transcriptData = markTranscriptSource({
+          sessionId,
+          speaker: 'user',
+          text: userText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        }, 'realtime')
+        
+        savePromises.push(
+          addTranscriptEntry(transcriptData).catch(error => {
+            console.error('Failed to save user buffer on unmount:', error)
+          })
+        )
+      }
+      
+      // Use Promise.race with timeout to ensure cleanup completes
+      if (savePromises.length > 0) {
+        Promise.race([
+          Promise.all(savePromises),
+          new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+        ]).catch(error => {
+          console.error('Error saving buffers on unmount:', error)
+        })
       }
     }
-  }, [processConsolidatedAssistantMessage, processConsolidatedUserMessage])
+  }, [sessionId])
   
   // Periodic backup
   useEffect(() => {
     if (!sessionId || transcriptChunks.length === 0) return
     
-    const backupInterval = setInterval(saveTranscriptBackup, 60000) // Every minute
+    const backupInterval = setInterval(() => {
+      // Only backup if component is still mounted
+      if (isMountedRef.current) {
+        saveTranscriptBackup()
+      }
+    }, 60000) // Every minute
     
     return () => clearInterval(backupInterval)
   }, [sessionId, transcriptChunks.length, saveTranscriptBackup])

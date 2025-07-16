@@ -71,48 +71,53 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached, { headers: CACHE_HEADERS })
     }
     
-    // Fetch from database with optimized query
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        onboardingCompleted: true,
-        onboardingData: true,
-        hasSeenIntro: true,
-        profile: {
-          select: {
-            pronouns: true,
-            age: true,
-            partnerName: true,
-            partnerAge: true,
-            relationshipStatus: true,
-            currentConcerns: true,
-            emergencyContact: true,
-            sessionPreference: true,
-            preferredDays: true,
-            sessionFrequency: true,
-            recurringSession: true,
-            reminderTiming: true,
-            communicationStyle: true,
-            additionalNotes: true,
-            phone: true,
-            notificationPrefs: true
-          }
-        },
-        familyMembers: {
-          where: { isActive: true },
-          orderBy: { order: 'asc' },
-          select: {
-            name: true,
-            age: true,
-            relationship: true,
-            order: true
+    // Fetch from database with optimized query and timeout
+    const user = await Promise.race([
+      prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          onboardingCompleted: true,
+          onboardingData: true,
+          hasSeenIntro: true,
+          profile: {
+            select: {
+              pronouns: true,
+              age: true,
+              partnerName: true,
+              partnerAge: true,
+              relationshipStatus: true,
+              currentConcerns: true,
+              emergencyContact: true,
+              sessionPreference: true,
+              preferredDays: true,
+              sessionFrequency: true,
+              recurringSession: true,
+              reminderTiming: true,
+              communicationStyle: true,
+              additionalNotes: true,
+              phone: true,
+              notificationPrefs: true
+            }
+          },
+          familyMembers: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' },
+            select: {
+              name: true,
+              age: true,
+              relationship: true,
+              order: true
+            }
           }
         }
-      }
-    })
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 5000)
+      )
+    ])
     
     if (!user) {
       // Auto-create user if they have a valid session

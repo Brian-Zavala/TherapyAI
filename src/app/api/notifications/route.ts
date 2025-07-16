@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
 
 // Query validation schema
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const queryParams = {
-      type: searchParams.get('type'),
-      status: searchParams.get('status'),
+      type: searchParams.get('type') || undefined,
+      status: searchParams.get('status') || undefined,
       unreadOnly: searchParams.get('unreadOnly') === 'true',
       limit: parseInt(searchParams.get('limit') || '20'),
       page: parseInt(searchParams.get('page') || '1')

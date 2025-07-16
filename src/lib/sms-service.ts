@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 
 // Dynamic import to handle package availability
 let twilioClient: any = null;

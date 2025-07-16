@@ -4,7 +4,7 @@
  * This would typically run as a cron job or scheduled task
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { EnhancedReminderEngine } from '@/lib/enhanced-scheduler/reminder-engine';
 
 interface ProcessResult {

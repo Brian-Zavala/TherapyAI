@@ -1,7 +1,7 @@
 // app/api/sessions/[id]/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma-optimized'
 import { authOptions } from '@/lib/auth'
 import { generateMetricsFromSession } from './metrics-helper'
 import { sessionCache, cacheKeys } from '@/lib/session-cache'

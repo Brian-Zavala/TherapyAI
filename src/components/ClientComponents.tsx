@@ -8,6 +8,7 @@ import AuthProvider from "@/components/AuthProvider";
 import Navigation from "@/components/Navigation";
 import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 import { ProfileProvider } from "@/providers/ProfileProvider";
+import { NotificationProvider } from "@/providers/NotificationProvider";
 import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter";
 
 export function ClientProviders({ children }: { children: ReactNode }) {
@@ -17,12 +18,14 @@ export function ClientProviders({ children }: { children: ReactNode }) {
       <AuthProvider>
         <ReactQueryProvider>
           <ProfileProvider>
-            <SoundProvider>
-              <Navigation />
-              {children}
-              <MusicPlayer />
-              <WebVitalsReporter />
-            </SoundProvider>
+            <NotificationProvider>
+              <SoundProvider>
+                <Navigation />
+                {children}
+                <MusicPlayer />
+                <WebVitalsReporter />
+              </SoundProvider>
+            </NotificationProvider>
           </ProfileProvider>
         </ReactQueryProvider>
       </AuthProvider>

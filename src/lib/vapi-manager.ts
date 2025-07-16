@@ -151,6 +151,7 @@ export class VAPIManager {
     assistantConfig?: any // Full inline assistant configuration
     resumeFromMessages?: ConversationMessage[]
     variableValues?: Record<string, unknown>
+    sessionId?: string // Pass sessionId for webhook correlation
   }): Promise<void> {
     if (this.isDestroyed) {
       throw new Error('Manager has been destroyed')
@@ -158,6 +159,13 @@ export class VAPIManager {
 
     try {
       let startConfig: Record<string, unknown>
+      
+      // Get the server URL for webhooks
+      const serverUrl = process.env.NEXT_PUBLIC_APP_URL 
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/vapi/webhooks`
+        : typeof window !== 'undefined' 
+          ? `${window.location.origin}/api/vapi/webhooks`
+          : 'http://localhost:3000/api/vapi/webhooks'
 
       // Handle inline configuration
       if (config.assistantConfig) {
@@ -172,7 +180,12 @@ export class VAPIManager {
           const variableValues = extractVariableValues(config.assistantConfig) || config.variableValues
           
           // For inline config, pass the cleaned config object
-          startConfig = { ...cleanedConfig }
+          startConfig = { 
+            ...cleanedConfig,
+            // Add server configuration for webhooks
+            serverUrl: serverUrl,
+            serverMessages: ['end-of-call-report', 'conversation-update', 'transcript'],
+          }
           
           // Store a placeholder ID for inline configs
           this.currentAssistantId = 'inline-config'
@@ -201,14 +214,23 @@ export class VAPIManager {
           assistantId: config.assistantId,
         }
 
-        // Configure assistant overrides for variable values only
-        if (config.variableValues) {
-          startConfig.assistantOverrides = {
-            variableValues: config.variableValues
-          }
+        // Configure assistant overrides for server messages and variable values
+        startConfig.assistantOverrides = {
+          serverUrl: serverUrl,
+          serverMessages: ['end-of-call-report', 'conversation-update', 'transcript'],
+          ...(config.variableValues && { variableValues: config.variableValues })
         }
       } else {
         throw new Error('Either assistantId or assistantConfig must be provided')
+      }
+      
+      // Add metadata for webhook correlation
+      if (config.sessionId) {
+        startConfig.metadata = {
+          sessionId: config.sessionId,
+          userId: this.config.userId,
+          timestamp: Date.now()
+        }
       }
 
       console.log('[VAPIManager] Starting VAPI session with config:', {

@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * Notification Center Component - Ultra Performance Version
- * Migrated to React Query for 60% network reduction
+ * Notification Center Component
+ * Now integrated with unified notification system
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Bell, 
@@ -21,9 +21,13 @@ import {
   Trash2,
   Filter,
   Calendar,
-  Settings
+  Settings,
+  Loader2,
+  WifiOff
 } from 'lucide-react';
-import { useNotifications, useMarkNotificationRead } from '@/hooks/useApiQuery';
+import { useNotificationState, useNotificationActions } from '@/providers/NotificationProvider';
+import { formatDistanceToNow } from 'date-fns';
+import type { Notification } from '@/hooks/useNotifications';
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -37,13 +41,13 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   className = ''
 }) => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'reminder' | 'alert'>('all');
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   
-  // Use React Query for notifications
-  const { data, isLoading, error } = useNotifications();
-  const markAsReadMutation = useMarkNotificationRead();
+  // Use unified notification system
+  const { notifications, summary, isLoading, error, isOnline, isConnected } = useNotificationState();
+  const { markAsRead, markAllAsRead, deleteNotification, refresh } = useNotificationActions();
   
-  const notifications = data?.notifications || [];
-  const unreadCount = data?.unreadCount || 0;
+  const unreadCount = summary.unreadCount;
 
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
@@ -87,38 +91,61 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  // Filter notifications
-  const filteredNotifications = notifications.filter(notification => {
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !notification.readAt;
-    return notification.type === filter;
-  });
+  // Filter notifications with memoization
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notification => {
+      if (filter === 'all') return true;
+      if (filter === 'unread') return !notification.readAt;
+      return notification.type === filter;
+    });
+  }, [notifications, filter]);
 
-  // Format date
+  // Format date using date-fns
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return date.toLocaleDateString();
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return 'Unknown';
+    }
   };
 
-  // Mark notification as read
-  const handleMarkAsRead = (notificationId: string) => {
-    markAsReadMutation.mutate(notificationId);
+  // Mark notification as read with optimistic UI
+  const handleMarkAsRead = async (notificationId: string) => {
+    setProcessingIds(prev => new Set(prev).add(notificationId));
+    try {
+      await markAsRead(notificationId);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(notificationId);
+        return next;
+      });
+    }
   };
 
   // Mark all as read
-  const handleMarkAllAsRead = () => {
-    // This would require a separate mutation for marking all
-    // For now, we'll mark each unread notification individually
-    const unreadNotifications = notifications.filter(n => !n.readAt);
-    unreadNotifications.forEach(n => {
-      markAsReadMutation.mutate(n.id);
-    });
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  // Delete notification with confirmation
+  const handleDeleteNotification = async (notificationId: string) => {
+    if (!confirm('Are you sure you want to delete this notification?')) return;
+    
+    setProcessingIds(prev => new Set(prev).add(notificationId));
+    try {
+      await deleteNotification(notificationId);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(notificationId);
+        return next;
+      });
+    }
   };
 
   return (
@@ -148,7 +175,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 <div className="flex items-center gap-3">
                   <Bell className="h-6 w-6 text-green-500" />
                   <div>
-                    <h2 className="text-xl font-semibold text-white">Notifications</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-semibold text-white">Notifications</h2>
+                      {!isOnline && (
+                        <span className="flex items-center gap-1 text-xs text-yellow-400">
+                          <WifiOff className="h-3 w-3" />
+                          Offline
+                        </span>
+                      )}
+                    </div>
                     {unreadCount > 0 && (
                       <p className="text-sm text-gray-400">
                         {unreadCount} unread
@@ -183,8 +218,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </div>
 
             {/* Actions Bar */}
-            {unreadCount > 0 && (
-              <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700">
+            <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center justify-between">
+              {unreadCount > 0 ? (
                 <button
                   onClick={handleMarkAllAsRead}
                   className="text-sm text-green-500 hover:text-green-400 transition-colors flex items-center gap-2"
@@ -192,19 +227,47 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   <EyeOff className="h-4 w-4" />
                   Mark all as read
                 </button>
-              </div>
-            )}
+              ) : (
+                <span className="text-sm text-gray-500">All caught up!</span>
+              )}
+              
+              <button
+                onClick={refresh}
+                className="p-1 hover:bg-gray-700 rounded transition-colors"
+                title="Refresh notifications"
+              >
+                <motion.div
+                  animate={isLoading ? { rotate: 360 } : {}}
+                  transition={{ duration: 1, repeat: isLoading ? Infinity : 0, ease: "linear" }}
+                >
+                  <Loader2 className="h-4 w-4 text-gray-400" />
+                </motion.div>
+              </button>
+            </div>
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+              {isLoading && notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 gap-4">
+                  <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+                  <p className="text-sm text-gray-400">Loading notifications...</p>
                 </div>
               ) : error ? (
-                <div className="text-center text-gray-400 py-12">
+                <div className="text-center py-12">
                   <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
-                  <p>Failed to load notifications</p>
+                  <p className="text-gray-400 mb-2">Failed to load notifications</p>
+                  <button
+                    onClick={refresh}
+                    className="text-sm text-green-500 hover:text-green-400 transition-colors"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : !isOnline ? (
+                <div className="text-center py-12">
+                  <WifiOff className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+                  <p className="text-gray-400 mb-2">You're offline</p>
+                  <p className="text-sm text-gray-500">Showing cached notifications</p>
                 </div>
               ) : filteredNotifications.length === 0 ? (
                 <div className="text-center text-gray-400 py-12">
@@ -218,8 +281,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       key={notification.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-6 hover:bg-gray-800/50 transition-colors ${
+                      className={`p-6 hover:bg-gray-800/50 transition-colors relative ${
                         !notification.readAt ? 'bg-gray-800/20' : ''
+                      } ${
+                        processingIds.has(notification.id) ? 'opacity-50 pointer-events-none' : ''
                       }`}
                     >
                       <div className="flex gap-4">
@@ -286,7 +351,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                               <button
                                 onClick={() => handleMarkAsRead(notification.id)}
                                 className="text-xs text-green-500 hover:text-green-400 transition-colors flex items-center gap-1"
-                                disabled={markAsReadMutation.isPending}
+                                disabled={processingIds.has(notification.id)}
                               >
                                 <Eye className="h-3 w-3" />
                                 Mark as read
@@ -296,13 +361,33 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                               <a
                                 href={notification.actionUrl}
                                 className="text-xs text-blue-500 hover:text-blue-400 transition-colors"
+                                onClick={() => {
+                                  if (!notification.readAt) {
+                                    handleMarkAsRead(notification.id);
+                                  }
+                                }}
                               >
                                 View details →
                               </a>
                             )}
+                            <button
+                              onClick={() => handleDeleteNotification(notification.id)}
+                              className="text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1 ml-auto"
+                              disabled={processingIds.has(notification.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </button>
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Processing overlay */}
+                      {processingIds.has(notification.id) && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50">
+                          <Loader2 className="h-5 w-5 text-green-500 animate-spin" />
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { prisma } from '@/lib/prisma-optimized'
 import { Resend } from "resend"
 import { verifySignedToken } from "@/lib/security/tokens"
 import { checkRateLimit } from "@/lib/security/rateLimiter"

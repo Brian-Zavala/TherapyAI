@@ -1,6 +1,6 @@
 // app/api/cron/session-reminders/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
 import SessionMissedEmail from '@/emails/SessionMissed';

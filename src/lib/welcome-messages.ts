@@ -5,7 +5,7 @@
 
 import { Resend } from 'resend';
 import { sendSMS } from '@/lib/sms-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
 
 // Environment setup
