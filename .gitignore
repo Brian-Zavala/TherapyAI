@@ -19,12 +19,16 @@ pnpm-lock.yaml
 /playwright-report
 /playwright/.cache
 /e2e-results
+__snapshots__/
+.jest/
+jest-results.json
 
 # Next.js
 /.next/
 /out/
 next-env.d.ts
 .swc/
+.next-telemetry
 
 # Production builds
 /build
@@ -181,11 +185,25 @@ tsconfig.tsbuildinfo
 # Analytics
 /analytics/
 .ga-credentials.json
+.posthog/
+posthog.config.local.js
 
 # User uploads (if stored locally)
 /uploads/
 /public/uploads/
 /public/user-content/
+
+# Audio/Video recordings (therapy sessions)
+/recordings/
+/public/recordings/
+*.mp3
+*.mp4
+*.wav
+*.webm
+*.ogg
+/transcripts/
+*.vtt
+*.srt
 
 # Generated files
 /generated/
@@ -193,6 +211,10 @@ sitemap.xml
 robots.txt
 /public/sitemap.xml
 /public/robots.txt
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/manifest.json.generated
 
 # Bundle analysis
 /bundle-stats.json
@@ -206,6 +228,11 @@ robots.txt
 # Docker
 docker-compose.override.yml
 .dockerignore
+
+# Railway
+railway.json
+.railway/
+railway.toml
 
 # CI/CD
 .github/workflows/local-*
@@ -259,6 +286,8 @@ pids
 .rts2_cache_umd/
 .parcel-cache
 .turbo
+.tailwind-intellisense
+.prisma-studio
 
 
 # Linux
