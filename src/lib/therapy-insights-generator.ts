@@ -115,18 +115,18 @@ export class TherapyInsightsGenerator {
     if (metrics.length === 0) return insights;
 
     const latestMetrics = metrics[0];
-    // Map sessionMetrics fields to communication concepts
-    const avgConfidence = metrics.reduce((sum, m) => sum + (m.confidence || 0), 0) / metrics.length;
-    const avgEngagement = metrics.reduce((sum, m) => sum + (m.engagement || 0), 0) / metrics.length;
-    const avgBalance = metrics.reduce((sum, m) => sum + (m.participationBalance || 0), 0) / metrics.length;
+    // Map communicationMetric fields to communication concepts
+    const avgClarity = metrics.reduce((sum, m) => sum + (m.clarity || 50), 0) / metrics.length;
+    const avgEmpathy = metrics.reduce((sum, m) => sum + (m.empathy || 50), 0) / metrics.length;
+    const avgExpression = metrics.reduce((sum, m) => sum + (m.expression || 50), 0) / metrics.length;
 
-    // Low confidence insight (maps to clarity)
-    if (avgConfidence < 70) {
+    // Low clarity insight
+    if (avgClarity < 70) {
       insights.push({
         id: 'comm-clarity',
         category: 'communication',
         title: 'Enhance Communication Clarity',
-        description: `Your communication confidence score averages ${Math.round(avgConfidence)}%. Clear communication is the foundation of healthy relationships.`,
+        description: `Your communication clarity score averages ${Math.round(avgClarity)}%. Clear communication is the foundation of healthy relationships.`,
         actionItems: [
           'Use "I feel" statements instead of "you always/never"',
           'Pause and organize thoughts before speaking in heated moments',
@@ -148,13 +148,13 @@ export class TherapyInsightsGenerator {
       });
     }
 
-    // High engagement celebration (maps to empathy)
-    if (avgEngagement > 80) {
+    // High empathy celebration
+    if (avgEmpathy > 80) {
       insights.push({
         id: 'comm-empathy-strength',
         category: 'communication',
         title: 'Empathy is Your Superpower!',
-        description: `Your engagement score of ${Math.round(avgEngagement)}% shows exceptional emotional attunement. This is a relationship strength to build upon.`,
+        description: `Your empathy score of ${Math.round(avgEmpathy)}% shows exceptional emotional attunement. This is a relationship strength to build upon.`,
         actionItems: [
           'Model empathetic responses for your partner',
           'Share how empathy has helped in specific situations',
@@ -168,8 +168,8 @@ export class TherapyInsightsGenerator {
       });
     }
 
-    // Balance needs improvement (maps to expression)
-    if (latestMetrics.participationBalance < 60) {
+    // Expression needs improvement
+    if (avgExpression < 60) {
       insights.push({
         id: 'comm-expression',
         category: 'communication',
@@ -414,10 +414,10 @@ export class TherapyInsightsGenerator {
   private generateRelationshipInsights(assessments: any[], progressData: any[], communicationMetrics: any[]): TherapyInsight[] {
     const insights: TherapyInsight[] = [];
     
-    // Conflict resolution patterns (using emotionalValence as a proxy for respect)
-    const avgEmotionalValence = communicationMetrics.reduce((sum, m) => sum + ((m.emotionalValence + 1) * 50 || 50), 0) / communicationMetrics.length;
+    // Conflict resolution patterns (using respect metric)
+    const avgRespect = communicationMetrics.reduce((sum, m) => sum + (m.respect || 50), 0) / communicationMetrics.length;
     
-    if (avgEmotionalValence < 65) {
+    if (avgRespect < 65) {
       insights.push({
         id: 'rel-conflict',
         category: 'relationship',
@@ -595,14 +595,14 @@ export class TherapyInsightsGenerator {
   }
 
   private async getCommunicationMetrics() {
-    const sessions = await prisma.therapySession.findMany({
+    const sessions = await prisma.session.findMany({
       where: { userId: this.userId, status: 'COMPLETED' },
       select: { id: true },
       orderBy: { startTime: 'desc' },
       take: 10
     });
 
-    const metrics = await prisma.sessionMetrics.findMany({
+    const metrics = await prisma.communicationMetric.findMany({
       where: { sessionId: { in: sessions.map(s => s.id) } },
       orderBy: { timestamp: 'desc' }
     });
@@ -611,7 +611,7 @@ export class TherapyInsightsGenerator {
   }
 
   private async getSessionData() {
-    return prisma.therapySession.findMany({
+    return prisma.session.findMany({
       where: { userId: this.userId },
       orderBy: { startTime: 'desc' },
       take: 30
@@ -634,7 +634,7 @@ export class TherapyInsightsGenerator {
 
   private async getTranscriptAnalysis() {
     // Get aggregated transcript analysis
-    const recentSessions = await prisma.therapySession.findMany({
+    const recentSessions = await prisma.session.findMany({
       where: { userId: this.userId, status: 'COMPLETED' },
       select: { id: true },
       orderBy: { startTime: 'desc' },
@@ -648,4 +648,61 @@ export class TherapyInsightsGenerator {
       avgSentiment: 'neutral'
     };
   }
+}
+
+// Export the function that the route expects
+export async function generateTherapyInsights({ 
+  userId, 
+  sessions, 
+  userProfile 
+}: { 
+  sessions?: any; 
+  userProfile?: any; 
+  userId: string 
+}): Promise<ComprehensiveInsights> {
+  // If we have pre-fetched data, use it directly instead of querying again
+  const generator = new TherapyInsightsGenerator(userId);
+  
+  // Override the internal data fetching methods if data is provided
+  if (sessions || userProfile) {
+    const progressData = await generator['getProgressData']();
+    const communicationMetrics = sessions?.flatMap((s: any) => s.communicationMetrics || []) || [];
+    const assessments = await generator['getAssessmentData']();
+    const transcriptAnalysis = {
+      sessionCount: sessions?.length || 0,
+      avgSentiment: 'neutral'
+    };
+    
+    // Generate insights using the provided data
+    const insights: TherapyInsight[] = [];
+    
+    // Use the private methods but with our data
+    insights.push(...generator['generateCommunicationInsights'](communicationMetrics, transcriptAnalysis));
+    insights.push(...generator['generateProgressInsights'](progressData));
+    insights.push(...generator['generateSessionPatternInsights'](sessions || []));
+    insights.push(...generator['generateEmotionalInsights'](progressData, communicationMetrics));
+    insights.push(...generator['generateMentalHealthInsights'](userProfile, sessions || [], progressData));
+    insights.push(...generator['generateRelationshipInsights'](assessments, progressData, communicationMetrics));
+    
+    // Sort by priority
+    insights.sort((a, b) => {
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+    
+    // Generate summary and trends
+    const summary = generator['generateSummary'](insights, progressData, sessions || []);
+    const trends = generator['analyzeTrends'](progressData, communicationMetrics, sessions || []);
+    const personalizedTips = generator['generatePersonalizedTips'](insights, userProfile, progressData);
+    
+    return {
+      insights: insights.slice(0, 10),
+      summary,
+      trends,
+      personalizedTips
+    };
+  }
+  
+  // Fall back to original implementation if no data provided
+  return generator.generateComprehensiveInsights();
 }

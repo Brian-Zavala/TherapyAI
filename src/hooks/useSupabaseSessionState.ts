@@ -90,9 +90,9 @@ export function useSupabaseSessionState({
           setState(prev => ({
             ...prev,
             session: updatedSession,
-            isActive: updatedSession.status === 'active' || updatedSession.status === 'scheduled',
+            isActive: updatedSession.status === 'ACTIVE' || updatedSession.status === 'SCHEDULED',
             // Only update isPaused if session is active
-            isPaused: updatedSession.status === 'active' ? (updatedSession.isPaused || false) : false,
+            isPaused: updatedSession.status === 'ACTIVE' ? (updatedSession.isPaused || false) : false,
           }))
           onSessionUpdateRef.current?.(updatedSession)
         }
@@ -117,11 +117,11 @@ export function useSupabaseSessionState({
     
     setState(prev => ({
       ...prev,
-      isActive: payload.state === 'active',
-      isPaused: payload.state === 'paused',
+      isActive: payload.state === 'ACTIVE',
+      isPaused: payload.state === 'PAUSED',
       session: {
         ...prev.session,
-        isPaused: payload.state === 'paused',
+        isPaused: payload.state === 'PAUSED',
         pausedAt: payload.pausedAt ? new Date(payload.pausedAt) : undefined,
         resumedAt: payload.resumedAt ? new Date(payload.resumedAt) : undefined,
         totalPausedTimeSeconds: payload.totalPausedTime,
@@ -132,7 +132,7 @@ export function useSupabaseSessionState({
 
   // Broadcast session state change
   const broadcastStateChange = useCallback(async (
-    state: 'active' | 'paused' | 'ended',
+    state: 'ACTIVE' | 'PAUSED' | 'ENDED',
     metadata?: Partial<SessionStatePayload>
   ) => {
     if (!stateChannelRef.current || !sessionId) return
@@ -220,7 +220,7 @@ export function useSupabaseSessionState({
       }))
       
       // Broadcast state change
-      await broadcastStateChange('paused', {
+      await broadcastStateChange('PAUSED', {
         pausedAt: data.session.pausedAt,
         totalPausedTime: data.session.totalPausedTimeSeconds,
       })
@@ -295,7 +295,7 @@ export function useSupabaseSessionState({
       }
       
       // Broadcast state change
-      await broadcastStateChange('active', {
+      await broadcastStateChange('ACTIVE', {
         resumedAt: data.session.resumedAt,
         totalPausedTime: data.session.totalPausedTimeSeconds,
       })
@@ -339,7 +339,7 @@ export function useSupabaseSessionState({
       }
       
       // Broadcast state change
-      await broadcastStateChange('ended', {
+      await broadcastStateChange('ENDED', {
         endedAt: new Date().toISOString(),
       })
       
@@ -492,9 +492,9 @@ export function useSupabaseSessionState({
                   setState(prev => ({
                     ...prev,
                     session: sessionData,
-                    isActive: sessionData.status === 'active' || sessionData.status === 'scheduled',
+                    isActive: sessionData.status === 'ACTIVE' || sessionData.status === 'SCHEDULED',
                     // Only set isPaused from DB if session is active, otherwise default to false
-                    isPaused: sessionData.status === 'active' ? (sessionData.isPaused || false) : false,
+                    isPaused: sessionData.status === 'ACTIVE' ? (sessionData.isPaused || false) : false,
                   }))
                   // Mark this session as fetched
                   sessionFetchedRef.current = sessionId

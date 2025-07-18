@@ -240,13 +240,13 @@ export async function GET(request: Request) {
           // Update session status to missed
           await prisma.session.update({
             where: { id: session.id },
-            data: { status: 'missed' },
+            data: { status: 'MISSED' },
           });
 
           // Find available slots for rescheduling (next 7 days)
           const nextAvailableSlots = await prisma.session.findMany({
             where: {
-              status: 'available',
+              status: 'AVAILABLE',
               date: {
                 gte: new Date(),
                 lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days

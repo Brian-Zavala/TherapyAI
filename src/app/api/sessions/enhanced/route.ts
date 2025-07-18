@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
           duration: validatedData.duration,
           theme: `${validatedData.theme} (Recurring)`,
           notes: `${validatedData.notes || ''}\n\nPart of recurring series`,
-          status: 'scheduled' as const,
+          status: 'SCHEDULED' as const,
           assistantId: user.profile?.assistantId || null,
           sessionType: 'couple'
         }));

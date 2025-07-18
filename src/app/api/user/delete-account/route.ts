@@ -48,7 +48,7 @@ async function terminateActiveSessions(userId: string, req: NextRequest) {
     const activeSessions = await prisma.session.findMany({
       where: {
         userId,
-        status: { in: ['active', 'paused'] }
+        status: { in: ['ACTIVE', 'PAUSED'] }
       }
     })
 
@@ -59,7 +59,7 @@ async function terminateActiveSessions(userId: string, req: NextRequest) {
       await prisma.session.updateMany({
         where: {
           userId,
-          status: { in: ['active', 'paused'] }
+          status: { in: ['ACTIVE', 'PAUSED'] }
         },
         data: {
           status: 'TERMINATED',
@@ -381,7 +381,7 @@ export const POST = withAuth(
           profile: true,
           familyMembers: true,
           sessions: {
-            where: { status: { in: ['active', 'paused', 'scheduled'] } }
+            where: { status: { in: ['ACTIVE', 'PAUSED', 'SCHEDULED'] } }
           }
         }
       })
@@ -470,7 +470,7 @@ export const POST = withAuth(
         await tx.session.updateMany({
           where: { 
             userId: user.id,
-            status: { in: ['completed'] }
+            status: { in: ['COMPLETED'] }
           },
           data: {
             notes: "[USER DELETED]"
@@ -628,7 +628,7 @@ export const GET = withAuth(
       include: {
         sessions: {
           where: { 
-            status: { in: ['active', 'paused', 'scheduled'] },
+            status: { in: ['ACTIVE', 'PAUSED', 'SCHEDULED'] },
             date: { gte: new Date() }
           }
         },
@@ -640,8 +640,8 @@ export const GET = withAuth(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const activeSessions = user.sessions.filter(s => ['active', 'paused'].includes(s.status)).length
-    const scheduledSessions = user.sessions.filter(s => s.status === 'scheduled').length
+    const activeSessions = user.sessions.filter(s => ['ACTIVE', 'PAUSED'].includes(s.status)).length
+    const scheduledSessions = user.sessions.filter(s => s.status === 'SCHEDULED').length
     const familyImpact = await analyzeFamilyTherapyImpact(user.id)
 
     // Generate a signed deletion confirmation token

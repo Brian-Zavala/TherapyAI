@@ -93,7 +93,7 @@ export async function POST(
     }
     
     // Prevent double completion
-    if (therapySession.status === 'completed') {
+    if (therapySession.status === 'COMPLETED') {
       return NextResponse.json({ 
         error: 'Session already completed',
         sessionId: therapySession.id 

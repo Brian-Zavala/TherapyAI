@@ -155,7 +155,7 @@ async function calculateCompletionRate(userId: string) {
     prisma.session.count({
       where: {
         userId,
-        status: { in: ['completed', 'cancelled', 'no-show'] },
+        status: { in: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
       },
     }),
   ])

@@ -88,14 +88,55 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     }
     
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount)
+    
+    // Get frequency data
     analyserRef.current.getByteFrequencyData(dataArray)
     
-    // Calculate average audio level
-    const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
-    const normalizedLevel = normalizeAudioLevel(average)
+    // Focus on voice frequency range (85-255 Hz for fundamental frequency)
+    // This helps filter out non-voice sounds
+    const voiceRangeStart = Math.floor(85 * analyserRef.current.frequencyBinCount / (audioContextRef.current?.sampleRate || 48000) * 2)
+    const voiceRangeEnd = Math.floor(3000 * analyserRef.current.frequencyBinCount / (audioContextRef.current?.sampleRate || 48000) * 2)
     
-    setAudioLevel(normalizedLevel)
-    optionsRef.current.onAudioLevelChange?.(normalizedLevel)
+    let voiceSum = 0
+    let voiceCount = 0
+    for (let i = voiceRangeStart; i <= voiceRangeEnd && i < dataArray.length; i++) {
+      voiceSum += dataArray[i]
+      voiceCount++
+    }
+    const voiceAverage = voiceCount > 0 ? voiceSum / voiceCount : 0
+    
+    // Get time domain data for RMS calculation
+    const timeDomainArray = new Uint8Array(analyserRef.current.frequencyBinCount)
+    analyserRef.current.getByteTimeDomainData(timeDomainArray)
+    
+    // Calculate RMS for overall volume
+    let sum = 0
+    for (let i = 0; i < timeDomainArray.length; i++) {
+      const sample = (timeDomainArray[i] - 128) / 128
+      sum += sample * sample
+    }
+    const rms = Math.sqrt(sum / timeDomainArray.length)
+    const rmsLevel = rms * 100
+    
+    // Combine voice frequency average with RMS for better detection
+    const normalizedVoiceLevel = normalizeAudioLevel(voiceAverage)
+    const finalLevel = Math.max(normalizedVoiceLevel, rmsLevel * 30)
+    
+    // More frequent logging for debugging
+    if (Math.random() < 0.1) { // 10% chance, roughly every ~170ms
+      console.log('🎤 Audio Analysis:', {
+        voiceAverage: voiceAverage.toFixed(2),
+        normalizedVoiceLevel: normalizedVoiceLevel.toFixed(2),
+        rmsLevel: rmsLevel.toFixed(2),
+        finalLevel: finalLevel.toFixed(2),
+        maxFreq: Math.max(...dataArray),
+        isActive: vapiState.isActive,
+        analyserConnected: !!analyserRef.current
+      })
+    }
+    
+    setAudioLevel(finalLevel)
+    optionsRef.current.onAudioLevelChange?.(finalLevel)
     
     // Continue animation loop
     animationFrameRef.current = requestAnimationFrame(analyzeAudio)
@@ -112,12 +153,23 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         animationFrameRef.current = null
       }
       
+      // Clean up existing audio resources
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop())
+        audioStreamRef.current = null
+      }
+      if (audioContextRef.current) {
+        await audioContextRef.current.close()
+        audioContextRef.current = null
+      }
+      
       // Get user media stream
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+          echoCancellation: false, // Disable to get raw audio
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 48000
         } 
       })
       audioStreamRef.current = stream
@@ -125,16 +177,43 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       // Create audio context and analyzer
       // @ts-expect-error - webkitAudioContext is a vendor-prefixed API
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      
+      // Resume audio context if suspended (required in some browsers)
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume()
+      }
+      
       analyserRef.current = audioContextRef.current.createAnalyser()
-      analyserRef.current.fftSize = 256
+      analyserRef.current.fftSize = 2048 // Increase for better frequency resolution
+      analyserRef.current.smoothingTimeConstant = 0.3 // Less smoothing for more responsive animation
       
       const source = audioContextRef.current.createMediaStreamSource(stream)
       source.connect(analyserRef.current)
       
+      // Verify audio track is not muted
+      const audioTrack = stream.getAudioTracks()[0]
+      if (audioTrack) {
+        audioTrack.enabled = true
+        console.log('📻 Audio track state:', {
+          enabled: audioTrack.enabled,
+          muted: audioTrack.muted,
+          label: audioTrack.label,
+          readyState: audioTrack.readyState,
+          settings: audioTrack.getSettings()
+        })
+      }
+      
+      console.log('✅ Audio analyzer setup complete:', {
+        audioContext: audioContextRef.current.state,
+        sampleRate: audioContextRef.current.sampleRate,
+        analyserFftSize: analyserRef.current.fftSize,
+        frequencyBinCount: analyserRef.current.frequencyBinCount,
+        streamActive: stream.active,
+        audioTracks: stream.getAudioTracks().length
+      })
+      
       // Start analyzing
       analyzeAudio()
-      
-      console.log('✅ Audio analyzer setup complete')
     } catch (error) {
       console.error('Error setting up audio analyzer:', error)
       setVapiState(prev => ({ 
@@ -294,6 +373,17 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         error: null 
       }))
       
+      // Check if VAPI provides access to audio stream or levels
+      console.log('🔍 Checking VAPI instance for audio access:', {
+        hasGetAudioStream: typeof (vapi as any).getAudioStream === 'function',
+        hasGetMediaStream: typeof (vapi as any).getMediaStream === 'function',
+        hasGetUserMedia: typeof (vapi as any).getUserMedia === 'function',
+        hasAudioContext: !!(vapi as any).audioContext,
+        hasAnalyser: !!(vapi as any).analyser,
+        vapiKeys: Object.keys(vapi || {}),
+        vapiPrototype: Object.getPrototypeOf(vapi) ? Object.getOwnPropertyNames(Object.getPrototypeOf(vapi)) : []
+      })
+      
       // Setup audio analyzer
       setupAudioAnalyzer()
       
@@ -415,6 +505,14 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
     
     // Message event
     vapi.on('message', (message: VapiMessage) => {
+      // Debug: Log all message types to find audio-related events
+      console.log('📨 VAPI Message:', {
+        type: (message as any).type,
+        hasVolume: 'volume' in (message as any),
+        hasAudioLevel: 'audioLevel' in (message as any),
+        keys: Object.keys(message || {})
+      })
+      
       // Check for function calls
       if (isFunctionCallMessage(message) && message.functionCall) {
         console.log('🔧 Function call:', message.functionCall.name)
@@ -424,9 +522,29 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         )
       }
       
+      // Check for volume level in messages (some VAPI implementations provide this)
+      if ((message as any).type === 'volume-level' && (message as any).volume !== undefined) {
+        const volumeLevel = (message as any).volume * 100
+        console.log('📊 VAPI Volume Level:', volumeLevel)
+        setAudioLevel(volumeLevel)
+        optionsRef.current.onAudioLevelChange?.(volumeLevel)
+      }
+      
       // Pass all messages to parent
       optionsRef.current.onMessage?.(message)
     })
+    
+    // Try to listen for volume-level events specifically
+    if (typeof vapi.on === 'function') {
+      vapi.on('volume-level', (data: any) => {
+        if (data && typeof data.volume === 'number') {
+          const volumeLevel = data.volume * 100
+          console.log('🎤 VAPI Volume Event:', volumeLevel)
+          setAudioLevel(volumeLevel)
+          optionsRef.current.onAudioLevelChange?.(volumeLevel)
+        }
+      })
+    }
     
   }, [setupAudioAnalyzer])
   

@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
         await tx.session.updateMany({
           where: {
             userId: session.user.id,
-            status: 'scheduled'
+            status: 'SCHEDULED'
           },
           data: {
             status: 'CANCELLED',
@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
       where: {
         userId: session.user.id,
         status: {
-          in: ['active', 'paused']
+          in: ['ACTIVE', 'PAUSED']
         }
       }
     });

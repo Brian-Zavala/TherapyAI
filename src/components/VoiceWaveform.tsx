@@ -135,63 +135,67 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
       const currentAudioLevel = audioLevelRef.current;
       let animationIntensity = 0;
       
-      // Multiple thresholds for smoother transitions
-      // Always have some base animation for visual feedback
-      if (currentAudioLevel <= 3) {
-        // Completely silent - minimal movement
-        animationIntensity = 0.1;
-      } else if (currentAudioLevel <= 10) {
-        // Very quiet - slight ripple
-        animationIntensity = 0.2;
-      } else if (currentAudioLevel <= 20) {
-        // Low voice - gentle wave
-        animationIntensity = 0.4;
-      } else if (currentAudioLevel <= 40) {
+      // Only animate when there's actual user audio input
+      if (currentAudioLevel <= 5) {
+        // Silent - no movement at all
+        animationIntensity = 0;
+      } else if (currentAudioLevel <= 15) {
+        // Quiet speech - slight ripple
+        animationIntensity = 0.3;
+      } else if (currentAudioLevel <= 30) {
         // Normal speech - moderate wave
-        animationIntensity = 0.7;
+        animationIntensity = 0.6;
+      } else if (currentAudioLevel <= 50) {
+        // Louder speech - strong wave
+        animationIntensity = 0.8;
       } else {
-        // Loud speech - full wave
+        // Very loud speech - full wave
         animationIntensity = 1.0;
       }
       
-      // Maximum amplitude is scaled by intensity
-      const baseAmplitude = height * 0.004;
-      const maxAmplitude = 40 * baseAmplitude;
+      // Base amplitude for wave height
+      const baseAmplitude = height * 0.3;
       
-      // Apply audio level and intensity scaling with minimum value
-      const minimumAmplitude = height * 0.02; // Always have some movement
-      const effectiveAmplitude = Math.max(minimumAmplitude, Math.min(currentAudioLevel * baseAmplitude, maxAmplitude) * animationIntensity);
+      // Calculate effective amplitude - NO minimum when silent
+      const effectiveAmplitude = animationIntensity > 0 
+        ? (currentAudioLevel / 100) * baseAmplitude * animationIntensity
+        : 0;
       
-      // Secondary wave effect that's always present but varies with intensity
-      // Ensure there's always some minimal movement even when silent
-      const baseMovement = height * 0.01; // Minimal wave even when silent
-      const secondaryAmplitude = baseMovement + (height * 0.003 * Math.max(0.05, animationIntensity / 5));
-      const secondarySpeed = 1 + animationIntensity;
+      // Secondary wave - only present when there's audio
+      const secondaryAmplitude = animationIntensity > 0 
+        ? height * 0.05 * animationIntensity
+        : 0;
+      const secondarySpeed = animationIntensity;
       
       // Draw the wave points with varied intensities
       for (let i = 0; i <= segments; i++) {
         const x = i * segmentWidth;
-        const position = i / segments;
-        
-        // Center weighting (stronger in middle of line, subtle at edges)
-        const centerWeighting = Math.sin(position * Math.PI);
-        
-        // Primary animation speed based on intensity
-        const speedFactor = 2 + (animationIntensity * 3);
-        
-        // Combine waves of different frequencies
         let y = centerY;
         
-        // Primary wave - always present with varying intensity
-        y += Math.sin(i * 0.2 + time * speedFactor) * effectiveAmplitude * centerWeighting;
-        
-        // Always-present secondary gentle wave
-        y += Math.sin(i * 0.1 + time * secondarySpeed) * secondaryAmplitude;
-        
-        // Third subtle micro-movement (very gentle)
-        if (animationIntensity > 0.3) {
-          y += Math.sin(i * 0.3 + time * 1.5) * effectiveAmplitude * 0.2 * centerWeighting;
+        // Only animate if there's audio input
+        if (animationIntensity > 0) {
+          const position = i / segments;
+          
+          // Center weighting (stronger in middle of line, subtle at edges)
+          const centerWeighting = Math.sin(position * Math.PI);
+          
+          // Primary animation speed based on intensity
+          const speedFactor = 2 + (animationIntensity * 3);
+          
+          // Primary wave
+          y += Math.sin(i * 0.2 + time * speedFactor) * effectiveAmplitude * centerWeighting;
+          
+          // Secondary wave for more natural movement
+          if (secondaryAmplitude > 0) {
+            y += Math.sin(i * 0.1 + time * secondarySpeed) * secondaryAmplitude;
+          }
+          
+          // Third wave for complexity when speaking louder
+          if (animationIntensity > 0.5) {
+            y += Math.sin(i * 0.3 + time * 1.5) * effectiveAmplitude * 0.2 * centerWeighting;
+          }
         }
+        // If no audio (animationIntensity = 0), y remains at centerY (flat line)
         
         // Add the point
         ctx.lineTo(x, y);

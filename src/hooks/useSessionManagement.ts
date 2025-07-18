@@ -114,7 +114,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         date: new Date().toISOString(),
         duration,
         theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-        status: 'active',
+        status: 'ACTIVE',
         familyMembers: familyMembers || [],
         therapyType,
         userName: userProfile?.name || 'Guest',
@@ -176,7 +176,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       }
       
       const activeSession = await response.json()
-      if (!activeSession || activeSession.status !== 'active') {
+      if (!activeSession || activeSession.status !== 'ACTIVE') {
         return null
       }
       

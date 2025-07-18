@@ -169,7 +169,7 @@ describe('Database Enhancements', () => {
         sessions.push({
           userId: testUser.id,
           assistantId: 'test-assistant',
-          status: i % 3 === 0 ? 'active' : 'completed',
+          status: i % 3 === 0 ? 'ACTIVE' : 'COMPLETED',
           date: new Date(Date.now() - i * 24 * 60 * 60 * 1000), // Spread over days
         })
       }

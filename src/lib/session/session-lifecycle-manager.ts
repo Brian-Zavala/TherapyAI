@@ -6,12 +6,12 @@ import { logger } from '@/lib/logger';
 import { AxiosError } from 'axios';
 
 export type SessionLifecycleState = 
-  | 'active'
-  | 'ending'
-  | 'completing'
-  | 'calculating_metrics'
-  | 'completed'
-  | 'failed';
+  | 'ACTIVE'
+  | 'ENDING'
+  | 'COMPLETING'
+  | 'CALCULATING_METRICS'
+  | 'COMPLETED'
+  | 'FAILED';
 
 interface SessionTransition {
   fromStates: SessionLifecycleState[];
@@ -132,10 +132,10 @@ export class SessionLifecycleManager {
       });
       
       // For certain transitions, mark as failed instead of throwing
-      if (toState === 'completing' || toState === 'calculating_metrics') {
+      if (toState === 'COMPLETING' || toState === 'CALCULATING_METRICS') {
         try {
-          this.sessionStates.set(sessionId, 'failed');
-          await this.updateDatabaseState(sessionId, 'failed');
+          this.sessionStates.set(sessionId, 'FAILED');
+          await this.updateDatabaseState(sessionId, 'FAILED');
         } catch (failError) {
           logger.error('Failed to mark session as failed', { sessionId, error: failError });
         }
@@ -151,27 +151,27 @@ export class SessionLifecycleManager {
   async completeSession(sessionId: string, userId: string): Promise<void> {
     const currentState = await this.getSessionState(sessionId);
 
-    if (currentState === 'completed') {
+    if (currentState === 'COMPLETED') {
       logger.info('Session already completed', { sessionId });
       return;
     }
 
     // Transition through states
-    await this.transitionSession(sessionId, 'ending');
-    await this.transitionSession(sessionId, 'completing');
+    await this.transitionSession(sessionId, 'ENDING');
+    await this.transitionSession(sessionId, 'COMPLETING');
     
     try {
       // Ensure VAPI call is terminated
       await this.terminateVapiCall(sessionId);
       
       // Calculate metrics (deduplication handled internally)
-      await this.transitionSession(sessionId, 'calculating_metrics', async () => {
+      await this.transitionSession(sessionId, 'CALCULATING_METRICS', async () => {
         const { calculateMetrics } = await import('@/lib/metrics/metrics-deduplication');
         await calculateMetrics(sessionId, userId);
       });
 
       // Final transition to completed
-      await this.transitionSession(sessionId, 'completed');
+      await this.transitionSession(sessionId, 'COMPLETED');
       
     } catch (error) {
       logger.error('Error completing session', {
@@ -181,7 +181,7 @@ export class SessionLifecycleManager {
       
       // Try to mark as failed, but don't throw if this fails
       try {
-        await this.transitionSession(sessionId, 'failed');
+        await this.transitionSession(sessionId, 'FAILED');
       } catch (failError) {
         logger.error('Failed to transition to failed state', { sessionId, error: failError });
       }
@@ -197,7 +197,7 @@ export class SessionLifecycleManager {
     try {
       const state = await this.getSessionState(sessionId);
       // Only process webhooks for active sessions
-      return state === 'active';
+      return state === 'ACTIVE';
     } catch (error) {
       logger.error('Error checking webhook processability', { sessionId, error });
       return false;
@@ -243,12 +243,12 @@ export class SessionLifecycleManager {
     to: SessionLifecycleState
   ): boolean {
     const validTransitions: Record<SessionLifecycleState, SessionLifecycleState[]> = {
-      active: ['ending', 'failed'],
-      ending: ['completing', 'failed'],
-      completing: ['calculating_metrics', 'failed'],
-      calculating_metrics: ['completed', 'failed'],
-      completed: [], // Terminal state
-      failed: [] // Terminal state
+      ACTIVE: ['ENDING', 'FAILED'],
+      ENDING: ['COMPLETING', 'FAILED'],
+      COMPLETING: ['CALCULATING_METRICS', 'FAILED'],
+      CALCULATING_METRICS: ['COMPLETED', 'FAILED'],
+      COMPLETED: [], // Terminal state
+      FAILED: [] // Terminal state
     };
 
     return validTransitions[from]?.includes(to) ?? false;
@@ -257,14 +257,14 @@ export class SessionLifecycleManager {
   private mapStatusToState(status: SessionStatus): SessionLifecycleState {
     switch (status) {
       case SessionStatus.ACTIVE:
-        return 'active';
+        return 'ACTIVE';
       case SessionStatus.COMPLETED:
-        return 'completed';
+        return 'COMPLETED';
       case SessionStatus.ABANDONED:
       case SessionStatus.TECHNICAL_ISSUE:
-        return 'failed';
+        return 'FAILED';
       default:
-        return 'active';
+        return 'ACTIVE';
     }
   }
 
@@ -278,21 +278,21 @@ export class SessionLifecycleManager {
       where: { id: sessionId },
       data: { 
         status,
-        ...(state === 'completed' && { completedAt: new Date() })
+        ...(state === 'COMPLETED' && { completedAt: new Date() })
       }
     });
   }
 
   private mapStateToStatus(state: SessionLifecycleState): SessionStatus {
     switch (state) {
-      case 'active':
-      case 'ending':
-      case 'completing':
-      case 'calculating_metrics':
+      case 'ACTIVE':
+      case 'ENDING':
+      case 'COMPLETING':
+      case 'CALCULATING_METRICS':
         return SessionStatus.ACTIVE;
-      case 'completed':
+      case 'COMPLETED':
         return SessionStatus.COMPLETED;
-      case 'failed':
+      case 'FAILED':
         return SessionStatus.TECHNICAL_ISSUE;
       default:
         return SessionStatus.ACTIVE;
@@ -322,7 +322,7 @@ export class SessionLifecycleManager {
     const cutoffTime = Date.now() - maxAgeMs;
     
     for (const [sessionId, state] of this.sessionStates.entries()) {
-      if (state === 'completed' || state === 'failed') {
+      if (state === 'COMPLETED' || state === 'FAILED') {
         // In production, we'd track timestamps
         this.sessionStates.delete(sessionId);
       }

@@ -5,7 +5,7 @@ export interface Session {
     duration: number; // in minutes
     theme: string;
     notes?: string;
-    status: 'scheduled' | 'completed' | 'cancelled';
+    status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'ACTIVE' | 'PAUSED' | 'TERMINATED' | 'ABANDONED' | 'TECHNICAL_ISSUE';
   }
   
   export interface CommunicationMetric {

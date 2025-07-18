@@ -85,20 +85,20 @@ export async function POST(
     // Check if session is already being completed
     const currentState = await lifecycleManager.getSessionState(sessionId);
     
-    if (currentState !== 'active') {
+    if (currentState !== 'ACTIVE') {
       logger.warn('Session completion attempted on non-active session', {
         sessionId,
         currentState
       });
       
-      if (currentState === 'completed') {
+      if (currentState === 'COMPLETED') {
         return NextResponse.json({ 
           success: true,
           message: 'Session already completed'
         });
       }
       
-      if (currentState === 'ending' || currentState === 'completing' || currentState === 'calculating_metrics') {
+      if (currentState === 'ENDING' || currentState === 'COMPLETING' || currentState === 'CALCULATING_METRICS') {
         // Session is already being processed, wait for completion
         logger.info('Session completion already in progress, waiting...', { sessionId, currentState });
         
@@ -110,14 +110,14 @@ export async function POST(
           await new Promise(resolve => setTimeout(resolve, 500));
           const newState = await lifecycleManager.getSessionState(sessionId);
           
-          if (newState === 'completed') {
+          if (newState === 'COMPLETED') {
             return NextResponse.json({ 
               success: true,
               message: 'Session completed successfully'
             });
           }
           
-          if (newState === 'failed') {
+          if (newState === 'FAILED') {
             return NextResponse.json({ 
               error: 'Session completion failed',
               currentState: newState

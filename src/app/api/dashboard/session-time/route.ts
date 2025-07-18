@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         COUNT(*) as sessionCount
       FROM "Session"
       WHERE "userId" = ${user.id}
-        AND "status" = 'completed'
+        AND "status" = 'COMPLETED'
         AND "theme" = ${themeValue}
         AND "date" >= NOW() - INTERVAL '6 months'
       GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")

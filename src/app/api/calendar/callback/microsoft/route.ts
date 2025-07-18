@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         where: {
           userId: session.user.id,
           date: { gte: new Date() },
-          status: { in: ['scheduled', 'active'] }
+          status: { in: ['SCHEDULED', 'ACTIVE'] }
         }
       });
 

@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    if (therapySession.status !== 'active') {
+    if (therapySession.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Session is not active' }, { status: 400 })
     }
 
