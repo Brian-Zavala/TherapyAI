@@ -168,7 +168,7 @@ export class NotificationWorker {
       // Find sessions that need reminders
       const upcomingSessions = await prisma.session.findMany({
         where: {
-          status: 'scheduled',
+          status: 'SCHEDULED',
           date: {
             gte: new Date(),
             lte: new Date(Date.now() + 48 * 60 * 60 * 1000) // Next 48 hours

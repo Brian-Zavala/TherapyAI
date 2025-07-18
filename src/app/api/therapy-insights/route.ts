@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const recentSessions = await prisma.session.findMany({
       where: {
         userId: session.user.id,
-        status: 'completed',
+        status: 'COMPLETED',
       },
       orderBy: {
         startTime: 'desc',

@@ -16,7 +16,7 @@ export async function GET() {
     const upcomingSessions = await prisma.session.findMany({
       where: {
         userId: session.user.id,
-        status: 'scheduled',
+        status: 'SCHEDULED',
         date: {
           gte: new Date() // Sessions from today onwards
         }

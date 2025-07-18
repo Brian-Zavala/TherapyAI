@@ -102,7 +102,7 @@ describe('useSessionManagement', () => {
     it('should find and return active session', async () => {
       const activeSession = {
         id: 'session-123',
-        status: 'active',
+        status: 'ACTIVE',
         startTime: new Date().toISOString(),
         duration: 60,
         conversationTimeSeconds: 300
@@ -126,7 +126,7 @@ describe('useSessionManagement', () => {
     it('should return null for expired session', async () => {
       const expiredSession = {
         id: 'session-123',
-        status: 'active',
+        status: 'ACTIVE',
         startTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
         duration: 60,
         conversationTimeSeconds: 3600 // 60 minutes

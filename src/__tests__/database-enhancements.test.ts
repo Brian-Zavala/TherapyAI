@@ -130,7 +130,7 @@ describe('Database Enhancements', () => {
           version: session1!.version,
         },
         data: {
-          status: 'completed',
+          status: 'COMPLETED',
           version: { increment: 1 },
         },
       })
@@ -143,7 +143,7 @@ describe('Database Enhancements', () => {
             version: session2!.version,
           },
           data: {
-            status: 'cancelled',
+            status: 'CANCELLED',
             version: { increment: 1 },
           },
         })
@@ -181,7 +181,7 @@ describe('Database Enhancements', () => {
       const activeSessions = await testPrisma.session.findMany({
         where: {
           userId: testUser.id,
-          status: 'active',
+          status: 'ACTIVE',
         },
         orderBy: { date: 'desc' },
       })
@@ -250,7 +250,7 @@ describe('Database Enhancements', () => {
             data: {
               userId: testUser.id,
               assistantId: 'test-assistant',
-              status: 'active',
+              status: 'ACTIVE',
               date: new Date(),
             },
           })

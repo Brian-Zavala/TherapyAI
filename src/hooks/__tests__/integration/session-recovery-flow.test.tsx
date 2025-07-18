@@ -141,7 +141,7 @@ describe('Session Recovery Flow Integration', () => {
       id: 'recovered-session-123',
       userId: 'test-user-123',
       therapyType: 'family',
-      status: 'active',
+      status: 'ACTIVE',
       startTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
       assistantId: 'family-assistant',
       pauseCount: 2,
@@ -205,7 +205,7 @@ describe('Session Recovery Flow Integration', () => {
       id: 'expired-session',
       userId: 'test-user-123',
       therapyType: 'couple',
-      status: 'active',
+      status: 'ACTIVE',
       startTime: new Date(Date.now() - 90 * 60 * 1000).toISOString(), // 90 minutes ago
       assistantId: 'couple-assistant'
     }
@@ -274,7 +274,7 @@ describe('Session Recovery Flow Integration', () => {
       id: 'minimal-session',
       userId: 'test-user-123',
       therapyType: 'individual',
-      status: 'active',
+      status: 'ACTIVE',
       startTime: new Date().toISOString()
     }
     
@@ -311,7 +311,7 @@ describe('Session Recovery Flow Integration', () => {
       id: 'timed-session',
       userId: 'test-user-123',
       therapyType: 'couple',
-      status: 'active',
+      status: 'ACTIVE',
       startTime: new Date(startTime).toISOString(),
       pauseCount: 1,
       totalPausedTime: 180, // 3 minutes
@@ -344,7 +344,7 @@ describe('Session Recovery Flow Integration', () => {
       id: 'concurrent-session',
       userId: 'test-user-123',
       therapyType: 'family',
-      status: 'active',
+      status: 'ACTIVE',
       startTime: new Date().toISOString()
     }
     

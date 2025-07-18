@@ -374,7 +374,7 @@ export async function findSessionsNeedingReconciliation(
   // Find completed sessions without reconciliation
   const sessions = await prisma.session.findMany({
     where: {
-      status: 'completed',
+      status: 'COMPLETED',
       metadata: {
         path: ['reconciliationCompleted'],
         not: true

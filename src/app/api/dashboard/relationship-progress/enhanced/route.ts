@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
       prisma.session.findMany({
         where: {
           userId: session.user.id,
-          status: 'completed',
+          status: 'COMPLETED',
           sessionType: query.therapyType === 'individual' ? 'individual' : query.therapyType,
           ...(startDate && {
             completedAt: {

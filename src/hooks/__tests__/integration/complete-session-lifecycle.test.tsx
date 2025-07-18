@@ -161,7 +161,7 @@ describe('Complete Session Lifecycle Integration', () => {
           id: 'session-123',
           userId: 'test-user-123',
           therapyType: 'couple',
-          status: 'active',
+          status: 'ACTIVE',
           startTime: new Date().toISOString()
         })
       })
@@ -262,7 +262,7 @@ describe('Complete Session Lifecycle Integration', () => {
       id: 'existing-session',
       userId: 'test-user-123',
       therapyType: 'individual',
-      status: 'active',
+      status: 'ACTIVE',
       startTime: new Date().toISOString()
     }
     
@@ -300,7 +300,7 @@ describe('Complete Session Lifecycle Integration', () => {
         id: 'session-123',
         userId: 'test-user-123',
         therapyType: 'couple',
-        status: 'active',
+        status: 'ACTIVE',
         startTime: new Date().toISOString()
       })
     })
@@ -328,7 +328,7 @@ describe('Complete Session Lifecycle Integration', () => {
         id: 'session-123',
         userId: 'test-user-123',
         therapyType: 'couple',
-        status: 'active',
+        status: 'ACTIVE',
         startTime: new Date().toISOString()
       })
     })

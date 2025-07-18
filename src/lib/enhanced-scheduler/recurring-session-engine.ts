@@ -106,7 +106,7 @@ export class RecurringSessionEngine {
         userId,
         pattern,
         template,
-        status: 'active',
+        status: 'ACTIVE',
         createdAt: new Date(),
         updatedAt: new Date(),
         totalSessions: 0,
@@ -623,7 +623,7 @@ export class RecurringSessionEngine {
         duration: series.template.duration,
         theme: series.template.theme,
         notes: `${series.template.notes || ''}\n\nRecurring series: ${series.id}`,
-        status: 'scheduled',
+        status: 'SCHEDULED',
         assistantId: series.template.assistantId,
         // Add series reference
         metadata: {
@@ -729,10 +729,10 @@ export class RecurringSessionEngine {
     // Cancel all future sessions belonging to this series
     await prisma.$executeRaw`
       UPDATE sessions 
-      SET status = 'cancelled', updated_at = NOW()
+      SET status = 'CANCELLED', updated_at = NOW()
       WHERE JSON_EXTRACT(metadata, '$.recurringSeriesId') = ${seriesId}
       AND date > ${fromDate}
-      AND status = 'scheduled'
+      AND status = 'SCHEDULED'
     `;
   }
 
@@ -783,7 +783,7 @@ export class RecurringSessionEngine {
     const results = await prisma.$queryRaw<[{ total: number; cancelled: number }]>`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+        SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled
       FROM sessions 
       WHERE JSON_EXTRACT(metadata, '$.recurringSeriesId') = ${seriesId}
     `;

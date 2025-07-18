@@ -1002,7 +1002,7 @@ export function TherapyButtonRefactored({
         date: new Date().toISOString(),
         duration,
         theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-        status: 'ACTIVE',
+        status: 'active',
         familyMembers: familyMembers || [],
         therapyType,
         userName: user?.name || 'Guest',
@@ -1297,7 +1297,7 @@ export function TherapyButtonRefactored({
               date: new Date().toISOString(),
               duration,
               theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-              status: 'ACTIVE',
+              status: 'active',
               familyMembers: familyMembersOverride || selectedFamilyMembers || [],
               therapyType,
               userName: user?.name || 'Guest',
@@ -1380,8 +1380,8 @@ export function TherapyButtonRefactored({
       // CRITICAL: Force hide phone UI immediately to prevent any visual glitches
       setForceHidePhoneUI(true)
       
-      // CRITICAL: Set loading state immediately to prevent UI flicker
-      setIsLoading(true)
+      // FIXED: Don't set loading state when ending session to avoid confusing "Preparing" message
+      // The loading state was designed for starting sessions, not ending them
       
       // Store sessionId before it gets cleared
       const currentSessionId = session.sessionId
@@ -1422,25 +1422,20 @@ export function TherapyButtonRefactored({
         console.log('🧹 Cleaned up metrics calculator for session:', currentSessionId)
       }
       
-      // CRITICAL: Small delay to ensure all async state updates have propagated
-      // This prevents the phone UI from briefly showing due to stale state
-      setTimeout(() => {
-        setIsLoading(false)
-        // Reset forceHidePhoneUI after session is fully ended
-        setForceHidePhoneUI(false)
-        // Ensure session-active class is removed
-        document.body.classList.remove('session-active')
-        console.log('✅ Session ended, UI reset to inactive state')
-        
-        // Dispatch event to notify UI components
-        window.dispatchEvent(new Event('sessionEnded'))
-      }, 100)
+      // FIXED: Immediately clear UI state since we're not using loading anymore
+      // Reset forceHidePhoneUI after session cleanup completes
+      setForceHidePhoneUI(false)
+      // Ensure session-active class is removed
+      document.body.classList.remove('session-active')
+      console.log('✅ Session ended, UI reset to inactive state')
+      
+      // Dispatch event to notify UI components
+      window.dispatchEvent(new Event('sessionEnded'))
       
     } catch (error) {
       console.error('[TherapyButton] Failed to end session:', error)
       setError(error instanceof Error ? error.message : 'Failed to end session')
-      // Still reset UI on error
-      setIsLoading(false)
+      // Still reset UI on error - no loading state to clear anymore
       setForceHidePhoneUI(false)
       setSessionActive(false)
     }
@@ -2051,7 +2046,7 @@ export function TherapyButtonRefactored({
                 </div>
                 
                 {/* Voice Waveform */}
-                <div className="w-full my-2 sm:my-3 relative" style={{ minHeight: '80px' }}>
+                <div className="w-full my-2 sm:my-3 relative">
                   <VoiceWaveform 
                     audioLevel={isMuted || sessionState.isPaused ? 0 : vapi.audioLevel} 
                     isTransitioning={isTransitioning}

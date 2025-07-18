@@ -128,7 +128,7 @@ export async function POST(
           version: therapySession.version // Optimistic lock
         },
         data: { 
-          status: 'completed',
+          status: 'COMPLETED',
           endTime: new Date(),
           conversationTimeSeconds: finalConversationTimeSeconds,
           duration: finalBillableMinutes,
@@ -255,7 +255,7 @@ export async function POST(
       const nextSession = await prisma.session.findFirst({
         where: {
           userId: therapySession.userId,
-          status: 'scheduled',
+          status: 'SCHEDULED',
           date: { gt: new Date() }
         },
         orderBy: { date: 'asc' }

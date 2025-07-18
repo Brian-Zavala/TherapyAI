@@ -161,7 +161,7 @@ async function processQueue() {
         await processJob(job)
         
         // Mark as completed
-        job.status = 'completed'
+        job.status = 'COMPLETED'
         await removeJob(job)
         console.log(`[JobQueue] Completed job ${job.id}`)
       } catch (error) {

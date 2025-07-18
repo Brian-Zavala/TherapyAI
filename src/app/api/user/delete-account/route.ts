@@ -62,7 +62,7 @@ async function terminateActiveSessions(userId: string, req: NextRequest) {
           status: { in: ['active', 'paused'] }
         },
         data: {
-          status: 'terminated',
+          status: 'TERMINATED',
           terminationReason: 'user_deletion',
           endTime: new Date(),
           notes: '[SESSION TERMINATED DUE TO ACCOUNT DELETION]'
@@ -77,7 +77,7 @@ async function terminateActiveSessions(userId: string, req: NextRequest) {
           'Session',
           session.id,
           { status: session.status },
-          { status: 'terminated', terminationReason: 'user_deletion' },
+          { status: 'TERMINATED', terminationReason: 'user_deletion' },
           'Account deletion - graceful session termination',
           req
         )
@@ -110,7 +110,7 @@ async function handleScheduledSessions(userId: string, req: NextRequest) {
     const scheduledSessions = await prisma.session.findMany({
       where: {
         userId,
-        status: 'scheduled',
+        status: 'SCHEDULED',
         date: { gte: new Date() }
       },
       include: {
@@ -132,11 +132,11 @@ async function handleScheduledSessions(userId: string, req: NextRequest) {
       await prisma.session.updateMany({
         where: {
           userId,
-          status: 'scheduled',
+          status: 'SCHEDULED',
           date: { gte: new Date() }
         },
         data: {
-          status: 'cancelled',
+          status: 'CANCELLED',
           terminationReason: 'user_deletion',
           notes: '[SESSION CANCELLED DUE TO ACCOUNT DELETION]'
         }
@@ -162,8 +162,8 @@ async function handleScheduledSessions(userId: string, req: NextRequest) {
           'SESSION_CANCELLED',
           'Session',
           session.id,
-          { status: 'scheduled' },
-          { status: 'cancelled', terminationReason: 'user_deletion' },
+          { status: 'SCHEDULED' },
+          { status: 'CANCELLED', terminationReason: 'user_deletion' },
           'Account deletion - scheduled session cancellation',
           req
         )
@@ -278,7 +278,7 @@ async function createDataExport(userId: string, req: NextRequest) {
     await prisma.dataExportRequest.update({
       where: { id: exportRequest.id },
       data: {
-        status: 'completed',
+        status: 'COMPLETED',
         processedAt: new Date(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
       }

@@ -24,7 +24,7 @@ export async function POST() {
     const sessionsToFix = await prisma.session.findMany({
       where: {
         userId: user.id,
-        status: 'completed',
+        status: 'COMPLETED',
         duration: 60
       },
       include: {

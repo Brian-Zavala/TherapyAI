@@ -255,7 +255,7 @@ export const DatabaseOperations = {
         const sessions = await prisma.session.findMany({
           where: {
             userId,
-            status: 'active',
+            status: 'ACTIVE',
             conversationTimeSeconds: { gt: 30 }
           },
           include: {
@@ -330,7 +330,7 @@ export const DatabaseOperations = {
               theme: validated.theme || 'AI Therapy Session',
               duration: validated.duration,
               sessionType: validated.sessionType,
-              status: 'scheduled',
+              status: 'SCHEDULED',
               date: new Date(),
               startTime: new Date()
             }
@@ -453,7 +453,7 @@ export const DatabaseOperations = {
           prisma.session.count({
             where: {
               userId,
-              status: 'completed',
+              status: 'COMPLETED',
               ...(dateFilter && { completedAt: dateFilter })
             }
           }),

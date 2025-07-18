@@ -94,7 +94,7 @@ async function calculateActiveStreak(userId: string) {
     return await prisma.session.findMany({
       where: {
         userId,
-        status: 'completed',
+        status: 'COMPLETED',
       },
       orderBy: { date: 'desc' },
       select: { date: true },
@@ -149,7 +149,7 @@ async function calculateCompletionRate(userId: string) {
     prisma.session.count({
       where: {
         userId,
-        status: 'completed',
+        status: 'COMPLETED',
       },
     }),
     prisma.session.count({
@@ -169,7 +169,7 @@ async function getSessionPreferences(userId: string) {
   const completedSessions = await prisma.session.findMany({
     where: {
       userId,
-      status: 'completed',
+      status: 'COMPLETED',
     },
     select: {
       date: true,
@@ -217,7 +217,7 @@ async function getThemeDistribution(userId: string) {
     by: ['theme'],
     where: {
       userId,
-      status: 'completed',
+      status: 'COMPLETED',
       theme: { not: null },
     },
     _count: {

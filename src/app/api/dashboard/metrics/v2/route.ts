@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
     const sessions = await prisma.session.findMany({
       where: {
         userId: user.id,
-        status: 'completed',
+        status: 'COMPLETED',
         theme: themeValue,
         ...dateFilter
       },

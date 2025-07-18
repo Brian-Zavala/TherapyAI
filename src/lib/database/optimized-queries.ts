@@ -205,7 +205,7 @@ export class OptimizedQueries {
     const where: Prisma.SessionWhereInput = {
       userId,
       isDeleted: false,
-      status: 'completed',
+      status: 'COMPLETED',
       ...(dateRange && {
         createdAt: {
           gte: dateRange.start,
@@ -241,7 +241,7 @@ export class OptimizedQueries {
         FROM "Session"
         WHERE 
           "userId" = ${userId}
-          AND status = 'completed'
+          AND status = 'COMPLETED'
           AND "isDeleted" = false
           ${dateRange ? Prisma.sql`AND created_at BETWEEN ${dateRange.start} AND ${dateRange.end}` : Prisma.empty}
         GROUP BY DATE(created_at)
@@ -258,7 +258,7 @@ export class OptimizedQueries {
         JOIN "Session" s ON s.id = tc."sessionId"
         WHERE 
           s."userId" = ${userId}
-          AND s.status = 'completed'
+          AND s.status = 'COMPLETED'
           ${dateRange ? Prisma.sql`AND s.created_at BETWEEN ${dateRange.start} AND ${dateRange.end}` : Prisma.empty}
         GROUP BY tc.speaker
         ORDER BY message_count DESC

@@ -144,7 +144,7 @@ export async function GET(req: NextRequest) {
     const activeSession = await prisma.session.findFirst({
       where: {
         userId: validatedQuery.userId,
-        status: 'active',
+        status: 'ACTIVE',
       },
       orderBy: { startTime: 'desc' },
       select: {

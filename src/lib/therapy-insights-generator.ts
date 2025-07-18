@@ -596,7 +596,7 @@ export class TherapyInsightsGenerator {
 
   private async getCommunicationMetrics() {
     const sessions = await prisma.therapySession.findMany({
-      where: { userId: this.userId, status: 'completed' },
+      where: { userId: this.userId, status: 'COMPLETED' },
       select: { id: true },
       orderBy: { startTime: 'desc' },
       take: 10
@@ -635,7 +635,7 @@ export class TherapyInsightsGenerator {
   private async getTranscriptAnalysis() {
     // Get aggregated transcript analysis
     const recentSessions = await prisma.therapySession.findMany({
-      where: { userId: this.userId, status: 'completed' },
+      where: { userId: this.userId, status: 'COMPLETED' },
       select: { id: true },
       orderBy: { startTime: 'desc' },
       take: 5

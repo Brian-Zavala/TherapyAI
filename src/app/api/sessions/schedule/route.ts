@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         date: new Date(sessionDate),  // Use 'date' field in Session model
         duration,
         notes,
-        status: 'scheduled',
+        status: 'SCHEDULED',
         theme: theme || 'Therapy Session',  // Use theme field from request or default
       },
     });

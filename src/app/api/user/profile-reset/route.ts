@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
             status: 'scheduled'
           },
           data: {
-            status: 'cancelled',
+            status: 'CANCELLED',
             terminationReason: 'profile_reset'
           }
         });

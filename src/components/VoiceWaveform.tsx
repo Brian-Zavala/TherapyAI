@@ -13,6 +13,13 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
   const animationRef = useRef<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const timeRef = useRef(0);
+  const audioLevelRef = useRef(audioLevel);
+  
+  // Update audioLevel ref
+  useEffect(() => {
+    audioLevelRef.current = audioLevel;
+    console.log('🎤 VoiceWaveform audioLevel updated:', audioLevel);
+  }, [audioLevel]);
   
   // Update speaking state based on audio level
   useEffect(() => {
@@ -64,16 +71,35 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, []);
+  }, [isTransitioning]); // Add isTransitioning to deps
   
   // Simple animation loop
   useEffect(() => {
+    let isAnimating = true;
+    let frameCount = 0;
+    
     const render = () => {
+      if (!isAnimating) return;
+      
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        console.warn('🎨 VoiceWaveform: Canvas not ready yet');
+        animationRef.current = requestAnimationFrame(render);
+        return;
+      }
       
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        console.warn('🎨 VoiceWaveform: Context not ready yet');
+        animationRef.current = requestAnimationFrame(render);
+        return;
+      }
+      
+      // Log every 60 frames (approximately once per second)
+      frameCount++;
+      if (frameCount % 60 === 0) {
+        console.log('🎨 VoiceWaveform animation running, audioLevel:', audioLevelRef.current);
+      }
       
       timeRef.current += 16;
       const time = timeRef.current * 0.001;
@@ -105,20 +131,22 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
       // Start at left edge
       ctx.moveTo(0, centerY);
       
-      // Determine animation state based on audio level
+      // Determine animation state based on audio level (use ref value)
+      const currentAudioLevel = audioLevelRef.current;
       let animationIntensity = 0;
       
       // Multiple thresholds for smoother transitions
-      if (audioLevel <= 3) {
-        // Completely silent - flat line with minimal movement
-        animationIntensity = 0;
-      } else if (audioLevel <= 10) {
+      // Always have some base animation for visual feedback
+      if (currentAudioLevel <= 3) {
+        // Completely silent - minimal movement
+        animationIntensity = 0.1;
+      } else if (currentAudioLevel <= 10) {
         // Very quiet - slight ripple
         animationIntensity = 0.2;
-      } else if (audioLevel <= 20) {
+      } else if (currentAudioLevel <= 20) {
         // Low voice - gentle wave
         animationIntensity = 0.4;
-      } else if (audioLevel <= 40) {
+      } else if (currentAudioLevel <= 40) {
         // Normal speech - moderate wave
         animationIntensity = 0.7;
       } else {
@@ -130,11 +158,14 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
       const baseAmplitude = height * 0.004;
       const maxAmplitude = 40 * baseAmplitude;
       
-      // Apply audio level and intensity scaling
-      const effectiveAmplitude = Math.min(audioLevel * baseAmplitude, maxAmplitude) * animationIntensity;
+      // Apply audio level and intensity scaling with minimum value
+      const minimumAmplitude = height * 0.02; // Always have some movement
+      const effectiveAmplitude = Math.max(minimumAmplitude, Math.min(currentAudioLevel * baseAmplitude, maxAmplitude) * animationIntensity);
       
       // Secondary wave effect that's always present but varies with intensity
-      const secondaryAmplitude = height * 0.003 * Math.max(0.05, animationIntensity / 5);
+      // Ensure there's always some minimal movement even when silent
+      const baseMovement = height * 0.01; // Minimal wave even when silent
+      const secondaryAmplitude = baseMovement + (height * 0.003 * Math.max(0.05, animationIntensity / 5));
       const secondarySpeed = 1 + animationIntensity;
       
       // Draw the wave points with varied intensities
@@ -151,12 +182,10 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
         // Combine waves of different frequencies
         let y = centerY;
         
-        // Primary wave - speech reactive
-        if (animationIntensity > 0) {
-          y += Math.sin(i * 0.2 + time * speedFactor) * effectiveAmplitude * centerWeighting;
-        }
+        // Primary wave - always present with varying intensity
+        y += Math.sin(i * 0.2 + time * speedFactor) * effectiveAmplitude * centerWeighting;
         
-        // Always-present secondary gentle wave (even at low levels)
+        // Always-present secondary gentle wave
         y += Math.sin(i * 0.1 + time * secondarySpeed) * secondaryAmplitude;
         
         // Third subtle micro-movement (very gentle)
@@ -174,7 +203,7 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
       // Add glow effect that scales with intensity
       if (animationIntensity > 0.1) {
         ctx.save();
-        ctx.filter = `blur(${Math.min(audioLevel / 60, 2) * animationIntensity}px)`;
+        ctx.filter = `blur(${Math.min(currentAudioLevel / 60, 2) * animationIntensity}px)`;
         ctx.globalAlpha = 0.3 * animationIntensity;
         ctx.stroke();
         ctx.restore();
@@ -183,14 +212,17 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
       animationRef.current = requestAnimationFrame(render);
     };
     
+    // Start the animation loop
     animationRef.current = requestAnimationFrame(render);
     
     return () => {
+      isAnimating = false;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
     };
-  }, [audioLevel]);
+  }, []); // Remove audioLevel dependency to prevent restart on every change
   
   return (
     <div className="w-full py-2 px-0">

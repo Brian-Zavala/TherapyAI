@@ -199,7 +199,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         date: new Date().toISOString(),
         duration,
         theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-        status: 'ACTIVE',
+        status: 'active',
         familyMembers: familyMembers || [],
         therapyType,
         userName: userProfile?.name || 'Guest',

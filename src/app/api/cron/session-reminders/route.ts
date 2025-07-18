@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     // Find sessions happening in next 24 hours without reminders
     const upcomingSessions24h = await prisma.session.findMany({
       where: {
-        status: 'scheduled',
+        status: 'SCHEDULED',
         OR: [
           { emailReminderSent: false },
           { smsReminderSent: false }
@@ -74,7 +74,7 @@ export async function GET(request: Request) {
     // Find sessions happening in next 1 hour without 1-hour reminder
     const upcomingSessions1h = await prisma.session.findMany({
       where: {
-        status: 'scheduled',
+        status: 'SCHEDULED',
         oneHourReminderSent: false,
         date: {
           gt: new Date(),
@@ -223,7 +223,7 @@ export async function GET(request: Request) {
     // Handle missed sessions (past scheduled time without completion)
     const missedSessionsToUpdate = await prisma.session.findMany({
       where: {
-        status: 'scheduled',
+        status: 'SCHEDULED',
         date: {
           lt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         },

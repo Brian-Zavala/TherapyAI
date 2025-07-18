@@ -56,7 +56,7 @@ export async function POST(
       where: { id: sessionId },
       data: {
         date: sessionDate,
-        status: 'scheduled',
+        status: 'SCHEDULED',
         emailReminderSent: false,
         smsReminderSent: false,
         oneHourReminderSent: false

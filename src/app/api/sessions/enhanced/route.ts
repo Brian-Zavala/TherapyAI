@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
           duration: validatedData.duration,
           theme: validatedData.theme,
           notes: validatedData.notes || '',
-          status: 'scheduled',
+          status: 'SCHEDULED',
           assistantId: user.profile?.assistantId || null,
           sessionType: 'couple'
         }
