@@ -1931,6 +1931,30 @@ export const getPersonalizedAssistantConfig = (
           content: systemPromptContent,
         },
       ],
+      // Function calling for user-initiated session ending
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "end_therapy_session",
+            description: "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
+            parameters: {
+              type: "object",
+              properties: {
+                reason: {
+                  type: "string",
+                  description: "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
+                },
+                goodbye_message: {
+                  type: "string",
+                  description: "Final goodbye message to give before ending",
+                },
+              },
+              required: ["reason"],
+            },
+          },
+        },
+      ],
     },
     voice: baseConfig.voice,
     transcriber: baseConfig.transcriber,
@@ -1958,29 +1982,7 @@ export const getPersonalizedAssistantConfig = (
     variableValues: variableValues,
     
     // Function calling for user-initiated session ending
-    functions: [
-      {
-        type: "function",
-        function: {
-          name: "end_therapy_session",
-          description: "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
-          parameters: {
-            type: "object",
-            properties: {
-              reason: {
-                type: "string",
-                description: "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
-              },
-              goodbye_message: {
-                type: "string",
-                description: "Final goodbye message to give before ending",
-              },
-            },
-            required: ["reason"],
-          },
-        },
-      },
-    ],
+    // NOTE: functions field is moved to model.tools in the API route for inline config
     
     // Metadata for debugging and client use
     metadata: {

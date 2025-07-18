@@ -4,9 +4,10 @@
  */
 
 import { Resend } from 'resend';
-import { sendSMS } from '@/lib/sms-service';
+import { sendSMS, formatPhoneNumber } from '@/lib/sms-service';
 import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
+import { Redis } from '@upstash/redis';
 
 // Environment setup
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -48,14 +49,24 @@ export const sendWelcomeSMS = async (user: WelcomeUser): Promise<{ success: bool
     const displayName = user.name || 'Friend';
     const message = WELCOME_TEMPLATES.SMS(displayName);
 
+    // Format phone number to E.164 format
+    let formattedPhone: string;
+    try {
+      formattedPhone = formatPhoneNumber(user.phone, 'US'); // Default to US, could be made configurable
+    } catch (formatError) {
+      console.error(`❌ Failed to format phone number ${user.phone}:`, formatError);
+      return { success: false, error: 'Invalid phone number format' };
+    }
+
     // Send SMS with high priority
-    console.log(`📱 Attempting to send welcome SMS to ${user.phone}: "${message}"`);
+    console.log(`📱 Attempting to send welcome SMS to ${formattedPhone} (original: ${user.phone}): "${message}"`);
     
     const result = await sendSMS({
-      to: user.phone,
+      to: formattedPhone,
       body: message,
       userId: user.id,
-      priority: 'high'
+      priority: 'high',
+      validateOnly: false
     });
 
     console.log(`📱 SMS send result:`, result);
@@ -63,7 +74,7 @@ export const sendWelcomeSMS = async (user: WelcomeUser): Promise<{ success: bool
     if (result.success) {
       // Log welcome message sent
       await logWelcomeMessage(user.id, 'sms', result.messageId);
-      console.log(`✅ Welcome SMS sent to ${user.phone}`);
+      console.log(`✅ Welcome SMS sent to ${formattedPhone}`);
     } else {
       console.error(`❌ SMS send failed:`, result.error);
     }
@@ -80,6 +91,7 @@ export const sendWelcomeSMS = async (user: WelcomeUser): Promise<{ success: bool
 
 // Email Welcome Message Service  
 export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: boolean; error?: string }> => {
+  
   try {
     // Check if Resend API key is configured
     if (!process.env.RESEND_API_KEY) {
@@ -126,8 +138,13 @@ export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: bo
       console.log(`✅ Welcome email sent to ${user.email}`);
       return { success: true };
     } else {
-      console.error(`❌ Email send failed - no response ID. Response:`, response);
-      return { success: false, error: 'Failed to send email - no response ID' };
+      // Extract more specific error message
+      let errorMessage = 'Failed to send email - no response ID';
+      if (response.error) {
+        errorMessage = response.error.message || response.error.name || errorMessage;
+      }
+      console.error(`❌ Email send failed:`, errorMessage, response);
+      return { success: false, error: errorMessage };
     }
     
   } catch (error) {
@@ -259,15 +276,91 @@ const generateWelcomeEmailHTML = (user: WelcomeUser): string => {
 
 // Main welcome message orchestrator
 export const sendWelcomeMessages = async (user: WelcomeUser): Promise<{
-  sms: { success: boolean; error?: string };
-  email: { success: boolean; error?: string };
+  sms: { success: boolean; error: string };
+  email: { success: boolean; error: string };
 }> => {
-  const results = {
+  console.log(`🚀 [Welcome Messages] Starting welcome message send for user ${user.id} (${user.email})`);
+  
+  // Initialize Redis for deduplication
+  let redis: Redis | null = null;
+  try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to initialize Redis:', error);
+  }
+  
+  // DEDUPLICATION CHECK - Prevent duplicate welcome messages
+  if (redis) {
+    const dedupKey = `welcome_sent:${user.id}`;
+    
+    try {
+      // Check if welcome messages were already sent in Redis
+      const alreadySent = await redis.get(dedupKey);
+      if (alreadySent) {
+        console.log(`✅ [Redis Dedup] Welcome messages already sent for user ${user.id} (found in Redis cache)`);
+        return {
+          sms: { success: false, error: 'Already sent (cached)' },
+          email: { success: false, error: 'Already sent (cached)' }
+        };
+      }
+      
+      // Try to acquire lock using SETNX pattern
+      const lockAcquired = await redis.set(dedupKey, '1', {
+        nx: true, // Only set if not exists
+        ex: 86400 * 7 // 7 days TTL
+      });
+      
+      if (!lockAcquired) {
+        console.log(`🔒 [Redis Dedup] Another process is sending welcome messages for user ${user.id}`);
+        return {
+          sms: { success: false, error: 'In progress (locked)' },
+          email: { success: false, error: 'In progress (locked)' }
+        };
+      }
+      
+      console.log(`🔓 [Redis Dedup] Lock acquired for user ${user.id}, proceeding with send`);
+    } catch (redisError) {
+      console.error('Redis deduplication error:', redisError);
+      // Continue without Redis deduplication if it fails
+    }
+  }
+  
+  console.log(`[Welcome Messages] User preferences:`, {
+    notificationPrefs: user.notificationPrefs,
+    phone: user.phone ? '***' + user.phone.slice(-4) : 'none',
+    smsConsent: user.smsConsent
+  });
+  
+  const results: {
+    sms: { success: boolean; error: string };
+    email: { success: boolean; error: string };
+  } = {
     sms: { success: false, error: 'Not attempted' },
     email: { success: false, error: 'Not attempted' }
   };
 
   try {
+    // Check if welcome messages were already sent
+    const existingUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { welcomeMessageSent: true, welcomeMessageSentAt: true }
+    });
+    
+    if (existingUser?.welcomeMessageSent) {
+      console.log(`⚠️ [Welcome Messages] User ${user.id} already received welcome messages at ${existingUser.welcomeMessageSentAt}`);
+      return {
+        sms: { success: false, error: 'Already sent' },
+        email: { success: false, error: 'Already sent' }
+      };
+    }
+    
+    console.log(`[Welcome Messages] No previous welcome messages found, proceeding to send...`);
+    
     // Send messages in parallel for better performance
     const [smsResult, emailResult] = await Promise.allSettled([
       sendWelcomeSMS(user),
@@ -275,13 +368,19 @@ export const sendWelcomeMessages = async (user: WelcomeUser): Promise<{
     ]);
 
     if (smsResult.status === 'fulfilled') {
-      results.sms = smsResult.value;
+      results.sms = { 
+        success: smsResult.value.success, 
+        error: smsResult.value.error || (smsResult.value.success ? '' : 'Unknown error')
+      };
     } else {
       results.sms = { success: false, error: smsResult.reason?.message || 'SMS sending failed' };
     }
 
     if (emailResult.status === 'fulfilled') {
-      results.email = emailResult.value;
+      results.email = { 
+        success: emailResult.value.success, 
+        error: emailResult.value.error || (emailResult.value.success ? '' : 'Unknown error')
+      };
     } else {
       results.email = { success: false, error: emailResult.reason?.message || 'Email sending failed' };
     }
@@ -289,10 +388,74 @@ export const sendWelcomeMessages = async (user: WelcomeUser): Promise<{
     // Log overall welcome completion
     const successCount = (results.sms.success ? 1 : 0) + (results.email.success ? 1 : 0);
     if (successCount > 0) {
-      await logWelcomeCompletion(user.id, successCount);
-      console.log(`🎉 Welcome messages sent to ${user.name || user.email}: ${successCount} successful`);
+      try {
+        await logWelcomeCompletion(user.id, successCount);
+        console.log(`🎉 Welcome messages sent to ${user.name || user.email}: ${successCount} successful`);
+      } catch (dbError) {
+        // If we successfully sent messages but failed to update the database,
+        // we should still return success to prevent infinite retries
+        console.error(`⚠️ Messages sent successfully but failed to update database:`, dbError);
+        // Return partial success - messages were sent even if DB update failed
+        return results;
+      }
     }
 
+    // If at least one message was sent successfully, consider the job successful
+    // This prevents retries when email succeeds but SMS fails (or vice versa)
+    if (successCount > 0) {
+      // The logWelcomeCompletion call above already updates the database
+      // Just return the results here
+      return results;
+    }
+    
+    // Check for permanent failures that shouldn't trigger retries
+    const isPermanentEmailFailure = results.email.error && (
+      results.email.error.includes('rate_limit_exceeded') ||
+      results.email.error.includes('daily_quota_exceeded') ||
+      results.email.error.includes('Too many requests') ||
+      results.email.error.includes('daily email sending quota')
+    );
+    
+    const isPermanentSMSFailure = results.sms.error && (
+      results.sms.error.includes('Invalid phone number') ||
+      results.sms.error.includes('opted out') ||
+      results.sms.error.includes('block list')
+    );
+    
+    // Only throw error if both failed AND they're not permanent failures
+    if (successCount === 0 && 
+        results.email.error !== 'Already sent' && 
+        results.sms.error !== 'Already sent' &&
+        !isPermanentEmailFailure && 
+        !isPermanentSMSFailure) {
+      // Remove Redis key to allow retry since both failed
+      if (redis) {
+        try {
+          const dedupKey = `welcome_sent:${user.id}`;
+          await redis.del(dedupKey);
+          console.log(`🗑️ [Redis Dedup] Removed dedup key for retry after total failure`);
+        } catch (redisError) {
+          console.error('Failed to remove Redis dedup key:', redisError);
+        }
+      }
+      throw new Error(`Failed to send any welcome messages: Email: ${results.email.error}, SMS: ${results.sms.error}`);
+    }
+    
+    // Log permanent failures without throwing (prevents retries)
+    if (isPermanentEmailFailure || isPermanentSMSFailure) {
+      console.log(`⚠️ Permanent failure detected - not retrying:`, {
+        email: isPermanentEmailFailure ? results.email.error : 'OK',
+        sms: isPermanentSMSFailure ? results.sms.error : 'OK'
+      });
+    }
+    
+    // Log final results
+    console.log(`[Welcome Messages] Final results for user ${user.id}:`, {
+      email: results.email.success ? 'sent' : results.email.error,
+      sms: results.sms.success ? 'sent' : results.sms.error,
+      welcomeMessageSent: existingUser?.welcomeMessageSent || (successCount > 0)
+    });
+    
     return results;
     
   } catch (error) {
@@ -302,6 +465,30 @@ export const sendWelcomeMessages = async (user: WelcomeUser): Promise<{
       email: { success: false, error: 'Service error' }
     };
   }
+};
+
+// Helper function to generate email text version
+const generateWelcomeEmailText = (user: WelcomeUser): string => {
+  const displayName = user.name || 'Friend';
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  
+  return `${displayName}, what you did today took real courage.
+
+Seeking support for your relationships isn't just brave—it's one of the most loving things you can do.
+
+You're not broken; you're growing. You're not starting from zero; you're building on the love that's already there.
+
+TherapyAI is honored to walk alongside you as you create the deeper connections your heart desires.
+
+Begin Your Transformation: ${baseUrl}/dashboard
+
+You have everything within you to create the relationships you dream of. We believe in you completely.
+
+— Your TherapyAI Support Team 💜
+
+Need a friendly voice? We're always here for you: support@therapyai.com
+
+© 2025 TherapyAI. Helping hearts connect, one conversation at a time ✨`;
 };
 
 // Logging functions
@@ -344,8 +531,11 @@ const logWelcomeCompletion = async (userId: string, successCount: number): Promi
         welcomeMessageSentAt: new Date()
       }
     });
+    console.log(`✅ Successfully marked welcome messages as sent for user ${userId}`);
   } catch (error) {
     console.error('Failed to log welcome completion:', error);
+    // Re-throw the error to ensure the job fails and can be retried
+    throw new Error(`Failed to update welcomeMessageSent flag: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 

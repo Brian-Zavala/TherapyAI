@@ -10,7 +10,7 @@ interface VapiTokenRedisResponse extends VapiTokenResponse {
 class VapiJWTRedisService {
   private readonly orgId: string;
   private readonly privateKey: string;
-  private readonly defaultExpiration = 3600; // 1 hour
+  private readonly defaultExpiration = 3599; // Just under 1 hour - VAPI requires exp < 3600
   // Fallback to memory cache if Redis is not available
   private memoryCache = new Map<string, { token: VapiTokenRedisResponse; validUntil: number }>();
 
@@ -123,24 +123,24 @@ class VapiJWTRedisService {
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = now + this.defaultExpiration;
 
-    // VAPI expects a specific JWT structure with a 'token' object
+    // VAPI JWT structure based on official documentation
     const payload = {
       orgId: this.orgId,
+      token: {
+        tag: scope,
+        restrictions: scope === 'public' ? {
+          enabled: true,
+          allowedOrigins: process.env.NODE_ENV === 'production' 
+            ? [process.env.NEXTAUTH_URL || 'https://yourdomain.com']
+            : ['http://localhost:3000', 'http://localhost:3001', 'http://0.0.0.0:3000'],
+          allowTransientAssistant: true, // Allow inline configurations
+        } : undefined,
+      },
+      // Standard JWT claims
       sub: userId,
       iat: now,
       exp: expiresAt,
       iss: 'vapi-therapy-app',
-      // This is the required structure for VAPI JWT tokens
-      token: {
-        tag: scope,
-        restrictions: {
-          enabled: true,
-          allowedOrigins: process.env.NODE_ENV === 'production' 
-            ? [process.env.NEXTAUTH_URL || 'https://yourdomain.com']
-            : ['http://localhost:3000', 'http://0.0.0.0:3000'],
-          allowTransientAssistant: true, // Allow inline configurations
-        },
-      },
     };
 
     try {
@@ -153,6 +153,12 @@ class VapiJWTRedisService {
       });
       
       console.log(`[VapiJWTRedisService] Generated JWT token with ${algorithm} algorithm for user ${userId}`);
+      console.log(`[VapiJWTRedisService] Token payload structure:`, {
+        orgId: payload.orgId,
+        tokenTag: payload.token.tag,
+        hasRestrictions: !!payload.token.restrictions,
+        expiresIn: expiresAt - now,
+      });
       
       return {
         token,

@@ -16,6 +16,7 @@ const Lottie = dynamic(() => import('lottie-react'), {
   loading: () => <div className="w-full h-full bg-white/10 animate-pulse rounded-lg" />
 });
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import GlassCard from "@/components/ui/glass-card";
 // Global animation cache for better performance
 const animationCache = new Map<string, any>();
@@ -357,6 +358,7 @@ const ParticleField = React.memo(
 
 export default function IntroWelcomeScreen() {
   const router = useRouter();
+  const { data: session } = useSession();
   // Removed useAuth destructuring since update doesn't exist
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -425,6 +427,20 @@ export default function IntroWelcomeScreen() {
       if (!response.ok) {
         console.error("Failed to update intro status:", response.status);
         setError("Continuing to onboarding...");
+      } else {
+        // Clear profile cache to ensure fresh data on welcome page
+        if (session?.user?.email) {
+          try {
+            await fetch("/api/user/profile/clear-cache", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: session.user.email })
+            });
+            console.log("Profile cache cleared after intro completion");
+          } catch (cacheError) {
+            console.warn("Cache clear failed, but continuing:", cacheError);
+          }
+        }
       }
 
       // Navigate immediately - welcome page will handle scroll on mount

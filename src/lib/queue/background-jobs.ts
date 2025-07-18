@@ -85,8 +85,11 @@ export const jobQueue = {
       if (redis) {
         // Search in Redis
         const jobs = await redis.zrange('job_queue', 0, -1)
-        for (const jobStr of jobs) {
-          const job = JSON.parse(jobStr as string) as Job
+        for (const jobData of jobs) {
+          // Upstash Redis might return the data as an object or a string
+          const job = typeof jobData === 'string' 
+            ? JSON.parse(jobData) as Job 
+            : jobData as Job
           if (job.id === jobId) {
             return job
           }
@@ -99,6 +102,38 @@ export const jobQueue = {
     } catch (error) {
       console.error('[JobQueue] Error getting job:', error)
       return null
+    }
+  },
+
+  async getJobsByType(type: JobType): Promise<Job[]> {
+    try {
+      const jobs: Job[] = []
+      
+      if (redis) {
+        // Get all jobs from Redis
+        const allJobs = await redis.zrange('job_queue', 0, -1)
+        for (const jobData of allJobs) {
+          const job = typeof jobData === 'string' 
+            ? JSON.parse(jobData) as Job 
+            : jobData as Job
+          if (job.type === type) {
+            jobs.push(job)
+          }
+        }
+      }
+      
+      // Also check memory queue
+      const memoryJobs = memoryQueue.filter(j => j.type === type)
+      
+      // Combine and deduplicate by ID
+      const allJobsMap = new Map<string, Job>()
+      jobs.forEach(job => allJobsMap.set(job.id, job))
+      memoryJobs.forEach(job => allJobsMap.set(job.id, job))
+      
+      return Array.from(allJobsMap.values())
+    } catch (error) {
+      console.error('[JobQueue] Error getting jobs by type:', error)
+      return []
     }
   }
 }
@@ -133,16 +168,26 @@ async function processQueue() {
         console.error(`[JobQueue] Error processing job ${job.id}:`, error)
         job.error = error instanceof Error ? error.message : 'Unknown error'
         
-        if (job.attempts >= job.maxAttempts) {
+        // Check for permanent failures that shouldn't be retried
+        const isPermanentFailure = job.error && (
+          job.error.includes('rate_limit_exceeded') ||
+          job.error.includes('daily_quota_exceeded') ||
+          job.error.includes('Invalid phone number') ||
+          job.error.includes('opted out') ||
+          job.error.includes('block list')
+        )
+        
+        if (job.attempts >= job.maxAttempts || isPermanentFailure) {
           job.status = 'failed'
           await removeJob(job)
-          console.log(`[JobQueue] Failed job ${job.id} after ${job.attempts} attempts`)
+          console.log(`[JobQueue] Failed job ${job.id} after ${job.attempts} attempts${isPermanentFailure ? ' (permanent failure)' : ''}`)
         } else {
-          // Retry with exponential backoff
-          job.nextRunAt = Date.now() + Math.pow(2, job.attempts) * 1000
+          // Retry with exponential backoff (max 5 minutes)
+          const backoffMs = Math.min(Math.pow(2, job.attempts) * 1000, 300000)
+          job.nextRunAt = Date.now() + backoffMs
           job.status = 'pending'
           await updateJob(job)
-          console.log(`[JobQueue] Retrying job ${job.id} in ${Math.pow(2, job.attempts)}s`)
+          console.log(`[JobQueue] Retrying job ${job.id} in ${backoffMs / 1000}s`)
         }
       }
     }
@@ -163,7 +208,11 @@ async function getNextJob(): Promise<Job | null> {
     if (redis) {
       const results = await redis.zrange('job_queue', 0, 0, { withScores: false })
       if (results.length > 0) {
-        const job = JSON.parse(results[0] as string) as Job
+        // Upstash Redis might return the data as an object or a string
+        const jobData = results[0]
+        const job = typeof jobData === 'string' 
+          ? JSON.parse(jobData) as Job 
+          : jobData as Job
         return job
       }
     }

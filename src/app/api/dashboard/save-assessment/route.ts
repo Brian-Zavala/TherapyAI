@@ -29,19 +29,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid assessment data" }, { status: 400 });
     }
     
-    // Extract assessment scores
-    const {
-      communicationScore = 50,
-      trustScore = 50,
-      intimacyScore = 50,
-      conflictScore = 50
-    } = results;
+    // Extract assessment scores with validation - handle both zero scores and missing scores
+    const communicationScore = typeof results.communicationScore === 'number' ? results.communicationScore : 50;
+    const trustScore = typeof results.trustScore === 'number' ? results.trustScore : 50;
+    const intimacyScore = typeof results.intimacyScore === 'number' ? results.intimacyScore : 50;
+    const conflictScore = typeof results.conflictScore === 'number' ? results.conflictScore : 50;
+    
+    // All scores are now guaranteed to be numbers, so no additional validation needed
     
     // Get recent completed sessions to incorporate data
     const recentSessions = await prisma.session.findMany({
       where: {
         userId: user.id,
-        status: 'completed'
+        status: 'COMPLETED'
       },
       orderBy: {
         date: 'desc'
@@ -92,9 +92,6 @@ export async function POST(request: Request) {
         calculatedAt: new Date(date)
       },
     });
-    
-    // Calculate relationship progress data and save it
-    const week = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7)); // Current week number
     
     // Create progress tracking data
     await prisma.progressTracking.create({

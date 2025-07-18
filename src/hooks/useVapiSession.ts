@@ -14,6 +14,7 @@ import {
 } from '@/types/vapi'
 import { normalizeAudioLevel } from '@/lib/therapy-session/utils'
 import { useVapiToken } from './useVapiToken'
+import { useVapiPublicKey } from './useVapiPublicKey'
 import { VAPIManager } from '@/lib/vapi-manager'
 import { useSession } from 'next-auth/react'
 

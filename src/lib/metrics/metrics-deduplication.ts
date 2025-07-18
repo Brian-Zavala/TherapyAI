@@ -119,7 +119,7 @@ async function performMetricsCalculation(
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
-      messages: {
+      transcriptEntries: {
         orderBy: { timestamp: 'asc' }
       }
     }
@@ -134,17 +134,18 @@ async function performMetricsCalculation(
     ? Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / 1000)
     : 0;
 
-  const totalMessages = session.messages.length;
-  const userMessages = session.messages.filter(m => m.speaker === 'user').length;
-  const assistantMessages = session.messages.filter(m => m.speaker === 'assistant').length;
+  const messages = session.transcriptEntries || [];
+  const totalMessages = messages.length;
+  const userMessages = messages.filter(m => m.role === 'user').length;
+  const assistantMessages = messages.filter(m => m.role === 'assistant' || m.role === 'vapi').length;
 
   // Calculate engagement metrics
-  const engagementScore = calculateEngagementScore(session.messages);
-  const sentimentTrend = calculateSentimentTrend(session.messages);
+  const engagementScore = calculateEngagementScore(messages);
+  const sentimentTrend = calculateSentimentTrend(messages);
   
   // Calculate topic metrics
-  const topicDistribution = calculateTopicDistribution(session.messages);
-  const emotionalTopics = identifyEmotionalTopics(session.messages);
+  const topicDistribution = calculateTopicDistribution(messages);
+  const emotionalTopics = identifyEmotionalTopics(messages);
 
   // Create metrics record
   const metrics = await prisma.sessionMetrics.create({
@@ -196,7 +197,7 @@ function calculateEngagementScore(messages: any[]): number {
 
   for (const message of messages) {
     // Track conversation flow
-    if (message.speaker === 'user') {
+    if (message.role === 'user') {
       if (lastSpeaker === 'user') {
         consecutiveUserMessages++;
       } else {
@@ -207,14 +208,14 @@ function calculateEngagementScore(messages: any[]): number {
       score += 2;
       
       // Bonus for message length (indicating thoughtful responses)
-      if (message.content.length > 100) score += 1;
-      if (message.content.length > 200) score += 2;
-    } else if (message.speaker === 'assistant' && lastSpeaker === 'user') {
+      if (message.text && message.text.length > 100) score += 1;
+      if (message.text && message.text.length > 200) score += 2;
+    } else if ((message.role === 'assistant' || message.role === 'vapi') && lastSpeaker === 'user') {
       // Good back-and-forth conversation
       score += 1.5;
     }
     
-    lastSpeaker = message.speaker;
+    lastSpeaker = message.role;
   }
 
   // Normalize score to 0-100
@@ -232,7 +233,7 @@ function calculateSentimentTrend(messages: any[]): {
   // Simple sentiment analysis based on keywords
   // In production, use a proper NLP service
   const sentiments = messages.map(m => {
-    const content = m.content.toLowerCase();
+    const content = (m.text || '').toLowerCase();
     let score = 50; // Neutral baseline
     
     // Positive indicators
@@ -285,7 +286,7 @@ function calculateTopicDistribution(messages: any[]): {
   const topicCounts: Record<string, number> = {};
   
   messages.forEach(message => {
-    const content = message.content.toLowerCase();
+    const content = (message.text || '').toLowerCase();
     
     Object.entries(topicKeywords).forEach(([topic, keywords]) => {
       keywords.forEach(keyword => {
@@ -319,7 +320,7 @@ function identifyEmotionalTopics(messages: any[]): {
   let breakthroughs = 0;
 
   messages.forEach((message, index) => {
-    const content = message.content.toLowerCase();
+    const content = (message.text || '').toLowerCase();
     
     // Count emotions
     emotions.forEach(emotion => {

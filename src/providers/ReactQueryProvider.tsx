@@ -74,6 +74,18 @@ export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
         <ReactQueryDevtools 
           initialIsOpen={false} 
           buttonPosition="bottom-right"
+          styleNonce={undefined}
+          panelProps={{
+            style: { fontSize: '12px' }
+          }}
+          toggleButtonProps={{
+            style: { 
+              width: '30px', 
+              height: '30px', 
+              fontSize: '12px',
+              padding: '4px'
+            }
+          }}
         />
       )}
     </QueryClientProvider>

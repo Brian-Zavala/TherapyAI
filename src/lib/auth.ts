@@ -47,12 +47,22 @@ const getBaseUrl = () => {
   if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL
   if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  // Check if running on non-default port
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
   return 'http://localhost:3000'
+}
+
+// 2025 Standard: Validate NextAuth configuration
+if (!process.env.NEXTAUTH_SECRET) {
+  console.error("[Auth] CRITICAL: NEXTAUTH_SECRET is not set! This will cause session errors.")
 }
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -106,7 +116,7 @@ export const authOptions: NextAuthOptions = {
               name: true,
               password: true,
               emailVerified: true,
-              isDeleted: false
+              isDeleted: true
             }
           })
 
@@ -126,11 +136,8 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid credentials")
           }
 
-          // 2025 Standard: Update last login timestamp
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { lastLogin: new Date() }
-          })
+          // 2025 Standard: User authenticated successfully
+          // Note: lastLogin field not in schema, could track in UserProfile or audit log instead
 
           // Return user object without sensitive data
           return {
@@ -153,7 +160,19 @@ export const authOptions: NextAuthOptions = {
  
 callbacks: {
   async signIn({ user, account, profile }) {
+    // Add timeout protection
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Callback timeout')), 15000)
+    )
+
     try {
+      console.log("[Auth] Sign-in attempt:", {
+        provider: account?.provider,
+        email: user?.email,
+        hasProfile: !!profile,
+        timestamp: new Date().toISOString()
+      })
+
       // 2025 Standard: Early validation
       if (!user?.email) {
         console.error("[Auth] Sign-in attempted without email")
@@ -162,26 +181,78 @@ callbacks: {
 
       // Handle OAuth providers (Google, Facebook)
       if (account?.provider && account.provider !== 'credentials') {
-        // 2025 Standard: Transaction for OAuth account linking
-        const result = await prisma.$transaction(async (tx) => {
-          // Check if user exists with this email
-          const existingUser = await tx.user.findUnique({
-            where: { email: user.email! },
-            include: { accounts: true }
-          })
+        console.log("[Auth] Processing OAuth sign-in for:", account.provider)
+        
+        // Race between transaction and timeout
+        const result = await Promise.race<boolean>([
+          timeoutPromise as Promise<boolean>,
+          prisma.$transaction(async (tx) => {
+            // Check if user exists with this email
+            const existingUser = await tx.user.findUnique({
+              where: { email: user.email! },
+              include: { accounts: true }
+            })
 
-          if (existingUser) {
-            // Check if this OAuth account is already linked
-            const linkedAccount = existingUser.accounts.find(
-              acc => acc.provider === account.provider && 
-                     acc.providerAccountId === account.providerAccountId
-            )
-            
-            if (!linkedAccount) {
-              // Auto-link the OAuth account to the existing user
+            if (existingUser) {
+              console.log("[Auth] Found existing user, linking account")
+              
+              // Check if this OAuth account is already linked
+              const linkedAccount = existingUser.accounts.find(
+                acc => acc.provider === account.provider && 
+                       acc.providerAccountId === account.providerAccountId
+              )
+              
+              if (!linkedAccount) {
+                // Auto-link the OAuth account to the existing user
+                await tx.account.create({
+                  data: {
+                    userId: existingUser.id,
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    expires_at: account.expires_at,
+                    id_token: account.id_token,
+                    refresh_token: account.refresh_token,
+                    scope: account.scope,
+                    session_state: account.session_state as string | undefined,
+                    token_type: account.token_type,
+                  }
+                })
+              }
+              
+              // User authenticated successfully
+              // Note: lastLogin tracking could be added to UserProfile if needed
+            } else {
+              console.log("[Auth] Creating new user for OAuth sign-in")
+              
+              // Create new user for OAuth sign-in
+              // Handle Google profile data safely
+              let userName = user.name
+              if (!userName && profile) {
+                // For Google, try different profile fields
+                userName = (profile as any).name || 
+                          (profile as any).given_name || 
+                          (profile as any).family_name ||
+                          user.email!.split('@')[0]
+              }
+              
+              const newUser = await tx.user.create({
+                data: {
+                  email: user.email!,
+                  name: userName || user.email!.split('@')[0],
+                  emailVerified: new Date(),
+                  image: user.image || (profile as any)?.picture || null,
+                  isDeleted: false,
+                }
+              })
+
+              console.log("[Auth] Created new user:", newUser.id)
+
+              // Create the OAuth account
               await tx.account.create({
                 data: {
-                  userId: existingUser.id,
+                  userId: newUser.id,
                   type: account.type,
                   provider: account.provider,
                   providerAccountId: account.providerAccountId,
@@ -196,23 +267,22 @@ callbacks: {
               })
             }
             
-            // Update last login
-            await tx.user.update({
-              where: { id: existingUser.id },
-              data: { lastLogin: new Date() }
-            })
-          }
-          
-          return true
-        })
+            return true
+          }, {
+            timeout: 10000 // 10 second transaction timeout
+          })
+        ])
 
+        console.log("[Auth] OAuth sign-in completed successfully")
         return result
       }
 
+      console.log("[Auth] Non-OAuth sign-in completed")
       return true
     } catch (error) {
       console.error("[Auth] Sign-in error:", {
         error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
         provider: account?.provider,
         timestamp: new Date().toISOString()
       })
@@ -250,19 +320,40 @@ callbacks: {
   },
 
   session: ({ session, token }) => {
-    // 2025 Standard: Type-safe session enhancement
-    if (!session?.user) {
-      return session
+    console.log("[Auth] Session callback:", {
+      hasSession: !!session,
+      hasToken: !!token,
+      sessionUser: session?.user,
+      tokenSub: token?.sub
+    })
+    
+    // 2025 Standard: Always return a valid session structure
+    if (!session) {
+      return {
+        user: token ? {
+          id: (token.id as string) || (token.sub as string) || '',
+          email: (token.email as string) || '',
+          name: (token.name as string) || null,
+          image: (token.picture as string) || null,
+          emailVerified: (token.emailVerified as Date | null) || null,
+        } : null,
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    }
+    
+    // Ensure session.user exists
+    if (!session.user) {
+      session.user = {}
     }
 
     return {
       ...session,
       user: {
         ...session.user,
-        id: token.id as string ?? token.sub ?? '',
-        emailVerified: token.emailVerified as Date | null ?? null,
+        id: (token?.id as string) || (token?.sub as string) || session.user.id || '',
+        emailVerified: (token?.emailVerified as Date | null) || session.user.emailVerified || null,
       },
-      expires: session.expires
+      expires: session.expires || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     }
   },
 
@@ -274,13 +365,13 @@ callbacks: {
     }
 
     // Only add user data during sign-in
-    if (user) {
+    if (user?.id) {
       token.id = user.id
-      token.emailVerified = user.emailVerified
+      token.emailVerified = (user as any).emailVerified || null
     }
 
     // Store provider info for OAuth users
-    if (account) {
+    if (account?.provider) {
       token.provider = account.provider
     }
 
@@ -304,21 +395,6 @@ events: {
       userId: token?.sub,
       timestamp: new Date().toISOString()
     })
-  }
-},
-
-// 2025 Standard: Security headers
-cookies: {
-  sessionToken: {
-    name: process.env.NODE_ENV === 'production' 
-      ? '__Secure-next-auth.session-token' 
-      : 'next-auth.session-token',
-    options: {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      secure: process.env.NODE_ENV === 'production'
-    }
   }
 }
 }

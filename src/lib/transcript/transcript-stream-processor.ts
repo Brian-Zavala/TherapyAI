@@ -69,3 +69,4 @@ export class TranscriptStreamProcessor {
       throw error;
     }
   }
+}

@@ -298,3 +298,5 @@ pids
 .nfs*
 *storybook.log
 storybook-static
+
+README-MEMORY.md

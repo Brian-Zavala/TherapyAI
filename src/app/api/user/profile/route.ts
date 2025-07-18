@@ -120,27 +120,12 @@ export async function GET(req: NextRequest) {
     ])
     
     if (!user) {
-      // Auto-create user if they have a valid session
-      console.log(`[Profile API] Auto-creating user for ${session.user.email}`)
-      const newUser = await prisma.user.create({
-        data: {
-          email: session.user.email,
-          name: session.user.name || session.user.email.split('@')[0],
-          password: 'SESSION_CREATED_USER',
-        }
-      })
-      
-      // Return minimal profile
-      const minimalProfile = {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        onboardingCompleted: false,
-        hasSeenIntro: false
-      }
-      
-      await profileCache.set(cacheKey, minimalProfile)
-      return NextResponse.json(minimalProfile, { headers: CACHE_HEADERS })
+      // User not found - stale session, return 401 to force re-authentication
+      console.log(`[Profile API] User not found for ${session.user.email} - stale session`)
+      return NextResponse.json({ 
+        error: "User not found - please log in again",
+        code: "STALE_SESSION" 
+      }, { status: 401 })
     }
     
     // Transform data for response
@@ -327,21 +312,50 @@ export async function PATCH(request: Request) {
       profileCache.invalidatePattern(`profile:*${session.user.email}*`)
     ])
     
-    // Queue welcome messages asynchronously
-    const welcomeUser: WelcomeUser = {
-      id: updatedUser.id,
-      name: updatedUser.name || data.nickname || 'Friend',
-      email: updatedUser.email,
-      notificationPrefs: data.notificationPrefs || [],
-      phone: data.phone,
-      smsConsent: data.smsConsent === 'true' || data.smsConsent === true,
-      therapyGoals: data.goals || data.currentConcerns,
-      relationshipStatus: data.relationshipStatus,
-      age: data.age ? parseInt(data.age) : undefined
+    // CRITICAL FIX: Mark welcome messages as sent immediately to prevent loops
+    try {
+      await prisma.user.update({
+        where: { id: updatedUser.id },
+        data: {
+          welcomeMessageSent: true,
+          welcomeMessageSentAt: new Date()
+        }
+      });
+      console.log(`✅ [Profile API] Marked welcomeMessageSent=true for ${updatedUser.email} to prevent duplicate sends`);
+    } catch (updateError) {
+      console.error(`❌ [Profile API] Failed to mark welcome messages as sent:`, updateError);
     }
     
-    await jobQueue.enqueue(JobType.SEND_WELCOME_MESSAGES, welcomeUser)
-    console.log(`[Profile API] Queued welcome messages for ${updatedUser.email}`)
+    // Queue welcome messages asynchronously (only if not already sent)
+    if (!updatedUser.welcomeMessageSent) {
+      // Check if there's already a pending job for this user
+      const pendingJobs = await jobQueue.getJobsByType(JobType.SEND_WELCOME_MESSAGES);
+      const hasPendingJob = pendingJobs.some(job => 
+        job.data.id === updatedUser.id && 
+        (job.status === 'pending' || job.status === 'processing')
+      );
+      
+      if (hasPendingJob) {
+        console.log(`[Profile API] Welcome message job already pending for ${updatedUser.email}, skipping duplicate`);
+      } else {
+        const welcomeUser: WelcomeUser = {
+          id: updatedUser.id,
+          name: updatedUser.name || data.nickname || 'Friend',
+          email: updatedUser.email,
+          notificationPrefs: data.notificationPrefs || [],
+          phone: data.phone,
+          smsConsent: data.smsConsent === 'true' || data.smsConsent === true,
+          therapyGoals: data.goals || data.currentConcerns,
+          relationshipStatus: data.relationshipStatus,
+          age: data.age ? parseInt(data.age) : undefined
+        }
+        
+        await jobQueue.enqueue(JobType.SEND_WELCOME_MESSAGES, welcomeUser, { maxAttempts: 2 })
+        console.log(`[Profile API] Queued welcome messages for ${updatedUser.email} with maxAttempts: 2`)
+      }
+    } else {
+      console.log(`[Profile API] Welcome messages already sent for ${updatedUser.email}, skipping`)
+    }
     
     return NextResponse.json({ 
       message: "Onboarding completed successfully",

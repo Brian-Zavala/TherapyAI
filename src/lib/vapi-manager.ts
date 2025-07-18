@@ -161,11 +161,17 @@ export class VAPIManager {
       let startConfig: Record<string, unknown>
       
       // Get the server URL for webhooks
-      const serverUrl = process.env.NEXT_PUBLIC_APP_URL 
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/vapi/webhooks`
-        : typeof window !== 'undefined' 
-          ? `${window.location.origin}/api/vapi/webhooks`
-          : 'http://localhost:3000/api/vapi/webhooks'
+      // VAPI requires HTTPS for serverUrl in production, but we can omit it for local development
+      let serverUrl: string | undefined
+      if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith('https://')) {
+        serverUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/vapi/webhooks`
+      } else if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        serverUrl = `${window.location.origin}/api/vapi/webhooks`
+      } else {
+        // For local development, omit serverUrl to avoid HTTPS requirement
+        serverUrl = undefined
+        console.log('⚠️ Skipping serverUrl for local development (VAPI requires HTTPS)')
+      }
 
       // Handle inline configuration
       if (config.assistantConfig) {
@@ -180,11 +186,12 @@ export class VAPIManager {
           const variableValues = extractVariableValues(config.assistantConfig) || config.variableValues
           
           // For inline config, pass the cleaned config object
-          startConfig = { 
-            ...cleanedConfig,
-            // Add server configuration for webhooks
-            serverUrl: serverUrl,
-            serverMessages: ['end-of-call-report', 'conversation-update', 'transcript'],
+          startConfig = cleanedConfig
+          
+          // Only add serverUrl and serverMessages if we have a valid HTTPS URL
+          if (serverUrl) {
+            startConfig.serverUrl = serverUrl
+            startConfig.serverMessages = ['end-of-call-report', 'conversation-update', 'transcript']
           }
           
           // Store a placeholder ID for inline configs
@@ -216,8 +223,10 @@ export class VAPIManager {
 
         // Configure assistant overrides for server messages and variable values
         startConfig.assistantOverrides = {
-          serverUrl: serverUrl,
-          serverMessages: ['end-of-call-report', 'conversation-update', 'transcript'],
+          ...(serverUrl && { 
+            serverUrl: serverUrl,
+            serverMessages: ['end-of-call-report', 'conversation-update', 'transcript']
+          }),
           ...(config.variableValues && { variableValues: config.variableValues })
         }
       } else {

@@ -764,7 +764,7 @@ export function TherapyButtonRefactored({
             transcriberProvider: inlineConfig.transcriber?.provider,
             hasFirstMessage: !!inlineConfig.firstMessage,
             maxDurationSeconds: inlineConfig.maxDurationSeconds,
-            hasFunctions: !!inlineConfig.functions && inlineConfig.functions.length > 0,
+            hasFunctions: !!inlineConfig.model?.tools && inlineConfig.model.tools.length > 0,
             clientMessages: inlineConfig.clientMessages?.length || 0,
             recordingEnabled: inlineConfig.recordingEnabled,
             hipaaEnabled: inlineConfig.hipaaEnabled,
@@ -1111,8 +1111,10 @@ export function TherapyButtonRefactored({
         const validation = await validateResponse.json()
         console.log('📋 VAPI Validation:', validation)
         
-        if (!validation.vapiStatus.connected) {
-          throw new Error(`VAPI API connection failed: ${validation.vapiStatus.error || 'Unknown error'}`)
+        // For web clients, check client JWT status, not server API status
+        if (!validation.clientVapiStatus.connected) {
+          // Only throw error if JWT generation also failed
+          throw new Error(`VAPI client authentication failed: ${validation.clientVapiStatus.error || 'JWT token generation failed'}`)
         }
         
         // Check for critical issues
@@ -1174,7 +1176,7 @@ export function TherapyButtonRefactored({
           transcriberProvider: inlineConfig.transcriber?.provider,
           hasFirstMessage: !!inlineConfig.firstMessage,
           maxDurationSeconds: inlineConfig.maxDurationSeconds,
-          hasFunctions: !!inlineConfig.functions && inlineConfig.functions.length > 0,
+          hasFunctions: !!inlineConfig.model?.tools && inlineConfig.model.tools.length > 0,
           clientMessages: inlineConfig.clientMessages?.length || 0
         })
         
@@ -1192,7 +1194,7 @@ export function TherapyButtonRefactored({
           transcriberProvider: inlineConfig.transcriber?.provider,
           hasFirstMessage: !!inlineConfig.firstMessage,
           maxDurationSeconds: inlineConfig.maxDurationSeconds,
-          hasFunctions: !!inlineConfig.functions && inlineConfig.functions.length > 0,
+          hasFunctions: !!inlineConfig.model?.tools && inlineConfig.model.tools.length > 0,
           clientMessages: inlineConfig.clientMessages?.length || 0,
           recordingEnabled: inlineConfig.recordingEnabled,
           hipaaEnabled: inlineConfig.hipaaEnabled,

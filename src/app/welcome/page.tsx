@@ -515,8 +515,19 @@ export default function WelcomePage() {
       if (localOnboardingCompleted === "true") {
         // Double-check with backend, but don't block on errors
         fetch("/api/user/profile")
-          .then((res) => res.json())
+          .then((res) => {
+            if (res.status === 401) {
+              // Stale session - clear local storage and redirect to login
+              console.log("Stale session detected, clearing cache and redirecting to login");
+              localStorage.removeItem(localOnboardingKey);
+              router.replace("/auth/login");
+              return null;
+            }
+            return res.json();
+          })
           .then((data) => {
+            if (!data) return; // Handle case where we redirected due to 401
+            
             // Check if user hasn't seen intro yet
             if (!data.hasSeenIntro) {
               router.replace("/intro");
@@ -532,19 +543,27 @@ export default function WelcomePage() {
           })
           .catch((error) => {
             console.error("Error checking onboarding status:", error);
-            // If backend is down but local storage says completed, redirect anyway
-            router.replace("/");
+            // On error, redirect to login to be safe
+            router.replace("/auth/login");
           });
       } else {
         // No local storage record, check backend
         fetch("/api/user/profile")
           .then((res) => {
+            if (res.status === 401) {
+              // Stale session - redirect to login
+              console.log("Stale session detected, redirecting to login");
+              router.replace("/auth/login");
+              return;
+            }
             if (!res.ok && res.status !== 500) {
               throw new Error(`Error fetching profile: ${res.status}`);
             }
             return res.json();
           })
           .then((data) => {
+            if (!data) return; // Handle case where we redirected due to 401
+            
             // Check if user hasn't seen intro yet
             if (!data.hasSeenIntro) {
               router.replace("/intro");
@@ -560,8 +579,8 @@ export default function WelcomePage() {
           })
           .catch((error) => {
             console.error("Error fetching profile:", error);
-            // Continue with onboarding even if backend has issues
-            setCheckingOnboarding(false);
+            // On error, redirect to login to be safe
+            router.replace("/auth/login");
           });
       }
     }

@@ -8,13 +8,28 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     
+    console.log("[NextAuth] Session endpoint called, session:", {
+      hasSession: !!session,
+      sessionData: session ? JSON.stringify(session) : 'null',
+      userExists: !!session?.user,
+      userId: session?.user?.id || 'no-id'
+    })
+    
+    // Return empty object instead of null to prevent "Cannot convert undefined or null to object" error
     if (!session) {
-      return NextResponse.json(null)
+      return NextResponse.json({})
     }
     
-    return NextResponse.json(session)
+    // Ensure session has required structure
+    const safeSession = {
+      user: session.user || {},
+      expires: session.expires || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }
+    
+    return NextResponse.json(safeSession)
   } catch (error) {
     console.error("[NextAuth] Session fetch error:", error)
-    return NextResponse.json(null)
+    // Return empty object instead of null
+    return NextResponse.json({})
   }
 }

@@ -38,30 +38,45 @@ export async function GET(req: NextRequest) {
       accountInfo: null as any,
     };
 
-    if (configCheck.apiKey) {
+    // We need to use JWT for API calls, not the API key directly
+    if (configCheck.jwtConfigured) {
       try {
-        // Try to list assistants as a connectivity test
-        const response = await fetch('https://api.vapi.ai/assistant', {
-          headers: {
-            'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        console.log('VAPI API Response status:', response.status);
+        // Generate a private JWT token for server-side API calls
+        const { vapiJWTRedisService } = await import('@/lib/vapi-jwt-redis.service');
         
-        if (response.ok) {
-          vapiStatus.connected = true;
-          const assistants = await response.json();
-          vapiStatus.accountInfo = { 
-            assistantCount: Array.isArray(assistants) ? assistants.length : 0,
-            message: 'API connection successful'
-          };
-          console.log('VAPI API connected successfully, found', vapiStatus.accountInfo.assistantCount, 'assistants');
+        if (vapiJWTRedisService) {
+          // Generate a private token for server use
+          const tokenData = await vapiJWTRedisService.getOrCreateToken(
+            'system', // System user for validation
+            'private', // Private scope for API access
+            'standard' // User type
+          );
+          
+          // Try to list assistants as a connectivity test
+          const response = await fetch('https://api.vapi.ai/assistant', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          console.log('VAPI API Response status:', response.status);
+          
+          if (response.ok) {
+            vapiStatus.connected = true;
+            const assistants = await response.json();
+            vapiStatus.accountInfo = { 
+              assistantCount: Array.isArray(assistants) ? assistants.length : 0,
+              message: 'API connection successful'
+            };
+            console.log('VAPI API connected successfully, found', vapiStatus.accountInfo.assistantCount, 'assistants');
+          } else {
+            vapiStatus.error = `API returned ${response.status}: ${response.statusText}`;
+            const errorBody = await response.text();
+            console.error('VAPI API Error:', response.status, errorBody);
+          }
         } else {
-          vapiStatus.error = `API returned ${response.status}: ${response.statusText}`;
-          const errorBody = await response.text();
-          console.error('VAPI API Error:', response.status, errorBody);
+          vapiStatus.error = 'JWT service not available';
         }
       } catch (error) {
         vapiStatus.error = error instanceof Error ? error.message : 'Unknown error';
@@ -70,6 +85,25 @@ export async function GET(req: NextRequest) {
         if (error instanceof Error && error.message.includes('fetch')) {
           vapiStatus.error = 'Network error - could not reach VAPI API';
         }
+      }
+    } else if (configCheck.apiKey) {
+      // Fallback: try using API key directly (may not work for all endpoints)
+      try {
+        const response = await fetch('https://api.vapi.ai/assistant', {
+          headers: {
+            'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          vapiStatus.connected = true;
+          vapiStatus.accountInfo = { message: 'API key validated' };
+        } else {
+          vapiStatus.error = `API key validation failed with ${response.status}`;
+        }
+      } catch (error) {
+        vapiStatus.error = 'API key validation failed';
       }
     }
 
@@ -181,20 +215,21 @@ export async function GET(req: NextRequest) {
 function getRecommendations(configCheck: any, vapiStatus: any, clientVapiStatus: any, inlineConfig: boolean): string[] {
   const recommendations: string[] = [];
 
-  if (!configCheck.apiKey) {
-    recommendations.push('❌ VAPI_API_KEY is missing - this is required for VAPI to work');
-  }
-
+  // Check JWT configuration first (required for web clients)
   if (!configCheck.jwtConfigured) {
-    recommendations.push('❌ JWT configuration missing - VAPI_ORG_ID and VAPI_PRIVATE_KEY are required for client authentication');
-  }
-
-  if (!vapiStatus.connected && configCheck.apiKey) {
-    recommendations.push('❌ VAPI server API connection failed - check if your VAPI_API_KEY is valid and not expired');
+    recommendations.push('❌ JWT configuration missing - VAPI_ORG_ID and VAPI_PRIVATE_KEY are required for web client authentication');
+    recommendations.push('💡 Add these to your .env file from your VAPI dashboard');
   }
 
   if (!clientVapiStatus.connected && configCheck.jwtConfigured) {
     recommendations.push('❌ JWT generation failed - check your VAPI_ORG_ID and VAPI_PRIVATE_KEY configuration');
+    recommendations.push('💡 Ensure VAPI_PRIVATE_KEY is the server key from VAPI dashboard, not the public API key');
+  }
+
+  // Server API connection is optional - only needed for server-side operations
+  if (!vapiStatus.connected && configCheck.jwtConfigured) {
+    recommendations.push('⚠️ Server API connection failed - this is only needed for server-side operations');
+    recommendations.push('💡 Web client calls will still work with JWT authentication');
   }
 
   if (clientVapiStatus.connected && vapiStatus.connected) {

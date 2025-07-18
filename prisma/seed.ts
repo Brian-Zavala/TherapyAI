@@ -67,7 +67,7 @@ async function main() {
         duration: 60 + (i * 10), // Increasing duration each month
         theme: `Communication Strategies ${i + 1}`,
         notes: `Notes for session ${i + 1}. Discussed relationship dynamics and communication patterns.`,
-        status: 'completed',
+        status: 'COMPLETED',
         // transcript field removed - using TranscriptEntry instead,
         reminderSent: false
       }
@@ -128,7 +128,7 @@ async function main() {
         date: futureDate,
         duration: 60,
         theme: `Upcoming Session: ${['Trust Building', 'Conflict Resolution', 'Enhancing Intimacy'][i-1]}`,
-        status: 'scheduled',
+        status: 'SCHEDULED',
         reminderSent: false
       }
     })

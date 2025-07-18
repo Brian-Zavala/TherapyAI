@@ -63,7 +63,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
     const sessionCount = await prisma.session.count({
       where: {
         userId: user.id,
-        status: 'completed'
+        status: 'COMPLETED'
       }
     });
 
@@ -71,7 +71,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
       const lastSession = await prisma.session.findFirst({
         where: {
           userId: user.id,
-          status: 'completed'
+          status: 'COMPLETED'
         },
         orderBy: {
           date: 'desc'
@@ -227,13 +227,8 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
 
   if (useInlineConfig) {
     console.log(`🎭 Returning inline assistant configuration for ${therapyType} therapy`)
-    const modelWithTools = personalizedConfig.functions && personalizedConfig.functions.length > 0
-      ?
-      {
-          ...personalizedConfig.model,
-          tools: personalizedConfig.functions
-        }
-      : personalizedConfig.model;
+    // Note: personalizedConfig.model already has tools array from getPersonalizedAssistantConfig
+    const modelWithTools = personalizedConfig.model;
 
     if (modelWithTools && !modelWithTools.provider) {
       if (modelWithTools.model && modelWithTools.model.startsWith('claude-')) {
@@ -253,6 +248,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
       personalizedConfig.transcriber.provider = 'deepgram';
     }
 
+    // Build clean config without invalid fields like variableValues, metadata, functions
     const cleanConfig = {
       model: modelWithTools,
       voice: personalizedConfig.voice,
@@ -264,6 +260,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
       clientMessages: Array.isArray(personalizedConfig.clientMessages)
         ? personalizedConfig.clientMessages
         : ["transcript", "model-output", "hang", "function-call-result", "tool-calls", "tool-calls-result", "speech-update", "conversation-update"]
+      // NOTE: Do not include variableValues, metadata, or functions here - they are invalid for inline configs
     };
 
     console.log('🔍 VAPI Configuration Debug:', {

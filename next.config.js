@@ -167,8 +167,8 @@ const sentryConfig = withSentryConfig(
     hideSourceMaps: true,
     disableLogger: true,
     // Sentry webpack plugin options (moved from nextConfig.sentry)
-    disableServerWebpackPlugin: process.env.NODE_ENV === 'development',
-    disableClientWebpackPlugin: process.env.NODE_ENV === 'development',
+    disableServerWebpackPlugin: false, // Enable for testing
+    disableClientWebpackPlugin: false, // Enable for testing
   }
 );
 

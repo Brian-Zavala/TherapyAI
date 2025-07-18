@@ -24,16 +24,17 @@ export function validateVapiInlineConfig(config: Record<string, unknown>): VapiV
     if (!config.model) {
       errors.push('Model configuration is required');
     } else {
-      if (!config.model.provider) {
+      const model = config.model as Record<string, unknown>;
+      if (!model.provider) {
         errors.push('Model must have a "provider" field (e.g., "anthropic", "openai")');
       }
       
-      if (!config.model.model) {
+      if (!model.model) {
         errors.push('Model must have a "model" field specifying the model name');
       }
       
       // Validate provider-specific model names
-      if (config.model.provider === 'anthropic') {
+      if (model.provider === 'anthropic') {
         const validAnthropicModels = [
           'claude-3-opus-20240229',
           'claude-3-sonnet-20240229', 
@@ -46,8 +47,8 @@ export function validateVapiInlineConfig(config: Record<string, unknown>): VapiV
           'claude-sonnet-4-20250514'
         ];
         
-        if (!validAnthropicModels.includes(config.model.model)) {
-          warnings.push(`Model ${config.model.model} is not in the list of known Anthropic models. Please ensure it is a valid model.`);
+        if (!validAnthropicModels.includes(model.model as string)) {
+          warnings.push(`Model ${model.model} is not in the list of known Anthropic models. Please ensure it is a valid model.`);
         }
       }
     }
@@ -56,11 +57,12 @@ export function validateVapiInlineConfig(config: Record<string, unknown>): VapiV
     if (!config.voice) {
       errors.push('Voice configuration is required');
     } else {
-      if (!config.voice.provider) {
+      const voice = config.voice as Record<string, unknown>;
+      if (!voice.provider) {
         errors.push('Voice must have a "provider" field (e.g., "11labs", "openai")');
       }
       
-      if (config.voice.provider === '11labs' && !config.voice.voiceId) {
+      if (voice.provider === '11labs' && !voice.voiceId) {
         errors.push('11labs voice must have a "voiceId" field');
       }
     }
@@ -69,17 +71,20 @@ export function validateVapiInlineConfig(config: Record<string, unknown>): VapiV
     if (!config.transcriber) {
       errors.push('Transcriber configuration is required');
     } else {
-      if (!config.transcriber.provider) {
+      const transcriber = config.transcriber as Record<string, unknown>;
+      if (!transcriber.provider) {
         errors.push('Transcriber must have a "provider" field (e.g., "deepgram", "openai")');
       }
     }
 
     // Validate optional fields
-    if (config.maxDurationSeconds && (config.maxDurationSeconds < 10 || config.maxDurationSeconds > 43200)) {
+    const maxDuration = config.maxDurationSeconds as number;
+    if (maxDuration !== undefined && (maxDuration < 10 || maxDuration > 43200)) {
       errors.push('maxDurationSeconds must be between 10 and 43200 (12 hours)');
     }
 
-    if (config.silenceTimeoutSeconds && (config.silenceTimeoutSeconds < 10 || config.silenceTimeoutSeconds > 3600)) {
+    const silenceTimeout = config.silenceTimeoutSeconds as number;
+    if (silenceTimeout !== undefined && (silenceTimeout < 10 || silenceTimeout > 3600)) {
       errors.push('silenceTimeoutSeconds must be between 10 and 3600 (1 hour)');
     }
 
@@ -96,7 +101,8 @@ export function validateVapiInlineConfig(config: Record<string, unknown>): VapiV
     ];
 
     // Validate tools in model.tools array
-    if (config.model && config.model.tools && Array.isArray(config.model.tools)) {
+    const model = config.model as Record<string, unknown>;
+    if (model && model.tools && Array.isArray(model.tools)) {
       const validToolTypes = [
         'dtmf', 'endCall', 'transferCall', 'output', 'voicemail', 'query', 'sms', 
         'function', 'mcp', 'apiRequest', 'bash', 'computer', 'textEditor',
