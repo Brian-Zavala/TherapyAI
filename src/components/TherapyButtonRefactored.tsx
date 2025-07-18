@@ -1390,9 +1390,11 @@ export function TherapyButtonRefactored({
       await vapi.stopCall()
       
       // End session through both systems for proper synchronization
+      // NOTE: Both hooks make the same API call to ensure they work independently.
+      // The session completion lock in the API prevents race conditions.
       await Promise.all([
-        session.endSession(),
-        sessionState.endSession()
+        session.endSession(),        // Handles metrics calculation and API call
+        sessionState.endSession()     // Handles state broadcast and API call
       ])
       
       setError(null)

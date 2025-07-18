@@ -11,6 +11,12 @@ import { logger } from '@/lib/logger';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const lifecycleManager = SessionLifecycleManager.getInstance();
 
+// In-memory lock for session completion to prevent race conditions
+// This is necessary because multiple hooks (useSessionManagementV2 and useSupabaseSessionState)
+// may call this endpoint simultaneously. Both need to make the call to work independently,
+// but we only want the completion logic to run once.
+const sessionCompletionLocks = new Map<string, Promise<any>>();
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -52,7 +58,22 @@ export async function POST(
     return response;
   }
   
-  try {
+  // Check if completion is already in progress for this session
+  const existingLock = sessionCompletionLocks.get(sessionId);
+  if (existingLock) {
+    logger.info('Session completion already in progress, waiting for result', { sessionId });
+    try {
+      const result = await existingLock;
+      return NextResponse.json(result);
+    } catch (error) {
+      // If the previous attempt failed, we'll try again
+      logger.warn('Previous completion attempt failed, retrying', { sessionId });
+    }
+  }
+  
+  // Create a new completion promise and store it
+  const completionPromise = (async () => {
+    try {
     // Parse request body for billing data
     const body = await request.json().catch(() => ({}));
     const {
@@ -75,6 +96,39 @@ export async function POST(
           success: true,
           message: 'Session already completed'
         });
+      }
+      
+      if (currentState === 'ending' || currentState === 'completing' || currentState === 'calculating_metrics') {
+        // Session is already being processed, wait for completion
+        logger.info('Session completion already in progress, waiting...', { sessionId, currentState });
+        
+        // Wait up to 10 seconds for completion
+        const maxWaitTime = 10000;
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxWaitTime) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const newState = await lifecycleManager.getSessionState(sessionId);
+          
+          if (newState === 'completed') {
+            return NextResponse.json({ 
+              success: true,
+              message: 'Session completed successfully'
+            });
+          }
+          
+          if (newState === 'failed') {
+            return NextResponse.json({ 
+              error: 'Session completion failed',
+              currentState: newState
+            }, { status: 500 });
+          }
+        }
+        
+        return NextResponse.json({ 
+          error: 'Session completion timeout',
+          currentState
+        }, { status: 408 });
       }
       
       return NextResponse.json({ 
@@ -196,7 +250,7 @@ export async function POST(
       billableMinutes: finalBillableMinutes
     });
 
-    return NextResponse.json({ 
+    return { 
       success: true,
       billing: {
         conversationTimeSeconds: finalConversationTimeSeconds,
@@ -204,12 +258,25 @@ export async function POST(
         totalPausedMinutes: totalPausedMinutes || Math.floor((therapySession.totalPausedTimeSeconds || 0) / 60),
         scheduledDurationMinutes: therapySession.duration
       }
-    });
+    };
+    } catch (error) {
+      logger.error('Error completing session', {
+        sessionId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  })();
+  
+  sessionCompletionLocks.set(sessionId, completionPromise);
+  
+  try {
+    const result = await completionPromise;
+    return NextResponse.json(result);
   } catch (error) {
-    logger.error('Error completing session', {
-      sessionId,
-      error
-    });
     return NextResponse.json({ error: 'Failed to complete session' }, { status: 500 });
+  } finally {
+    // Clean up the lock after completion
+    sessionCompletionLocks.delete(sessionId);
   }
 }

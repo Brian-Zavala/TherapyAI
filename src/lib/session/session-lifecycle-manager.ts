@@ -69,8 +69,12 @@ export class SessionLifecycleManager {
     const existingLock = this.processingLocks.get(sessionId);
     if (existingLock) {
       logger.warn('Session transition already in progress', { sessionId, toState });
+      // Wait for existing transition and check if we still need to transition
       await existingLock;
-      return;
+      const currentState = await this.getSessionState(sessionId);
+      if (currentState === toState || !this.isValidTransition(currentState, toState)) {
+        return;
+      }
     }
 
     const transitionPromise = this.performTransition(sessionId, toState, action);
@@ -124,8 +128,19 @@ export class SessionLifecycleManager {
         sessionId,
         fromState: currentState,
         toState,
-        error
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
+      
+      // For certain transitions, mark as failed instead of throwing
+      if (toState === 'completing' || toState === 'calculating_metrics') {
+        try {
+          this.sessionStates.set(sessionId, 'failed');
+          await this.updateDatabaseState(sessionId, 'failed');
+        } catch (failError) {
+          logger.error('Failed to mark session as failed', { sessionId, error: failError });
+        }
+      }
+      
       throw error;
     }
   }
@@ -159,7 +174,18 @@ export class SessionLifecycleManager {
       await this.transitionSession(sessionId, 'completed');
       
     } catch (error) {
-      await this.transitionSession(sessionId, 'failed');
+      logger.error('Error completing session', {
+        sessionId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
+      // Try to mark as failed, but don't throw if this fails
+      try {
+        await this.transitionSession(sessionId, 'failed');
+      } catch (failError) {
+        logger.error('Failed to transition to failed state', { sessionId, error: failError });
+      }
+      
       throw error;
     }
   }

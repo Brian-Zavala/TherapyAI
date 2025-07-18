@@ -38,6 +38,7 @@ export function useVapiMetricsBridge({
   const lastTranscriptCountRef = useRef(0)
   const lastBroadcastTimeRef = useRef(0)
   const pendingChunksRef = useRef<string[]>([])
+  const processTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Use Supabase realtime as provider
   const { broadcastMetrics, isConnected } = useSupabaseRealTimeMetrics({
@@ -66,6 +67,15 @@ export function useVapiMetricsBridge({
       console.log('[VapiMetricsBridge] Cleaning up metrics calculator')
       metricsCalculatorRef.current.cleanupSession()
       metricsCalculatorRef.current = null
+      
+      // Clear any pending timeout
+      if (processTimeoutRef.current) {
+        clearTimeout(processTimeoutRef.current)
+        processTimeoutRef.current = null
+      }
+      
+      // Clear pending chunks
+      pendingChunksRef.current = []
     }
   }, [enabled, sessionId, vapiState.isActive, userId, therapyType, sessionDuration])
 
@@ -111,8 +121,13 @@ export function useVapiMetricsBridge({
             }
             
             try {
+              // Check if calculator still exists before using it
+              if (!metricsCalculatorRef.current) {
+                console.warn('[VapiMetricsBridge] Metrics calculator was cleaned up, skipping transcript processing')
+                return
+              }
               // Add to metrics calculator and get updated metrics
-              lastMetrics = await metricsCalculatorRef.current!.addTranscriptEntry(transcriptEntry)
+              lastMetrics = await metricsCalculatorRef.current.addTranscriptEntry(transcriptEntry)
             } catch (error) {
               console.error('[VapiMetricsBridge] Error processing transcript:', error)
             }
@@ -139,7 +154,11 @@ export function useVapiMetricsBridge({
       
       // Set up delayed processing for remaining chunks
       if (pendingChunksRef.current.length > 0) {
-        setTimeout(processChunks, METRICS_THROTTLE_MS)
+        // Clear any existing timeout
+        if (processTimeoutRef.current) {
+          clearTimeout(processTimeoutRef.current)
+        }
+        processTimeoutRef.current = setTimeout(processChunks, METRICS_THROTTLE_MS)
       }
     }
   }, [enabled, sessionId, vapiState.isActive, isConnected, broadcastMetrics, transcriptChunks])
