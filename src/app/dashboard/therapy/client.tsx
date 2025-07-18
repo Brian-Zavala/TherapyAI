@@ -14,6 +14,7 @@ import {
   FAMILY_THERAPY_ASSISTANT_CONFIG,
 } from "@/lib/vapi";
 import { useProfile } from "@/providers/ProfileProvider";
+import { isSessionActive as checkSessionActive } from "@/lib/utils/session-status";
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -453,7 +454,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       }
       
       const currentSessionData = await sessionCheck.json()
-      if (currentSessionData.status !== 'active') {
+      // Use utility function for case-insensitive status check
+      if (!checkSessionActive(currentSessionData.status)) {
         throw new Error(`Session is ${currentSessionData.status}, cannot continue`)
       }
       

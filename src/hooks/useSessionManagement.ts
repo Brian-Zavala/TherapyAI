@@ -114,7 +114,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         date: new Date().toISOString(),
         duration,
         theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-        status: 'active',
+        status: 'ACTIVE',
         familyMembers: familyMembers || [],
         therapyType,
         userName: userProfile?.name || 'Guest',
@@ -200,6 +200,7 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
         remainingMinutes: duration - conversationMinutes,
         autoRestarted: false,
         sessionData: activeSession,
+        sessionDuration: duration, // Include the session duration explicitly
         pauseInfo: activeSession.isPaused ? {
           isPaused: true,
           pauseStartTime: activeSession.pauseStartTime,
@@ -223,7 +224,9 @@ export function useSessionManagement(options: UseSessionManagementOptions): UseS
       // Update state with recovered session
       setSessionId(recoveryData.sessionId)
       setSessionStartTime(new Date(recoveryData.originalStart))
-      setSessionDuration((recoveryData.sessionData.duration || DEFAULT_SESSION_DURATION) as 30 | 60)
+      // Use sessionDuration from recovery data first, then sessionData.duration, then default
+      const recoveredDuration = recoveryData.sessionDuration || recoveryData.sessionData.duration || DEFAULT_SESSION_DURATION
+      setSessionDuration(recoveredDuration as 30 | 60)
       setConversationTimeSeconds(recoveryData.conversationTimeSeconds)
       setSessionRecovered(true)
       

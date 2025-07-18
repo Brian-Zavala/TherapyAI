@@ -1002,7 +1002,7 @@ export function TherapyButtonRefactored({
         date: new Date().toISOString(),
         duration,
         theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-        status: 'active',
+        status: 'ACTIVE',
         familyMembers: familyMembers || [],
         therapyType,
         userName: user?.name || 'Guest',
@@ -1297,7 +1297,7 @@ export function TherapyButtonRefactored({
               date: new Date().toISOString(),
               duration,
               theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
-              status: 'active',
+              status: 'ACTIVE',
               familyMembers: familyMembersOverride || selectedFamilyMembers || [],
               therapyType,
               userName: user?.name || 'Guest',
@@ -2067,7 +2067,7 @@ export function TherapyButtonRefactored({
                 
                 {/* Session Timer V2 with react-timer-hook */}
                 <div className="text-center py-1 sm:py-2">
-                  {session.sessionDuration ? (
+                  {session.sessionDuration && (!isRecoveredSession || (isRecoveredSession && !isProcessingRecovery)) ? (
                     <SessionTimerV2
                       sessionId={session.sessionId || ''}
                       durationMinutes={session.sessionDuration}
@@ -2080,9 +2080,15 @@ export function TherapyButtonRefactored({
                       onExpire={handleTimerExpire}
                     />
                   ) : (
-                    <p className="text-white font-mono text-base sm:text-lg">
-                      <span className="text-green-400">●</span> Active
-                    </p>
+                    <div className="text-white font-mono text-lg sm:text-xl font-bold">
+                      {isRecoveredSession && isProcessingRecovery ? (
+                        <span className="animate-pulse">--:--</span>
+                      ) : (
+                        <p className="text-base sm:text-lg">
+                          <span className="text-green-400">●</span> Active
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
                 

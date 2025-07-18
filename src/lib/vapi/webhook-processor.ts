@@ -81,7 +81,7 @@ export class VAPIWebhookProcessor {
       await prisma.session.update({
         where: { id: sessionId },
         data: {
-          status: 'completed',
+          status: 'COMPLETED',
           endedAt: new Date(report.endedAt),
           metadata: {
             callId: call.id,
