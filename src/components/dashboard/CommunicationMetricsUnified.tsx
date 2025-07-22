@@ -209,28 +209,28 @@ export function CommunicationMetricsUnified() {
             <MetricItem
               label="Clarity"
               value={Math.round(data.clarity)}
-              icon={<MessageSquare className={dashboardTheme.icons.md} />}
+              icon={<MessageSquare className="h-5 w-5" />}
               trend={getTrend(data.clarity)}
               metricType="clarity"
             />
             <MetricItem
               label="Empathy"
               value={Math.round(data.empathy)}
-              icon={<Heart className={dashboardTheme.icons.md} />}
+              icon={<Heart className="h-5 w-5" />}
               trend={getTrend(data.empathy)}
               metricType="empathy"
             />
             <MetricItem
               label="Respect"
               value={Math.round(data.respect)}
-              icon={<Users className={dashboardTheme.icons.md} />}
+              icon={<Users className="h-5 w-5" />}
               trend={getTrend(data.respect)}
               metricType="respect"
             />
             <MetricItem
               label="Overall Communication"
               value={Math.round(data.overall)}
-              icon={<TrendingUp className={dashboardTheme.icons.md} />}
+              icon={<TrendingUp className="h-5 w-5" />}
               trend={getTrend(data.overall)}
               metricType="communication"
             />
@@ -250,14 +250,14 @@ export function CommunicationMetricsUnified() {
               <MetricItem
                 label="Active Listening"
                 value={Math.round(data.listening)}
-                icon={<Ear className={dashboardTheme.icons.md} />}
+                icon={<Ear className="h-5 w-5" />}
                 trend={getTrend(data.listening)}
-                metricType="support"
+                metricType="empathy"
               />
               <MetricItem
                 label="Self Expression"
                 value={Math.round(data.expression)}
-                icon={<Volume2 className={dashboardTheme.icons.md} />}
+                icon={<Volume2 className="h-5 w-5" />}
                 trend={getTrend(data.expression)}
                 metricType="clarity"
               />

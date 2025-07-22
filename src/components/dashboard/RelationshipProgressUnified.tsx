@@ -58,7 +58,10 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
       transition={{ duration: 0.3 }}
       whileHover={{ scale: 1.02 }}
     >
-      <div className={`space-y-3 p-4 rounded-xl border transition-all duration-300 ${theme.background} border-gray-200 dark:border-gray-700 group-hover:${theme.shadow}`}>
+      <div 
+        className={`space-y-3 p-4 rounded-xl border transition-all duration-300 border-gray-200 dark:border-gray-700 hover:${theme.shadow}`}
+        style={{ backgroundColor: theme.background }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Animated icon container */}
@@ -256,25 +259,25 @@ export function RelationshipProgressUnified() {
             label="Emotional Closeness"
             value={Math.round(data.closenessScore)}
             icon={<Heart className="h-4 w-4 text-pink-600" />}
-            color="bg-pink-500"
+            metricType="empathy"
           />
           <ProgressMetric
             label="Communication Quality"
             value={Math.round(data.communicationScore)}
             icon={<MessageSquare className="h-4 w-4 text-blue-600" />}
-            color="bg-blue-500"
+            metricType="communication"
           />
           <ProgressMetric
             label="Conflict Resolution"
             value={Math.round(data.conflictResolution)}
             icon={<Shield className="h-4 w-4 text-green-600" />}
-            color="bg-green-500"
+            metricType="progress"
           />
           <ProgressMetric
             label="Emotional Support"
             value={Math.round(data.emotionalSupport)}
             icon={<Sparkles className="h-4 w-4 text-purple-600" />}
-            color="bg-purple-500"
+            metricType="support"
           />
         </div>
 

@@ -150,7 +150,7 @@ export default function Dashboard() {
         </TabsList>
 
         <AnimatePresence mode="wait">
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent key="overview" value="overview" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -184,7 +184,7 @@ export default function Dashboard() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="insights" className="space-y-6">
+          <TabsContent key="insights" value="insights" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -195,7 +195,7 @@ export default function Dashboard() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="progress" className="space-y-6">
+          <TabsContent key="progress" value="progress" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -216,7 +216,7 @@ export default function Dashboard() {
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="sessions" className="space-y-6">
+          <TabsContent key="sessions" value="sessions" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

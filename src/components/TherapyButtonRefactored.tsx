@@ -227,8 +227,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         // Use VAPI say() to provide a graceful ending message
         if (vapiInstanceRef.current) {
           try {
-            // Have VAPI say goodbye and end the call after speaking
-            vapiInstanceRef.current.say(goodbyeMessage, true);
+            // Have VAPI say goodbye but DON'T end the call yet - let handleEndSession do it properly
+            vapiInstanceRef.current.say(goodbyeMessage, false);
             console.log('📤 Sent graceful goodbye message via function call handler');
           } catch (error) {
             console.error('Failed to send goodbye message:', error);
@@ -317,13 +317,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
               }
             }
             
-            // Use say() to make the assistant naturally speak the time warning
-            vapi.vapiManagerRef.current.say(userNotification, false); // false = don't end call after speaking
-            console.log('📤 Assistant will naturally announce 5-minute warning with choice');
+            // Don't use say() here - let VAPI handle the announcement based on the system message
+            // This prevents duplicate announcements
             console.log(`⏰ 5-minute warning triggered at conversation time: ${Math.floor(session.conversationTimeSeconds / 60)}:${(session.conversationTimeSeconds % 60).toString().padStart(2, '0')}`);
             
-            // Send clear system notification about remaining time
-            systemMessage = '[SYSTEM NOTIFICATION] 5 minutes remaining in session. You just announced this to the client. Listen to their response about how they want to use the remaining time, then guide accordingly toward session closure.';
+            // Send system notification with the exact message VAPI should speak
+            systemMessage = `[SYSTEM NOTIFICATION] 5 minutes remaining in session. Please announce to the client: "${userNotification}"`;
           } else if (remainingMinutes === 1) {
             systemMessage = '[SYSTEM NOTIFICATION] 1 minute remaining in session. Begin wrapping up immediately. Offer brief closing remarks and prepare to end.';
           } else if (remainingMinutes === 0.5) { // 30 seconds
@@ -1664,20 +1663,19 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
   // Check for VAPI function call session end request
   useEffect(() => {
-    const checkInterval = setInterval(() => {
-      const endRequested = sessionStorage.getItem('vapi-end-session-requested');
-      if (endRequested === 'true' && !session.isEndingSession) {
-        console.log('📌 Processing deferred VAPI end session request');
-        sessionStorage.removeItem('vapi-end-session-requested');
-        
-        // Trigger session end with a small delay to ensure VAPI has time to say goodbye
-        setTimeout(() => {
-          handleEndSession();
-        }, 2000);
-      }
-    }, 500); // Check every 500ms
-    
-    return () => clearInterval(checkInterval);
+    // Only check once when handleEndSession becomes available
+    const endRequested = sessionStorage.getItem('vapi-end-session-requested');
+    if (endRequested === 'true' && !session.isEndingSession && handleEndSession) {
+      console.log('📌 Processing deferred VAPI end session request');
+      sessionStorage.removeItem('vapi-end-session-requested');
+      
+      // Trigger session end with a delay to ensure VAPI has time to say goodbye
+      const timeoutId = setTimeout(() => {
+        handleEndSession();
+      }, 3000); // 3 seconds for goodbye message
+      
+      return () => clearTimeout(timeoutId);
+    }
   }, [handleEndSession, session.isEndingSession]);
 
   // Handle mute toggle
