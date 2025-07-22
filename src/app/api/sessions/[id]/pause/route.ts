@@ -5,19 +5,23 @@ import { prisma } from '@/lib/prisma-optimized'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('📍 POST /api/sessions/[id]/pause - Starting pause request')
+    
     // Check authentication
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
+      console.log('❌ Pause request failed: Unauthorized')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const sessionId = params.id
+    const { id: sessionId } = await params
+    console.log(`📍 Processing pause for session ${sessionId} by user ${session.user.id}`)
     
     // Get conversation state ID from request body if provided
     // This will be used in future to link the paused session with saved VAPI conversation state
@@ -39,13 +43,16 @@ export async function POST(
       select: {
         userId: true,
         isPaused: true,
+        pausedAt: true,
         conversationTimeSeconds: true,
         lastConversationStart: true,
         startTime: true,
+        totalPausedTimeSeconds: true,
       }
     })
 
     if (!therapySession) {
+      console.log(`❌ Pause request failed: Session ${sessionId} not found`)
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }
@@ -53,6 +60,7 @@ export async function POST(
     }
 
     if (therapySession.userId !== session.user.id) {
+      console.log(`❌ Pause request failed: User ${session.user.id} does not own session ${sessionId}`)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -60,10 +68,24 @@ export async function POST(
     }
 
     if (therapySession.isPaused) {
-      return NextResponse.json(
-        { error: 'Session is already paused' },
-        { status: 400 }
-      )
+      // Session is already paused - return success with current state (idempotent)
+      console.log('Session already paused, returning current state')
+      const totalElapsedSeconds = therapySession.startTime
+        ? Math.floor((Date.now() - new Date(therapySession.startTime).getTime()) / 1000)
+        : 0
+      
+      return NextResponse.json({
+        success: true,
+        alreadyPaused: true,
+        session: {
+          id: sessionId,
+          isPaused: true,
+          pausedAt: therapySession.pausedAt,
+          conversationTimeSeconds: therapySession.conversationTimeSeconds,
+          totalElapsedSeconds,
+          totalPausedTimeSeconds: therapySession.totalPausedTimeSeconds || 0,
+        }
+      })
     }
 
     // Calculate accumulated conversation time before pausing
@@ -77,6 +99,8 @@ export async function POST(
 
     // Update session to paused state
     const pausedAt = new Date()
+    console.log(`📊 Updating session ${sessionId}: isPaused=true, conversationTime=${updatedConversationTime}s`)
+    
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
       data: {
@@ -93,6 +117,8 @@ export async function POST(
       ? Math.floor((pausedAt.getTime() - new Date(therapySession.startTime).getTime()) / 1000)
       : 0
 
+    console.log(`✅ Session ${sessionId} paused successfully. Conversation time: ${updatedConversationTime}s, Total elapsed: ${totalElapsedSeconds}s`)
+
     return NextResponse.json({
       success: true,
       session: {
@@ -106,9 +132,17 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Error pausing session:', error)
+    console.error('❌ Error pausing session:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      sessionId: (await params).id,
+      userId: (await getServerSession(authOptions))?.user?.id
+    })
     return NextResponse.json(
-      { error: 'Failed to pause session' },
+      { 
+        error: 'Failed to pause session',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

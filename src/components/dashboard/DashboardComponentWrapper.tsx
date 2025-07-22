@@ -4,25 +4,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 
-// Feature flag - can be controlled via environment variable or user preference
-const USE_UNIFIED_DASHBOARD = process.env.NEXT_PUBLIC_USE_UNIFIED_DASHBOARD === 'true';
-
-// Legacy components (loaded dynamically to reduce bundle size)
-const ComprehensiveTherapyInsights = dynamic(
-  () => import("@/components/dashboard/ComprehensiveTherapyInsights").then(mod => ({ default: mod.ComprehensiveTherapyInsights })),
-  { ssr: false }
-);
-
-const CommunicationMetrics = dynamic(
-  () => import("@/components/dashboard/CommunicationMetrics"),
-  { ssr: false }
-);
-
-const RelationshipProgressCard = dynamic(
-  () => import("@/components/dashboard/RelationshipProgressCard"),
-  { ssr: false }
-);
-
+// All legacy components have been removed, only unified versions remain
 // Unified components (new implementation)
 const ComprehensiveTherapyInsightsUnified = dynamic(
   () => import("@/components/dashboard/ComprehensiveTherapyInsightsUnified").then(mod => ({ default: mod.ComprehensiveTherapyInsightsUnified })),
@@ -39,31 +21,22 @@ const RelationshipProgressUnified = dynamic(
   { ssr: false }
 );
 
-// Wrapper components that choose between legacy and unified versions
+// Wrapper components now only return unified versions
 export function TherapyInsightsWrapper() {
-  if (USE_UNIFIED_DASHBOARD) {
-    return <ComprehensiveTherapyInsightsUnified />;
-  }
-  return <ComprehensiveTherapyInsights />;
+  return <ComprehensiveTherapyInsightsUnified />;
 }
 
 export function CommunicationMetricsWrapper() {
-  if (USE_UNIFIED_DASHBOARD) {
-    return <CommunicationMetricsUnified />;
-  }
-  return <CommunicationMetrics />;
+  return <CommunicationMetricsUnified />;
 }
 
 export function RelationshipProgressWrapper() {
-  if (USE_UNIFIED_DASHBOARD) {
-    return <RelationshipProgressUnified />;
-  }
-  return <RelationshipProgressCard />;
+  return <RelationshipProgressUnified />;
 }
 
 // Export a hook to check if unified dashboard is enabled
 export function useUnifiedDashboard() {
-  return USE_UNIFIED_DASHBOARD;
+  return true; // Always true since legacy components are removed
 }
 
 // Component to show which version is being used (for debugging)
@@ -72,7 +45,7 @@ export function DashboardVersionIndicator() {
   
   return (
     <div className="fixed bottom-4 left-4 bg-background/80 backdrop-blur-sm border rounded px-2 py-1 text-xs text-muted-foreground">
-      Dashboard: {USE_UNIFIED_DASHBOARD ? 'Unified' : 'Legacy'}
+      Dashboard: Unified
     </div>
   );
 }

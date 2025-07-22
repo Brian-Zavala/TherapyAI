@@ -198,8 +198,9 @@ export async function GET(
     
     // Get pagination parameters
     const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '0', 10)
     const limit = parseInt(searchParams.get('limit') || '100', 10)
-    const offset = parseInt(searchParams.get('offset') || '0', 10)
+    const offset = page * limit
     
     // First, find the user by email
     const user = await prisma.user.findUnique({
@@ -227,7 +228,7 @@ export async function GET(
     
     // Check cache first
     const cacheKey = `${cacheKeys.sessionTranscript(sessionId)}:${offset}:${limit}`;
-    const cachedData = sessionCache.get<{entries: unknown[], pagination: {offset: number, limit: number, total: number}}>(cacheKey);
+    const cachedData = sessionCache.get<{entries: unknown[], hasMore: boolean, pagination: {offset: number, limit: number, total: number}}>(cacheKey);
     
     if (cachedData) {
       console.log(`Returning cached transcript for session ${sessionId}`);
@@ -276,8 +277,11 @@ export async function GET(
     
     console.log(`API returning ${dedupedEntries.length} entries`);
     
+    const hasMore = offset + dedupedEntries.length < totalCount;
+    
     const responseData = {
       entries: dedupedEntries,
+      hasMore,
       pagination: {
         offset,
         limit,

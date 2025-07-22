@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 type TherapyType = 'couple' | 'solo' | 'family';
 
@@ -47,10 +48,62 @@ interface TherapyTypeSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (type: TherapyType) => void;
+  hasFamilyMembers?: boolean;
+  familyMembersLoading?: boolean;
+  hasPartner?: boolean;
+  profileLoading?: boolean;
 }
 
-export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: TherapyTypeSelectorProps) {
+export default function TherapyTypeSelector({ 
+  isOpen, 
+  onClose, 
+  onSelect,
+  hasFamilyMembers = true,
+  familyMembersLoading = false,
+  hasPartner = true,
+  profileLoading = false
+}: TherapyTypeSelectorProps) {
   const [isClient, setIsClient] = useState(false);
+  const [showFamilyTooltip, setShowFamilyTooltip] = useState(false);
+  const [familyCardTapped, setFamilyCardTapped] = useState(false);
+  const [showCoupleTooltip, setShowCoupleTooltip] = useState(false);
+  const [coupleCardTapped, setCoupleCardTapped] = useState(false);
+  const router = useRouter();
+
+  // Debug logging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[TherapyTypeSelector] Props:', {
+        hasFamilyMembers,
+        familyMembersLoading,
+        hasPartner,
+        profileLoading
+      });
+    }
+  }, [isOpen, hasFamilyMembers, familyMembersLoading, hasPartner, profileLoading]);
+
+  // Debug tooltip state changes (only logs when states actually change)
+  useEffect(() => {
+    if (isOpen && (showFamilyTooltip || familyCardTapped)) {
+      console.log('[TherapyTypeSelector] family tooltip state changed:', {
+        isDisabled: !hasFamilyMembers && !familyMembersLoading,
+        showTooltip: showFamilyTooltip || familyCardTapped,
+        hoverState: showFamilyTooltip,
+        tapState: familyCardTapped
+      });
+    }
+  }, [isOpen, showFamilyTooltip, familyCardTapped, hasFamilyMembers, familyMembersLoading]);
+
+  useEffect(() => {
+    if (isOpen && (showCoupleTooltip || coupleCardTapped)) {
+      console.log('[TherapyTypeSelector] couple tooltip state changed:', {
+        isDisabled: !hasPartner && !profileLoading,
+        showTooltip: showCoupleTooltip || coupleCardTapped,
+        hoverState: showCoupleTooltip,
+        tapState: coupleCardTapped
+      });
+    }
+  }, [isOpen, showCoupleTooltip, coupleCardTapped, hasPartner, profileLoading]);
 
   useEffect(() => {
     setIsClient(true);
@@ -96,20 +149,177 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
           
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {therapyOptions.map((option, index) => (
+            {therapyOptions.map((option, index) => {
+              const isFamilyLoading = option.type === 'family' && familyMembersLoading;
+              const isCoupleLoading = option.type === 'couple' && profileLoading;
+              const isLoading = isFamilyLoading || isCoupleLoading;
+              
+              const isFamilyDisabled = option.type === 'family' && !hasFamilyMembers && !familyMembersLoading;
+              const isCoupleDisabled = option.type === 'couple' && !hasPartner && !profileLoading;
+              const isDisabled = isFamilyDisabled || isCoupleDisabled;
+              
+              const showTooltip = (option.type === 'family' && (showFamilyTooltip || familyCardTapped) && isFamilyDisabled) ||
+                                 (option.type === 'couple' && (showCoupleTooltip || coupleCardTapped) && isCoupleDisabled);
+              
+              // Debug tooltip state moved to useEffect to prevent excessive logging
+              
+              return (
               <motion.div
                 key={option.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-200 cursor-pointer overflow-hidden flex flex-col h-full"
+                whileHover={!isDisabled && !isLoading ? { scale: 1.02 } : {}}
+                whileTap={!isDisabled && !isLoading ? { scale: 0.98 } : {}}
+                className={`${
+                  isDisabled 
+                    ? 'bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 opacity-60 cursor-not-allowed' 
+                    : isLoading
+                    ? 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-300 cursor-wait'
+                    : 'bg-gradient-to-br from-white to-indigo-50 border border-indigo-100 hover:shadow-xl hover:border-indigo-200 cursor-pointer'
+                } rounded-xl shadow-md transition-all duration-300 flex flex-col h-full relative`}
+                role="button"
+                tabIndex={isDisabled || isLoading ? -1 : 0}
+                aria-label={`${option.title} with ${option.therapist}${
+                  isDisabled 
+                    ? option.type === 'family' 
+                      ? ' - Unavailable: Add family members to your profile first' 
+                      : option.type === 'couple' 
+                      ? ' - Unavailable: Add a partner to your profile first'
+                      : ' - Unavailable'
+                    : isLoading 
+                    ? ' - Loading...' 
+                    : ''
+                }`}
+                aria-disabled={isDisabled || isLoading}
                 onClick={() => {
-                  onSelect(option.type);
+                  if (isLoading) {
+                    return; // Don't do anything while loading
+                  }
+                  if (option.type === 'family' && !hasFamilyMembers) {
+                    setFamilyCardTapped(true);
+                    setTimeout(() => setFamilyCardTapped(false), 3000);
+                    return;
+                  }
+                  if (option.type === 'couple' && !hasPartner) {
+                    setCoupleCardTapped(true);
+                    setTimeout(() => setCoupleCardTapped(false), 3000);
+                    return;
+                  }
+                  if (!isDisabled) {
+                    onSelect(option.type);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (option.type === 'family' && !hasFamilyMembers) {
+                    setShowFamilyTooltip(true);
+                  }
+                  if (option.type === 'couple' && !hasPartner) {
+                    setShowCoupleTooltip(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setShowFamilyTooltip(false);
+                  setShowCoupleTooltip(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (isLoading) return;
+                    if (option.type === 'family' && !hasFamilyMembers) {
+                      setFamilyCardTapped(true);
+                      setTimeout(() => setFamilyCardTapped(false), 3000);
+                      return;
+                    }
+                    if (option.type === 'couple' && !hasPartner) {
+                      setCoupleCardTapped(true);
+                      setTimeout(() => setCoupleCardTapped(false), 3000);
+                      return;
+                    }
+                    if (!isDisabled) {
+                      onSelect(option.type);
+                    }
+                  }
                 }}
               >
-                <div className="w-full h-28 sm:h-32 md:h-36 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                {/* Loading overlay */}
+                {isLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
+                    <div className="bg-white rounded-full p-3">
+                      <div className="w-8 h-8 border-3 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Disabled overlay with lock icon */}
+                {isDisabled && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 rounded-xl">
+                    <div className="bg-white/90 rounded-full p-3">
+                      <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Tooltip/Feedback Message */}
+                <AnimatePresence>
+                  {showTooltip && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute top-2 left-2 right-2 z-[10002]"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <div className="bg-gray-900/95 text-white px-4 py-3 rounded-lg shadow-xl text-sm backdrop-blur-sm border border-gray-700">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-medium mb-1">
+                              {option.type === 'family' 
+                                ? 'Add family members to your profile first'
+                                : 'Add a partner to your profile first'}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push('/dashboard/profile');
+                              }}
+                              className="text-blue-300 hover:text-blue-200 underline text-xs font-medium inline-flex items-center gap-1"
+                            >
+                              Go to Profile Settings
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowFamilyTooltip(false);
+                              setShowCoupleTooltip(false);
+                              setFamilyCardTapped(false);
+                              setCoupleCardTapped(false);
+                            }}
+                            className="text-gray-400 hover:text-white transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                <div className={`w-full h-28 sm:h-32 md:h-36 ${
+                  isDisabled 
+                    ? 'bg-gradient-to-br from-gray-400 to-gray-600' 
+                    : isLoading
+                    ? 'bg-gradient-to-br from-gray-300 to-gray-500'
+                    : 'bg-gradient-to-br from-blue-400 to-blue-600'
+                } flex items-center justify-center`}>
                   <div className="text-center">
                     <div className="flex items-center justify-center mb-2">
                       {option.type === 'couple' ? (
@@ -178,7 +388,8 @@ export default function TherapyTypeSelector({ isOpen, onClose, onSelect }: Thera
                   </div>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
             </div>

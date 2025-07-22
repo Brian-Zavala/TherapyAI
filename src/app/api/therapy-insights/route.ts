@@ -3,91 +3,74 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import { generateTherapyInsights } from '@/lib/therapy-insights-generator'
+import { 
+  handleDashboardError, 
+  validateDashboardAuth,
+  withRetry 
+} from '@/lib/api/dashboard-error-handler'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    const { userId } = await validateDashboardAuth(session)
     
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    
-    // Fetch user's recent therapy sessions
-    const recentSessions = await prisma.session.findMany({
-      where: {
-        userId: session.user.id,
-        status: 'COMPLETED',
-      },
-      orderBy: {
-        startTime: 'desc',
-      },
-      take: 10,
-      include: {
-        communicationMetrics: {
-          where: {
-            metricType: 'final',
+    // Fetch user's recent therapy sessions with retry
+    const recentSessions = await withRetry(
+      () => prisma.session.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+        },
+        orderBy: {
+          startTime: 'desc',
+        },
+        take: 10,
+        include: {
+          communicationMetrics: {
+            where: {
+              metricType: 'final',
+            },
+          },
+          transcriptEntries: {
+            select: {
+              speaker: true,
+              text: true,
+              sentiment: true,
+              topics: true,
+            },
+          },
+          sessionFamilyMembers: {
+            include: {
+              familyMember: true,
+            },
           },
         },
-        transcriptEntries: {
-          select: {
-            speaker: true,
-            text: true,
-            sentiment: true,
-            topics: true,
-          },
-        },
-        sessionFamilyMembers: {
-          include: {
-            familyMember: true,
-          },
-        },
-      },
-    })
+      })
+    )
     
-    // Fetch user profile for personalization
-    const userProfile = await prisma.userProfile.findUnique({
-      where: {
-        userId: session.user.id,
-      },
-    })
+    // Fetch user profile for personalization with retry
+    const userProfile = await withRetry(
+      () => prisma.userProfile.findUnique({
+        where: {
+          userId,
+        },
+      })
+    )
     
     // Generate insights based on sessions and profile
     const insights = await generateTherapyInsights({
       sessions: recentSessions,
       userProfile,
-      userId: session.user.id,
+      userId,
     })
     
     return NextResponse.json(insights)
     
   } catch (error) {
-    console.error('[API] therapy-insights error:', error)
-    
-    // Return graceful error response
-    return NextResponse.json(
-      {
-        insights: [],
-        summary: {
-          overallProgress: 'moderate',
-          topStrengths: ['Commitment to therapy'],
-          weeklyGoals: ['Continue regular sessions'],
-          focusAreas: [],
-        },
-        trends: {
-          communication: 'stable',
-          emotional: 'stable',
-          consistency: 'improving',
-        },
-        personalizedTips: {
-          daily: ['Take 5 minutes for mindful breathing'],
-          weekly: ['Schedule quality time together'],
-          exercises: ['Practice gratitude journaling'],
-        },
-      },
-      { status: 200 } // Still return 200 with default data
-    )
+    return handleDashboardError(error, {
+      route: '/api/therapy-insights',
+      userId: (await getServerSession(authOptions))?.user?.id,
+      action: 'generateInsights',
+    })
   }
 }

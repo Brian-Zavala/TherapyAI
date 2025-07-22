@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
           data: {
             partnerName: null,
             partnerAge: null,
-            relationshipStatus: "Married", // Reset to default
+            relationshipStatus: null, // Clear relationship status
           }
         });
       }

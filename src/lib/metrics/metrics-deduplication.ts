@@ -157,7 +157,7 @@ async function performMetricsCalculation(
       userMessages,
       assistantMessages,
       engagementScore,
-      sentimentScore: sentimentTrend.average,
+      sentimentScore: isNaN(sentimentTrend.average) ? 0 : sentimentTrend.average,
       sentimentTrend: sentimentTrend.trend,
       topicsCovered: topicDistribution.topics,
       emotionalInsights: {
@@ -170,7 +170,7 @@ async function performMetricsCalculation(
         duration,
         totalMessages,
         engagementScore,
-        sentimentScore: sentimentTrend.average
+        sentimentScore: isNaN(sentimentTrend.average) ? 0 : sentimentTrend.average
       })
     }
   });
@@ -251,7 +251,9 @@ function calculateSentimentTrend(messages: any[]): {
     return Math.max(0, Math.min(100, score));
   });
 
-  const average = sentiments.reduce((a, b) => a + b, 0) / sentiments.length;
+  const average = sentiments.length > 0 
+    ? sentiments.reduce((a, b) => a + b, 0) / sentiments.length 
+    : 0;
   
   // Calculate trend
   const firstHalf = sentiments.slice(0, Math.floor(sentiments.length / 2));

@@ -51,8 +51,20 @@ class BatchedTranscriptManager {
   async addEntry(entry: TranscriptEntry): Promise<TranscriptEntry> {
     const { sessionId } = entry
     
+    console.log('🔍 TRANSCRIPT SERVICE: addEntry called', {
+      sessionId,
+      speaker: entry.speaker,
+      textLength: entry.text?.length,
+      hasText: !!entry.text?.trim()
+    })
+    
     // Validate entry
     if (!sessionId || !entry.text?.trim() || !entry.speaker) {
+      console.error('❌ TRANSCRIPT SERVICE: Invalid entry', {
+        hasSessionId: !!sessionId,
+        hasText: !!entry.text?.trim(),
+        hasSpeaker: !!entry.speaker
+      })
       throw new Error('Invalid transcript entry')
     }
 
@@ -167,6 +179,13 @@ class BatchedTranscriptManager {
         console.log(`💾 Saving chunk ${i + 1}/${chunks.length} with ${chunk.length} entries`)
         
         try {
+          console.log(`🚀 TRANSCRIPT SERVICE: Sending batch request to /api/sessions/${sessionId}/transcript/batch`)
+          console.log(`📦 TRANSCRIPT SERVICE: Batch payload:`, {
+            sessionId,
+            entryCount: chunk.length,
+            firstEntry: chunk[0]
+          })
+          
           const response = await fetch(`/api/sessions/${sessionId}/transcript/batch`, {
             method: 'POST',
             headers: {

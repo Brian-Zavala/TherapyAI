@@ -66,7 +66,7 @@ export default function ProfileClient() {
     phone: "",
     partnerName: "",
     partnerAge: "",
-    relationshipStatus: "Married",
+    relationshipStatus: "",
     familyMember1: "",
     familyMember1Age: "",
     familyMember2: "",
@@ -104,7 +104,7 @@ export default function ProfileClient() {
         phone: profile.phone || "",
         partnerName: profile.partnerName || "",
         partnerAge: profile.partnerAge?.toString() || "",
-        relationshipStatus: profile.relationshipStatus || "Married",
+        relationshipStatus: profile.relationshipStatus || "",
         familyMember1: profile.familyMember1 || "",
         familyMember1Age: profile.familyMember1Age?.toString() || "",
         familyMember2: profile.familyMember2 || "",
@@ -653,7 +653,7 @@ export default function ProfileClient() {
                 if (options.clearPartnerInfo) {
                   newData.partnerName = "";
                   newData.partnerAge = "";
-                  newData.relationshipStatus = "Married";
+                  newData.relationshipStatus = "";
                 }
                 
                 if (options.clearFamilyMembers) {

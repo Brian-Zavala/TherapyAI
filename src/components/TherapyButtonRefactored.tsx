@@ -11,6 +11,7 @@ import { useSupabaseRealTimeMetrics } from '@/hooks/useSupabaseRealTimeMetrics'
 import { useSupabaseSessionState } from '@/hooks/useSupabaseSessionState'
 import { useVapiMetricsBridge } from '@/hooks/useVapiMetricsBridge'
 import { useSessionConflict } from '@/hooks/useSessionConflict'
+import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
 import { initializeSessionMetrics, cleanupSessionMetrics } from '@/lib/transcript-service-optimized'
 import SessionDurationModal from './SessionDurationModal'
 import { SessionConflictDialog } from './SessionConflictDialog'
@@ -55,7 +56,7 @@ interface TherapyButtonRefactoredProps {
   onSessionConflict?: (conflictData: any) => void
 }
 
-export function TherapyButtonRefactored({ 
+export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactored({ 
   therapyType, 
   disabled = false,
   onSessionConflict
@@ -204,9 +205,43 @@ export function TherapyButtonRefactored({
   const transcriptRef = useRef<any>(null)
   
   const handleVapiMessage = useCallback((message: any) => {
+    console.log('🔔 THERAPY BUTTON: Received VAPI message to forward', {
+      type: message?.type,
+      hasTranscriptHandler: !!transcriptRef.current,
+      currentSessionId: session?.sessionId
+    });
+    
+    // Check if this is a function call message
+    if (message?.type === 'function-call' && message?.functionCall) {
+      console.log('🔧 VAPI Function Call detected in message handler:', message.functionCall.name, message.functionCall.parameters);
+      
+      if (message.functionCall.name === 'end_therapy_session') {
+        console.log('🛑 VAPI requested session end via function call');
+        
+        // Store reference to trigger after we have access to handleEndSession
+        sessionStorage.setItem('vapi-end-session-requested', 'true');
+        
+        // First acknowledge to the user that we're ending the session
+        const goodbyeMessage = message.functionCall.parameters?.message || "Thank you for sharing with me today. Take care until we meet again.";
+        
+        // Use VAPI say() to provide a graceful ending message
+        if (vapiInstanceRef.current) {
+          try {
+            // Have VAPI say goodbye and end the call after speaking
+            vapiInstanceRef.current.say(goodbyeMessage, true);
+            console.log('📤 Sent graceful goodbye message via function call handler');
+          } catch (error) {
+            console.error('Failed to send goodbye message:', error);
+          }
+        }
+      }
+    }
+    
     // Forward VAPI messages to transcript handler
     if (transcriptRef.current) {
       transcriptRef.current.handleVapiMessage(message, vapiInstanceRef.current)
+    } else {
+      console.error('❌ THERAPY BUTTON: No transcript handler available!');
     }
   }, [])
   
@@ -262,13 +297,8 @@ export function TherapyButtonRefactored({
           let systemMessage = '';
           
           if (remainingMinutes === 10) {
-            if (therapyType === 'couple') {
-              systemMessage = 'The couple has 10 minutes remaining. Without interrupting their flow, start being mindful of the time. If they\'re deep in discussion, let them continue but be ready to gently check if there are other topics they want to touch on. Don\'t announce the time yet - just be aware and guide naturally.';
-            } else if (therapyType === 'family') {
-              systemMessage = 'The family has 10 minutes left. Be mindful of ensuring everyone who wants to speak has had a chance. If someone has been quiet, you might gently invite their thoughts. Don\'t announce the time - just start naturally guiding toward inclusivity.';
-            } else {
-              systemMessage = 'The user has 10 minutes remaining. Stay present with their current topic but be aware of the time. If they seem to be circling or repeating, you might gently help them focus or ask if there\'s anything else they want to explore today. Don\'t mention the time yet.';
-            }
+            // Send clear system notification about remaining time
+            systemMessage = '[SYSTEM NOTIFICATION] 10 minutes remaining in session. Continue the therapeutic conversation naturally while being mindful of time. Do not announce the time to the client yet.';
           } else if (remainingMinutes === 5) {
             // Send the 5-minute warning voice message
             let userNotification = '';
@@ -292,25 +322,12 @@ export function TherapyButtonRefactored({
             console.log('📤 Assistant will naturally announce 5-minute warning with choice');
             console.log(`⏰ 5-minute warning triggered at conversation time: ${Math.floor(session.conversationTimeSeconds / 60)}:${(session.conversationTimeSeconds % 60).toString().padStart(2, '0')}`);
             
-            // Then send the system message for how to handle the user's response
-            if (therapyType === 'couple') {
-              systemMessage = 'You just gave the couple a choice about how to use their remaining 5 minutes. Listen to their response. If they want to continue their current discussion, let them, but gently guide toward closure in 3-4 minutes. If they choose reflection, help them identify: 1) One key insight from today, 2) One thing they appreciated about their partner during the session, and 3) One specific action they can take together this week.';
-            } else if (therapyType === 'family') {
-              systemMessage = 'You just asked the family how they\'d like to use their remaining 5 minutes. Based on their choice: If continuing current topic, allow it but guide toward wrapping up soon. If they choose reflection, facilitate a brief family check-in where each member can share one positive thing from today\'s session and help them agree on one family goal or activity for the week.';
-            } else {
-              const userName = user?.name ? user.name.split(' ')[0] : 'the user';
-              systemMessage = `You just asked ${userName} how they'd like to use their remaining 5 minutes. Listen carefully to their choice. If they want to continue exploring their current topic, support them while gently moving toward closure. If they choose reflection, help them: 1) Identify 2-3 key insights from today, 2) Recognize any personal strengths they showed, and 3) Choose one specific, achievable action step for this week.`;
-            }
+            // Send clear system notification about remaining time
+            systemMessage = '[SYSTEM NOTIFICATION] 5 minutes remaining in session. You just announced this to the client. Listen to their response about how they want to use the remaining time, then guide accordingly toward session closure.';
           } else if (remainingMinutes === 1) {
-            if (therapyType === 'couple') {
-              systemMessage = 'One minute remains. If they\'re still in reflection mode, help them finalize their action step. Otherwise, gently bring the current topic to a close. Ask if there\'s anything urgent they need to share before we end. Prepare to offer a brief, warm summary of their progress and connection today.';
-            } else if (therapyType === 'family') {
-              systemMessage = 'One minute left. If doing reflection, ensure everyone has been heard. If still discussing, wrap up the current point. Check quickly if anyone has something urgent to share. Prepare to acknowledge the family\'s effort and cooperation today.';
-            } else {
-              systemMessage = 'One minute remaining. If in reflection mode, help finalize their action step. If still exploring a topic, gently close that thread. Ask if there\'s anything urgent they need to say. Prepare to offer encouragement about their self-awareness and growth.';
-            }
+            systemMessage = '[SYSTEM NOTIFICATION] 1 minute remaining in session. Begin wrapping up immediately. Offer brief closing remarks and prepare to end.';
           } else if (remainingMinutes === 0.5) { // 30 seconds
-            systemMessage = 'Only 30 seconds left. Whatever they chose to do with their last 5 minutes - whether continuing their topic or reflecting - acknowledge it briefly. Express genuine appreciation for their engagement today. Let them know you\'re looking forward to continuing next time. Prepare your personalized goodbye that will reference their specific work today.';
+            systemMessage = '[SYSTEM NOTIFICATION] 30 seconds remaining. You MUST call the end_therapy_session function NOW with a warm goodbye message. Do not wait any longer.';
           }
           
           if (systemMessage) {
@@ -358,6 +375,11 @@ export function TherapyButtonRefactored({
     // Session updates happen frequently, no need to log
   }, [])
 
+  // Debug log moved to useEffect to prevent logging on every render
+  useEffect(() => {
+    console.log('🔍 THERAPY BUTTON: Creating transcript handler with sessionId:', session.sessionId || 'EMPTY');
+  }, [session.sessionId]);
+  
   const transcript = useTranscriptHandler({
     sessionId: session.sessionId || '',
     onTranscriptUpdate: handleTranscriptUpdate,
@@ -427,7 +449,14 @@ export function TherapyButtonRefactored({
   }, [isLoading, showDurationModal, showFamilySelectionModal])
   
   // Family member management for family therapy
-  const [familyMembers, setFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
+  const {
+    familyMembers,
+    loading: familyMembersLoading,
+    error: familyMembersError,
+    removeFamilyMember,
+    saveFamilyMembers
+  } = useFamilyMembersEnhanced({ autoSave: false })
+  
   const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
   
   // Mute functionality
@@ -661,8 +690,12 @@ export function TherapyButtonRefactored({
           console.log('🎭 Using inline assistant configuration for recovery')
           
           // Fetch personalized inline configuration
+          const recoveryFamilyMembersParam = detectedType === 'family' && sessionData.familyMembers?.length > 0 
+            ? `&selectedFamilyMembers=${encodeURIComponent(JSON.stringify(sessionData.familyMembers))}`
+            : ''
+          
           const response = await fetch(
-            `/api/vapi/assistant?personalized=true&therapyType=${detectedType}&duration=${sessionData.duration || 60}&startTime=${encodeURIComponent(sessionData.startTime || new Date().toISOString())}`
+            `/api/vapi/assistant?personalized=true&therapyType=${detectedType}&duration=${sessionData.duration || 60}&startTime=${encodeURIComponent(sessionData.startTime || new Date().toISOString())}${recoveryFamilyMembersParam}`
           )
           
           if (!response.ok) {
@@ -970,11 +1003,22 @@ export function TherapyButtonRefactored({
     
     // For family therapy, show family member selection first
     if (therapyType === 'family') {
+      // Check if family members are loaded
+      if (familyMembersLoading) {
+        console.log('⏳ Waiting for family members to load...')
+        return
+      }
+      
+      if (familyMembers.length === 0) {
+        setError('Please add family members to your profile before starting a family therapy session.')
+        return
+      }
+      
       setShowFamilySelectionModal(true)
     } else {
       setShowDurationModal(true)
     }
-  }, [user, isLoading, vapi.vapiState.isLoading, session.sessionId, vapi.vapiState.isActive, playClick, therapyType])
+  }, [user, isLoading, vapi.vapiState.isLoading, session.sessionId, vapi.vapiState.isActive, playClick, therapyType, familyMembersLoading, familyMembers.length])
   
   // Handle duration selection
   // Handle ending existing session and starting new one
@@ -1125,8 +1169,12 @@ export function TherapyButtonRefactored({
         }
         
         // Fetch personalized inline configuration
+        const selectedFamilyMembersParam = therapyType === 'family' && selectedFamilyMembers.length > 0 
+          ? `&selectedFamilyMembers=${encodeURIComponent(JSON.stringify(selectedFamilyMembers))}`
+          : ''
+        
         const response = await fetch(
-          `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${duration}&startTime=${encodeURIComponent(new Date().toISOString())}`
+          `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${duration}&startTime=${encodeURIComponent(new Date().toISOString())}${selectedFamilyMembersParam}`
         )
         
         if (!response.ok) {
@@ -1520,12 +1568,8 @@ export function TherapyButtonRefactored({
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
         
-        // CRITICAL: Pause conversation timer before pausing VAPI
-        // This ensures accurate conversation time tracking
-        await session.pauseSession()
-        
         // Pause through sessionState which will trigger onVapiPause callback
-        // This saves conversation state and stops VAPI
+        // This saves conversation state, stops VAPI, and updates the database
         await sessionState.pauseSession()
         
         // Keep UI in session-active state during pause
@@ -1618,6 +1662,24 @@ export function TherapyButtonRefactored({
     }
   }, [handleEndSession, vapi, therapyType, session.isEndingSession, user]) // Include user for personalized goodbye
 
+  // Check for VAPI function call session end request
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      const endRequested = sessionStorage.getItem('vapi-end-session-requested');
+      if (endRequested === 'true' && !session.isEndingSession) {
+        console.log('📌 Processing deferred VAPI end session request');
+        sessionStorage.removeItem('vapi-end-session-requested');
+        
+        // Trigger session end with a small delay to ensure VAPI has time to say goodbye
+        setTimeout(() => {
+          handleEndSession();
+        }, 2000);
+      }
+    }, 500); // Check every 500ms
+    
+    return () => clearInterval(checkInterval);
+  }, [handleEndSession, session.isEndingSession]);
+
   // Handle mute toggle
   const toggleMute = useCallback(() => {
     const newMuteState = !isMuted
@@ -1649,9 +1711,15 @@ export function TherapyButtonRefactored({
     console.log('🔙 Family selection modal cancelled - reverting UI state')
   }, [setSessionActive])
 
-  const handleRemoveFamilyMember = useCallback((index: number) => {
-    setFamilyMembers(prev => prev.filter((_, i) => i !== index))
-  }, [])
+  const handleRemoveFamilyMember = useCallback(async (index: number) => {
+    // Find the family member by index
+    const memberToRemove = familyMembers[index]
+    if (memberToRemove && memberToRemove.id) {
+      removeFamilyMember(memberToRemove.id)
+      // Save the changes to the backend
+      await saveFamilyMembers()
+    }
+  }, [familyMembers, removeFamilyMember, saveFamilyMembers])
   
   // Track new transcript messages
   useEffect(() => {
@@ -2218,9 +2286,13 @@ export function TherapyButtonRefactored({
             isOpen={showFamilySelectionModal}
             onClose={handleFamilySelectionClose}
             onSelectMembers={handleFamilyMembersSelected}
-            familyMembers={familyMembers}
+            familyMembers={familyMembers.map(member => ({
+              name: member.name,
+              age: member.age || 0,
+              relation: member.relation || ''
+            }))}
             onRemoveMember={handleRemoveFamilyMember}
-            isLoading={vapi.vapiState.isLoading}
+            isLoading={vapi.vapiState.isLoading || familyMembersLoading}
           />
         )}
         
@@ -2252,7 +2324,7 @@ export function TherapyButtonRefactored({
       )}
     </>
   )
-}
+})
 
 // Helper functions
 function getAssistantId(therapyType: TherapyType): string {

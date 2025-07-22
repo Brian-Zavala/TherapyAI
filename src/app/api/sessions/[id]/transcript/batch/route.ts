@@ -11,17 +11,37 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('🔔 BATCH ENDPOINT: Received request');
+  
   try {
     const authSession = await getServerSession(authOptions);
+    console.log('🔐 BATCH ENDPOINT: Auth status', {
+      hasSession: !!authSession,
+      hasEmail: !!authSession?.user?.email
+    });
+    
     if (!authSession?.user?.email) {
+      console.error('❌ BATCH ENDPOINT: Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id: sessionId } = await params;
-    const { entries } = await req.json();
+    const body = await req.json();
+    const { entries } = body;
+    
+    console.log('📦 BATCH ENDPOINT: Request data', {
+      sessionId,
+      hasEntries: !!entries,
+      entriesCount: Array.isArray(entries) ? entries.length : 0,
+      bodyKeys: Object.keys(body)
+    });
 
     // Validate input
     if (!Array.isArray(entries) || entries.length === 0) {
+      console.error('❌ BATCH ENDPOINT: Invalid entries', {
+        isArray: Array.isArray(entries),
+        length: entries?.length
+      });
       return NextResponse.json({ error: 'Invalid entries array' }, { status: 400 });
     }
 

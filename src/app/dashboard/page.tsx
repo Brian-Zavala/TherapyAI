@@ -1,355 +1,253 @@
 // src/app/dashboard/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import dynamic from 'next/dynamic';
-
-// Dynamic imports for heavy dashboard components
-const SessionTimeChart = dynamic(
-  () => import("@/components/dashboard/SessionTimeChart"),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 animate-pulse">
-        <div className="h-8 bg-white/20 rounded w-1/3 mb-4"></div>
-        <div className="h-64 bg-white/20 rounded"></div>
-      </div>
-    )
-  }
-);
-
-const RelationshipProgressCard = dynamic(
-  () => import("@/components/dashboard/RelationshipProgressCard"),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 animate-pulse">
-        <div className="h-8 bg-white/20 rounded w-1/2 mb-4"></div>
-        <div className="h-32 bg-white/20 rounded"></div>
-      </div>
-    )
-  }
-);
-
-const CommunicationMetrics = dynamic(
-  () => import("@/components/dashboard/CommunicationMetrics"),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 animate-pulse">
-        <div className="h-8 bg-white/20 rounded w-2/3 mb-4"></div>
-        <div className="h-48 bg-white/20 rounded"></div>
-      </div>
-    )
-  }
-);
-
-const UpcomingSessions = dynamic(
-  () => import("@/components/dashboard/UpcomingSessions"),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 animate-pulse">
-        <div className="h-8 bg-white/20 rounded w-1/2 mb-4"></div>
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-white/20 rounded"></div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-);
-
-const ComprehensiveTherapyInsights = dynamic(
-  () => import("@/components/dashboard/ComprehensiveTherapyInsights").then(mod => ({ default: mod.ComprehensiveTherapyInsights })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 animate-pulse">
-        <div className="h-8 bg-white/20 rounded w-2/3 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-32 bg-white/20 rounded"></div>
-          <div className="h-24 bg-white/20 rounded"></div>
-          <div className="h-28 bg-white/20 rounded"></div>
-        </div>
-      </div>
-    )
-  }
-);
-
-import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import NotificationBell from "@/components/ui/notification-bell";
-import { useProfile } from "@/hooks/useApiQuery";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  LayoutDashboard, 
+  Brain, 
+  TrendingUp, 
+  Calendar,
+  RefreshCw,
+  AlertCircle
+} from "lucide-react";
+import { ComprehensiveTherapyInsightsUnified } from "@/components/dashboard/ComprehensiveTherapyInsightsUnified";
+import { CommunicationMetricsUnified } from "@/components/dashboard/CommunicationMetricsUnified";
+import { RelationshipProgressUnified } from "@/components/dashboard/RelationshipProgressUnified";
+import SessionTimeChart from "@/components/dashboard/SessionTimeChart";
+import UpcomingSessions from "@/components/dashboard/UpcomingSessions";
+import { useDashboardDataUnified } from "@/hooks/useDashboardDataUnified";
+import { UnifiedLoadingState } from "@/components/dashboard/UnifiedLoadingState";
+import { DashboardErrorBoundary, DashboardErrorWrapper } from "@/components/dashboard/DashboardErrorBoundary";
 
 export default function Dashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   
-  // Use React Query for profile data
+  // Use the unified hook to get all dashboard data at once
   const { 
-    profile, 
-    isLoading: isProfileLoading, 
-    error: profileError 
-  } = useProfile();
-  
-  // Note: Notification state is now managed by NotificationProvider
-  
-  // Enable smooth scrolling for this page
-  useEffect(() => {
-    document.documentElement.classList.add('smooth-scroll');
-    return () => {
-      document.documentElement.classList.remove('smooth-scroll');
-    };
-  }, []);
-
-  // Handle authentication and onboarding redirect
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/auth/login");
-      return;
+    data, 
+    isLoading, 
+    isError,
+    error,
+    failedEndpoints,
+    refetch,
+    refetchMetric,
+    isRefetching,
+    isFetching,
+    loadingState,
+    isRealTimeConnected,
+    lastRealTimeUpdate
+  } = useDashboardDataUnified({
+    enableRealTime: true,
+    refetchInterval: 60000, // 1 minute
+    includeInsights: true,
+    onError: (error) => {
+      console.error('Dashboard error:', error);
     }
+  });
 
-    if (status === "authenticated" && profile) {
-      // Check if user has completed onboarding
-      if (!(profile as any).onboardingCompleted) {
-        router.push("/welcome");
-      }
-    }
-  }, [status, router, profile]);
-
-  // Handle profile error (404 means redirect to welcome)
-  useEffect(() => {
-    if (profileError && profileError.message.includes('404')) {
-      router.push("/welcome");
-    }
-  }, [profileError, router]);
-
-  if (status === "loading" || isProfileLoading) {
+  // Show loading state for initial load
+  if (isLoading && !data) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="container mx-auto p-6">
+        <UnifiedLoadingState 
+          type={loadingState.type === 'partial' ? 'spinner' : loadingState.type} 
+          message={loadingState.message} 
+        />
       </div>
     );
   }
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  };
-
   return (
-    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6 md:px-8 lg:px-6 bg-gray-900">
-      <div className="max-w-7xl mx-auto">
-        {/* Dashboard Header with Welcome Message */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 flex justify-between items-center"
-        >
+    <DashboardErrorBoundary
+      onError={(error) => {
+        console.error('Dashboard page error:', error);
+      }}
+      resetKeys={[activeTab]}
+    >
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
-              Welcome back, {profile?.name || session?.user?.name?.split(" ")[0] || "there"}!
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Your relationship journey continues today
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Track your therapy progress and insights
             </p>
           </div>
-          
-          {/* Notification Bell */}
-          <NotificationBell />
-        </motion.div>
-
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-800">
-          {["overview", "insights", "progress", "sessions", "resources"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 capitalize transition-all duration-200 ${
-                activeTab === tab
-                  ? "text-green-500 border-b-2 border-green-500"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isRefetching || isFetching}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefetching || isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === "overview" && (
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {/* Quick Actions Card */}
+        {/* Error Alert */}
+        {isError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error?.message || 'Failed to load dashboard data'}
+              {failedEndpoints.length > 0 && (
+                <span className="block mt-1 text-xs">
+                  Failed endpoints: {failedEndpoints.join(', ')}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Partial Data Warning */}
+        {data?.isPartial && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Some dashboard data is temporarily unavailable. 
+              {failedEndpoints.length > 0 && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="ml-2 h-auto p-0"
+                  onClick={() => {
+                    failedEndpoints.forEach(endpoint => {
+                      refetchMetric(endpoint as keyof typeof data);
+                    });
+                  }}
+                >
+                  Retry failed components
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="insights" className="gap-2">
+            <Brain className="h-4 w-4" />
+            AI Insights
+          </TabsTrigger>
+          <TabsTrigger value="progress" className="gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Progress
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Sessions
+          </TabsTrigger>
+        </TabsList>
+
+        <AnimatePresence mode="wait">
+          <TabsContent value="overview" className="space-y-6">
             <motion.div
-              variants={item}
-              className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-700"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
             >
-              <h2 className="text-xl font-semibold text-white mb-4">
-                Quick Actions
-              </h2>
-              <div className="space-y-3">
-                <Link
-                  href="/schedule"
-                  className="block w-full py-3 px-4 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Schedule Session
-                </Link>
-                <Link
-                  href="/dashboard/therapy"
-                  className="block w-full py-3 px-4 bg-gray-700 text-white text-center rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Start Therapy Session
-                </Link>
-                <Link
-                  href="/dashboard/resources"
-                  className="block w-full py-3 px-4 bg-gray-700 text-white text-center rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Educational Resources
-                </Link>
+              {/* Communication Metrics */}
+              <DashboardErrorWrapper componentName="CommunicationMetrics">
+                <CommunicationMetricsUnified />
+              </DashboardErrorWrapper>
+              
+              {/* Relationship Progress */}
+              <DashboardErrorWrapper componentName="RelationshipProgress">
+                <RelationshipProgressUnified />
+              </DashboardErrorWrapper>
+              
+              {/* Session Analytics */}
+              <div className="md:col-span-2">
+                <DashboardErrorWrapper componentName="SessionTimeChart">
+                  <SessionTimeChart />
+                </DashboardErrorWrapper>
+              </div>
+              
+              {/* Upcoming Sessions */}
+              <div className="md:col-span-2">
+                <DashboardErrorWrapper componentName="UpcomingSessions">
+                  <UpcomingSessions />
+                </DashboardErrorWrapper>
               </div>
             </motion.div>
+          </TabsContent>
 
-            {/* Relationship Progress Card */}
-            <motion.div variants={item} className="md:col-span-2">
-              <RelationshipProgressCard />
+          <TabsContent value="insights" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ComprehensiveTherapyInsightsUnified />
             </motion.div>
+          </TabsContent>
 
-            {/* Upcoming Sessions */}
-            <motion.div variants={item} className="lg:col-span-2">
+          <TabsContent value="progress" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              {/* Detailed Progress View */}
+              <RelationshipProgressUnified />
+              
+              {/* Communication Deep Dive */}
+              <CommunicationMetricsUnified />
+              
+              {/* Historical Progress Chart */}
+              <div className="md:col-span-2">
+                <SessionTimeChart />
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="sessions" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Session Management */}
               <UpcomingSessions />
-            </motion.div>
-
-            {/* Session Time Chart */}
-            <motion.div variants={item}>
+              
+              {/* Session Analytics */}
               <SessionTimeChart />
             </motion.div>
+          </TabsContent>
+        </AnimatePresence>
+      </Tabs>
 
-            {/* Communication Metrics */}
-            <motion.div variants={item} className="lg:col-span-3">
-              <CommunicationMetrics />
-            </motion.div>
-
-            {/* Therapy Insights Preview */}
-            <motion.div variants={item} className="lg:col-span-3">
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-white">Therapy Insights</h2>
-                  <button
-                    onClick={() => setActiveTab("insights")}
-                    className="text-green-500 hover:text-green-400 transition-colors text-sm"
-                  >
-                    View All →
-                  </button>
-                </div>
-                <p className="text-gray-400">
-                  Get personalized insights and recommendations based on your therapy progress.
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {activeTab === "progress" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RelationshipProgressCard />
-              <SessionTimeChart />
-            </div>
-            <div className="mt-6">
-              <CommunicationMetrics />
-            </div>
-          </motion.div>
-        )}
-
-        {activeTab === "sessions" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <UpcomingSessions />
-            <div className="mt-6 text-center">
-              <Link
-                href="/dashboard/sessions"
-                className="text-green-500 hover:text-green-400 transition-colors"
-              >
-                View All Sessions →
-              </Link>
-            </div>
-          </motion.div>
-        )}
-
-        {activeTab === "resources" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-700"
-          >
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Educational Resources
-            </h2>
-            <p className="text-gray-400 mb-6">
-              Explore guides, articles, and tools to strengthen your
-              relationship.
-            </p>
-            <Link
-              href="/dashboard/resources"
-              className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Browse Resources
-              <svg
-                className="w-5 h-5 ml-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </Link>
-          </motion.div>
-        )}
-
-        {activeTab === "insights" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <ComprehensiveTherapyInsights />
-          </motion.div>
+        {/* Real-time indicator */}
+        {isRealTimeConnected && (
+          <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-background/80 backdrop-blur-sm border rounded-full px-3 py-1.5 text-xs">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-muted-foreground">
+              Live updates active
+              {lastRealTimeUpdate && (
+                <span className="ml-1">
+                  • Last update: {new Date(lastRealTimeUpdate).toLocaleTimeString()}
+                </span>
+              )}
+            </span>
+          </div>
         )}
       </div>
-    </div>
+    </DashboardErrorBoundary>
   );
 }

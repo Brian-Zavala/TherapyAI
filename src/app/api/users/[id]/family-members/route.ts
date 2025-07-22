@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import { withRetry, withTransaction } from '@/lib/prisma-enhanced'
+import { familyMembersCache } from '@/lib/cache/family-members-cache'
 import { z } from 'zod'
 
 // Family member validation schema
@@ -22,21 +23,32 @@ const FamilyMembersUpdateSchema = z.object({
 // GET /api/users/[id]/family-members - Get family members
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     // Check authorization
-    if (!session?.user?.id || session.user.id !== params.id) {
+    if (!session?.user?.id || session.user.id !== id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check cache first
+    const cached = familyMembersCache.get(id)
+    if (cached) {
+      return NextResponse.json({
+        familyMembers: cached.data,
+        isLegacyFormat: cached.isLegacyFormat,
+        cached: true,
+      })
     }
 
     // Fetch family members with retry logic
     const familyMembers = await withRetry(async () => {
       return await prisma.familyMember.findMany({
         where: {
-          userId: params.id,
+          userId: id,
           isActive: true,
         },
         orderBy: {
@@ -53,11 +65,15 @@ export async function GET(
       })
     })
 
+    // Cache the results
+    familyMembersCache.set(id, familyMembers, false)
+
     // No backward compatibility needed - old schema fields have been migrated
 
     return NextResponse.json({
       familyMembers,
       isLegacyFormat: false,
+      cached: false,
     })
   } catch (error) {
     console.error('Error fetching family members:', error)
@@ -71,13 +87,14 @@ export async function GET(
 // PUT /api/users/[id]/family-members - Update family members
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     // Check authorization
-    if (!session?.user?.id || session.user.id !== params.id) {
+    if (!session?.user?.id || session.user.id !== id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -88,7 +105,7 @@ export async function PUT(
     const updatedMembers = await withTransaction(async (tx) => {
       // First, soft delete all existing family members
       await tx.familyMember.updateMany({
-        where: { userId: params.id },
+        where: { userId: id },
         data: { isActive: false },
       })
 
@@ -115,7 +132,7 @@ export async function PUT(
           // Create new member
           const created = await tx.familyMember.create({
             data: {
-              userId: params.id,
+              userId: id,
               name: member.name,
               age: member.age ?? null,
               relationship: member.relationship ?? '',
@@ -136,12 +153,15 @@ export async function PUT(
       }
 
       await tx.user.update({
-        where: { id: params.id },
+        where: { id: id },
         data: clearedFields,
       })
 
       return results
     })
+
+    // Invalidate cache after successful update
+    familyMembersCache.invalidate(id)
 
     return NextResponse.json({
       familyMembers: updatedMembers,
@@ -167,20 +187,21 @@ export async function PUT(
 // DELETE /api/users/[id]/family-members - Delete all family members
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     // Check authorization
-    if (!session?.user?.id || session.user.id !== params.id) {
+    if (!session?.user?.id || session.user.id !== id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Soft delete all family members
     const result = await prisma.familyMember.updateMany({
       where: {
-        userId: params.id,
+        userId: id,
         isActive: true,
       },
       data: {
@@ -188,6 +209,9 @@ export async function DELETE(
         updatedAt: new Date(),
       },
     })
+
+    // Invalidate cache after successful deletion
+    familyMembersCache.invalidate(id)
 
     return NextResponse.json({
       message: `Removed ${result.count} family members`,

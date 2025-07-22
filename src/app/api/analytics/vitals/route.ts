@@ -74,7 +74,25 @@ async function flushMetrics() {
 
 export async function POST(req: NextRequest) {
   try {
-    const metric: VitalMetric = await req.json();
+    let metric: VitalMetric;
+    
+    // Handle both JSON and text content types (for sendBeacon compatibility)
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (contentType.includes('application/json')) {
+      metric = await req.json();
+    } else {
+      // Handle plain text from sendBeacon
+      const text = await req.text();
+      try {
+        metric = JSON.parse(text);
+      } catch (e) {
+        return NextResponse.json(
+          { error: 'Invalid metric data format' },
+          { status: 400 }
+        );
+      }
+    }
     
     // Validate metric
     if (!metric.metric || typeof metric.value !== 'number') {

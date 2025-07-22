@@ -2,11 +2,13 @@
 "use client";
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { useProgressMetrics } from '@/hooks/useDashboardMetricsUnified';
+import { useProgressData } from '@/hooks/useDashboardDataUnified';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { 
   Heart,
   MessageSquare,
@@ -15,40 +17,123 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Award
+  Award,
+  Loader2,
+  Users,
+  Zap
 } from 'lucide-react';
 
 interface ProgressMetricProps {
   label: string;
   value: number;
   icon: React.ReactNode;
-  color: string;
+  metricType: 'progress' | 'empathy' | 'communication' | 'support';
+  description?: string;
 }
 
-function ProgressMetric({ label, value, icon, color }: ProgressMetricProps) {
-  const getProgressColor = (value: number) => {
-    if (value >= 80) return 'bg-green-500';
-    if (value >= 60) return 'bg-blue-500';
-    if (value >= 40) return 'bg-yellow-500';
-    return 'bg-red-500';
+function ProgressMetric({ label, value, icon, metricType, description }: ProgressMetricProps) {
+  const theme = getMetricTheme(metricType);
+  const [displayValue, setDisplayValue] = React.useState(0);
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDisplayValue(value), 100);
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  // Determine achievement level
+  const getAchievementBadge = (val: number) => {
+    if (val >= 90) return { label: 'Excellent', icon: Award, color: 'text-yellow-600' };
+    if (val >= 75) return { label: 'Strong', icon: Sparkles, color: 'text-purple-600' };
+    if (val >= 60) return { label: 'Good', icon: TrendingUp, color: 'text-blue-600' };
+    return null;
   };
 
+  const achievement = getAchievementBadge(value);
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${color} bg-opacity-20`}>
-            {icon}
+    <motion.div 
+      className="relative group"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.02 }}
+    >
+      <div className={`space-y-3 p-4 rounded-xl border transition-all duration-300 ${theme.background} border-gray-200 dark:border-gray-700 group-hover:${theme.shadow}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Animated icon container */}
+            <motion.div 
+              className={`p-3 rounded-xl bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
+              whileHover={{ rotate: [0, -5, 5, 0] }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="text-white">
+                {icon}
+              </div>
+            </motion.div>
+            
+            <div>
+              <span className={`${dashboardTheme.typography.label} text-gray-800 dark:text-gray-200`}>
+                {label}
+              </span>
+              {description && (
+                <p className={`${dashboardTheme.typography.caption} text-gray-600 dark:text-gray-400 mt-0.5`}>
+                  {description}
+                </p>
+              )}
+            </div>
           </div>
-          <span className="text-sm font-medium">{label}</span>
+          
+          {/* Achievement badge */}
+          {achievement && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-1"
+            >
+              <achievement.icon className={`h-4 w-4 ${achievement.color}`} />
+              <span className={`text-xs font-medium ${achievement.color}`}>
+                {achievement.label}
+              </span>
+            </motion.div>
+          )}
         </div>
-        <span className="text-sm font-semibold">{value}%</span>
+        
+        {/* Progress visualization */}
+        <div className="space-y-2">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-3" />
+            <motion.div
+              className={`absolute inset-y-0 left-0 h-3 rounded-full ${getProgressBarClasses(value)}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${displayValue}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+            >
+              {/* Pulse effect for high values */}
+              {value >= 80 && (
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-white/30"
+                  animate={{ opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              )}
+            </motion.div>
+            
+            {/* Value indicator */}
+            <motion.div
+              className="absolute -top-8 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-2 py-1 rounded text-xs font-medium"
+              style={{ left: `${displayValue}%`, transform: 'translateX(-50%)' }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              {displayValue}%
+            </motion.div>
+          </div>
+        </div>
       </div>
-      <Progress 
-        value={value} 
-        className={`h-2 ${getProgressColor(value)}`}
-      />
-    </div>
+    </motion.div>
   );
 }
 
@@ -59,23 +144,35 @@ export function RelationshipProgressUnified() {
     error, 
     loadingState,
     isRefetching
-  } = useProgressMetrics({
+  } = useProgressData({
     enableRealTime: true,
-    refreshInterval: 60000 // 1 minute
+    refetchInterval: 60000 // 1 minute
   });
 
   if (isLoading && !data) {
-    return <UnifiedLoadingState {...loadingState} />;
+    return (
+      <UnifiedLoadingState 
+        type="progress" 
+        message={dashboardTheme.loadingStates.progress.message}
+        variant="card"
+      />
+    );
   }
 
   if (error || !data) {
     return (
-      <Card className="w-full">
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">
-            <Heart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No progress data available</p>
-          </div>
+      <Card className="w-full border-0 shadow-sm">
+        <CardContent className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop}`}>
+          <motion.div 
+            className="text-center text-muted-foreground"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Heart className="h-8 w-8 mx-auto mb-3 opacity-50" />
+            <p className={dashboardTheme.typography.body}>No progress data available</p>
+            <p className={`${dashboardTheme.typography.caption} mt-1`}>Start your therapy journey to track progress</p>
+          </motion.div>
         </CardContent>
       </Card>
     );

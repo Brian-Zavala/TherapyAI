@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma-optimized';
+import { 
+  handleDashboardError, 
+  validateDashboardAuth,
+  withRetry,
+  DashboardError,
+  DashboardErrorCode
+} from '@/lib/api/dashboard-error-handler';
 
 export async function GET(request: Request) {
   try {
@@ -16,18 +23,21 @@ export async function GET(request: Request) {
     }
 
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { email } = await validateDashboardAuth(session);
 
     // Find the user in the database (might not be the same ID as the session)
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email as string }
-    });
+    const user = await withRetry(
+      () => prisma.user.findUnique({
+        where: { email }
+      })
+    );
 
     if (!user) {
-      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+      throw new DashboardError(
+        DashboardErrorCode.RECORD_NOT_FOUND,
+        'User not found in database',
+        404
+      );
     }
     
     // Define theme value for consistent filtering
@@ -45,25 +55,27 @@ export async function GET(request: Request) {
       dateFilter.gte = oneMonthAgo;
     }
 
-    // Get progress metrics from the ProgressTracking table
-    const progressData = await prisma.progressTracking.findMany({
-      where: {
-        userId: user.id,
-        ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
-      },
-      select: {
-        date: true,
-        closenessScore: true,
-        communicationScore: true,
-        notes: true,
-        sessionId: true,
-        assistantId: true // Include assistant ID
-      },
-      orderBy: {
-        date: 'asc'
-      },
-      take: 12 // Increased to show more data points
-    });
+    // Get progress metrics from the ProgressTracking table with retry
+    const progressData = await withRetry(
+      () => prisma.progressTracking.findMany({
+        where: {
+          userId: user.id,
+          ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
+        },
+        select: {
+          date: true,
+          closenessScore: true,
+          communicationScore: true,
+          notes: true,
+          sessionId: true,
+          assistantId: true // Include assistant ID
+        },
+        orderBy: {
+          date: 'asc'
+        },
+        take: 12 // Increased to show more data points
+      })
+    );
 
     // Format the data for the chart based on therapy type
     let formattedData;
@@ -153,23 +165,25 @@ export async function GET(request: Request) {
 
     // If no progress data found, analyze session data to get real metrics instead of using static defaults
     if (formattedData.length === 0) {
-      // Get completed sessions for the user
-      const completedSessions = await prisma.session.findMany({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          theme: themeValue
-        },
-        select: {
-          id: true,
-          date: true,
-          duration: true,
-          notes: true
-        },
-        orderBy: {
-          date: 'asc'
-        }
-      });
+      // Get completed sessions for the user with retry
+      const completedSessions = await withRetry(
+        () => prisma.session.findMany({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            theme: themeValue
+          },
+          select: {
+            id: true,
+            date: true,
+            duration: true,
+            notes: true
+          },
+          orderBy: {
+            date: 'asc'
+          }
+        })
+      );
       
       console.log(`Found ${completedSessions.length} completed sessions for ${therapyType} therapy`);
       
@@ -208,9 +222,10 @@ export async function GET(request: Request) {
     // If we have real data, return it
     return NextResponse.json(formattedData);
   } catch (error) {
-    console.error("Error fetching relationship progress data:", error);
-    
-    // Return empty array on error to show error state in UI
-    return NextResponse.json([]);
+    return handleDashboardError(error, {
+      route: '/api/dashboard/relationship-progress',
+      userId: (await getServerSession(authOptions))?.user?.id,
+      action: 'fetchRelationshipProgress',
+    });
   }
 }

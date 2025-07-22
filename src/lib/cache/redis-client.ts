@@ -22,7 +22,17 @@ class RedisClient {
     }
     
     try {
-      return await this.client.get(key);
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Redis GET timeout')), 3000)
+      );
+      
+      const result = await Promise.race([
+        this.client.get(key),
+        timeoutPromise
+      ]);
+      
+      return result;
     } catch (error) {
       console.error('[RedisClient] GET error:', error);
       return null;
@@ -39,6 +49,13 @@ class RedisClient {
     }
 
     try {
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis SET timeout')), 3000)
+      );
+      
+      let operation: Promise<string | null>;
+      
       // Handle different set signatures
       // set(key, value, 'EX', seconds, 'NX')
       if (args.length >= 2 && args[0] === 'EX') {
@@ -46,10 +63,13 @@ class RedisClient {
         if (args[2] === 'NX') {
           options.nx = true;
         }
-        return await this.client.set(key, value, options) as string;
+        operation = this.client.set(key, value, options) as Promise<string>;
+      } else {
+        operation = this.client.set(key, value) as Promise<string>;
       }
       
-      return await this.client.set(key, value) as string;
+      const result = await Promise.race([operation, timeoutPromise]);
+      return result;
     } catch (error) {
       console.error('[RedisClient] SET error:', error);
       return null;
@@ -62,7 +82,17 @@ class RedisClient {
     }
 
     try {
-      return await this.client.del(key);
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise<number>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis DEL timeout')), 3000)
+      );
+      
+      const result = await Promise.race([
+        this.client.del(key),
+        timeoutPromise
+      ]);
+      
+      return result;
     } catch (error) {
       console.error('[RedisClient] DEL error:', error);
       return 0;
@@ -75,7 +105,17 @@ class RedisClient {
     }
 
     try {
-      return await this.client.ping();
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis PING timeout')), 1000)
+      );
+      
+      const result = await Promise.race([
+        this.client.ping(),
+        timeoutPromise
+      ]);
+      
+      return result;
     } catch (error) {
       console.error('[RedisClient] PING error:', error);
       return null;
@@ -88,7 +128,17 @@ class RedisClient {
     }
 
     try {
-      return await this.client.expire(key, seconds);
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise<number>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis EXPIRE timeout')), 3000)
+      );
+      
+      const result = await Promise.race([
+        this.client.expire(key, seconds),
+        timeoutPromise
+      ]);
+      
+      return result;
     } catch (error) {
       console.error('[RedisClient] EXPIRE error:', error);
       return 0;
@@ -101,7 +151,17 @@ class RedisClient {
     }
 
     try {
-      return await this.client.exists(key);
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise<number>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis EXISTS timeout')), 3000)
+      );
+      
+      const result = await Promise.race([
+        this.client.exists(key),
+        timeoutPromise
+      ]);
+      
+      return result;
     } catch (error) {
       console.error('[RedisClient] EXISTS error:', error);
       return 0;

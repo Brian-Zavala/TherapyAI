@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { useMetricSubscription } from '@/components/dashboard/RealTimeMetricProvider';
+import { useSupabaseRealTimeMetrics } from '@/hooks/useSupabaseRealTimeMetrics';
 
 // ========================================
 // TYPES
@@ -202,24 +202,38 @@ export function useDashboardMetricsUnified(
   // REAL-TIME UPDATES
   // ========================================
   
-  useEffect(() => {
-    if (!enableRealTime || !session?.user?.id) return;
-    
-    const unsubscribe = useMetricSubscription((update) => {
-      // Update only the relevant part of the data
+  // Get current active session ID if available
+  const activeSessionId = realtimeData?.sessionId || '';
+  
+  const { currentMetrics } = useSupabaseRealTimeMetrics({
+    sessionId: activeSessionId,
+    userId: session?.user?.id || '',
+    role: 'consumer',
+    autoConnect: enableRealTime && !!session?.user?.id && !!activeSessionId,
+    onMetricsUpdate: (metrics) => {
+      // Update real-time data with new metrics
       setRealtimeData(prev => {
         const newData = { ...prev };
         
-        // Map real-time updates to our unified structure
-        if (update.type === 'communication_metric') {
+        // Map metrics to our unified structure
+        if (metrics.confidence !== undefined || metrics.engagement !== undefined) {
           newData.communicationMetrics = {
-            ...newData.communicationMetrics,
-            ...update.data
+            clarity: metrics.confidence || prev?.communicationMetrics?.clarity || 0,
+            empathy: metrics.engagement || prev?.communicationMetrics?.empathy || 0,
+            respect: metrics.speakingRate?.score || prev?.communicationMetrics?.respect || 0,
+            overall: metrics.overallScore || prev?.communicationMetrics?.overall || 0,
+            listening: metrics.listening || prev?.communicationMetrics?.listening || 0,
+            expression: metrics.expression || prev?.communicationMetrics?.expression || 0,
           };
-        } else if (update.type === 'progress_update') {
+        }
+        
+        if (metrics.sessionProgress) {
           newData.progressData = {
-            ...newData.progressData,
-            ...update.data
+            closenessScore: metrics.sessionProgress.closenessScore || prev?.progressData?.closenessScore || 0,
+            communicationScore: metrics.sessionProgress.communicationScore || prev?.progressData?.communicationScore || 0,
+            conflictResolution: metrics.sessionProgress.conflictResolution || prev?.progressData?.conflictResolution || 0,
+            emotionalSupport: metrics.sessionProgress.emotionalSupport || prev?.progressData?.emotionalSupport || 0,
+            trend: metrics.sessionProgress.trend || prev?.progressData?.trend || 'stable',
           };
         }
         
@@ -228,14 +242,8 @@ export function useDashboardMetricsUnified(
         
         return newData;
       });
-    }, [session?.user?.id]);
-    
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    };
-  }, [enableRealTime, session?.user?.id]);
+    },
+  });
   
   // ========================================
   // MERGE REAL-TIME WITH FETCHED DATA

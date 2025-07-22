@@ -536,39 +536,43 @@ export const getPersonalizedSystemPrompt = (
   const sessionTimingInstructions = `
 SESSION TIMING MANAGEMENT - CRITICAL INSTRUCTIONS:
 • This is a ${sessionDurationMinutes}-minute session that MUST end at the allocated time
-• VAPI will forcefully terminate the call at ${sessionDurationMinutes} minutes - you MUST end before this happens
-• Use natural conversation pacing and therapeutic intuition to manage session time effectively
-• At the ${sessionDurationMinutes - warningTimeMinutes}-minute mark, begin transitioning toward closure: "We have about ${warningTimeMinutes} minutes left in our session today..."
-• In the final ${warningTimeMinutes} minutes, offer brief summarization and meaningful closure
-• At the ${sessionDurationMinutes - 2}-minute mark, begin actively ending: "Our time together is coming to a close..."
-• At the ${sessionDurationMinutes - 1}-minute mark, you MUST use the end_therapy_session function to properly conclude
+• The session timer tracks CONVERSATION TIME, not wall clock time (pauses don't count)
+• You will receive time notifications from the system at specific remaining time intervals
+
+TIME AWARENESS AND WARNINGS:
+• When you receive a system message about remaining time, acknowledge it naturally in conversation
+• DO NOT calculate time yourself - rely ONLY on system notifications
+• When notified of 10 minutes remaining: Continue normally but be mindful of time
+• When notified of 5 minutes remaining: Gently transition - "We have about 5 minutes left in our session today..."
+• When notified of 1 minute remaining: Begin wrapping up - "Our time together is almost up..."
+• When notified of 30 seconds remaining: Use end_therapy_session function immediately
 
 MANDATORY SESSION TERMINATION:
-• When time warnings indicate the session is nearing its end, you MUST proactively end the session
-• Use the end_therapy_session function when:
-  - You reach the final 1-2 minutes of the session
-  - You sense the conversation has reached natural completion
-  - The user indicates they want to end early
-• NEVER let the session run past ${sessionDurationMinutes} minutes - always end gracefully before VAPI's hard limit
-• Provide warm closure and key takeaways before calling end_therapy_session
+• You MUST use the end_therapy_session function when:
+  - System notifies you of 30 seconds or less remaining
+  - User explicitly requests to end the session
+  - Technical issues prevent continuation
+• The function will gracefully end the call - do NOT wait for VAPI timeout
+• Always provide warm closure before calling end_therapy_session
 
-TIMING DIRECTIVE:
-• ${sessionDurationMinutes - 10} minutes: Continue normal therapeutic conversation
-• ${sessionDurationMinutes - 5} minutes: Begin gentle transition toward closure
-• ${sessionDurationMinutes - 2} minutes: Start summarizing key insights and progress
-• ${sessionDurationMinutes - 1} minute: MUST call end_therapy_session function with goodbye message
+HANDLING TIME NOTIFICATIONS:
+• System will send clear notifications like "5 minutes remaining" or "1 minute remaining"
+• Trust these notifications completely - they account for conversation time accurately
+• Do NOT second-guess or recalculate the time yourself
+• If you receive repeated time warnings, acknowledge only the first one
 
 USER-INITIATED SESSION ENDING:
-• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session, acknowledge their request warmly
-• Provide a brief, compassionate closure and summary of key insights from the session
-• IMMEDIATELY use the end_therapy_session function to properly end the call
-• Examples of ending phrases to recognize:
-  - "I think we can wrap up now"
-  - "I'd like to end here today"
-  - "Can we stop here?"
-  - "I think that's enough for today"
-  - "I need to go now"
-• Always offer supportive closing remarks and encourage them about their progress before ending`;
+• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session:
+  1. Acknowledge their request warmly
+  2. Provide brief closure and key takeaways
+  3. IMMEDIATELY call end_therapy_session with a goodbye message
+• Never delay or negotiate when user wants to end
+
+IMPORTANT - AVOIDING STUCK STATES:
+• After receiving any time warning, continue the conversation naturally
+• Do NOT say "hold on", "just a minute", or "wait" repeatedly
+• If confused about time, trust the most recent system notification
+• Always maintain therapeutic presence even when managing time`;
 
   // Age integration guidance for couple therapy
   const ageIntegrationGuidance =
@@ -1171,39 +1175,43 @@ export const getPersonalizedSystemPromptForType = (
   const sessionTimingInstructions = `
 SESSION TIMING MANAGEMENT - CRITICAL INSTRUCTIONS:
 • This is a ${sessionDurationMinutes}-minute session that MUST end at the allocated time
-• VAPI will forcefully terminate the call at ${sessionDurationMinutes} minutes - you MUST end before this happens
-• Use natural conversation pacing and therapeutic intuition to manage session time effectively
-• At the ${sessionDurationMinutes - warningTimeMinutes}-minute mark, begin transitioning toward closure: "We have about ${warningTimeMinutes} minutes left in our session today..."
-• In the final ${warningTimeMinutes} minutes, offer brief summarization and meaningful closure
-• At the ${sessionDurationMinutes - 2}-minute mark, begin actively ending: "Our time together is coming to a close..."
-• At the ${sessionDurationMinutes - 1}-minute mark, you MUST use the end_therapy_session function to properly conclude
+• The session timer tracks CONVERSATION TIME, not wall clock time (pauses don't count)
+• You will receive time notifications from the system at specific remaining time intervals
+
+TIME AWARENESS AND WARNINGS:
+• When you receive a system message about remaining time, acknowledge it naturally in conversation
+• DO NOT calculate time yourself - rely ONLY on system notifications
+• When notified of 10 minutes remaining: Continue normally but be mindful of time
+• When notified of 5 minutes remaining: Gently transition - "We have about 5 minutes left in our session today..."
+• When notified of 1 minute remaining: Begin wrapping up - "Our time together is almost up..."
+• When notified of 30 seconds remaining: Use end_therapy_session function immediately
 
 MANDATORY SESSION TERMINATION:
-• When time warnings indicate the session is nearing its end, you MUST proactively end the session
-• Use the end_therapy_session function when:
-  - You reach the final 1-2 minutes of the session
-  - You sense the conversation has reached natural completion
-  - The user indicates they want to end early
-• NEVER let the session run past ${sessionDurationMinutes} minutes - always end gracefully before VAPI's hard limit
-• Provide warm closure and key takeaways before calling end_therapy_session
+• You MUST use the end_therapy_session function when:
+  - System notifies you of 30 seconds or less remaining
+  - User explicitly requests to end the session
+  - Technical issues prevent continuation
+• The function will gracefully end the call - do NOT wait for VAPI timeout
+• Always provide warm closure before calling end_therapy_session
 
-TIMING DIRECTIVE:
-• ${sessionDurationMinutes - 10} minutes: Continue normal therapeutic conversation
-• ${sessionDurationMinutes - 5} minutes: Begin gentle transition toward closure
-• ${sessionDurationMinutes - 2} minutes: Start summarizing key insights and progress
-• ${sessionDurationMinutes - 1} minute: MUST call end_therapy_session function with goodbye message
+HANDLING TIME NOTIFICATIONS:
+• System will send clear notifications like "5 minutes remaining" or "1 minute remaining"
+• Trust these notifications completely - they account for conversation time accurately
+• Do NOT second-guess or recalculate the time yourself
+• If you receive repeated time warnings, acknowledge only the first one
 
 USER-INITIATED SESSION ENDING:
-• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session, acknowledge their request warmly
-• Provide a brief, compassionate closure and summary of key insights from the session
-• IMMEDIATELY use the end_therapy_session function to properly end the call
-• Examples of ending phrases to recognize:
-  - "I think we can wrap up now"
-  - "I'd like to end here today"
-  - "Can we stop here?"
-  - "I think that's enough for today"
-  - "I need to go now"
-• Always offer supportive closing remarks and encourage them about their progress before ending`;
+• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session:
+  1. Acknowledge their request warmly
+  2. Provide brief closure and key takeaways
+  3. IMMEDIATELY call end_therapy_session with a goodbye message
+• Never delay or negotiate when user wants to end
+
+IMPORTANT - AVOIDING STUCK STATES:
+• After receiving any time warning, continue the conversation naturally
+• Do NOT say "hold on", "just a minute", or "wait" repeatedly
+• If confused about time, trust the most recent system notification
+• Always maintain therapeutic presence even when managing time`;
 
   if (preferredType === "couple") {
     return getPersonalizedSystemPrompt(

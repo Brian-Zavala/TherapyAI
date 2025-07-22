@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma-optimized'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -17,7 +17,7 @@ export async function POST(
       )
     }
 
-    const sessionId = params.id
+    const { id: sessionId } = await params
 
     // Get the session and verify ownership
     const therapySession = await prisma.session.findUnique({

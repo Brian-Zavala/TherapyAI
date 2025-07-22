@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma-optimized';
+import { 
+  handleDashboardError, 
+  validateDashboardAuth,
+  withRetry,
+  DashboardError,
+  DashboardErrorCode
+} from '@/lib/api/dashboard-error-handler';
 
 export async function GET(request: Request) {
   try {
@@ -9,39 +16,44 @@ export async function GET(request: Request) {
     const therapyType = searchParams.get('type') || 'couple';
 
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { email } = await validateDashboardAuth(session);
 
     // Find the user in the database (might not be the same ID as the session)
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email as string }
-    });
+    const user = await withRetry(
+      () => prisma.user.findUnique({
+        where: { email }
+      })
+    );
 
     if (!user) {
-      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+      throw new DashboardError(
+        DashboardErrorCode.RECORD_NOT_FOUND,
+        'User not found in database',
+        404
+      );
     }
     
     // Always filter by therapy type for accurate data
     const themeValue = therapyType === 'couple' ? 'Relationship Counseling' : 
                        therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy';
     
-    // Get sessions for the specific therapy type only
-    const sessionData = await prisma.$queryRaw`
-      SELECT 
-        TO_CHAR(DATE_TRUNC('month', "date"), 'Mon') as month,
-        EXTRACT(YEAR FROM "date") as year,
-        SUM(duration) as sessionTime,
-        COUNT(*) as sessionCount
-      FROM "Session"
-      WHERE "userId" = ${user.id}
-        AND "status" = 'COMPLETED'
-        AND "theme" = ${themeValue}
-        AND "date" >= NOW() - INTERVAL '6 months'
-      GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
-      ORDER BY DATE_TRUNC('month', "date")
-    `;
+    // Get sessions for the specific therapy type only with retry
+    const sessionData = await withRetry(
+      () => prisma.$queryRaw`
+        SELECT 
+          TO_CHAR(DATE_TRUNC('month', "date"), 'Mon') as month,
+          EXTRACT(YEAR FROM "date") as year,
+          SUM(duration) as sessionTime,
+          COUNT(*) as sessionCount
+        FROM "Session"
+        WHERE "userId" = ${user.id}
+          AND "status" = 'COMPLETED'
+          AND "theme" = ${themeValue}
+          AND "date" >= NOW() - INTERVAL '6 months'
+        GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
+        ORDER BY DATE_TRUNC('month', "date")
+      `
+    );
 
     // Format for the chart
     const formattedData = (sessionData as any[]).map((item: any) => ({
@@ -58,9 +70,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json(formattedData);
   } catch (error) {
-    console.error("Error fetching session time data:", error);
-    
-    // Return empty array on error to show error state in UI
-    return NextResponse.json([]);
+    return handleDashboardError(error, {
+      route: '/api/dashboard/session-time',
+      userId: (await getServerSession(authOptions))?.user?.id,
+      action: 'fetchSessionTime',
+    });
   }
 }

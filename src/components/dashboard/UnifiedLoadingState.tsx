@@ -2,25 +2,93 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Brain, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Brain, 
+  Loader2, 
+  MessageSquare, 
+  TrendingUp, 
+  Calendar,
+  Heart,
+  Activity,
+  BarChart3,
+  Sparkles
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { dashboardTheme } from '@/lib/dashboard-theme';
 
 // ========================================
 // TYPES
 // ========================================
 
 export interface UnifiedLoadingStateProps {
-  type: 'brain' | 'skeleton' | 'spinner' | 'none';
+  type: 'brain' | 'skeleton' | 'spinner' | 'none' | 'communication' | 'progress' | 'session' | 'insights';
   message?: string;
   className?: string;
   variant?: 'card' | 'inline' | 'fullscreen';
+  metricType?: keyof typeof dashboardTheme.loadingStates;
 }
 
 // ========================================
 // LOADING COMPONENTS
 // ========================================
 
+// Communication metrics loader
+function CommunicationLoader({ message }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative"
+      >
+        <MessageSquare className="h-12 w-12 text-blue-600" />
+        <motion.div
+          className="absolute inset-0 bg-blue-500 opacity-20 rounded-full"
+          animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      </motion.div>
+      <div className="text-center space-y-2">
+        <p className={`text-lg font-medium ${dashboardTheme.typography.h3}`}>
+          {message || dashboardTheme.loadingStates.communication.message}
+        </p>
+        <p className={`${dashboardTheme.typography.bodySmall} text-muted-foreground`}>
+          Evaluating conversation patterns
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Progress metrics loader
+function ProgressLoader({ message }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+      <motion.div className="relative">
+        <TrendingUp className="h-12 w-12 text-green-600" />
+        <motion.div
+          className="absolute -top-2 -right-2"
+          animate={{ y: [-2, -8, -2] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          <Sparkles className="h-4 w-4 text-yellow-500" />
+        </motion.div>
+      </motion.div>
+      <div className="text-center space-y-2">
+        <p className={`text-lg font-medium ${dashboardTheme.typography.h3}`}>
+          {message || dashboardTheme.loadingStates.progress.message}
+        </p>
+        <p className={`${dashboardTheme.typography.bodySmall} text-muted-foreground`}>
+          Tracking growth over time
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Therapy insights loader (Brain)
 function BrainLoader({ message }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center space-y-4 py-12">
@@ -28,15 +96,56 @@ function BrainLoader({ message }: { message?: string }) {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
+        className="relative"
       >
-        <Brain className="h-12 w-12 text-purple-600 animate-pulse" />
+        <Brain className="h-12 w-12 text-purple-600" />
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        >
+          <div className="h-full w-full rounded-full border-2 border-purple-200 border-t-purple-600" />
+        </motion.div>
       </motion.div>
       <div className="text-center space-y-2">
-        <p className="text-lg font-medium">
-          {message || 'Analyzing your therapy journey...'}
+        <p className={`text-lg font-medium ${dashboardTheme.typography.h3}`}>
+          {message || dashboardTheme.loadingStates.insights.message}
         </p>
-        <p className="text-sm text-muted-foreground">
-          Generating personalized insights and recommendations
+        <p className={`${dashboardTheme.typography.bodySmall} text-muted-foreground`}>
+          Creating personalized recommendations
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Session analytics loader
+function SessionLoader({ message }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+      <motion.div className="relative">
+        <Calendar className="h-12 w-12 text-blue-600" />
+        <motion.div
+          className="absolute top-0 right-0 flex space-x-1"
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: 2, repeat: Infinity, staggerChildren: 0.2 }}
+        >
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="h-2 w-2 bg-blue-500 rounded-full"
+              animate={{ scale: [0, 1, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
+      <div className="text-center space-y-2">
+        <p className={`text-lg font-medium ${dashboardTheme.typography.h3}`}>
+          {message || dashboardTheme.loadingStates.sessions.message}
+        </p>
+        <p className={`${dashboardTheme.typography.bodySmall} text-muted-foreground`}>
+          Organizing your therapy timeline
         </p>
       </div>
     </div>
@@ -82,16 +191,20 @@ export function UnifiedLoadingState({
   type,
   message,
   className = '',
-  variant = 'card'
+  variant = 'card',
+  metricType
 }: UnifiedLoadingStateProps) {
   if (type === 'none') return null;
   
   const content = (
-    <>
-      {type === 'brain' && <BrainLoader message={message} />}
+    <AnimatePresence mode="wait">
+      {(type === 'brain' || type === 'insights') && <BrainLoader message={message} />}
+      {type === 'communication' && <CommunicationLoader message={message} />}
+      {type === 'progress' && <ProgressLoader message={message} />}
+      {type === 'session' && <SessionLoader message={message} />}
       {type === 'skeleton' && <SkeletonLoader message={message} />}
       {type === 'spinner' && <SpinnerLoader message={message} />}
-    </>
+    </AnimatePresence>
   );
   
   if (variant === 'inline') {

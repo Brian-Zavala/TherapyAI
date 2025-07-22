@@ -513,6 +513,16 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         keys: Object.keys(message || {})
       })
       
+      // Log transcript messages specifically
+      if ((message as any).type === 'transcript') {
+        console.log('🎙️ TRANSCRIPT MESSAGE RECEIVED:', {
+          role: (message as any).role,
+          text: (message as any).transcript?.substring(0, 50) + '...',
+          transcriptType: (message as any).transcriptType,
+          hasOnMessage: !!optionsRef.current.onMessage
+        })
+      }
+      
       // Check for function calls
       if (isFunctionCallMessage(message) && message.functionCall) {
         console.log('🔧 Function call:', message.functionCall.name)

@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
       age: profile?.age || null,
       partnerName: profile?.partnerName || "",
       partnerAge: profile?.partnerAge || null,
-      relationshipStatus: profile?.relationshipStatus || "Married",
+      relationshipStatus: profile?.relationshipStatus || "",
       ...familyMemberData,
       currentConcerns: profile?.currentConcerns || null,
       emergencyContact: profile?.emergencyContact || "",
@@ -116,6 +116,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Cache the response
+    const cacheKey = cacheKeys.userProfileByEmail(session.user.email)
     await profileCache.set(cacheKey, responseData)
     
     console.log(`[Profile API] Fetched profile for ${session.user.email} (${Date.now() - startTime}ms)`)
@@ -189,7 +190,7 @@ export async function PATCH(request: Request) {
           userId: user.id,
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
-          relationshipStatus: data.relationshipStatus || 'Married',
+          relationshipStatus: data.relationshipStatus || null,
           ...notificationData,
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -206,7 +207,7 @@ export async function PATCH(request: Request) {
         update: {
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
-          relationshipStatus: data.relationshipStatus || 'Married',
+          relationshipStatus: data.relationshipStatus || null,
           ...notificationData,
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -379,7 +380,7 @@ export async function PUT(request: Request) {
           userId: user.id,
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
-          relationshipStatus: data.relationshipStatus || 'Married',
+          relationshipStatus: data.relationshipStatus || null,
           notificationPrefs: data.notificationPrefs || 'email',
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
@@ -397,7 +398,7 @@ export async function PUT(request: Request) {
         update: {
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(data.age) : null,
-          relationshipStatus: data.relationshipStatus || 'Married',
+          relationshipStatus: data.relationshipStatus || null,
           notificationPrefs: data.notificationPrefs || 'email',
           partnerName: data.partnerName || null,
           partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,

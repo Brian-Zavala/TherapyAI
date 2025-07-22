@@ -16,7 +16,7 @@ const paramsSchema = z.object({
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Validate session
@@ -29,7 +29,8 @@ export async function POST(
     }
 
     // Validate params
-    const { id: sessionId } = paramsSchema.parse(params)
+    const awaitedParams = await params
+    const { id: sessionId } = paramsSchema.parse(awaitedParams)
 
     console.log(`🔍 Manual reconciliation requested for session ${sessionId} by user ${session.user.id}`)
 

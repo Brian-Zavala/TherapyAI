@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
+import DigitalClock from "@/components/DigitalClock";
 import UnifiedSessionModal, { SessionModalMode } from "@/components/UnifiedSessionModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,10 +16,14 @@ import {
 } from "@/lib/vapi";
 import { useProfile } from "@/providers/ProfileProvider";
 import { isSessionActive as checkSessionActive } from "@/lib/utils/session-status";
+import { useFamilyMembersEnhanced } from "@/hooks/useFamilyMembersEnhanced";
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const { profile } = useProfile();
+  
+  // Family members hook
+  const { familyMembers, loading: familyMembersLoading } = useFamilyMembersEnhanced({ autoSave: false });
   
   // Session recovery hook - only runs on therapy page
   const { isChecking: isCheckingForSession, hasActiveSession, shouldAutoRestart } = useTherapySessionRecovery();
@@ -67,7 +72,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     return () => clearTimeout(timer)
   }, []) // Only run once on mount
 
-  const [currentTime, setCurrentTime] = useState(new Date());
+  // currentTime state removed - no longer needed with DigitalClock component
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
   
@@ -233,50 +238,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     familyMember7Relation?: string;
   }>({});
 
-  // Digital clock state - optimized to single state update
-  const [clockData, setClockData] = useState({
-    hours: "",
-    minutes: "",
-    seconds: "",
-    ampm: "",
-    day: "",
-    month: "",
-    date: 0,
-    year: 0
-  });
+  // Digital clock state removed - now using DigitalClock component
 
   // Removed - now using ProfileProvider
 
-  // Update time function for digital clock - optimized with single state update
-  const updateClock = useCallback(() => {
-    const now = new Date();
-    
-    const hour24 = now.getHours();
-    const isAM = hour24 < 12;
-    let hour12 = hour24;
-    if (hour12 === 0) hour12 = 12; // Convert midnight (0) to 12
-    if (hour12 > 12) hour12 -= 12; // Convert 13-23 to 1-11
-
-    const monthList = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-    ];
-    const dayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-    // Single state update to prevent multiple re-renders
-    setClockData({
-      hours: hour12 < 10 ? "0" + hour12 : hour12.toString(),
-      minutes: now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes().toString(),
-      seconds: now.getSeconds() < 10 ? "0" + now.getSeconds() : now.getSeconds().toString(),
-      ampm: isAM ? "AM" : "PM",
-      day: dayList[now.getDay()],
-      month: monthList[now.getMonth()],
-      date: now.getDate(),
-      year: now.getFullYear()
-    });
-    
-    setCurrentTime(now);
-  }, []);
+  // Update time function removed - now handled by DigitalClock component
 
   useEffect(() => {
     const checkActive = () => {
@@ -313,18 +279,13 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     
     window.addEventListener('sessionStateChanged', handleSessionStateChange);
 
-    // Initial update
-    updateClock();
-
-    // Set up interval
-    const timer = setInterval(updateClock, 1000);
+    // Clock updates now handled by DigitalClock component
 
     return () => {
       observer.disconnect();
-      clearInterval(timer);
       window.removeEventListener('sessionStateChanged', handleSessionStateChange);
     };
-  }, [updateClock]);
+  }, []);
   
   // Listen for session ended event to show therapy type selector
   useEffect(() => {
@@ -410,21 +371,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     }, 1000); // Show 3 for 1 second
   };
 
-  // These are kept for compatibility with older code
-  const formattedTime = currentTime.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-
-  const formattedDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  }).format(currentTime);
-
-  // Format date in the style from the digital clock component
-  const digitalClockDate = `${clockData.day}, ${clockData.month} ${clockData.date} ${clockData.year}`;
+  // Time formatting removed - now handled by DigitalClock component
 
   // Function to open therapist selection modal
   const openTherapistSelector = () => {
@@ -793,6 +740,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         /* No-op: User must select a therapist */
       },
       onSelect: handleSelectTherapyType,
+      hasFamilyMembers: familyMembers.length > 0,
+      familyMembersLoading: familyMembersLoading,
+      // User has partner if they have a partner name OR they're in a relationship status that implies a partner
+      hasPartner: Boolean(profile?.partnerName) || 
+                  ['dating', 'engaged', 'married', 'in a relationship'].includes(profile?.relationshipStatus?.toLowerCase() || ''),
+      profileLoading: false, // Profile is already loaded from ProfileProvider
     }),
 
     // Stars background for session
@@ -929,72 +882,14 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   },
                   [
                     // Digital time display
+                    // Digital clock component - isolated from re-renders
                     React.createElement(
                       "div",
                       {
-                        key: "digital-time",
-                        className: `digital-time ${isSessionActive ? "neon-text" : ""}`,
+                        key: "digital-clock-wrapper",
+                        className: isSessionActive ? "neon-text" : "",
                       },
-                      [
-                        React.createElement(
-                          "div",
-                          {
-                            key: "hours",
-                            className: "hours",
-                          },
-                          clockData.hours
-                        ),
-                        React.createElement(
-                          "div",
-                          {
-                            key: "separator1",
-                            className: "separator",
-                          },
-                          ":"
-                        ),
-                        React.createElement(
-                          "div",
-                          {
-                            key: "minutes",
-                            className: "minutes",
-                          },
-                          clockData.minutes
-                        ),
-                        React.createElement(
-                          "div",
-                          {
-                            key: "separator2",
-                            className: "separator",
-                          },
-                          ":"
-                        ),
-                        React.createElement(
-                          "div",
-                          {
-                            key: "seconds",
-                            className: "seconds",
-                          },
-                          clockData.seconds
-                        ),
-                        React.createElement(
-                          "div",
-                          {
-                            key: "am-pm",
-                            className: "am-pm",
-                          },
-                          clockData.ampm
-                        ),
-                      ]
-                    ),
-
-                    // Digital date display
-                    React.createElement(
-                      "div",
-                      {
-                        key: "digital-date",
-                        className: `digital-date ${isSessionActive ? "neon-text" : ""}`,
-                      },
-                      digitalClockDate
+                      React.createElement(DigitalClock, {})
                     ),
                   ]
                 ),

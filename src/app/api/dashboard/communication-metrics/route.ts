@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma-optimized';
+import { 
+  handleDashboardError, 
+  validateDashboardAuth,
+  withRetry,
+  DashboardError,
+  DashboardErrorCode
+} from '@/lib/api/dashboard-error-handler';
 
 export async function GET(request: Request) {
   try {
@@ -10,54 +17,61 @@ export async function GET(request: Request) {
     const therapyType = searchParams.get('type') || 'couple';
 
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { email } = await validateDashboardAuth(session);
 
     // Find the user in the database (might not be the same ID as the session)
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email as string }
-    });
+    const user = await withRetry(
+      () => prisma.user.findUnique({
+        where: { email }
+      })
+    );
 
     if (!user) {
-      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+      throw new DashboardError(
+        DashboardErrorCode.RECORD_NOT_FOUND,
+        'User not found in database',
+        404
+      );
     }
     
     // Define theme value for consistent filtering
     const themeValue = therapyType === 'couple' ? 'Relationship Counseling' : 
                      therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy';
 
-    // Get the 3 most recent completed sessions for this therapy type
-    const recentSessions = await prisma.session.findMany({
-      where: {
-        userId: user.id,
-        status: 'COMPLETED',
-        theme: themeValue
-      },
-      orderBy: {
-        date: 'desc'
-      },
-      take: 3,
-      select: {
-        id: true,
-        duration: true,
-        date: true
-      }
-    });
+    // Get the 3 most recent completed sessions for this therapy type with retry
+    const recentSessions = await withRetry(
+      () => prisma.session.findMany({
+        where: {
+          userId: user.id,
+          status: 'COMPLETED',
+          theme: themeValue
+        },
+        orderBy: {
+          date: 'desc'
+        },
+        take: 3,
+        select: {
+          id: true,
+          duration: true,
+          date: true
+        }
+      })
+    );
 
     // Get transcript entries for recent sessions
     let transcriptAnalysis = null;
     if (recentSessions.length > 0) {
       const sessionIds = recentSessions.map(s => s.id);
-      const transcriptEntries = await prisma.transcriptEntry.findMany({
-        where: {
-          sessionId: { in: sessionIds }
-        },
-        orderBy: {
-          timestamp: 'asc'
-        }
-      });
+      const transcriptEntries = await withRetry(
+        () => prisma.transcriptEntry.findMany({
+          where: {
+            sessionId: { in: sessionIds }
+          },
+          orderBy: {
+            timestamp: 'asc'
+          }
+        })
+      );
       
       if (transcriptEntries.length > 0) {
         // Import the analysis function from metrics-helper
@@ -74,20 +88,22 @@ export async function GET(request: Request) {
       }
     }
 
-    // Get communication metrics from the CommunicationMetric table
+    // Get communication metrics from the CommunicationMetric table with retry
     // Use assistantId if available, otherwise use the latest metrics
-    const metrics = await prisma.communicationMetric.findFirst({
-      where: {
-        userId: user.id,
-        // Filter by therapy type using assistantId pattern matching
-        ...(therapyType === 'couple' && { metricType: { not: 'real-time' } }),
-        ...(therapyType === 'solo' && { metricType: { not: 'real-time' } }),
-        ...(therapyType === 'family' && { metricType: { not: 'real-time' } })
-      },
-      orderBy: {
-        calculatedAt: 'desc'
-      }
-    });
+    const metrics = await withRetry(
+      () => prisma.communicationMetric.findFirst({
+        where: {
+          userId: user.id,
+          // Filter by therapy type using assistantId pattern matching
+          ...(therapyType === 'couple' && { metricType: { not: 'real-time' } }),
+          ...(therapyType === 'solo' && { metricType: { not: 'real-time' } }),
+          ...(therapyType === 'family' && { metricType: { not: 'real-time' } })
+        },
+        orderBy: {
+          calculatedAt: 'desc'
+        }
+      })
+    );
     
     // If we have transcript analysis, use it to influence the most recent metrics
     if (transcriptAnalysis && metrics) {
@@ -110,18 +126,20 @@ export async function GET(request: Request) {
 
     // If no metrics found, query the session data to generate real metrics based on actual session history
     if (!metrics) {
-      // Get completed sessions for this user to analyze real data
-      const completedSessions = await prisma.session.findMany({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          theme: themeValue
-        },
-        orderBy: {
-          date: 'desc'
-        },
-        take: 10 // Use last 10 sessions for analysis
-      });
+      // Get completed sessions for this user to analyze real data with retry
+      const completedSessions = await withRetry(
+        () => prisma.session.findMany({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            theme: themeValue
+          },
+          orderBy: {
+            date: 'desc'
+          },
+          take: 10 // Use last 10 sessions for analysis
+        })
+      );
       
       // If there are completed sessions, calculate metrics based on actual session data
       if (completedSessions.length > 0) {
@@ -132,13 +150,15 @@ export async function GET(request: Request) {
         const avgDuration = totalDuration / sessionCount;
         // Check for transcript entries instead of transcript field
         const sessionIds = completedSessions.map(s => s.id);
-        const transcriptCounts = await prisma.transcriptEntry.groupBy({
-          by: ['sessionId'],
-          where: {
-            sessionId: { in: sessionIds }
-          },
-          _count: true
-        });
+        const transcriptCounts = await withRetry(
+          () => prisma.transcriptEntry.groupBy({
+            by: ['sessionId'],
+            where: {
+              sessionId: { in: sessionIds }
+            },
+            _count: true
+          })
+        );
         const hasTranscript = transcriptCounts.length;
         const transcriptRatio = hasTranscript / sessionCount * 100;
         
@@ -172,13 +192,15 @@ export async function GET(request: Request) {
       
       // Check if there are any completed sessions for this therapy type
       // before returning empty array
-      const completedSessionsCount = await prisma.session.count({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          theme: themeValue
-        }
-      });
+      const completedSessionsCount = await withRetry(
+        () => prisma.session.count({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            theme: themeValue
+          }
+        })
+      );
       
       // If there are no completed sessions, return empty metrics array
       if (completedSessionsCount === 0) {
@@ -190,14 +212,16 @@ export async function GET(request: Request) {
 
     // Get real metrics based on therapy type from database
     if (therapyType === 'solo') {
-      // Get completed sessions count
-      const completedSessions = await prisma.session.count({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          theme: themeValue // Use our consistent theme value
-        }
-      });
+      // Get completed sessions count with retry
+      const completedSessions = await withRetry(
+        () => prisma.session.count({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            theme: themeValue // Use our consistent theme value
+          }
+        })
+      );
       
       // Only return metrics if there are completed sessions
       if (completedSessions > 0) {
@@ -213,14 +237,16 @@ export async function GET(request: Request) {
         return NextResponse.json([]);
       }
     } else if (therapyType === 'family') {
-      // Calculate from the primary metrics as a fallback
-      const completedSessions = await prisma.session.count({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          theme: themeValue // Use our consistent theme value
-        }
-      });
+      // Calculate from the primary metrics as a fallback with retry
+      const completedSessions = await withRetry(
+        () => prisma.session.count({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            theme: themeValue // Use our consistent theme value
+          }
+        })
+      );
       
       // Only return metrics if there are completed sessions
       if (completedSessions > 0) {
@@ -237,14 +263,16 @@ export async function GET(request: Request) {
     } else {
       // Default 'couple' metrics - handle case where metrics might be null  
       if (!metrics) {
-        // If we don't have metrics, use session count to generate baseline metrics
-        const completedSessions = await prisma.session.count({
-          where: {
-            userId: user.id,
-            status: 'COMPLETED',
-            theme: themeValue // Use our consistent theme value
-          }
-        });
+        // If we don't have metrics, use session count to generate baseline metrics with retry
+        const completedSessions = await withRetry(
+          () => prisma.session.count({
+            where: {
+              userId: user.id,
+              status: 'COMPLETED',
+              theme: themeValue // Use our consistent theme value
+            }
+          })
+        );
         
         // Only return metrics if there are completed sessions
         if (completedSessions > 0) {
@@ -271,10 +299,10 @@ export async function GET(request: Request) {
       }
     }
   } catch (error) {
-    console.error("Error fetching communication metrics:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch communication metrics" },
-      { status: 500 }
-    );
+    return handleDashboardError(error, {
+      route: '/api/dashboard/communication-metrics',
+      userId: (await getServerSession(authOptions))?.user?.id,
+      action: 'fetchCommunicationMetrics',
+    });
   }
 }

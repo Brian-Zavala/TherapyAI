@@ -56,6 +56,13 @@ interface UseTranscriptHandlerReturn {
 export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseTranscriptHandlerReturn {
   const { sessionId, onTranscriptUpdate, onMetricsUpdate, onError } = options
   
+  // Buffer for transcripts that arrive before sessionId is available
+  const pendingTranscriptsRef = useRef<Array<{
+    type: 'user' | 'assistant';
+    text: string;
+    timestamp: string;
+  }>>([])
+  
   // Get transcript strategy
   const strategyRef = useRef(getTranscriptStrategy())
   
@@ -89,7 +96,28 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   
   // Process consolidated assistant message
   const processConsolidatedAssistantMessage = useCallback(async (consolidatedText: string) => {
-    if (!sessionId || !consolidatedText.trim()) return
+    if (!consolidatedText.trim()) return
+    
+    // If no sessionId yet, buffer the transcript
+    if (!sessionId) {
+      console.log('📦 TRANSCRIPT HANDLER: Buffering assistant transcript until sessionId available');
+      pendingTranscriptsRef.current.push({
+        type: 'assistant',
+        text: consolidatedText,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Still update UI
+      if (isMountedRef.current) {
+        const newChunk = `AI: ${consolidatedText}`
+        setTranscriptChunks(prev => {
+          const updated = [...prev, newChunk]
+          onTranscriptUpdate?.(updated)
+          return updated
+        })
+      }
+      return;
+    }
     
     try {
       console.log('🤖 Processing consolidated assistant message')
@@ -150,6 +178,9 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
         }
+      } else if (!sessionId) {
+        console.warn('⚠️ TRANSCRIPT HANDLER: Cannot save transcript - no sessionId available')
+        console.warn('   This usually means the session hasn\'t been created in the database yet')
       } else if (sessionId && !shouldSaveTranscript('realtime')) {
         console.log('📋 Real-time transcript saving disabled by strategy - buffering for UI only')
       }
@@ -169,7 +200,28 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   
   // Process consolidated user message
   const processConsolidatedUserMessage = useCallback(async (consolidatedText: string) => {
-    if (!sessionId || !consolidatedText.trim()) return
+    if (!consolidatedText.trim()) return
+    
+    // If no sessionId yet, buffer the transcript
+    if (!sessionId) {
+      console.log('📦 TRANSCRIPT HANDLER: Buffering user transcript until sessionId available');
+      pendingTranscriptsRef.current.push({
+        type: 'user',
+        text: consolidatedText,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Still update UI
+      if (isMountedRef.current) {
+        const newChunk = `You: ${consolidatedText}`
+        setTranscriptChunks(prev => {
+          const updated = [...prev, newChunk]
+          onTranscriptUpdate?.(updated)
+          return updated
+        })
+      }
+      return;
+    }
     
     try {
       console.log('👤 Processing consolidated user message')
@@ -225,6 +277,9 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
         }
+      } else if (!sessionId) {
+        console.warn('⚠️ TRANSCRIPT HANDLER: Cannot save transcript - no sessionId available')
+        console.warn('   This usually means the session hasn\'t been created in the database yet')
       } else if (sessionId && !shouldSaveTranscript('realtime')) {
         console.log('📋 Real-time transcript saving disabled by strategy - buffering for UI only')
       }
@@ -244,6 +299,14 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   
   // Handle VAPI messages
   const handleVapiMessage = useCallback(async (message: VapiMessage, vapiInstance: ExtendedVapi | null) => {
+    console.log('🎙️ TRANSCRIPT HANDLER: handleVapiMessage called');
+    console.log('🔍 TRANSCRIPT HANDLER: Message details:', {
+      type: message.type,
+      hasSessionId: !!sessionId,
+      messageKeys: Object.keys(message),
+      isTranscript: message.type === 'transcript'
+    });
+    
     try {
       // Log message type for debugging
       console.log(`📨 VAPI Message: ${message.type}`)
@@ -533,6 +596,37 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     return () => clearInterval(backupInterval)
   }, [sessionId, transcriptChunks.length, saveTranscriptBackup])
   
+  // Process buffered transcripts when sessionId becomes available
+  useEffect(() => {
+    if (sessionId && pendingTranscriptsRef.current.length > 0) {
+      console.log(`🚀 TRANSCRIPT HANDLER: Processing ${pendingTranscriptsRef.current.length} buffered transcripts`);
+      
+      const processPendingTranscripts = async () => {
+        const pending = [...pendingTranscriptsRef.current];
+        pendingTranscriptsRef.current = []; // Clear buffer
+        
+        for (const entry of pending) {
+          try {
+            const transcriptData = markTranscriptSource({
+              sessionId,
+              speaker: entry.type,
+              text: entry.text,
+              timestamp: entry.timestamp,
+              isFinal: true
+            }, 'buffered');
+            
+            await addTranscriptEntry(transcriptData);
+            console.log(`✅ Saved buffered ${entry.type} transcript`);
+          } catch (error) {
+            console.error('Failed to save buffered transcript:', error);
+          }
+        }
+      };
+      
+      processPendingTranscripts();
+    }
+  }, [sessionId]);
+  
   // Cleanup on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
@@ -549,6 +643,7 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       userBufferRef.current = ''
       assistantBufferRef.current = ''
       lastConversationMetadataRef.current = null
+      pendingTranscriptsRef.current = []
     }
   }, [])
   

@@ -2,14 +2,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { useTherapyInsights } from '@/hooks/useDashboardMetricsUnified';
+import { useTherapyInsights } from '@/hooks/useDashboardDataUnified';
 import { TherapyInsightsErrorBoundary } from '@/components/therapy-insights';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { 
   Brain, 
   Heart, 
@@ -39,19 +41,34 @@ const categoryIcons = {
   progress: TrendingUp
 };
 
-const categoryColors = {
-  communication: 'bg-blue-500',
-  emotional: 'bg-pink-500',
-  behavioral: 'bg-purple-500',
-  'mental-health': 'bg-green-500',
-  relationship: 'bg-red-500',
-  progress: 'bg-yellow-500'
-};
+const categoryMapping = {
+  communication: 'communication',
+  emotional: 'empathy',
+  behavioral: 'support',
+  'mental-health': 'progress',
+  relationship: 'empathy',
+  progress: 'progress'
+} as const;
 
-const priorityColors = {
-  high: 'bg-red-100 text-red-700 border-red-200',
-  medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  low: 'bg-green-100 text-green-700 border-green-200'
+const priorityConfig = {
+  high: {
+    background: 'bg-red-50 dark:bg-red-900/20',
+    text: 'text-red-700 dark:text-red-400',
+    border: 'border-red-200 dark:border-red-800',
+    icon: AlertCircle
+  },
+  medium: {
+    background: 'bg-amber-50 dark:bg-amber-900/20',
+    text: 'text-amber-700 dark:text-amber-400',
+    border: 'border-amber-200 dark:border-amber-800',
+    icon: Clock
+  },
+  low: {
+    background: 'bg-green-50 dark:bg-green-900/20',
+    text: 'text-green-700 dark:text-green-400',
+    border: 'border-green-200 dark:border-green-800',
+    icon: CheckCircle2
+  }
 };
 
 export function ComprehensiveTherapyInsightsUnified() {
@@ -66,23 +83,34 @@ export function ComprehensiveTherapyInsightsUnified() {
     loadingState 
   } = useTherapyInsights({
     enableRealTime: true,
-    refreshInterval: 60000 // 1 minute
+    refetchInterval: 60000 // 1 minute
   });
 
   // Use unified loading state
-  if (isLoading) {
-    return <UnifiedLoadingState {...loadingState} />;
+  if (isLoading && !data) {
+    return (
+      <UnifiedLoadingState 
+        type="insights" 
+        message={dashboardTheme.loadingStates.insights.message}
+        variant="card"
+      />
+    );
   }
 
   if (error || !data) {
     return (
-      <Card className="w-full">
-        <CardContent className="p-8">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Insights Temporarily Unavailable</h3>
-            <p className="text-muted-foreground">Continue your therapy sessions to unlock personalized insights.</p>
-          </div>
+      <Card className="w-full border-0 shadow-sm">
+        <CardContent className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop}`}>
+          <motion.div 
+            className="text-center text-muted-foreground"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Brain className="h-8 w-8 mx-auto mb-3 opacity-50" />
+            <p className={dashboardTheme.typography.body}>No therapy insights available</p>
+            <p className={`${dashboardTheme.typography.caption} mt-1`}>Complete more sessions to receive AI-powered insights</p>
+          </motion.div>
         </CardContent>
       </Card>
     );
@@ -106,19 +134,39 @@ export function ComprehensiveTherapyInsightsUnified() {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Brain className="h-6 w-6 text-purple-600" />
-            <CardTitle className="text-2xl">AI Therapy Insights</CardTitle>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Card className={`w-full border-0 ${dashboardTheme.shadows.md} hover:${dashboardTheme.shadows.lg} transition-shadow duration-300`}>
+        <CardHeader className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop} pb-4`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div 
+                className={`p-2 rounded-lg bg-gradient-to-br ${dashboardTheme.metrics.support.gradient}`}
+                whileHover={{ rotate: [0, -5, 5, 0] }}
+                transition={{ duration: 0.5 }}
+              >
+                <Brain className="h-5 w-5 text-white" />
+              </motion.div>
+              <CardTitle className={dashboardTheme.typography.h2}>AI Therapy Insights</CardTitle>
+            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <Badge 
+                variant="outline" 
+                className="gap-1 border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
+              >
+                <Activity className="h-3 w-3" />
+                {summary.overallProgress}
+              </Badge>
+            </motion.div>
           </div>
-          <Badge variant="outline" className="gap-1">
-            <Activity className="h-3 w-3" />
-            {summary.overallProgress}
-          </Badge>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -138,62 +186,130 @@ export function ComprehensiveTherapyInsightsUnified() {
 
           <TabsContent value="insights" className="space-y-6 mt-6">
             {/* Progress Overview */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="space-y-2">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <motion.div 
+                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Communication</span>
-                  <span className="text-xs text-muted-foreground">{trends.communication}</span>
+                  <span className={dashboardTheme.typography.label}>Communication</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {trends.communication}
+                  </Badge>
                 </div>
-                <Progress value={getProgressValue(trends.communication)} className="h-2" />
-              </div>
-              <div className="space-y-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5" />
+                  <motion.div
+                    className={`absolute inset-y-0 left-0 h-2.5 rounded-full ${getProgressBarClasses(getProgressValue(trends.communication))}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${getProgressValue(trends.communication)}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border border-pink-200 dark:border-pink-800"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Emotional Connection</span>
-                  <span className="text-xs text-muted-foreground">{trends.emotional}</span>
+                  <span className={dashboardTheme.typography.label}>Emotional Connection</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {trends.emotional}
+                  </Badge>
                 </div>
-                <Progress value={getProgressValue(trends.emotional)} className="h-2" />
-              </div>
-              <div className="space-y-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5" />
+                  <motion.div
+                    className={`absolute inset-y-0 left-0 h-2.5 rounded-full ${getProgressBarClasses(getProgressValue(trends.emotional))}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${getProgressValue(trends.emotional)}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+                  />
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border border-green-200 dark:border-green-800"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Consistency</span>
-                  <span className="text-xs text-muted-foreground">{trends.consistency}</span>
+                  <span className={dashboardTheme.typography.label}>Consistency</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {trends.consistency}
+                  </Badge>
                 </div>
-                <Progress value={getProgressValue(trends.consistency)} className="h-2" />
-              </div>
-            </div>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5" />
+                  <motion.div
+                    className={`absolute inset-y-0 left-0 h-2.5 rounded-full ${getProgressBarClasses(getProgressValue(trends.consistency))}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${getProgressValue(trends.consistency)}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
 
             {/* Insights List */}
             <div className="space-y-4">
-              {insights.map((insight) => {
+              {insights.map((insight, index) => {
                 const Icon = categoryIcons[insight.category];
+                const metricType = categoryMapping[insight.category] || 'support';
+                const theme = getMetricTheme(metricType as any);
+                const priorityStyle = priorityConfig[insight.priority];
                 const isExpanded = expandedInsight === insight.id;
                 
                 return (
-                  <div
+                  <motion.div
                     key={insight.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="border rounded-xl p-4 hover:shadow-lg transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                     onClick={() => setExpandedInsight(isExpanded ? null : insight.id)}
+                    whileHover={{ scale: 1.01 }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${categoryColors[insight.category]} bg-opacity-20`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
+                      <motion.div 
+                        className={`p-2.5 rounded-lg bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
+                        whileHover={{ rotate: [0, -5, 5, 0] }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Icon className="h-5 w-5 text-white" />
+                      </motion.div>
                       
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start justify-between">
                           <h4 className="font-semibold">{insight.title}</h4>
                           <Badge 
                             variant="outline" 
-                            className={`ml-2 ${priorityColors[insight.priority]}`}
+                            className={`ml-2 ${priorityStyle.background} ${priorityStyle.text} ${priorityStyle.border}`}
                           >
+                            <priorityStyle.icon className="h-3 w-3 mr-1" />
                             {insight.priority}
                           </Badge>
                         </div>
                         
                         <p className="text-sm text-muted-foreground">{insight.description}</p>
                         
-                        {isExpanded && (
-                          <div className="mt-4 space-y-4">
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div 
+                              className="mt-4 space-y-4"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
                             {/* Action Items */}
                             <div>
                               <h5 className="font-medium mb-2 flex items-center gap-2">
@@ -234,16 +350,22 @@ export function ComprehensiveTherapyInsightsUnified() {
                                   Recommended Resources
                                 </h5>
                                 <div className="space-y-2">
-                                  {insight.resources.map((resource, index) => (
-                                    <div key={index} className="ml-6 p-3 bg-gray-50 rounded-lg">
-                                      <h6 className="font-medium text-sm">{resource.title}</h6>
-                                      <p className="text-xs text-muted-foreground mt-1">
+                                  {insight.resources.map((resource, idx) => (
+                                    <motion.div 
+                                      key={idx} 
+                                      className="ml-6 p-3 bg-gradient-to-r from-gray-50 to-blue-50/30 dark:from-gray-800 dark:to-blue-900/10 rounded-lg border border-gray-200 dark:border-gray-700"
+                                      initial={{ opacity: 0, x: -20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: idx * 0.1 }}
+                                    >
+                                      <h6 className={`${dashboardTheme.typography.label} text-gray-800 dark:text-gray-200`}>{resource.title}</h6>
+                                      <p className={`${dashboardTheme.typography.caption} mt-1`}>
                                         {resource.description}
                                       </p>
                                       <Badge variant="secondary" className="mt-2 text-xs">
                                         {resource.type}
                                       </Badge>
-                                    </div>
+                                    </motion.div>
                                   ))}
                                 </div>
                               </div>
@@ -258,18 +380,24 @@ export function ComprehensiveTherapyInsightsUnified() {
                                 </span>
                               </div>
                             )}
-                          </div>
-                        )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                         
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-xs text-muted-foreground">
                             Based on: {insight.basedOn.join(', ')}
                           </span>
-                          <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          <motion.div
+                            animate={{ rotate: isExpanded ? 90 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </motion.div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -284,12 +412,23 @@ export function ComprehensiveTherapyInsightsUnified() {
               </h3>
               <div className="space-y-3">
                 {summary.weeklyGoals.map((goal, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                    <div className="flex items-center justify-center w-6 h-6 bg-green-600 text-white rounded-full text-xs font-bold">
+                  <motion.div 
+                    key={index} 
+                    className="flex items-start gap-3 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <motion.div 
+                      className="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-green-500 to-green-700 text-white rounded-full text-xs font-bold shadow-md"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
                       {index + 1}
-                    </div>
-                    <p className="text-sm flex-1">{goal}</p>
-                  </div>
+                    </motion.div>
+                    <p className={dashboardTheme.typography.body}>{goal}</p>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -302,9 +441,16 @@ export function ComprehensiveTherapyInsightsUnified() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {summary.focusAreas.map((area, index) => (
-                  <div key={index} className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
-                    <h4 className="font-medium text-sm">{area}</h4>
-                  </div>
+                  <motion.div 
+                    key={index} 
+                    className="p-4 border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.03 }}
+                  >
+                    <h4 className={`${dashboardTheme.typography.label} text-amber-800 dark:text-amber-200`}>{area}</h4>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -315,13 +461,24 @@ export function ComprehensiveTherapyInsightsUnified() {
                 <Award className="h-5 w-5 text-purple-600" />
                 Your Strengths
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <motion.div className="flex flex-wrap gap-2">
                 {summary.topStrengths.map((strength, index) => (
-                  <Badge key={index} variant="secondary" className="px-3 py-1">
-                    {strength}
-                  </Badge>
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1, type: "spring", stiffness: 500 }}
+                  >
+                    <Badge 
+                      variant="secondary" 
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                    >
+                      <Award className="h-3 w-3 mr-1.5" />
+                      {strength}
+                    </Badge>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </div>
           </TabsContent>
 
@@ -333,11 +490,23 @@ export function ComprehensiveTherapyInsightsUnified() {
                 Daily Practices
               </h3>
               <div className="space-y-2">
-                {personalizedTips.daily.map((tip, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    <p className="text-sm">{tip}</p>
-                  </div>
+                {personalizedTips?.daily?.map((tip, index) => (
+                  <motion.div 
+                    key={index} 
+                    className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ x: 5 }}
+                  >
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </motion.div>
+                    <p className={dashboardTheme.typography.bodySmall}>{tip}</p>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -349,11 +518,23 @@ export function ComprehensiveTherapyInsightsUnified() {
                 Weekly Goals
               </h3>
               <div className="space-y-2">
-                {personalizedTips.weekly.map((tip, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                    <ArrowRight className="h-4 w-4 text-purple-600" />
-                    <p className="text-sm">{tip}</p>
-                  </div>
+                {personalizedTips?.weekly?.map((tip, index) => (
+                  <motion.div 
+                    key={index} 
+                    className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ x: 5 }}
+                  >
+                    <motion.div
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+                    >
+                      <ArrowRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </motion.div>
+                    <p className={dashboardTheme.typography.bodySmall}>{tip}</p>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -365,10 +546,25 @@ export function ComprehensiveTherapyInsightsUnified() {
                 Recommended Exercises
               </h3>
               <div className="space-y-3">
-                {personalizedTips.exercises.map((exercise, index) => (
-                  <div key={index} className="p-4 border border-green-200 bg-green-50 rounded-lg">
-                    <p className="text-sm font-medium">{exercise}</p>
-                  </div>
+                {personalizedTips?.exercises?.map((exercise, index) => (
+                  <motion.div 
+                    key={index} 
+                    className="p-4 border border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <motion.div
+                        animate={{ rotate: [0, 360] }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                      >
+                        <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </motion.div>
+                      <p className={`${dashboardTheme.typography.bodySmall} font-medium text-green-800 dark:text-green-200`}>{exercise}</p>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -376,6 +572,7 @@ export function ComprehensiveTherapyInsightsUnified() {
         </Tabs>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }
 

@@ -42,7 +42,7 @@ export async function createOrUpdateUserProfile(userId: string, data: any) {
       reminderTiming: data.reminderTiming,
       partnerName: data.partnerName,
       partnerAge: data.partnerAge,
-      relationshipStatus: data.relationshipStatus || 'Married',
+      relationshipStatus: data.relationshipStatus || null,
       currentConcerns: data.currentConcerns,
       additionalNotes: data.additionalNotes,
       assistantId: data.assistantId,
