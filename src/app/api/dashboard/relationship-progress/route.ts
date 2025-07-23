@@ -97,7 +97,7 @@ export async function GET(request: Request) {
         if (closenessChange < 0 && commChange > 3) return "Communication strategies effective";
         return "Steady family therapy progress";
       } else {
-        // Couple therapy insights
+        // Couple AI insights
         if (overallChange > 5) return "Relationship breakthrough";
         if (overallChange > 2) return "Positive relationship momentum";
         if (overallChange < -2) return "Working through relationship challenges";

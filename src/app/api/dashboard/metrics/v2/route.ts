@@ -391,8 +391,8 @@ function transformMetricsToData(metric: any, type: string): MetricData[] {
   return mapping.map((m, index) => ({
     id: `metric-${m.key}`,
     name: m.name,
-    value: Math.round(metric[m.key] || metric.overall || 50),
-    confidence: metric.confidence || 70,
+    value: Math.round(metric[m.key] || metric.overall || 0),
+    confidence: metric.confidence || 0,
     source: metric.metricType === 'assessment' ? 'assessment' : 'session',
     timestamp: metric.calculatedAt.toISOString()
   }));

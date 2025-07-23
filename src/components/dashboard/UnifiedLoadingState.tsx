@@ -88,7 +88,7 @@ function ProgressLoader({ message }: { message?: string }) {
   );
 }
 
-// Therapy insights loader (Brain)
+// AI insights loader (Brain)
 function BrainLoader({ message }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center space-y-4 py-12">

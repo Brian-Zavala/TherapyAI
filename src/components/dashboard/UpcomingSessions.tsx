@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format, isBefore, addHours, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDashboardLoading } from '@/app/dashboard/page';
 
 type Session = {
   id: string;
@@ -18,6 +19,7 @@ type Session = {
 };
 
 export default function UpcomingSessions() {
+  const { isInitialLoading } = useDashboardLoading();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -129,6 +131,11 @@ export default function UpcomingSessions() {
       label: `In ${differenceInDays(date, now)} days`
     };
   };
+
+  // Show placeholder during initial dashboard load
+  if (isInitialLoading) {
+    return null;
+  }
 
   if (loading) {
     return (

@@ -208,8 +208,8 @@ export class TherapyInsightsErrorBoundary extends Component<Props, State> {
           {/* Description */}
           <p className="text-gray-300 mb-6 max-w-sm">
             {isNetworkError
-              ? "We're having trouble connecting to load your therapy insights. Please check your connection and try again."
-              : "Your therapy insights couldn't be loaded at this time. This might be temporary."}
+              ? "We're having trouble connecting to load your AI insights. Please check your connection and try again."
+              : "Your AI insights couldn't be loaded at this time. This might be temporary."}
           </p>
 
           {/* Retry info */}

@@ -220,17 +220,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session is not active' }, { status: 400 })
     }
 
-    // Create real-time metric entry
+    // Create real-time metric entry - only store if we have actual values
+    // Don't store fake/default values in the database
+    if (!metrics || Object.values(metrics).every(val => val === undefined || val === null)) {
+      return NextResponse.json({ error: 'No valid metrics provided' }, { status: 400 });
+    }
+
     const metricEntry = await prisma.communicationMetric.create({
       data: {
         userId: session.user.id,
         sessionId,
-        clarity: metrics.clarity || 50,
-        empathy: metrics.empathy || 50,
-        respect: metrics.respect || 50,
-        overall: metrics.overall || 50,
-        listening: metrics.listening || 50,
-        expression: metrics.expression || 50,
+        clarity: metrics.clarity || 0,
+        empathy: metrics.empathy || 0,
+        respect: metrics.respect || 0,
+        overall: metrics.overall || 0,
+        listening: metrics.listening || 0,
+        expression: metrics.expression || 0,
         metricType: 'real-time',
         calculatedAt: new Date(),
       },

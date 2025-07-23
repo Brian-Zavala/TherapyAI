@@ -69,7 +69,7 @@
 @layer animations {
   /* All keyframes and animation classes */
   
-  /* Slide animations for therapy insights */
+  /* Slide animations for AI insights */
   @keyframes slide-in-from-top-2 {
     from {
       transform: translateY(-0.5rem);
@@ -81,6 +81,217 @@
     }
   }
   
+  /* Sophisticated float animation - gentle breathing effect */
+  @keyframes sophisticated-float {
+    0%, 100% {
+      transform: translateY(0) scale(1) translateZ(0);
+      filter: brightness(1);
+    }
+    25% {
+      transform: translateY(-4px) scale(1.02) translateZ(0);
+      filter: brightness(1.05);
+    }
+    50% {
+      transform: translateY(-2px) scale(1.01) translateZ(0);
+      filter: brightness(1.02);
+    }
+    75% {
+      transform: translateY(-3px) scale(1.015) translateZ(0);
+      filter: brightness(1.03);
+    }
+  }
+  
+  /* Liquid morphing animation for icon containers - gentle wobble */
+  @keyframes liquid-morph {
+    0%, 100% {
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      transform: scale(1) translateY(0);
+    }
+    25% {
+      border-radius: 30% 70% 70% 30% / 30% 70% 30% 70%;
+      transform: scale(1.02) translateY(-2px);
+    }
+    50% {
+      border-radius: 70% 30% 30% 70% / 70% 30% 70% 30%;
+      transform: scale(1) translateY(0);
+    }
+    75% {
+      border-radius: 40% 60% 60% 40% / 60% 40% 40% 60%;
+      transform: scale(0.98) translateY(1px);
+    }
+  }
+  
+  /* Glass reflection shimmer */
+  @keyframes glass-shimmer {
+    0% {
+      background-position: -200% 0;
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      background-position: 200% 0;
+      opacity: 0;
+    }
+  }
+  
+  /* Number typing effect - simulates typing animation */
+  @keyframes number-type {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+    20% {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+    40%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  /* Cascade wave for staggered card animations */
+  @keyframes cascade-wave {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+      opacity: 0.8;
+    }
+    20% {
+      transform: translateY(-8px) scale(1.05);
+      opacity: 1;
+    }
+    40% {
+      transform: translateY(-4px) scale(1.02);
+      opacity: 0.95;
+    }
+    60% {
+      transform: translateY(-2px) scale(1.01);
+      opacity: 0.9;
+    }
+  }
+  
+  /* Breathing glow for cards */
+  @keyframes breathing-glow {
+    0%, 100% {
+      box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+    50% {
+      box-shadow: 
+        0 10px 25px -5px rgba(0, 0, 0, 0.15),
+        0 5px 10px -3px rgba(0, 0, 0, 0.08),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.2),
+        0 0 20px rgba(59, 130, 246, 0.15);
+    }
+  }
+  
+  /* Counter update animation - smooth fade transition */
+  @keyframes counter-update {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      filter: blur(0);
+    }
+    50% {
+      transform: translateY(-3px) scale(1.05);
+      opacity: 0.7;
+      filter: blur(0.5px);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+  
+  /* Progress bar wave animation - enhanced with rotation */
+  @keyframes progress-wave {
+    0% {
+      transform: translateX(-100%) translateY(0) skewX(-20deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.3;
+    }
+    50% {
+      transform: translateX(0%) translateY(-2px) skewX(0deg);
+      opacity: 0.6;
+    }
+    90% {
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateX(100%) translateY(0) skewX(20deg);
+      opacity: 0;
+    }
+  }
+  
+  /* Progress bar pulse - enhanced with scale */
+  @keyframes progress-pulse {
+    0%, 100% {
+      opacity: 0.8;
+      filter: brightness(1) saturate(1);
+      transform: scaleY(1);
+    }
+    50% {
+      opacity: 1;
+      filter: brightness(1.1) saturate(1.2);
+      transform: scaleY(1.05);
+    }
+  }
+  
+  /* Metric value animation - gentle glow pulse */
+  @keyframes value-glow {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+      text-shadow: 0 0 0 transparent;
+    }
+    50% {
+      transform: scale(1.02);
+      opacity: 0.95;
+      text-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    }
+  }
+  
+  /* Gradient shift animation */
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
+  /* Progress complete flourish - enhanced celebration */
+  @keyframes progress-complete {
+    0% {
+      transform: scaleY(1) scaleX(1);
+      filter: brightness(1) hue-rotate(0deg);
+    }
+    25% {
+      transform: scaleY(1.15) scaleX(0.95);
+      filter: brightness(1.2) hue-rotate(5deg);
+    }
+    50% {
+      transform: scaleY(1.2) scaleX(1.1);
+      filter: brightness(1.3) hue-rotate(10deg);
+    }
+    75% {
+      transform: scaleY(1.1) scaleX(1.05);
+      filter: brightness(1.1) hue-rotate(5deg);
+    }
+    100% {
+      transform: scaleY(1) scaleX(1);
+      filter: brightness(1) hue-rotate(0deg);
+    }
+  }
+  
   .animate-in {
     animation-duration: 0.2s;
     animation-fill-mode: both;
@@ -89,6 +300,120 @@
   .slide-in-from-top-2 {
     animation-name: slide-in-from-top-2;
   }
+  
+  .sophisticated-float {
+    animation: sophisticated-float 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation-play-state: paused;
+  }
+  
+  .sophisticated-float-active {
+    animation-play-state: running;
+  }
+  
+  .liquid-morph {
+    animation: liquid-morph 8s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  
+  .liquid-morph-active {
+    animation-play-state: running;
+  }
+  
+  .progress-wave {
+    animation: progress-wave 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation-play-state: paused;
+  }
+  
+  .progress-wave-active {
+    animation-play-state: running;
+  }
+  
+  .progress-pulse {
+    animation: progress-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation-play-state: paused;
+  }
+  
+  .progress-pulse-active {
+    animation-play-state: running;
+  }
+  
+  .value-glow {
+    animation: value-glow 3s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  
+  .value-glow-active {
+    animation-play-state: running;
+  }
+  
+  .gradient-shift {
+    animation: gradient-shift 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    background-size: 200% 200%;
+    animation-play-state: paused;
+  }
+  
+  .gradient-shift-active {
+    animation-play-state: running;
+  }
+  
+  /* New animation classes */
+  .breathing-glow {
+    animation: breathing-glow 4s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  
+  .breathing-glow-active {
+    animation-play-state: running;
+  }
+  
+  .cascade-wave {
+    animation: cascade-wave 2s ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .counter-update {
+    animation: counter-update 0.4s ease-in-out;
+    animation-fill-mode: both;
+  }
+  
+  .number-type {
+    animation: number-type 0.3s ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .glass-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .glass-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    animation: glass-shimmer 3s ease-in-out;
+    animation-play-state: paused;
+  }
+  
+  .glass-shimmer-active::after {
+    animation-play-state: running;
+  }
+  
+  /* Stagger delay utilities */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
 }
 
 /* High-specificity overrides */

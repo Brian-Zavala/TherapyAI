@@ -147,18 +147,15 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
 
 // Helper function to analyze transcript and extract metrics
 export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60, variability = 10, therapyType: string = 'couple') {
-  // Default metrics if no transcript
+  // Return 0 values if no transcript - don't show fake data
   if (!transcript) {
-    // Adjust default scores based on therapy type
-    const typeBonus = therapyType === 'family' ? 3 : 0;
-    
     return {
-      closenessScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
-      communicationScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
-      activeListeningScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
-      expressingNeedsScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
-      conflictResolutionScore: baseScore + Math.floor(Math.random() * variability) + typeBonus,
-      emotionalSupportScore: baseScore + Math.floor(Math.random() * variability) + typeBonus
+      closenessScore: 0,
+      communicationScore: 0,
+      activeListeningScore: 0,
+      expressingNeedsScore: 0,
+      conflictResolutionScore: 0,
+      emotionalSupportScore: 0
     };
   }
   

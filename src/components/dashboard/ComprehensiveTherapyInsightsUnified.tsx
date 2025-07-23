@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { useTherapyInsights } from '@/hooks/useDashboardDataUnified';
+import { useTherapyInsightsFromContext } from '@/hooks/useDashboardContext';
 import { TherapyInsightsErrorBoundary } from '@/components/therapy-insights';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { 
@@ -75,16 +75,13 @@ export function ComprehensiveTherapyInsightsUnified() {
   const [activeTab, setActiveTab] = useState('insights');
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
 
-  // Use unified hook for therapy insights
+  // Use unified hook for AI insights from context
   const { 
     data, 
     isLoading, 
     error, 
     loadingState 
-  } = useTherapyInsights({
-    enableRealTime: true,
-    refetchInterval: 60000 // 1 minute
-  });
+  } = useTherapyInsightsFromContext();
 
   // Use unified loading state
   if (isLoading && !data) {
@@ -108,7 +105,7 @@ export function ComprehensiveTherapyInsightsUnified() {
             transition={{ duration: 0.3 }}
           >
             <Brain className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p className={dashboardTheme.typography.body}>No therapy insights available</p>
+            <p className={dashboardTheme.typography.body}>No AI insights available</p>
             <p className={`${dashboardTheme.typography.caption} mt-1`}>Complete more sessions to receive AI-powered insights</p>
           </motion.div>
         </CardContent>
@@ -150,7 +147,7 @@ export function ComprehensiveTherapyInsightsUnified() {
               >
                 <Brain className="h-5 w-5 text-white" />
               </motion.div>
-              <CardTitle className={dashboardTheme.typography.h2}>AI Therapy Insights</CardTitle>
+              <CardTitle className={dashboardTheme.typography.h2}>AI Insights</CardTitle>
             </div>
             <motion.div
               initial={{ scale: 0 }}
@@ -169,16 +166,25 @@ export function ComprehensiveTherapyInsightsUnified() {
         </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="insights" className="gap-2">
+          <TabsList className="grid w-full grid-cols-3 bg-white/95 dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
+            <TabsTrigger 
+              value="insights" 
+              className="gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 data-[state=active]:border-blue-200 dark:data-[state=active]:border-blue-700 transition-all duration-200 cursor-pointer"
+            >
               <Lightbulb className="h-4 w-4" />
               Key Insights
             </TabsTrigger>
-            <TabsTrigger value="action-plan" className="gap-2">
+            <TabsTrigger 
+              value="action-plan" 
+              className="gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-900/20 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 data-[state=active]:border-purple-200 dark:data-[state=active]:border-purple-700 transition-all duration-200 cursor-pointer"
+            >
               <Target className="h-4 w-4" />
               Action Plan
             </TabsTrigger>
-            <TabsTrigger value="tips" className="gap-2">
+            <TabsTrigger 
+              value="tips" 
+              className="gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 data-[state=active]:bg-green-50 dark:data-[state=active]:bg-green-900/20 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300 data-[state=active]:border-green-200 dark:data-[state=active]:border-green-700 transition-all duration-200 cursor-pointer"
+            >
               <Sparkles className="h-4 w-4" />
               Daily Tips
             </TabsTrigger>
@@ -193,7 +199,7 @@ export function ComprehensiveTherapyInsightsUnified() {
               transition={{ delay: 0.2 }}
             >
               <motion.div 
-                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800"
+                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 hover:from-blue-100 hover:to-blue-200/50 dark:hover:from-blue-900/30 dark:hover:to-blue-800/20 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
@@ -215,7 +221,7 @@ export function ComprehensiveTherapyInsightsUnified() {
               </motion.div>
               
               <motion.div 
-                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border border-pink-200 dark:border-pink-800"
+                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border border-pink-200 dark:border-pink-800 hover:from-pink-100 hover:to-pink-200/50 dark:hover:from-pink-900/30 dark:hover:to-pink-800/20 hover:border-pink-300 dark:hover:border-pink-700 transition-all duration-200 cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
@@ -237,7 +243,7 @@ export function ComprehensiveTherapyInsightsUnified() {
               </motion.div>
               
               <motion.div 
-                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border border-green-200 dark:border-green-800"
+                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border border-green-200 dark:border-green-800 hover:from-green-100 hover:to-green-200/50 dark:hover:from-green-900/30 dark:hover:to-green-800/20 hover:border-green-300 dark:hover:border-green-700 transition-all duration-200 cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
@@ -274,7 +280,7 @@ export function ComprehensiveTherapyInsightsUnified() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="border rounded-xl p-4 hover:shadow-lg transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                    className="border rounded-xl p-4 hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                     onClick={() => setExpandedInsight(isExpanded ? null : insight.id)}
                     whileHover={{ scale: 1.01 }}
                   >

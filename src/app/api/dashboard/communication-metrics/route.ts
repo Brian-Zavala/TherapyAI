@@ -109,10 +109,10 @@ export async function GET(request: Request) {
     if (transcriptAnalysis && metrics) {
       // Create a weighted blend: 70% from metrics, 30% from recent transcript analysis
       const blendedMetrics = {
-        listening: Math.round((metrics.listening || 50) * 0.7 + transcriptAnalysis.activeListeningScore * 0.3),
-        expression: Math.round((metrics.expression || 50) * 0.7 + transcriptAnalysis.expressingNeedsScore * 0.3),
-        respect: Math.round(metrics.respect * 0.7 + transcriptAnalysis.conflictResolutionScore * 0.3),
-        empathy: Math.round(metrics.empathy * 0.7 + transcriptAnalysis.emotionalSupportScore * 0.3)
+        listening: Math.round((metrics.listening || 0) * 0.7 + transcriptAnalysis.activeListeningScore * 0.3),
+        expression: Math.round((metrics.expression || 0) * 0.7 + transcriptAnalysis.expressingNeedsScore * 0.3),
+        respect: Math.round((metrics.respect || 0) * 0.7 + transcriptAnalysis.conflictResolutionScore * 0.3),
+        empathy: Math.round((metrics.empathy || 0) * 0.7 + transcriptAnalysis.emotionalSupportScore * 0.3)
       };
       
       // Return the blended metrics
@@ -124,74 +124,8 @@ export async function GET(request: Request) {
       ]);
     }
 
-    // If no metrics found, query the session data to generate real metrics based on actual session history
+    // If no metrics found, check if there are completed sessions
     if (!metrics) {
-      // Get completed sessions for this user to analyze real data with retry
-      const completedSessions = await withRetry(
-        () => prisma.session.findMany({
-          where: {
-            userId: user.id,
-            status: 'COMPLETED',
-            theme: themeValue
-          },
-          orderBy: {
-            date: 'desc'
-          },
-          take: 10 // Use last 10 sessions for analysis
-        })
-      );
-      
-      // If there are completed sessions, calculate metrics based on actual session data
-      if (completedSessions.length > 0) {
-        // Initialize metrics based on therapy type
-        let calculatedMetrics;
-        const sessionCount = completedSessions.length;
-        const totalDuration = completedSessions.reduce((sum, session) => sum + (session.duration || 0), 0);
-        const avgDuration = totalDuration / sessionCount;
-        // Check for transcript entries instead of transcript field
-        const sessionIds = completedSessions.map(s => s.id);
-        const transcriptCounts = await withRetry(
-          () => prisma.transcriptEntry.groupBy({
-            by: ['sessionId'],
-            where: {
-              sessionId: { in: sessionIds }
-            },
-            _count: true
-          })
-        );
-        const hasTranscript = transcriptCounts.length;
-        const transcriptRatio = hasTranscript / sessionCount * 100;
-        
-        // Generate metrics based on actual session data and therapy type
-        if (therapyType === 'solo') {
-          calculatedMetrics = [
-            { name: "Self-awareness", value: Math.min(100, Math.round(avgDuration * 0.6) + (transcriptRatio * 0.3)) },
-            { name: "Emotional Regulation", value: Math.min(100, Math.round(sessionCount * 5) + (transcriptRatio * 0.2)) },
-            { name: "Personal Growth", value: Math.min(100, Math.round(avgDuration * 0.5) + Math.round(sessionCount * 4)) },
-            { name: "Coping Skills", value: Math.min(100, Math.round(sessionCount * 6) + (transcriptRatio * 0.25)) }
-          ];
-        } else if (therapyType === 'family') {
-          calculatedMetrics = [
-            { name: "Family Communication", value: Math.min(100, Math.round(avgDuration * 0.5) + (transcriptRatio * 0.35)) },
-            { name: "Role Definition", value: Math.min(100, Math.round(sessionCount * 6) + (transcriptRatio * 0.15)) },
-            { name: "Conflict Management", value: Math.min(100, Math.round(avgDuration * 0.4) + Math.round(sessionCount * 4)) },
-            { name: "Family Bonding", value: Math.min(100, Math.round(sessionCount * 7) + (transcriptRatio * 0.2)) }
-          ];
-        } else {
-          // Default 'couple' metrics
-          calculatedMetrics = [
-            { name: "Active Listening", value: Math.min(100, Math.round(avgDuration * 0.5) + (transcriptRatio * 0.3)) },
-            { name: "Expressing Needs", value: Math.min(100, Math.round(sessionCount * 5) + (transcriptRatio * 0.25)) },
-            { name: "Conflict Resolution", value: Math.min(100, Math.round(avgDuration * 0.4) + Math.round(sessionCount * 5)) },
-            { name: "Emotional Support", value: Math.min(100, Math.round(sessionCount * 6) + (transcriptRatio * 0.2)) }
-          ];
-        }
-        
-        return NextResponse.json(calculatedMetrics);
-      }
-      
-      // Check if there are any completed sessions for this therapy type
-      // before returning empty array
       const completedSessionsCount = await withRetry(
         () => prisma.session.count({
           where: {
@@ -202,101 +136,81 @@ export async function GET(request: Request) {
         })
       );
       
-      // If there are no completed sessions, return empty metrics array
+      // If there are no completed sessions, return empty state with 0 values
       if (completedSessionsCount === 0) {
-        return NextResponse.json([]);
-      }
-      
-      // Otherwise, proceed to generating fallback metrics
-    }
-
-    // Get real metrics based on therapy type from database
-    if (therapyType === 'solo') {
-      // Get completed sessions count with retry
-      const completedSessions = await withRetry(
-        () => prisma.session.count({
-          where: {
-            userId: user.id,
-            status: 'COMPLETED',
-            theme: themeValue // Use our consistent theme value
-          }
-        })
-      );
-      
-      // Only return metrics if there are completed sessions
-      if (completedSessions > 0) {
-        // Calculate metrics from base metrics or session count
-        return NextResponse.json([
-          { name: "Self-awareness", value: Math.min(100, metrics ? (metrics.listening || 50) : 30 + Math.round(completedSessions * 2)) },
-          { name: "Emotional Regulation", value: Math.min(100, metrics ? (metrics.expression || 50) : 35 + Math.round(completedSessions * 1.5)) },
-          { name: "Personal Growth", value: Math.min(100, metrics ? metrics.respect : 40 + Math.round(completedSessions * 3)) },
-          { name: "Coping Skills", value: Math.min(100, metrics ? metrics.empathy : 45 + Math.round(completedSessions)) }
-        ]);
-      } else {
-        // No completed sessions for individual therapy
-        return NextResponse.json([]);
-      }
-    } else if (therapyType === 'family') {
-      // Calculate from the primary metrics as a fallback with retry
-      const completedSessions = await withRetry(
-        () => prisma.session.count({
-          where: {
-            userId: user.id,
-            status: 'COMPLETED',
-            theme: themeValue // Use our consistent theme value
-          }
-        })
-      );
-      
-      // Only return metrics if there are completed sessions
-      if (completedSessions > 0) {
-        return NextResponse.json([
-          { name: "Family Communication", value: Math.min(100, metrics ? (metrics.listening || 50) : 35 + Math.round(completedSessions * 1.5)) },
-          { name: "Role Definition", value: Math.min(100, metrics ? (metrics.expression || 50) : 40 + Math.round(completedSessions * 2)) },
-          { name: "Conflict Management", value: Math.min(100, metrics ? metrics.respect : 30 + Math.round(completedSessions)) },
-          { name: "Family Bonding", value: Math.min(100, metrics ? metrics.empathy : 45 + Math.round(completedSessions * 2.5)) }
-        ]);
-      } else {
-        // No completed sessions for family therapy
-        return NextResponse.json([]);
-      }
-    } else {
-      // Default 'couple' metrics - handle case where metrics might be null  
-      if (!metrics) {
-        // If we don't have metrics, use session count to generate baseline metrics with retry
-        const completedSessions = await withRetry(
-          () => prisma.session.count({
-            where: {
-              userId: user.id,
-              status: 'COMPLETED',
-              theme: themeValue // Use our consistent theme value
-            }
-          })
-        );
-        
-        // Only return metrics if there are completed sessions
-        if (completedSessions > 0) {
-          return NextResponse.json([
-            { name: "Active Listening", value: 30 + Math.round(completedSessions * 2) },
-            { name: "Expressing Needs", value: 35 + Math.round(completedSessions * 2.5) },
-            { name: "Conflict Resolution", value: 40 + Math.round(completedSessions * 1.5) },
-            { name: "Emotional Support", value: 45 + Math.round(completedSessions * 2) }
-          ]);
-        } else {
-          // No completed sessions for couple therapy
-          return NextResponse.json([]);
-        }
-      } else {
-        // Use existing metrics
-        const formattedMetrics = [
-          { name: "Active Listening", value: metrics.listening || 50 },
-          { name: "Expressing Needs", value: metrics.expression || 50 },
-          { name: "Conflict Resolution", value: metrics.respect },
-          { name: "Emotional Support", value: metrics.empathy }
+        const emptyMetrics = therapyType === 'solo' ? [
+          { name: "Self-awareness", value: 0 },
+          { name: "Emotional Regulation", value: 0 },
+          { name: "Personal Growth", value: 0 },
+          { name: "Coping Skills", value: 0 }
+        ] : therapyType === 'family' ? [
+          { name: "Family Communication", value: 0 },
+          { name: "Role Definition", value: 0 },
+          { name: "Conflict Management", value: 0 },
+          { name: "Family Bonding", value: 0 }
+        ] : [
+          { name: "Active Listening", value: 0 },
+          { name: "Expressing Needs", value: 0 },
+          { name: "Conflict Resolution", value: 0 },
+          { name: "Emotional Support", value: 0 }
         ];
         
-        return NextResponse.json(formattedMetrics);
+        return NextResponse.json({ 
+          metrics: emptyMetrics, 
+          isEmpty: true, 
+          message: "Complete your first session to see communication metrics" 
+        });
       }
+      
+      // If there are completed sessions but no stored metrics, 
+      // we still return empty state since we want real data only
+      const emptyMetrics = therapyType === 'solo' ? [
+        { name: "Self-awareness", value: 0 },
+        { name: "Emotional Regulation", value: 0 },
+        { name: "Personal Growth", value: 0 },
+        { name: "Coping Skills", value: 0 }
+      ] : therapyType === 'family' ? [
+        { name: "Family Communication", value: 0 },
+        { name: "Role Definition", value: 0 },
+        { name: "Conflict Management", value: 0 },
+        { name: "Family Bonding", value: 0 }
+      ] : [
+        { name: "Active Listening", value: 0 },
+        { name: "Expressing Needs", value: 0 },
+        { name: "Conflict Resolution", value: 0 },
+        { name: "Emotional Support", value: 0 }
+      ];
+      
+      return NextResponse.json({ 
+        metrics: emptyMetrics, 
+        isEmpty: true, 
+        message: "Complete a session with conversation to see detailed metrics" 
+      });
+    }
+
+    // Use existing metrics from database
+    if (therapyType === 'solo') {
+      return NextResponse.json([
+        { name: "Self-awareness", value: metrics.listening || 0 },
+        { name: "Emotional Regulation", value: metrics.expression || 0 },
+        { name: "Personal Growth", value: metrics.respect || 0 },
+        { name: "Coping Skills", value: metrics.empathy || 0 }
+      ]);
+    } else if (therapyType === 'family') {
+      return NextResponse.json([
+        { name: "Family Communication", value: metrics.listening || 0 },
+        { name: "Role Definition", value: metrics.expression || 0 },
+        { name: "Conflict Management", value: metrics.respect || 0 },
+        { name: "Family Bonding", value: metrics.empathy || 0 }
+      ]);
+    } else {
+      // Default 'couple' metrics
+      return NextResponse.json([
+        { name: "Active Listening", value: metrics.listening || 0 },
+        { name: "Expressing Needs", value: metrics.expression || 0 },
+        { name: "Conflict Resolution", value: metrics.respect || 0 },
+        { name: "Emotional Support", value: metrics.empathy || 0 }
+      ]);
     }
   } catch (error) {
     return handleDashboardError(error, {

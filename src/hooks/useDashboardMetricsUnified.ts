@@ -43,7 +43,7 @@ export interface UnifiedMetricData {
     }>;
   };
   
-  // Therapy Insights (AI-generated)
+  // AI Insights (AI-generated)
   therapyInsights?: {
     insights: Array<{
       id: string;

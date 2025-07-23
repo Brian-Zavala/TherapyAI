@@ -191,52 +191,76 @@ interface LoadingState {
 // DATA TRANSFORMERS
 // ========================================
 
-function transformCommunicationMetrics(data: Array<{name: string, value: number}>): CommunicationMetrics {
-  const metrics: CommunicationMetrics = {
-    clarity: 50,
-    empathy: 50,
-    respect: 50,
-    overall: 50,
+function transformCommunicationMetrics(data: any): CommunicationMetrics & { isEmpty?: boolean, message?: string } {
+  // Handle new API format with isEmpty flag
+  const metricsArray = data.metrics || data;
+  const isEmpty = data.isEmpty || false;
+  const message = data.message || '';
+  
+  const metrics: CommunicationMetrics & { isEmpty?: boolean, message?: string } = {
+    clarity: 0,
+    empathy: 0,
+    respect: 0,
+    overall: 0,
     listening: undefined,
     expression: undefined,
+    isEmpty,
+    message,
   };
   
-  // Map API response names to our schema
-  data.forEach(item => {
-    switch(item.name) {
-      case 'Active Listening':
-        metrics.listening = item.value;
-        break;
-      case 'Expressing Needs':
-        metrics.expression = item.value;
-        break;
-      case 'Conflict Resolution':
-        metrics.respect = item.value;
-        break;
-      case 'Emotional Support':
-        metrics.empathy = item.value;
-        break;
-      // Solo therapy metrics
-      case 'Self-awareness':
-        metrics.clarity = item.value;
-        break;
-      case 'Emotional Regulation':
-        metrics.empathy = item.value;
-        break;
-      case 'Stress Management':
-        metrics.respect = item.value;
-        break;
-      case 'Personal Growth':
-        metrics.overall = item.value;
-        break;
-    }
-  });
+  // Handle array format
+  if (Array.isArray(metricsArray)) {
+    metricsArray.forEach(item => {
+      switch(item.name) {
+        case 'Active Listening':
+          metrics.listening = item.value;
+          break;
+        case 'Expressing Needs':
+          metrics.expression = item.value;
+          break;
+        case 'Conflict Resolution':
+          metrics.respect = item.value;
+          break;
+        case 'Emotional Support':
+          metrics.empathy = item.value;
+          break;
+        // Solo therapy metrics
+        case 'Self-awareness':
+          metrics.clarity = item.value;
+          break;
+        case 'Emotional Regulation':
+          metrics.empathy = item.value;
+          break;
+        case 'Stress Management':
+          metrics.respect = item.value;
+          break;
+        case 'Personal Growth':
+          metrics.overall = item.value;
+          break;
+        // Family therapy metrics
+        case 'Family Communication':
+          metrics.listening = item.value;
+          break;
+        case 'Role Definition':
+          metrics.expression = item.value;
+          break;
+        case 'Conflict Management':
+          metrics.respect = item.value;
+          break;
+        case 'Family Bonding':
+          metrics.empathy = item.value;
+          break;
+      }
+    });
+  }
   
-  // Calculate overall as average of available metrics
-  const values = [metrics.clarity, metrics.empathy, metrics.respect, metrics.listening, metrics.expression]
-    .filter((v): v is number => v !== undefined);
-  if (values.length > 0) {
-    metrics.overall = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  // Calculate overall as average of available metrics (only if not empty state)
+  if (!isEmpty) {
+    const values = [metrics.clarity, metrics.empathy, metrics.respect, metrics.listening, metrics.expression]
+      .filter((v): v is number => v !== undefined && v > 0);
+    if (values.length > 0) {
+      metrics.overall = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    }
   }
   
   return metrics;
@@ -259,10 +283,10 @@ function transformProgressData(data: Array<any>): ProgressData {
   
   // Extract scores based on the actual API response structure
   const scores = {
-    closenessScore: latestEntry.closenessScore || latestEntry.closeness || latestEntry.rawCloseness || 50,
-    communicationScore: latestEntry.communicationScore || latestEntry.communication || latestEntry.rawCommunication || 50,
-    conflictResolution: latestEntry.conflictResolution || 50,
-    emotionalSupport: latestEntry.emotionalSupport || 50,
+    closenessScore: latestEntry.closenessScore || latestEntry.closeness || latestEntry.rawCloseness || 0,
+    communicationScore: latestEntry.communicationScore || latestEntry.communication || latestEntry.rawCommunication || 0,
+    conflictResolution: latestEntry.conflictResolution || 0,
+    emotionalSupport: latestEntry.emotionalSupport || 0,
   };
   
   // Calculate trend based on comparing with previous entries
@@ -271,8 +295,8 @@ function transformProgressData(data: Array<any>): ProgressData {
     const previousEntry = data[data.length - 2];
     const currentAvg = (scores.closenessScore + scores.communicationScore) / 2;
     const previousAvg = (
-      (previousEntry.closenessScore || previousEntry.closeness || previousEntry.rawCloseness || 50) +
-      (previousEntry.communicationScore || previousEntry.communication || previousEntry.rawCommunication || 50)
+      (previousEntry.closenessScore || previousEntry.closeness || previousEntry.rawCloseness || 0) +
+      (previousEntry.communicationScore || previousEntry.communication || previousEntry.rawCommunication || 0)
     ) / 2;
     
     if (currentAvg > previousAvg + 5) trend = 'improving';
@@ -443,7 +467,7 @@ export function useDashboardDataUnified(
         key: 'therapyInsights',
         url: '/api/therapy-insights',
         schema: TherapyInsightsSchema,
-        transform: (data: any) => data, // Therapy insights API already returns the correct format
+        transform: (data: any) => data, // AI insights API already returns the correct format
       }] : []),
     ];
     
@@ -558,32 +582,14 @@ export function useDashboardDataUnified(
         // For now, we'll just mock the real-time connection
         // In production, this would use Supabase real-time subscriptions
         setIsRealTimeConnected(false);
-        logger.info('Real-time metrics in development mode', {});
         
-        // Simulate real-time updates for demo purposes
-        if (process.env.NODE_ENV === 'development') {
-          const interval = setInterval(() => {
-            setRealTimeUpdates(prev => {
-              const updates = { ...prev };
-              
-              // Simulate metric updates
-              if (Math.random() > 0.5) {
-                updates.communicationMetrics = {
-                  clarity: 50 + Math.random() * 50,
-                  empathy: 50 + Math.random() * 50,
-                  respect: 50 + Math.random() * 50,
-                  overall: 50 + Math.random() * 50,
-                } as CommunicationMetrics;
-                
-                setLastRealTimeUpdate(new Date());
-              }
-              
-              return updates;
-            });
-          }, 10000); // Every 10 seconds
-          
-          realTimeCleanupRef.current.push(() => clearInterval(interval));
+        // Only log once in development mode to reduce console spam
+        if (process.env.NODE_ENV === 'development' && !realTimeCleanupRef.current.length) {
+          logger.info('Real-time metrics in development mode', {});
         }
+        
+        // Real-time updates disabled in development to show proper empty states
+        // Only real VAPI session data should trigger updates
       } catch (error) {
         logger.error('Failed to setup real-time connection:', { error });
         setIsRealTimeConnected(false);
@@ -672,11 +678,11 @@ export function useDashboardDataUnified(
       };
     }
     
-    // Initial load
+    // Initial load - always show brain spinner
     if (query.isLoading && !mergedData) {
       return {
-        type: 'skeleton',
-        message: 'Loading dashboard...',
+        type: 'brain',
+        message: 'Analyzing your therapy journey...',
       };
     }
     

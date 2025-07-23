@@ -148,7 +148,7 @@ export function useDashboardData(period: string = 'month'): DashboardData {
           averageSessionRating: progressData.averageRating || 0,
           currentStreak: progressData.currentStreak || 0,
           improvementRate: Math.round(((commData.metrics?.overallScore || 0) - (commData.previousMetrics?.overallScore || 0)) / (commData.previousMetrics?.overallScore || 1) * 100),
-          weeklyGoalProgress: 75, // This would come from goal tracking
+          weeklyGoalProgress: 0, // This would come from goal tracking when implemented
           totalTimeInvested: metricsData.sessionStats?.total_duration || 0,
           keyStrengths: strongMetrics.map(m => m.name),
           areasOfGrowth: weakMetrics.map(m => m.name)

@@ -21,11 +21,14 @@ import {
   DocumentChartBarIcon,
 } from "@heroicons/react/24/outline"; // Example icons
 import { useRealTimeMetrics } from "@/hooks/useDashboardMetrics";
+import { useDashboardLoading } from "@/app/dashboard/page";
 
 // Helper function for number formatting (optional, but nice for tooltips)
 const formatNumber = (num: number) => num.toLocaleString();
 
 export default function SessionTimeChart() {
+  const { isInitialLoading } = useDashboardLoading();
+  
   // Define session data type
   interface SessionDataItem {
     month: string;
@@ -192,6 +195,11 @@ export default function SessionTimeChart() {
   }, []);
 
   // --- Loading State ---
+  // Show placeholder during initial dashboard load
+  if (isInitialLoading) {
+    return null;
+  }
+
   if (loading)
     return (
       <motion.div
@@ -237,7 +245,7 @@ export default function SessionTimeChart() {
             <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl animate-pulse"></div>
           </motion.div>
           <p className="mt-4 text-white font-medium text-sm sm:text-base text-center">
-            Loading your therapy insights...
+            Loading your AI insights...
           </p>
         </div>
       </motion.div>
@@ -353,7 +361,7 @@ export default function SessionTimeChart() {
             <DocumentChartBarIcon className="h-7 w-7" />
           </motion.div>
           <h2 className="text-xl font-semibold text-white">
-            Therapy Insights
+            Session Time Overview
           </h2>
         </div>
         <div className="flex-grow flex items-center justify-center">
