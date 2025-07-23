@@ -20,12 +20,12 @@ export interface TranscriptStrategyConfig {
   debugLogging: boolean // Enable detailed logging
 }
 
-// Default configuration - prioritize webhook transcripts
+// Default configuration - production-ready settings
 export const DEFAULT_TRANSCRIPT_STRATEGY: TranscriptStrategyConfig = {
-  // In production, use webhook as source of truth
-  useWebhookAsSource: process.env.NEXT_PUBLIC_USE_WEBHOOK_TRANSCRIPTS === 'true' || process.env.NODE_ENV === 'production',
+  // Always save real-time transcripts for reliability
+  useWebhookAsSource: false, // Real-time as primary source
   enableRealtimeBuffering: true, // Always buffer for UI display
-  enableRealtimeSaving: process.env.NEXT_PUBLIC_ENABLE_REALTIME_SAVING !== 'false', // Default true for now
+  enableRealtimeSaving: true, // ALWAYS save real-time transcripts
   enableMetricsCalculation: true, // Always calculate metrics for real-time feedback
   
   // Reconciliation settings
@@ -33,8 +33,8 @@ export const DEFAULT_TRANSCRIPT_STRATEGY: TranscriptStrategyConfig = {
   reconciliationDelayMs: 5000, // 5 seconds after session end
   deduplicationWindowMs: 2000, // 2 second window for duplicates
   
-  // Debug
-  debugLogging: process.env.NODE_ENV === 'development'
+  // Debug - disabled for production
+  debugLogging: false
 }
 
 /**
@@ -57,10 +57,9 @@ export function getTranscriptStrategy(): TranscriptStrategyConfig {
     config.reconciliationEnabled = process.env.NEXT_PUBLIC_ENABLE_TRANSCRIPT_RECONCILIATION === 'true'
   }
   
-  // In webhook mode, disable real-time saving to prevent duplicates
-  if (config.useWebhookAsSource) {
-    config.enableRealtimeSaving = false
-  }
+  // Always enable real-time saving for reliability
+  // Even in webhook mode, we want real-time as backup
+  config.enableRealtimeSaving = true
   
   return config
 }
@@ -71,14 +70,17 @@ export function getTranscriptStrategy(): TranscriptStrategyConfig {
 export function logTranscriptStrategy(sessionId: string): void {
   const strategy = getTranscriptStrategy()
   
-  console.log(`📋 TRANSCRIPT STRATEGY for session ${sessionId}:`, {
-    mode: strategy.useWebhookAsSource ? 'WEBHOOK' : 'REALTIME',
-    realtimeSaving: strategy.enableRealtimeSaving ? 'ENABLED' : 'DISABLED',
-    realtimeBuffering: strategy.enableRealtimeBuffering ? 'ENABLED' : 'DISABLED',
-    metricsCalculation: strategy.enableMetricsCalculation ? 'ENABLED' : 'DISABLED',
-    reconciliation: strategy.reconciliationEnabled ? 'ENABLED' : 'DISABLED',
-    environment: process.env.NODE_ENV
-  })
+  // Only log in development or if debug is explicitly enabled
+  if (strategy.debugLogging) {
+    console.log(`📋 TRANSCRIPT STRATEGY for session ${sessionId}:`, {
+      mode: strategy.useWebhookAsSource ? 'WEBHOOK' : 'REALTIME',
+      realtimeSaving: strategy.enableRealtimeSaving ? 'ENABLED' : 'DISABLED',
+      realtimeBuffering: strategy.enableRealtimeBuffering ? 'ENABLED' : 'DISABLED',
+      metricsCalculation: strategy.enableMetricsCalculation ? 'ENABLED' : 'DISABLED',
+      reconciliation: strategy.reconciliationEnabled ? 'ENABLED' : 'DISABLED',
+      environment: process.env.NODE_ENV
+    })
+  }
 }
 
 /**

@@ -29,11 +29,29 @@ type SelectedSessionFields = {
   totalPausedTimeSeconds: number;
   createdAt: Date;
   updatedAt: Date;
+  _count?: {
+    transcriptEntries: number;
+  };
+  transcriptEntries?: Array<{
+    id: string;
+    sessionId: string;
+    speaker: string;
+    text: string;
+    timestamp: Date;
+    isFinal: boolean;
+  }>;
 };
 
-interface SessionWithCounts extends SelectedSessionFields {
+interface SessionWithCounts extends Omit<SelectedSessionFields, '_count' | 'transcriptEntries'> {
   transcriptCount: number;
-  transcriptEntries: any[];
+  transcriptEntries: Array<{
+    id: string;
+    sessionId: string;
+    speaker: string;
+    text: string;
+    timestamp: Date;
+    isFinal: boolean;
+  }>;
 }
 
 interface ApiError {
@@ -172,7 +190,18 @@ export async function GET(request: NextRequest) {
           conversationTimeSeconds: true,
           totalPausedTimeSeconds: true,
           createdAt: true,
-          updatedAt: true
+          updatedAt: true,
+          _count: {
+            select: {
+              transcriptEntries: true
+            }
+          },
+          transcriptEntries: {
+            orderBy: {
+              timestamp: 'asc'
+            },
+            take: 100 // Limit to prevent overfetching for list view
+          }
         }
       }),
       prisma.session.count({
@@ -186,8 +215,8 @@ export async function GET(request: NextRequest) {
     // 2025 Standard: Transform with proper typing
     const sessionsWithCounts: SessionWithCounts[] = sessions.map(session => ({
       ...session,
-      transcriptCount: 0,
-      transcriptEntries: []
+      transcriptCount: session._count.transcriptEntries,
+      transcriptEntries: session.transcriptEntries || []
     }));
     
     // Cache with TTL

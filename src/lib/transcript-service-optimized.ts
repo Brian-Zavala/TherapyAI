@@ -51,20 +51,8 @@ class BatchedTranscriptManager {
   async addEntry(entry: TranscriptEntry): Promise<TranscriptEntry> {
     const { sessionId } = entry
     
-    console.log('🔍 TRANSCRIPT SERVICE: addEntry called', {
-      sessionId,
-      speaker: entry.speaker,
-      textLength: entry.text?.length,
-      hasText: !!entry.text?.trim()
-    })
-    
     // Validate entry
     if (!sessionId || !entry.text?.trim() || !entry.speaker) {
-      console.error('❌ TRANSCRIPT SERVICE: Invalid entry', {
-        hasSessionId: !!sessionId,
-        hasText: !!entry.text?.trim(),
-        hasSpeaker: !!entry.speaker
-      })
       throw new Error('Invalid transcript entry')
     }
 
@@ -89,7 +77,7 @@ class BatchedTranscriptManager {
     const sessionQueue = this.queue.get(sessionId)!
     sessionQueue.push(completedEntry)
 
-    console.log(`📝 BATCHED: Added entry to queue (${sessionQueue.length}/${this.batchSize})`)
+    // Silent operation - no logging in production
 
     // Check if we should save this batch
     if (sessionQueue.length >= this.batchSize) {
@@ -120,7 +108,7 @@ class BatchedTranscriptManager {
       });
 
       // Metrics broadcasting is now handled within the calculator itself
-      console.log(`📊 METRICS CALCULATED: Session ${entry.sessionId} - Confidence: ${metrics.confidence}%`);
+      // Metrics calculated - no logging in production
     } catch (error) {
       console.error(`Error calculating metrics for session ${entry.sessionId}:`, error);
     }
@@ -133,7 +121,7 @@ class BatchedTranscriptManager {
   private async sendMetricsToAPI(sessionId: string, userId: string, metrics: IncrementalMetrics): Promise<void> {
     // Metrics broadcasting is now handled directly by RealTimeMetricsCalculator
     // which uses Supabase Realtime channels
-    console.log(`📊 METRICS: Broadcasting handled by RealTimeMetricsCalculator for session ${sessionId}`);
+    // Metrics broadcasting handled by RealTimeMetricsCalculator
   }
 
   /**
@@ -141,8 +129,7 @@ class BatchedTranscriptManager {
    */
   private async saveBatch(sessionId: string): Promise<void> {
     if (this.saving.has(sessionId)) {
-      console.log(`⏳ BATCH: Already saving session ${sessionId}, skipping`)
-      return
+      return // Already saving this session
     }
 
     const sessionQueue = this.queue.get(sessionId)
@@ -160,7 +147,7 @@ class BatchedTranscriptManager {
     const allEntries = [...sessionQueue]
     this.queue.set(sessionId, []) // Clear queue
 
-    console.log(`💾 BATCH SAVE: Processing ${allEntries.length} entries for session ${sessionId}`)
+    // Process batch entries
 
     try {
       // Split into chunks if necessary
@@ -169,14 +156,14 @@ class BatchedTranscriptManager {
         chunks.push(allEntries.slice(i, i + this.maxBatchSize))
       }
 
-      console.log(`📦 BATCH: Split into ${chunks.length} chunks`)
+      // Split into chunks if necessary
 
       // Save each chunk
       let failedEntries: TranscriptEntry[] = []
       
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i]
-        console.log(`💾 Saving chunk ${i + 1}/${chunks.length} with ${chunk.length} entries`)
+        // Process chunk
         
         try {
           console.log(`🚀 TRANSCRIPT SERVICE: Sending batch request to /api/sessions/${sessionId}/transcript/batch`)

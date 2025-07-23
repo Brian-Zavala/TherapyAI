@@ -45,7 +45,7 @@ export class VAPIWebhookProcessor {
   /**
    * Async processing of webhook payload
    */
-  private static async processAsync(payload: VAPIWebhookPayload): Promise<void> {
+  static async processAsync(payload: VAPIWebhookPayload): Promise<void> {
     switch (payload.type) {
       case 'end-of-call-report':
         await this.handleEndOfCallReport(payload.message as VAPIEndOfCallReport);
@@ -271,5 +271,44 @@ export class VAPIWebhookProcessor {
     // TODO: Implement signature validation
     // This would verify the webhook is from VAPI
     return true;
+  }
+}
+
+// Export the processVapiWebhook function for background job processing
+export async function processVapiWebhook(
+  webhookEventId: string,
+  payload: any,
+  correlationId: string
+): Promise<void> {
+  console.log(`[processVapiWebhook] Processing webhook event ${webhookEventId} with correlation ${correlationId}`);
+  
+  try {
+    // Process the webhook payload asynchronously
+    await VAPIWebhookProcessor.processAsync(payload);
+    
+    // Update webhook event status to processed
+    await prisma.webhookEvent.update({
+      where: { id: webhookEventId },
+      data: {
+        status: 'processed',
+        processedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error(`[processVapiWebhook] Failed to process webhook event ${webhookEventId}:`, error);
+    
+    // Update webhook event status to failed
+    await prisma.webhookEvent.update({
+      where: { id: webhookEventId },
+      data: {
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        processedAt: new Date()
+      }
+    }).catch(updateError => {
+      console.error('Failed to update webhook status:', updateError);
+    });
+    
+    throw error; // Re-throw to trigger retry logic
   }
 }

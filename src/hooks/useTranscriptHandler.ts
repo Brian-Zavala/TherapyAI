@@ -224,7 +224,10 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     }
     
     try {
-      console.log('👤 Processing consolidated user message')
+      // Only log in debug mode
+      if (strategyRef.current.debugLogging) {
+        console.log('👤 Processing consolidated user message')
+      }
       
       // Save to session storage with error handling
       try {
@@ -251,37 +254,15 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       
       // Save to database with retry logic (only if strategy allows)
       if (sessionId && shouldSaveTranscript('realtime')) {
-        console.log(`🔄 Sending user transcript to batching service: "${consolidatedText.substring(0, 50)}..."`)
+        const transcriptData = markTranscriptSource({
+          sessionId,
+          speaker: 'user',
+          text: consolidatedText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        }, 'realtime')
         
-        let retries = 3
-        while (retries > 0) {
-          try {
-            const transcriptData = markTranscriptSource({
-              sessionId,
-              speaker: 'user',
-              text: consolidatedText,
-              timestamp: new Date().toISOString(),
-              isFinal: true
-            }, 'realtime')
-            
-            await addTranscriptEntry(transcriptData)
-            console.log('✅ Added user transcript to batch queue')
-            break
-          } catch (error) {
-            retries--
-            if (retries === 0) {
-              console.error('Failed to save transcript after 3 attempts:', error)
-              throw error
-            }
-            console.warn(`Transcript save failed, retrying... (${retries} attempts left)`)
-            await new Promise(resolve => setTimeout(resolve, 1000))
-          }
-        }
-      } else if (!sessionId) {
-        console.warn('⚠️ TRANSCRIPT HANDLER: Cannot save transcript - no sessionId available')
-        console.warn('   This usually means the session hasn\'t been created in the database yet')
-      } else if (sessionId && !shouldSaveTranscript('realtime')) {
-        console.log('📋 Real-time transcript saving disabled by strategy - buffering for UI only')
+        await addTranscriptEntry(transcriptData)
       }
       
       // Update metrics
@@ -299,17 +280,10 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   
   // Handle VAPI messages
   const handleVapiMessage = useCallback(async (message: VapiMessage, vapiInstance: ExtendedVapi | null) => {
-    console.log('🎙️ TRANSCRIPT HANDLER: handleVapiMessage called');
-    console.log('🔍 TRANSCRIPT HANDLER: Message details:', {
-      type: message.type,
-      hasSessionId: !!sessionId,
-      messageKeys: Object.keys(message),
-      isTranscript: message.type === 'transcript'
-    });
+    // Minimal logging - only errors in production
+    const strategy = strategyRef.current;
     
     try {
-      // Log message type for debugging
-      console.log(`📨 VAPI Message: ${message.type}`)
       
       // Handle transcript messages (speech-to-text)
       if (isTranscriptMessage(message) && message.transcript) {

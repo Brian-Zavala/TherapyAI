@@ -146,22 +146,24 @@ export class TranscriptPerformanceOptimizer {
     sessionId: string,
     messages: VAPIMessage[]
   ): Promise<number> {
-    const transcriptChunks = messages.map(msg => ({
+    const transcriptEntries = messages.map(msg => ({
       sessionId,
-      speaker: msg.role === 'assistant' ? 'therapist' : msg.role,
+      speaker: msg.role === 'assistant' ? 'assistant' : msg.role === 'user' ? 'user' : msg.role,
+      text: msg.content || '',
       timestamp: new Date(msg.time || Date.now()),
-      content: msg.content,
-      messageId: msg.id,
+      isFinal: true,
+      // Store additional metadata as JSON if needed
       metadata: {
+        messageId: msg.id,
         endTime: msg.endTime,
         secondsFromStart: msg.secondsFromStart,
         duration: msg.duration
       }
     }));
 
-    // Bulk insert with Prisma
-    const result = await prisma.transcriptChunk.createMany({
-      data: transcriptChunks,
+    // Bulk insert with Prisma using correct table name
+    const result = await prisma.transcriptEntry.createMany({
+      data: transcriptEntries,
       skipDuplicates: true // Avoid duplicate processing
     });
 
@@ -187,23 +189,12 @@ export class TranscriptPerformanceOptimizer {
     summary: string,
     timestamp: string
   ): Promise<void> {
-    await prisma.sessionSummary.upsert({
-      where: { sessionId },
-      create: {
-        sessionId,
-        summary,
-        generatedAt: new Date(timestamp),
-        source: 'vapi',
-        metadata: {
-          cacheExpiry: Date.now() + (this.SUMMARY_CACHE_TTL * 1000)
-        }
-      },
-      update: {
-        summary,
-        generatedAt: new Date(timestamp),
-        metadata: {
-          cacheExpiry: Date.now() + (this.SUMMARY_CACHE_TTL * 1000)
-        }
+    // Store summary in the session's notes field
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        notes: summary,
+        updatedAt: new Date(timestamp)
       }
     });
   }
@@ -218,10 +209,7 @@ export class TranscriptPerformanceOptimizer {
     await prisma.session.update({
       where: { id: sessionId },
       data: {
-        metadata: {
-          recordingUrl,
-          recordingAvailable: true
-        }
+        vapiRecordingUrl: recordingUrl
       }
     });
   }
@@ -233,14 +221,22 @@ export class TranscriptPerformanceOptimizer {
     sessionId: string,
     metadata: Record<string, any>
   ): Promise<void> {
+    // Map metadata fields to actual Session model fields
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+
+    if (metadata.endedReason) {
+      updateData.terminationReason = metadata.endedReason;
+    }
+    
+    if (metadata.processingCompleted) {
+      updateData.completedAt = new Date();
+    }
+
     await prisma.session.update({
       where: { id: sessionId },
-      data: {
-        metadata: {
-          ...metadata,
-          lastProcessedAt: new Date()
-        }
-      }
+      data: updateData
     });
   }
 
@@ -248,17 +244,13 @@ export class TranscriptPerformanceOptimizer {
    * Get cached summary if available
    */
   static async getCachedSummary(sessionId: string): Promise<string | null> {
-    const summary = await prisma.sessionSummary.findFirst({
-      where: {
-        sessionId,
-        metadata: {
-          path: ['cacheExpiry'],
-          gte: Date.now()
-        }
-      }
+    // Get summary from session notes field
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { notes: true }
     });
 
-    return summary?.summary || null;
+    return session?.notes || null;
   }
 
   /**
@@ -272,33 +264,30 @@ export class TranscriptPerformanceOptimizer {
     let hasMore = true;
 
     while (hasMore) {
-      const chunks = await prisma.transcriptChunk.findMany({
+      const entries = await prisma.transcriptEntry.findMany({
         where: { sessionId },
         take: pageSize,
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: { timestamp: 'asc' }
       });
 
-      if (chunks.length === 0) {
+      if (entries.length === 0) {
         hasMore = false;
         break;
       }
 
       // Convert to VAPI message format
-      const messages: VAPIMessage[] = chunks.map(chunk => ({
-        id: chunk.messageId || chunk.id,
-        role: chunk.speaker === 'therapist' ? 'assistant' : chunk.speaker,
-        content: chunk.content,
-        time: chunk.timestamp.toISOString(),
-        endTime: chunk.metadata?.endTime,
-        secondsFromStart: chunk.metadata?.secondsFromStart,
-        duration: chunk.metadata?.duration
+      const messages: VAPIMessage[] = entries.map(entry => ({
+        id: entry.id,
+        role: entry.speaker === 'assistant' ? 'assistant' : entry.speaker,
+        content: entry.text,
+        time: entry.timestamp.toISOString()
       }));
 
       yield messages;
 
-      cursor = chunks[chunks.length - 1].id;
-      hasMore = chunks.length === pageSize;
+      cursor = entries[entries.length - 1].id;
+      hasMore = entries.length === pageSize;
     }
   }
 }
