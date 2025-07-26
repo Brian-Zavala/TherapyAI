@@ -1,11 +1,13 @@
 // components/UpcomingSessions.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { format, isBefore, addHours, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardLoading } from '@/app/dashboard/page';
+import { DashboardAPIError, DataErrorCard } from './DashboardAPIErrorBoundary';
+import { useErrorRecovery } from './DashboardAPIErrorBoundary';
 
 type Session = {
   id: string;
@@ -22,11 +24,12 @@ export default function UpcomingSessions() {
   const { isInitialLoading } = useDashboardLoading();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<Error | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const errorRecovery = useErrorRecovery();
 
   // Track screen size for responsive design
   useEffect(() => {
@@ -43,25 +46,33 @@ export default function UpcomingSessions() {
     fetchSessions();
   }, []);
 
-  async function fetchSessions() {
+  const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      errorRecovery.clearErrors();
+      
       const response = await fetch('/api/sessions/upcoming');
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch sessions');
+        const error = new Error(errorData.error || 'Failed to fetch sessions');
+        (error as any).status = response.status;
+        (error as any).endpoint = '/api/sessions/upcoming';
+        throw error;
       }
       
       const data = await response.json();
       setSessions(data);
     } catch (err) {
       console.error('Error fetching sessions:', err);
-      setError((err as Error).message || 'An error occurred while fetching sessions');
+      const error = err as Error;
+      setError(error);
+      errorRecovery.recordError(error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [errorRecovery]);
 
   async function handleCancelSession(sessionId: string) {
     if (!confirm('Are you sure you want to cancel this session?')) {
@@ -166,44 +177,24 @@ export default function UpcomingSessions() {
 
   if (error) {
     return (
-      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center p-6 bg-red-900/20 backdrop-blur-md rounded-xl max-w-sm shadow-lg border border-red-400/30"
-        >
-          <motion.div
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0]
-            }}
-            transition={{ 
-              repeat: Infinity,
-              duration: 3,
-              ease: "easeInOut"
-            }}
-          >
-            <svg className="w-16 h-16 mx-auto text-red-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </motion.div>
-          <h3 className="text-xl font-semibold text-white mb-2">Couldn't load your sessions</h3>
-          <p className="text-sm mt-2 text-red-200/80 mb-4">{error}</p>
-          <motion.button 
-            whileHover={{ scale: 1.05, y: -2, boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={fetchSessions}
-            className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium shadow-lg hover:from-red-400 hover:to-red-500 transition-all duration-300 border border-red-400/30"
-          >
-            <span className="flex items-center">
-              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Try Again
-            </span>
-          </motion.button>
-        </motion.div>
+      <div className="min-h-[520px] bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+        <DashboardAPIError
+          error={error}
+          onRetry={errorRecovery.canRetry ? fetchSessions : undefined}
+          componentName="UpcomingSessions"
+          showDetails={process.env.NODE_ENV === 'development'}
+        />
+        {sessions.length === 0 && (
+          <div className="mt-4">
+            <DataErrorCard
+              title="No Sessions Available"
+              message="You don't have any upcoming sessions scheduled yet."
+              icon={<svg className="w-8 h-8 text-muted-foreground mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>}
+            />
+          </div>
+        )}
       </div>
     );
   }

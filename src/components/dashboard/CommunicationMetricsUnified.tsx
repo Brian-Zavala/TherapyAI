@@ -7,6 +7,8 @@ import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useCommunicationMetricsFromContext } from '@/hooks/useDashboardContext';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { useDashboardLoading } from '@/app/dashboard/page';
+import { DashboardErrorWrapper } from './DashboardErrorBoundary';
+import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import { 
   MessageSquare, 
   Heart, 
@@ -270,14 +272,15 @@ function MetricItem({ label, value, icon, trend, metricType, index, isAnimating 
   );
 }
 
-export function CommunicationMetricsUnified() {
+function CommunicationMetricsComponent() {
   const { isInitialLoading } = useDashboardLoading();
   const { 
     data, 
     isLoading, 
     error, 
     loadingState,
-    isRefetching
+    isRefetching,
+    refetch
   } = useCommunicationMetricsFromContext();
   
   // Use periodic animation hook for timed animation triggers
@@ -299,7 +302,43 @@ export function CommunicationMetricsUnified() {
     return null;
   }
 
-  if (error || !data) {
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full h-full"
+      >
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 min-h-[500px] h-full flex flex-col p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+              <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-gray-700 dark:text-gray-300" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                Communication Metrics
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Track your connection journey
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center">
+            <DashboardAPIError
+              error={error}
+              onRetry={refetch}
+              componentName="CommunicationMetrics"
+              showDetails={process.env.NODE_ENV === 'development'}
+            />
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+  
+  if (!data) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -645,5 +684,17 @@ export function CommunicationMetricsUnified() {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+// Export the component wrapped with error boundary
+export function CommunicationMetricsUnified() {
+  return (
+    <DashboardErrorWrapper
+      componentName="CommunicationMetrics"
+      isolate={true}
+    >
+      <CommunicationMetricsComponent />
+    </DashboardErrorWrapper>
   );
 }

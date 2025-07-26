@@ -98,6 +98,11 @@ model UserProfile {
   // VAPI Configuration
   assistantId           String?
   
+  // AI Insights Disclaimer Tracking
+  aiDisclaimerAccepted  Boolean                @default(false)
+  aiDisclaimerDate      DateTime?              // When disclaimer was accepted
+  aiDisclaimerVersion   String?                // Version of disclaimer accepted
+  
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   

@@ -315,6 +315,29 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
               setIsProcessingUser(false)
             }, TRANSCRIPT_DEBOUNCE_MS)
           }
+        } else if (role === 'assistant') {
+          // Buffer assistant messages from transcript
+          if (isFinal) {
+            assistantBufferRef.current += (assistantBufferRef.current ? ' ' : '') + transcript
+            
+            // Clear existing timer
+            if (assistantTimeoutRef.current) {
+              clearTimeout(assistantTimeoutRef.current)
+            }
+            
+            // Set processing flag
+            setIsProcessingAssistant(true)
+            
+            // Debounce processing
+            assistantTimeoutRef.current = setTimeout(async () => {
+              const consolidatedText = assistantBufferRef.current.trim()
+              if (consolidatedText) {
+                await processConsolidatedAssistantMessage(consolidatedText)
+                assistantBufferRef.current = ''
+              }
+              setIsProcessingAssistant(false)
+            }, TRANSCRIPT_DEBOUNCE_MS)
+          }
         }
       }
       

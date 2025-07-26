@@ -21,9 +21,12 @@ if (!globalForPrisma.connectionAttempts) {
 
 // Create Prisma client with optimized settings
 function createPrismaClient() {
+  // Only show logs if explicitly enabled
+  const showLogs = process.env.PRISMA_VERBOSE === 'true';
+  
   const client = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' 
-      ? ['error', 'warn'] 
+    log: showLogs 
+      ? ['query', 'error', 'warn'] 
       : ['error'],
     errorFormat: 'minimal',
     datasources: {
@@ -145,7 +148,9 @@ function isRetryableError(error: any): boolean {
 // Create singleton instance with connection retry
 async function getPrismaClient(): Promise<PrismaClient> {
   if (!globalForPrisma.prisma) {
-    console.log('[Prisma] Creating new client instance...')
+    if (process.env.PRISMA_VERBOSE === 'true') {
+      console.log('[Prisma] Creating new client instance...')
+    }
     
     try {
       globalForPrisma.prisma = createPrismaClient()
@@ -158,14 +163,18 @@ async function getPrismaClient(): Promise<PrismaClient> {
           connected = true
           globalForPrisma.connectionAttempts = 0
           globalForPrisma.lastConnectionError = null
-          console.log('[Prisma] Connected successfully')
+          if (process.env.PRISMA_VERBOSE === 'true') {
+            console.log('[Prisma] Connected successfully')
+          }
           break
         } catch (error) {
           console.error(`[Prisma] Connection attempt ${attempt + 1} failed:`, error)
           
           if (attempt < MAX_RETRIES) {
             const delay = RETRY_DELAY * Math.pow(2, attempt)
-            console.log(`[Prisma] Retrying connection in ${delay}ms...`)
+            if (process.env.PRISMA_VERBOSE === 'true') {
+              console.log(`[Prisma] Retrying connection in ${delay}ms...`)
+            }
             await new Promise(resolve => setTimeout(resolve, delay))
           } else {
             globalForPrisma.connectionAttempts++
@@ -198,7 +207,9 @@ if (typeof window === 'undefined') {
   prismaPromise = getPrismaClient()
   prismaPromise.then(client => {
     prismaInstance = client
-    console.log('[Prisma] Client initialized and ready')
+    if (process.env.PRISMA_VERBOSE === 'true') {
+      console.log('[Prisma] Client initialized and ready')
+    }
   }).catch(error => {
     console.error('[Prisma] Failed to initialize client:', error)
     process.exit(1)
@@ -277,9 +288,9 @@ export async function checkDatabaseConnection(): Promise<{
   }
 }
 
-// Graceful shutdown handler (optional with library engine)
-// The library engine handles cleanup automatically, but explicit disconnect can help in dev
-if (process.env.NODE_ENV !== 'production') {
+// Graceful shutdown handler - only in development with verbose logging
+// The library engine handles cleanup automatically in production
+if (process.env.NODE_ENV !== 'production' && process.env.PRISMA_VERBOSE === 'true') {
   const gracefulShutdown = async (signal: string) => {
     console.log(`[Prisma] Received ${signal}, disconnecting client...`)
     try {

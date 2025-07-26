@@ -53,13 +53,17 @@ const RECOVERY_CONSTANTS = {
 interface TherapyButtonRefactoredProps {
   therapyType: TherapyType
   disabled?: boolean
+  forceNewSession?: boolean
   onSessionConflict?: (conflictData: any) => void
+  onSessionStarted?: () => void
 }
 
 export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactored({ 
   therapyType, 
   disabled = false,
-  onSessionConflict
+  forceNewSession = false,
+  onSessionConflict,
+  onSessionStarted
 }: TherapyButtonRefactoredProps) {
   const { user } = useAuth()
   const playClick = useButtonSound()
@@ -1114,7 +1118,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     
     try {
       // Create session with family members if selected
-      const newSession = await session.createSession(duration as 30 | 60, selectedFamilyMembers)
+      const newSession = await session.createSession(duration as 30 | 60, selectedFamilyMembers, forceNewSession)
       
       if (!newSession) {
         throw new Error('Failed to create session')
@@ -1279,6 +1283,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         // Start conversation timer with the new sessionId after VAPI starts
         console.log('📞 VAPI started, starting conversation timer with sessionId:', newSession)
         session.startConversationTimer(newSession)
+        
+        // Notify parent that session has started successfully
+        onSessionStarted?.()
       } else {
         // First, ensure VAPI instance is created with the sessionId
         if (!vapi.isInstanceReady()) {
@@ -1292,6 +1299,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         // Start conversation timer with the new sessionId after VAPI starts
         console.log('📞 VAPI started, starting conversation timer with sessionId:', newSession)
         session.startConversationTimer(newSession)
+        
+        // Notify parent that session has started successfully
+        onSessionStarted?.()
       }
     } catch (error) {
       console.error('[TherapyButton] Failed to start session:', error)
@@ -1512,20 +1522,26 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         // Preserve UI state during transition
         const currentSessionActive = sessionActiveManaged.current
         
-        // Announce resume intent before starting (if VAPI still exists)
-        if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
-          try {
-            vapi.vapiManagerRef.current.say("I'm reconnecting our session. Just a moment...", false)
-          } catch {
-            // VAPI might already be stopped, ignore
-          }
-        }
-        
         // Resume through sessionState which will trigger onVapiResume callback
         await sessionState.resumeSession()
         
-        // Wait a bit for VAPI to fully initialize
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Wait for VAPI to fully initialize and inject conversation history
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // Say personalized welcome back message after VAPI is connected and history is loaded
+        if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
+          try {
+            const welcomeBackMessage = therapyType === 'couple' 
+              ? "Welcome back. I can see our conversation history has been restored. Take a moment to settle back in, and when you're ready, we can continue from where we left off. How are you both feeling right now?"
+              : therapyType === 'family'
+              ? "Welcome back, everyone. I've restored our conversation, and I'm ready to continue when you are. Let's take a collective breath and pick up our discussion. How is everyone doing?"
+              : "Welcome back. Our conversation has been restored, and I'm here to continue supporting you. Take your time to get comfortable again. How are you feeling in this moment?"
+            
+            vapi.vapiManagerRef.current.say(welcomeBackMessage, false)
+          } catch (error) {
+            console.warn('Could not say welcome back message:', error)
+          }
+        }
         
         // Restore session-active state
         if (currentSessionActive) {

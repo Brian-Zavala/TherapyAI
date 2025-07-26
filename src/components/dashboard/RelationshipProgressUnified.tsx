@@ -10,6 +10,8 @@ import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useProgressDataFromContext } from '@/hooks/useDashboardContext';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { useDashboardLoading } from '@/app/dashboard/page';
+import { DashboardErrorWrapper } from './DashboardErrorBoundary';
+import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import { 
   Heart,
   MessageSquare,
@@ -193,14 +195,15 @@ const THERAPEUTIC_SAYINGS = {
   ]
 };
 
-export function RelationshipProgressUnified() {
+function RelationshipProgressComponent() {
   const { isInitialLoading } = useDashboardLoading();
   const { 
     data, 
     isLoading, 
     error, 
     loadingState,
-    isRefetching
+    isRefetching,
+    refetch
   } = useProgressDataFromContext();
 
   // State for dynamic therapeutic saying that changes on each component mount  
@@ -269,7 +272,22 @@ export function RelationshipProgressUnified() {
     return null;
   }
 
-  if (error || !data) {
+  if (error) {
+    return (
+      <Card className="w-full border-0 shadow-sm">
+        <CardContent className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop}`}>
+          <DashboardAPIError
+            error={error}
+            onRetry={refetch}
+            componentName="RelationshipProgress"
+            showDetails={process.env.NODE_ENV === 'development'}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!data) {
     return (
       <Card className="w-full border-0 shadow-sm">
         <CardContent className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop}`}>
@@ -460,5 +478,17 @@ export function RelationshipProgressUnified() {
         </motion.div>
       </CardContent>
     </Card>
+  );
+}
+
+// Export the component wrapped with error boundary
+export function RelationshipProgressUnified() {
+  return (
+    <DashboardErrorWrapper
+      componentName="RelationshipProgress"
+      isolate={true}
+    >
+      <RelationshipProgressComponent />
+    </DashboardErrorWrapper>
   );
 }

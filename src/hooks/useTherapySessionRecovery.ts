@@ -167,24 +167,30 @@ export function useTherapySessionRecovery() {
             return null
           }
           
-          // Check if session is still valid (using conversation time, not wall clock)
-          let isSessionValid = false
+          // Calculate session timing (for display only - sessions never auto-expire)
           let remainingMinutes = 0
           let conversationTimeSeconds = 0
           let conversationTimeMinutes = 0
+          let isOverTime = false
           
           if (activeSession.duration) {
             const sessionDurationMinutes = activeSession.duration
             conversationTimeSeconds = activeSession.conversationTimeSeconds || 0
             conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60)
             remainingMinutes = sessionDurationMinutes - conversationTimeMinutes
+            isOverTime = remainingMinutes < 0
             
-            isSessionValid = remainingMinutes > 0
-            console.log(`📊 Session timing (conversation-based): ${conversationTimeMinutes}/${sessionDurationMinutes} minutes used, ${remainingMinutes} remaining`)
+            console.log(`📊 Session timing (for display): ${conversationTimeMinutes}/${sessionDurationMinutes} minutes used`)
             console.log(`🕒 Total conversation time: ${conversationTimeSeconds} seconds`)
+            if (isOverTime) {
+              console.log(`⏰ Session is over time by ${Math.abs(remainingMinutes)} minutes (billing continues)`)
+            } else {
+              console.log(`⏳ ${remainingMinutes} minutes remaining in planned duration`)
+            }
           }
           
-          if (isSessionValid) {
+          // Sessions are always valid - only user action can end them
+          if (true) {
             setRecoveryState({
               isChecking: false,
               hasActiveSession: true,
@@ -193,7 +199,11 @@ export function useTherapySessionRecovery() {
                 startTime: activeSession.startTime,
                 duration: activeSession.duration,
                 status: activeSession.status,
-                theme: activeSession.theme
+                theme: activeSession.theme,
+                conversationTimeSeconds: conversationTimeSeconds,
+                conversationTimeMinutes: conversationTimeMinutes,
+                remainingMinutes: remainingMinutes,
+                isOverTime: isOverTime
               },
               shouldAutoRestart: true
             })

@@ -22,6 +22,9 @@ import { useDashboardDataUnified } from "@/hooks/useDashboardDataUnified";
 import { DashboardProvider } from "@/hooks/useDashboardContext";
 import { UnifiedLoadingState } from "@/components/dashboard/UnifiedLoadingState";
 import { DashboardErrorBoundary, DashboardErrorWrapper } from "@/components/dashboard/DashboardErrorBoundary";
+import { useSession } from "next-auth/react";
+import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
+import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
 
 // Context to prevent child components from showing loading states during initial load
 const DashboardLoadingContext = createContext<{ isInitialLoading: boolean }>({ isInitialLoading: false });
@@ -29,6 +32,13 @@ export const useDashboardLoading = () => useContext(DashboardLoadingContext);
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { data: session, status } = useSession();
+  const { 
+    showDisclaimer, 
+    acceptDisclaimer, 
+    declineDisclaimer,
+    isLoading: disclaimerLoading 
+  } = useDisclaimerCheck();
   
   // Memoize hook options to prevent unnecessary re-renders
   const hookOptions = useMemo(() => ({
@@ -60,12 +70,14 @@ export default function Dashboard() {
   } = dashboardData;
   
   // Memoize the refresh handler to prevent re-creating function on every render
+  // IMPORTANT: This MUST be defined before any conditional returns to follow React's Rules of Hooks
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
-
-  // Show loading state for initial load
-  if (isLoading && !data) {
+  
+  // Show loading state for initial load - this MUST be checked after all hooks
+  // Check auth loading state first, then data availability
+  if (status === "loading" || !data) {
     return (
       <UnifiedLoadingState 
         type="brain"
@@ -74,8 +86,8 @@ export default function Dashboard() {
       />
     );
   }
-
-  const isInitialLoading = isLoading && !data;
+  
+  const isInitialLoading = false; // We already handled the loading state above
 
   return (
     <DashboardLoadingContext.Provider value={{ isInitialLoading }}>
@@ -265,6 +277,13 @@ export default function Dashboard() {
       </div>
         </DashboardErrorBoundary>
       </DashboardProvider>
+
+      {/* Clinical Disclaimer Modal */}
+      <ClinicalDisclaimerModal
+        isOpen={showDisclaimer}
+        onAccept={acceptDisclaimer}
+        onDecline={declineDisclaimer}
+      />
     </DashboardLoadingContext.Provider>
   );
 }

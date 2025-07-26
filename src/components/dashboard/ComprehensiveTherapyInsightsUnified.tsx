@@ -12,6 +12,7 @@ import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useTherapyInsightsFromContext } from '@/hooks/useDashboardContext';
 import { TherapyInsightsErrorBoundary } from '@/components/therapy-insights';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import { 
   Brain, 
   Heart, 
@@ -71,7 +72,7 @@ const priorityConfig = {
   }
 };
 
-export function ComprehensiveTherapyInsightsUnified() {
+function ComprehensiveTherapyInsightsComponent() {
   const [activeTab, setActiveTab] = useState('insights');
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
 
@@ -80,7 +81,8 @@ export function ComprehensiveTherapyInsightsUnified() {
     data, 
     isLoading, 
     error, 
-    loadingState 
+    loadingState,
+    refetch 
   } = useTherapyInsightsFromContext();
 
   // Use unified loading state
@@ -94,7 +96,22 @@ export function ComprehensiveTherapyInsightsUnified() {
     );
   }
 
-  if (error || !data) {
+  if (error) {
+    return (
+      <Card className="w-full border-0 shadow-sm">
+        <CardContent className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop}`}>
+          <DashboardAPIError
+            error={error}
+            onRetry={refetch}
+            componentName="TherapyInsights"
+            showDetails={process.env.NODE_ENV === 'development'}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
     return (
       <Card className="w-full border-0 shadow-sm">
         <CardContent className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop}`}>
@@ -582,10 +599,16 @@ export function ComprehensiveTherapyInsightsUnified() {
   );
 }
 
-export function ComprehensiveTherapyInsightsWithErrorBoundary() {
+// Export the component wrapped with error boundary
+export function ComprehensiveTherapyInsightsUnified() {
   return (
     <TherapyInsightsErrorBoundary>
-      <ComprehensiveTherapyInsightsUnified />
+      <ComprehensiveTherapyInsightsComponent />
     </TherapyInsightsErrorBoundary>
   );
+}
+
+// Legacy export for backwards compatibility
+export function ComprehensiveTherapyInsightsWithErrorBoundary() {
+  return <ComprehensiveTherapyInsightsUnified />;
 }

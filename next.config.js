@@ -13,7 +13,18 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
     // Note: instrumentationHook removed - instrumentation.js is available by default in Next.js 15
+    optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
   },
+  
+  // Development optimizations
+  ...(process.env.NODE_ENV === 'development' && {
+    typescript: {
+      ignoreBuildErrors: false,
+    },
+    eslint: {
+      ignoreDuringBuilds: false,
+    },
+  }),
 
   // Image optimization
   images: {

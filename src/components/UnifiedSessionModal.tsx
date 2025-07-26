@@ -240,8 +240,9 @@ export default function UnifiedSessionModal({
     
     try {
       if (mode === 'recovery' && sessionData?.sessionId) {
-        // End previous session
-        await fetch(`/api/sessions/${sessionData.sessionId}/complete`, {
+        // End previous session properly
+        console.log('🔚 Ending previous session:', sessionData.sessionId)
+        const endResponse = await fetch(`/api/sessions/${sessionData.sessionId}/complete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -250,11 +251,21 @@ export default function UnifiedSessionModal({
           })
         })
         
+        if (!endResponse.ok) {
+          console.error('Failed to end previous session:', endResponse.status)
+          // Continue anyway - user wants new session
+        } else {
+          console.log('✅ Previous session ended successfully')
+        }
+        
+        // Clean up all recovery-related storage
         sessionStorage.removeItem('session-recovery-pending')
         sessionStorage.removeItem('current-session-id')
         sessionStorage.removeItem('session-recovered')
         sessionStorage.removeItem('recovery-check-in-progress')
+        sessionStorage.removeItem('active-session-id')
         
+        // Mark session as just ended for UI feedback
         if (sessionData?.sessionId) {
           sessionStorage.setItem('session-just-ended', JSON.stringify({
             sessionId: sessionData.sessionId,
@@ -265,7 +276,9 @@ export default function UnifiedSessionModal({
       }
       
       setShowModal(false)
+      setIsLoading(false)
       
+      // Small delay to ensure modal closes before triggering new session
       setTimeout(() => {
         if (mode === 'conflict' && onEndAndStartNew) {
           onEndAndStartNew()
@@ -277,6 +290,10 @@ export default function UnifiedSessionModal({
     } catch (error) {
       console.error('Error ending previous session:', error)
       setIsLoading(false)
+      // Still proceed with new session - don't block user
+      setTimeout(() => {
+        onStartNewSession()
+      }, 200)
     }
   }
 
@@ -533,7 +550,7 @@ export default function UnifiedSessionModal({
                 ) : (
                   <p className="text-gray-600">
                     {conflictSession && (
-                      <>You have an active session that started {Math.floor((Date.now() - new Date(conflictSession.startTime).getTime()) / 1000 / 60)} minutes ago:</>
+                      <>You have an active session that started {Math.round(conflictSession.hoursAgo * 60)} minutes ago{conflictSession.remainingMinutes < 0 && ' (over time)'}:</>
                     )}
                   </p>
                 )}
@@ -545,16 +562,25 @@ export default function UnifiedSessionModal({
                       <div className="text-blue-600 font-medium">Conversation Time</div>
                       <div className="text-blue-800 font-semibold">{formatTime(elapsedTimeSeconds)}</div>
                     </div>
-                    <div className="bg-green-50 rounded-lg px-3 py-2">
-                      <div className="text-green-600 font-medium text-center mb-1">Time Remaining</div>
-                      <SessionTimer
-                        durationMinutes={sessionData?.sessionData.duration || 60}
-                        conversationTimeSeconds={elapsedTimeSeconds}
-                        isConversationActive={false}
-                        className="scale-90"
-                        showRecoveredIndicator={false}
-                        onTimeUpdate={(remainingMinutes) => setCurrentRemainingMinutes(remainingMinutes)}
-                      />
+                    <div className={`${sessionData?.isOverTime ? 'bg-amber-50' : 'bg-green-50'} rounded-lg px-3 py-2`}>
+                      <div className={`${sessionData?.isOverTime ? 'text-amber-600' : 'text-green-600'} font-medium text-center mb-1`}>
+                        {sessionData?.isOverTime ? 'Over Time' : 'Time Remaining'}
+                      </div>
+                      {sessionData?.isOverTime ? (
+                        <div className="text-amber-800 font-semibold text-center">
+                          +{Math.abs(sessionData.remainingMinutes || 0)}m
+                          <div className="text-xs text-amber-600 mt-1">Billing continues</div>
+                        </div>
+                      ) : (
+                        <SessionTimer
+                          durationMinutes={sessionData?.sessionData.duration || 60}
+                          conversationTimeSeconds={elapsedTimeSeconds}
+                          isConversationActive={false}
+                          className="scale-90"
+                          showRecoveredIndicator={false}
+                          onTimeUpdate={(remainingMinutes) => setCurrentRemainingMinutes(remainingMinutes)}
+                        />
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -604,8 +630,11 @@ export default function UnifiedSessionModal({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span>
-                        {isRecoveryMode ? 
-                          `Continue Session (${formatTime(currentRemainingMinutes * 60 || displayData?.remainingMinutes * 60)} left)` : 
+                        {isRecoveryMode ? (
+                          sessionData?.isOverTime ? 
+                            `Continue Session (Over time by ${Math.abs(sessionData.remainingMinutes || 0)}m)` :
+                            `Continue Session (${formatTime(currentRemainingMinutes * 60 || displayData?.remainingMinutes * 60)} left)`
+                        ) : 
                           'Resume Session'
                         }
                       </span>

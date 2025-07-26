@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma-optimized';
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
+import { onSessionCompleted } from '@/lib/ai-insights/session-completion-handler';
 import { Resend } from 'resend';
 import SessionCompletedEmail from '@/emails/SessionCompleted';
 import { rateLimitManager } from '@/lib/rate-limit-manager';
@@ -249,6 +250,9 @@ export async function POST(
       userId: therapySession.userId,
       billableMinutes: finalBillableMinutes
     });
+
+    // Trigger AI insights regeneration and pattern analysis
+    await onSessionCompleted(sessionId);
 
     return { 
       success: true,

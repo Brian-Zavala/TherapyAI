@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
-import SessionTranscript from '@/components/SessionTranscript'
+import SessionTranscriptSMS from '@/components/SessionTranscriptSMS'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -286,7 +286,7 @@ export default function SessionsPage() {
               transition={{ duration: 0.4 }}
             >
               {/* Pass the sessionId and initial session data for efficient loading */}
-            <SessionTranscript 
+            <SessionTranscriptSMS 
               sessionId={selectedSessionId} 
               initialSession={sessions.find(s => s.id === selectedSessionId)} 
               key={selectedSessionId} // Force re-render when session changes

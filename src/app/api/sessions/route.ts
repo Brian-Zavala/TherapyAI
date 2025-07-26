@@ -344,74 +344,57 @@ export async function POST(request: NextRequest) {
         });
         
         if (existingActiveSession) {
-          // Check if the session is too old (more than 24 hours)
+          // Calculate session age and remaining time for informational purposes only
           const sessionStartTime = existingActiveSession.startTime || existingActiveSession.date;
           const hoursAgo = (Date.now() - new Date(sessionStartTime).getTime()) / (1000 * 60 * 60);
-          
-          // Check if the existing session has expired based on conversation time
           const conversationTime = existingActiveSession.conversationTimeSeconds || 0;
           const duration = existingActiveSession.duration || 60;
           const remainingMinutes = duration - (conversationTime / 60);
           
-          if (remainingMinutes <= 0 || hoursAgo > 24) {
-            // Session has expired - auto-end it
-            log.info('Auto-ending expired session', { 
-              sessionId: existingActiveSession.id,
-              conversationTime: conversationTime,
-              duration: duration,
-              hoursAgo: Math.round(hoursAgo),
-              reason: hoursAgo > 24 ? 'too old' : 'time expired'
-            });
-            
-            await tx.session.update({
-              where: { id: existingActiveSession.id },
-              data: { 
-                status: 'COMPLETED',
-                endTime: new Date(),
-                notes: existingActiveSession.notes + '\n\n[Session auto-ended: ' + 
-                       (hoursAgo > 24 ? 'session too old (>24 hours)' : 'time expired') + ']'
-              }
-            });
-            
-            // Continue with creating the new session
-          } else {
-            // Session is still valid - check if user wants to force new
-            const forceNew = data.forceNew === true;
-            
-            if (!forceNew) {
-              log.info('Existing active session found', { 
-                sessionId: existingActiveSession.id,
+          // Log session state for debugging - NO auto-expiration
+          log.info('Existing active session found', { 
+            sessionId: existingActiveSession.id,
+            startTime: existingActiveSession.startTime,
+            hoursAgo: Math.round(hoursAgo),
+            conversationTime: conversationTime,
+            duration: duration,
+            remainingMinutes: remainingMinutes
+          });
+          
+          // Check if user wants to force new session
+          const forceNew = data.forceNew === true;
+          
+          if (!forceNew) {
+            // Return existing session info with conflict status
+            // Frontend must handle this and give user choice
+            throw new Error(JSON.stringify({
+              code: 'EXISTING_ACTIVE_SESSION',
+              existingSession: {
+                id: existingActiveSession.id,
+                theme: existingActiveSession.theme,
                 startTime: existingActiveSession.startTime,
-                remainingMinutes: remainingMinutes
-              });
-              
-              // Return existing session info with conflict status
-              throw new Error(JSON.stringify({
-                code: 'EXISTING_ACTIVE_SESSION',
-                existingSession: {
-                  id: existingActiveSession.id,
-                  theme: existingActiveSession.theme,
-                  startTime: existingActiveSession.startTime,
-                  duration: existingActiveSession.duration,
-                  conversationTimeSeconds: existingActiveSession.conversationTimeSeconds
-                }
-              }));
-            }
-            
-            // User explicitly wants new session - end the current one
-            log.info('Ending existing session to start new one', { 
-              existingSessionId: existingActiveSession.id 
-            });
-            
-            await tx.session.update({
-              where: { id: existingActiveSession.id },
-              data: { 
-                status: 'COMPLETED',
-                endTime: new Date(),
-                notes: existingActiveSession.notes + '\n\n[Session ended to start new session]'
+                duration: existingActiveSession.duration,
+                conversationTimeSeconds: existingActiveSession.conversationTimeSeconds,
+                remainingMinutes: remainingMinutes,
+                hoursAgo: hoursAgo
               }
-            });
+            }));
           }
+          
+          // User explicitly wants new session - end the current one
+          log.info('User requested to end existing session and start new one', { 
+            existingSessionId: existingActiveSession.id 
+          });
+          
+          await tx.session.update({
+            where: { id: existingActiveSession.id },
+            data: { 
+              status: 'COMPLETED',
+              endTime: new Date(),
+              terminationReason: 'user_started_new_session',
+              notes: existingActiveSession.notes + '\n\n[Session ended by user to start new session]'
+            }
+          });
         }
       }
       

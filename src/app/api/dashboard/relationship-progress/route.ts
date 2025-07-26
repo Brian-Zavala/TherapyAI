@@ -10,8 +10,14 @@ import {
   DashboardError,
   DashboardErrorCode
 } from '@/lib/api/dashboard-error-handler';
+import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache';
+import { getCachedSession } from '@/lib/auth/session-cache';
+import { performanceMonitor } from '@/lib/performance/monitoring';
+import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
 export async function GET(request: Request) {
+  const startTime = Date.now();
+  
   try {
     const { searchParams } = new URL(request.url);
     const therapyType = searchParams.get('type') || 'couple';
@@ -22,15 +28,13 @@ export async function GET(request: Request) {
       return NextResponse.json([]);
     }
 
-    const session = await getServerSession(authOptions);
+    // Use cached session to reduce auth overhead
+    const session = await getCachedSession(request);
     const { email } = await validateDashboardAuth(session);
 
-    // Find the user in the database (might not be the same ID as the session)
-    const user = await withRetry(
-      () => prisma.user.findUnique({
-        where: { email }
-      })
-    );
+    // Find the user in the database using optimized query with caching
+    const userResult = await findUserByEmailOptimized(email);
+    const user = userResult ? { id: userResult.id } : null;
 
     if (!user) {
       throw new DashboardError(
@@ -38,6 +42,16 @@ export async function GET(request: Request) {
         'User not found in database',
         404
       );
+    }
+    
+    // Try cache first
+    const cacheKey = cacheKeys.progress(user.id, timeframe);
+    const cached = await dashboardCache.get(cacheKey);
+    if (cached) {
+      const duration = Date.now() - startTime;
+      console.log(`[RelationshipProgress] Cache hit, returned in ${duration}ms`);
+      performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { cacheHit: true });
+      return NextResponse.json(cached);
     }
     
     // Define theme value for consistent filtering
@@ -210,18 +224,47 @@ export async function GET(request: Request) {
         // No automated data generation - return empty array
         console.log(`Found ${completedSessions.length} completed sessions, but no progress tracking data`);
         
+        // Cache empty result and track performance
+        await dashboardCache.set(cacheKey, []);
+        const duration = Date.now() - startTime;
+        performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { emptyResult: true });
+        
         return NextResponse.json([]);
       }
       
       // If no completed sessions, return empty array
       console.log("No completed sessions found, returning empty array");
       
+      // Cache empty result and track performance
+      await dashboardCache.set(cacheKey, []);
+      const duration = Date.now() - startTime;
+      performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { emptyResult: true });
+      
       return NextResponse.json([]);
     }
 
+    // Cache the response before returning
+    await dashboardCache.set(cacheKey, formattedData);
+    
+    const duration = Date.now() - startTime;
+    console.log(`[RelationshipProgress] Query completed in ${duration}ms`);
+    performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { cacheHit: false });
+    
+    // Log slow queries for monitoring
+    if (duration > 500) {
+      console.warn(`[RelationshipProgress] Slow query detected: ${duration}ms`, {
+        userId: user.id,
+        therapyType,
+        timeframe,
+      });
+    }
+    
     // If we have real data, return it
     return NextResponse.json(formattedData);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, undefined, { error: true });
+    
     return handleDashboardError(error, {
       route: '/api/dashboard/relationship-progress',
       userId: (await getServerSession(authOptions))?.user?.id,

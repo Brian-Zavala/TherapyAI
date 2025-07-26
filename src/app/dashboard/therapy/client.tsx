@@ -76,6 +76,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
   
+  // Track if user is forcing a new session after ending previous one
+  const [forceNewSession, setForceNewSession] = useState(false);
+  
   // Unified session modal state
   const [sessionModalMode, setSessionModalMode] = useState<SessionModalMode>(null);
   const [recoverySessionData, setRecoverySessionData] = useState<any>(null);
@@ -584,6 +587,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     setSelectedAssistant(null) // CRITICAL: Reset assistant selection
     setMeditationStep('none')
     setIsSessionActive(false)
+    
+    // IMPORTANT: Set flag to force new session creation
+    setForceNewSession(true)
     
     // Clear any stale recovery state to prevent race conditions
     sessionStorage.removeItem('session-recovery-pending')
@@ -1720,10 +1726,15 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                     key: "therapy-button-main", // Add stable key to prevent remounting
                                     therapyType: (sessionType || "couple") as TherapyType,
                                     disabled: false,
+                                    forceNewSession: forceNewSession,
                                     onSessionConflict: (conflictData: any) => {
                                       console.log('🔴 Session conflict detected:', conflictData)
                                       setConflictSessionData(conflictData)
                                       setSessionModalMode('conflict')
+                                    },
+                                    onSessionStarted: () => {
+                                      // Reset the force flag after session is started
+                                      setForceNewSession(false)
                                     }
                                   })
                                 ),

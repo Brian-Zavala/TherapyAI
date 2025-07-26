@@ -60,7 +60,7 @@ if (!process.env.NEXTAUTH_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
-  debug: process.env.NODE_ENV === 'development',
+  debug: false, // Disable debug mode to clean up console
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
   session: {

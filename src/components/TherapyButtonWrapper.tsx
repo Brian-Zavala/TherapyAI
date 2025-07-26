@@ -9,7 +9,9 @@ import type { TherapyType } from '@/types/therapy-session'
 interface TherapyButtonWrapperProps {
   therapyType: TherapyType
   disabled?: boolean
+  forceNewSession?: boolean
   onSessionConflict?: (conflictData: any) => void
+  onSessionStarted?: () => void
 }
 
 /**

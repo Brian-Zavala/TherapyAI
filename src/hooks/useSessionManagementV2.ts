@@ -174,7 +174,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
   })
   
   // Create a new session
-  const createSession = useCallback(async (duration: SessionDuration, familyMembers?: FamilyMember[]): Promise<string | null> => {
+  const createSession = useCallback(async (duration: SessionDuration, familyMembers?: FamilyMember[], forceNew: boolean = false): Promise<string | null> => {
     if (sessionCreationInProgress.current) {
       console.log('⚠️ Session creation already in progress')
       return null
@@ -200,7 +200,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         duration,
         theme: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Therapy Session`,
         status: 'active',
-        forceNew: false,
+        forceNew: forceNew,
         // These fields are not in the API validation schema but kept for backward compatibility
         familyMembers: familyMembers || [],
         therapyType,

@@ -9,21 +9,24 @@ import {
   DashboardError,
   DashboardErrorCode
 } from '@/lib/api/dashboard-error-handler';
+import { getCachedSession } from '@/lib/auth/session-cache';
+import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache';
+import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
 export async function GET(request: Request) {
+  const startTime = Date.now();
+  
   try {
     const { searchParams } = new URL(request.url);
     const therapyType = searchParams.get('type') || 'couple';
 
-    const session = await getServerSession(authOptions);
+    // Use cached session to reduce auth overhead
+    const session = await getCachedSession(request);
     const { email } = await validateDashboardAuth(session);
 
-    // Find the user in the database (might not be the same ID as the session)
-    const user = await withRetry(
-      () => prisma.user.findUnique({
-        where: { email }
-      })
-    );
+    // Find the user in the database using optimized query with caching
+    const userResult = await findUserByEmailOptimized(email);
+    const user = userResult ? { id: userResult.id } : null;
 
     if (!user) {
       throw new DashboardError(
@@ -31,6 +34,14 @@ export async function GET(request: Request) {
         'User not found in database',
         404
       );
+    }
+    
+    // Try cache first
+    const cacheKey = cacheKeys.sessions(user.id, 'COMPLETED', therapyType);
+    const cached = await dashboardCache.get(cacheKey);
+    if (cached) {
+      console.log(`[SessionTime] Cache hit, returned in ${Date.now() - startTime}ms`);
+      return NextResponse.json(cached);
     }
     
     // Always filter by therapy type for accurate data
@@ -64,8 +75,22 @@ export async function GET(request: Request) {
 
     // If no sessions found, return empty array instead of mock data
     if (formattedData.length === 0) {
-      // Return empty array to show empty state in UI
+      // Cache empty result too
+      await dashboardCache.set(cacheKey, []);
       return NextResponse.json([]);
+    }
+
+    // Cache the result
+    await dashboardCache.set(cacheKey, formattedData);
+    
+    const duration = Date.now() - startTime;
+    console.log(`[SessionTime] Query completed in ${duration}ms`);
+    
+    if (duration > 500) {
+      console.warn(`[SessionTime] Slow query detected: ${duration}ms`, {
+        userId: user.id,
+        therapyType,
+      });
     }
 
     return NextResponse.json(formattedData);

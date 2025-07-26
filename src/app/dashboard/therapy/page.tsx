@@ -2,7 +2,7 @@
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { prisma } from '@/lib/prisma-optimized'
+import { findUserByIdOptimized } from '@/lib/database/optimized-user-queries'
 import TherapyPageClient from "./client"
 
 export default async function TherapyPage() {
@@ -13,10 +13,7 @@ export default async function TherapyPage() {
   }
 
   // Check if user exists in database - if not, session is stale
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, onboardingCompleted: true }
-  })
+  const user = await findUserByIdOptimized(session.user.id)
 
   if (!user) {
     // User doesn't exist in DB - stale session, redirect to login

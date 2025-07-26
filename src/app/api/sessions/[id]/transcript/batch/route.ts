@@ -11,14 +11,22 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log('🔔 BATCH ENDPOINT: Received request');
+  const debug = process.env.DEBUG_BATCH === 'true';
+  if (debug) {
+    console.log('🔔 BATCH ENDPOINT: Received request');
+  }
   
   try {
+    // Start timer for performance monitoring
+    const startTime = Date.now();
+    
     const authSession = await getServerSession(authOptions);
-    console.log('🔐 BATCH ENDPOINT: Auth status', {
-      hasSession: !!authSession,
-      hasEmail: !!authSession?.user?.email
-    });
+    if (debug) {
+      console.log('🔐 BATCH ENDPOINT: Auth status', {
+        hasSession: !!authSession,
+        hasEmail: !!authSession?.user?.email
+      });
+    }
     
     if (!authSession?.user?.email) {
       console.error('❌ BATCH ENDPOINT: Unauthorized - no session');
@@ -29,12 +37,14 @@ export async function POST(
     const body = await req.json();
     const { entries } = body;
     
-    console.log('📦 BATCH ENDPOINT: Request data', {
-      sessionId,
-      hasEntries: !!entries,
-      entriesCount: Array.isArray(entries) ? entries.length : 0,
-      bodyKeys: Object.keys(body)
-    });
+    if (debug) {
+      console.log('📦 BATCH ENDPOINT: Request data', {
+        sessionId,
+        hasEntries: !!entries,
+        entriesCount: Array.isArray(entries) ? entries.length : 0,
+        bodyKeys: Object.keys(body)
+      });
+    }
 
     // Validate input
     if (!Array.isArray(entries) || entries.length === 0) {
@@ -55,27 +65,22 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // First, find the user by email
-    const user = await prisma.user.findUnique({
-      where: { 
-        email: authSession.user.email
-      }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Validate session exists and belongs to user
+    // Optimize: Use a single query to validate session and user ownership
     const existingSession = await prisma.session.findFirst({
       where: {
         id: sessionId,
-        userId: user.id,
+        user: {
+          email: authSession.user.email
+        },
       },
+      select: {
+        id: true,
+        userId: true
+      }
     });
 
     if (!existingSession) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 404 });
     }
 
     // Validate each entry
@@ -91,7 +96,9 @@ export async function POST(
       return NextResponse.json({ error: 'No valid entries to save' }, { status: 400 });
     }
 
-    console.log(`💾 BATCH SAVE: Processing ${validEntries.length} entries for session ${sessionId}`);
+    if (debug) {
+      console.log(`💾 BATCH SAVE: Processing ${validEntries.length} entries for session ${sessionId}`);
+    }
 
     // Use a transaction with increased timeout for large batches
     const savedEntries = await prisma.$transaction(async (tx) => {
@@ -119,37 +126,27 @@ export async function POST(
         },
       });
 
-      // Fetch the created entries for the response
-      const transcriptEntries = await tx.transcriptEntry.findMany({
-        where: {
-          sessionId,
-          timestamp: {
-            gte: transcriptData[0].timestamp,
-          }
-        },
-        orderBy: { timestamp: 'desc' },
-        take: transcriptData.length,
+      // Return count instead of fetching entries back (faster)
+      const result = await tx.transcriptEntry.createMany({
+        data: transcriptData,
       });
 
-      return transcriptEntries;
+      return { count: result.count, transcriptData };
     }, {
       maxWait: 10000, // Maximum time to wait for a transaction slot (10s)
       timeout: 30000, // Maximum time for the transaction to complete (30s)
     });
 
-    console.log(`✅ BATCH SUCCESS: Saved ${savedEntries.length} entries in transaction`);
+    const duration = Date.now() - startTime;
+    if (debug || duration > 1000) {
+      console.log(`✅ BATCH SUCCESS: Saved ${savedEntries.count} entries in transaction (${duration}ms)`);
+    }
 
     return NextResponse.json({
       success: true,
-      count: savedEntries.length,
-      entries: savedEntries.map(entry => ({
-        id: entry.id,
-        sessionId: entry.sessionId,
-        speaker: entry.speaker,
-        text: entry.text,
-        timestamp: entry.timestamp.toISOString(),
-        isFinal: entry.isFinal,
-      }))
+      count: savedEntries.count,
+      savedAt: new Date().toISOString(),
+      duration: `${Date.now() - startTime}ms`
     });
 
   } catch (error) {

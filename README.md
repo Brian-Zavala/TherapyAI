@@ -20,6 +20,15 @@ An AI-powered therapy platform featuring real-time voice therapy sessions, intel
 - **Mood tracking** and session insights
 - **Export capabilities** for session data
 
+### AI-Powered Insights (No External API Required)
+- **Deterministic insight engine** based on evidence-based therapy research
+- **9 insight patterns** covering different relationship scenarios
+- **Personalized recommendations** based on session metrics
+- **No AI API costs** - uses built-in pattern matching
+- **Evidence-based content** from Gottman Method and EFT research
+- **Dynamic goal setting** and focus area identification
+- **Progress tracking** with confidence scoring
+
 ### Authentication & Security
 - **Secure authentication** with NextAuth.js
 - **JWT token management** with rate limiting
@@ -105,6 +114,11 @@ CRON_SECRET=your-cron-secret
 
 # HTTPS (for local development)
 USE_HTTPS=true
+
+# AI Insights (OPTIONAL - app works without this)
+# The platform includes a comprehensive deterministic insights engine
+# Only add if you want enhanced AI insights (costs ~$0.003/generation)
+# ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 ```
 
 ### 4. Set up the database
