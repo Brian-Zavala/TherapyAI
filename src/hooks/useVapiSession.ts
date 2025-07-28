@@ -76,6 +76,7 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
   const animationFrameRef = useRef<number | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
   const sessionIdRef = useRef<string | null>(null)
+  const activePauseRequestRef = useRef<string | null>(null) // Track active pause request
   
   // Get user session
   const { data: session } = useSession()
@@ -768,6 +769,21 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       return null
     }
     
+    // Track operation start time
+    const operationStartTime = Date.now()
+    
+    // Generate unique request ID
+    const requestId = `pause-${sessionId}-${operationStartTime}`
+    
+    // Check if there's already an active pause request for this session
+    if (activePauseRequestRef.current && activePauseRequestRef.current.startsWith(`pause-${sessionId}`)) {
+      console.warn('Pause request already in progress, ignoring duplicate')
+      return null
+    }
+    
+    // Set the active request
+    activePauseRequestRef.current = requestId
+    
     try {
       setVapiState(prev => ({ ...prev, isLoading: true }))
       
@@ -799,14 +815,24 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
         saveData.assistantId = currentAssistantId || ''
       }
       
-      // Save conversation state to database
-      const response = await fetch('/api/conversation/save-state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(saveData)
-      })
+      // Save conversation state to database with timeout
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
+      
+      try {
+        const response = await fetch('/api/conversation/save-state', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(saveData),
+          signal: controller.signal
+        })
+        
+        clearTimeout(timeout)
+      } finally {
+        clearTimeout(timeout)
+      }
       
       if (!response.ok) {
         throw new Error('Failed to save conversation state')
@@ -821,11 +847,54 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       await vapiManagerRef.current.stopSession()
       
       console.log(`✅ Session paused successfully. State ID: ${result.stateId}`)
+      
+      // Track telemetry for successful pause
+      if (typeof window !== 'undefined' && (window as any).posthog) {
+        (window as any).posthog.capture('vapi_session_paused', {
+          sessionId,
+          stateId: result.stateId,
+          messageCount: messages.length,
+          pauseDuration: Date.now() - (metadata.startTime || 0),
+          conversationDuration: metadata.totalDuration,
+          operationDuration: Date.now() - operationStartTime,
+          success: true
+        })
+      }
+      
+      // Clear active request on success
+      activePauseRequestRef.current = null
+      
       return result.stateId
       
     } catch (error) {
       console.error('Error pausing VAPI call:', error)
-      setVapiState(prev => ({ ...prev, error: 'Failed to pause session' }))
+      
+      // Handle different error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          setVapiState(prev => ({ ...prev, error: 'Request timeout - please check your connection' }))
+        } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+          setVapiState(prev => ({ ...prev, error: 'Network error - please check your connection' }))
+        } else {
+          setVapiState(prev => ({ ...prev, error: error.message || 'Failed to pause session' }))
+        }
+      } else {
+        setVapiState(prev => ({ ...prev, error: 'Failed to pause session' }))
+      }
+      
+      // Track telemetry for failed pause
+      if (typeof window !== 'undefined' && (window as any).posthog) {
+        (window as any).posthog.capture('vapi_session_pause_failed', {
+          sessionId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorType: error instanceof Error ? error.name : 'Unknown',
+          success: false
+        })
+      }
+      
+      // Clear active request on error
+      activePauseRequestRef.current = null
+      
       return null
     } finally {
       setVapiState(prev => ({ ...prev, isLoading: false }))
@@ -838,18 +907,47 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       throw new Error('No session ID provided for resume')
     }
     
+    // Check if session is already active
+    if (vapiState.isActive) {
+      console.warn('Cannot resume - session is already active')
+      throw new Error('Session is already active. Please end the current session before resuming another.')
+    }
+    
+    // Check if VAPI Manager is already active
+    if (vapiManagerRef.current?.getSessionStatus().isActive) {
+      console.warn('Cannot resume - VAPI Manager reports active session')
+      throw new Error('An active voice session is already in progress')
+    }
+    
+    // Track operation start time
+    const operationStartTime = Date.now()
+    
     try {
       setVapiState(prev => ({ ...prev, isLoading: true, error: null }))
       
-      // Load conversation state
-      const response = await fetch(`/api/conversation/load-state?sessionId=${sessionId}`)
-      if (!response.ok) {
-        throw new Error('Failed to load conversation state')
-      }
+      // Load conversation state with timeout
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
       
-      const result = await response.json()
-      if (!result.success || !result.state) {
-        throw new Error(result.error || 'No conversation state found')
+      try {
+        const response = await fetch(`/api/conversation/load-state?sessionId=${sessionId}`, {
+          signal: controller.signal
+        })
+        
+        clearTimeout(timeout)
+        
+        if (!response.ok) {
+          throw new Error('Failed to load conversation state')
+        }
+        
+        const result = await response.json()
+        if (!result.success || !result.state) {
+          throw new Error(result.error || 'No conversation state found')
+        }
+        
+        return result
+      } finally {
+        clearTimeout(timeout)
       }
       
       const { assistantId, assistantConfig, messages, variableValues } = result.state
@@ -886,16 +984,53 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       
       console.log('✅ Session resumed successfully')
       
+      // Track telemetry for successful resume
+      if (typeof window !== 'undefined' && (window as any).posthog) {
+        (window as any).posthog.capture('vapi_session_resumed', {
+          sessionId,
+          messageCount: messages.length,
+          hasAssistantConfig: !!assistantConfig,
+          hasAssistantId: !!assistantId,
+          resumeDuration: Date.now() - (result.state.lastActiveTime ? new Date(result.state.lastActiveTime).getTime() : 0),
+          operationDuration: Date.now() - operationStartTime,
+          success: true
+        })
+      }
+      
     } catch (error) {
       console.error('Error resuming VAPI call:', error)
+      
+      // Handle different error types
+      let errorMessage = 'Failed to resume session'
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - please check your connection'
+        } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+          errorMessage = 'Network error - please check your connection'
+        } else {
+          errorMessage = error.message || 'Failed to resume session'
+        }
+      }
+      
+      // Track telemetry for failed resume
+      if (typeof window !== 'undefined' && (window as any).posthog) {
+        (window as any).posthog.capture('vapi_session_resume_failed', {
+          sessionId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorType: error instanceof Error ? error.name : 'Unknown',
+          errorMessage,
+          success: false
+        })
+      }
+      
       setVapiState(prev => ({ 
         ...prev, 
-        error: 'Failed to resume session',
+        error: errorMessage,
         isLoading: false 
       }))
       throw error
     }
-  }, [createVapiInstance])
+  }, [createVapiInstance, vapiState.isActive])
   
   // Toggle mute
   const toggleMute = useCallback(() => {
@@ -933,6 +1068,9 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       if (vapiManagerRef.current) {
         vapiManagerRef.current.destroy()
       }
+      
+      // Clear active pause request
+      activePauseRequestRef.current = null
       
       // Clean up audio
       if (animationFrameRef.current) {

@@ -27,6 +27,7 @@ import {
 } from './therapy'
 import TranscriptOverlay from './therapy/TranscriptOverlay'
 import LiveTranscriptButton from './therapy/LiveTranscriptButton'
+import TherapyTypeSelector from './TherapyTypeSelector'
 import type { TherapyType, SessionRecoveryData } from '@/types/therapy-session'
 
 // Loading messages that cycle through
@@ -431,6 +432,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Local UI state
   const [showDurationModal, setShowDurationModal] = useState(false)
   const [showFamilySelectionModal, setShowFamilySelectionModal] = useState(false)
+  const [showTherapyTypeSelector, setShowTherapyTypeSelector] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [messageIndex, setMessageIndex] = useState(0)
@@ -1500,16 +1502,17 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
   // Handle pause/resume with proper VAPI stop/restart to prevent billing
   const handlePauseResume = useCallback(async () => {
-    // Debounce to prevent rapid clicking
+    // Debounce to prevent rapid clicking - check and set atomically
     if (pauseResumeDebounceRef.current) {
-      console.log('⏱️ Pause/resume operation in progress, ignoring...')
+      console.log('⏱️ Pause/resume operation in progress, ignoring rapid click...')
       return
     }
     
-    // Set longer debounce for pause/resume operations
+    // Set debounce immediately to prevent race conditions
     pauseResumeDebounceRef.current = setTimeout(() => {
       pauseResumeDebounceRef.current = null
-    }, 3000) // 3 second debounce for complex operations
+      console.log('⏱️ Pause/resume debounce cleared')
+    }, 300) // 300ms debounce as per spec
     
     try {
       if (sessionState.isPaused) {
@@ -1610,7 +1613,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       setError(error instanceof Error ? error.message : 'Failed to pause/resume')
       setIsTransitioning(false)
       
-      // Clear debounce on error
+      // Clear debounce on error to allow retry
       if (pauseResumeDebounceRef.current) {
         clearTimeout(pauseResumeDebounceRef.current)
         pauseResumeDebounceRef.current = null
@@ -1724,6 +1727,18 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     setSessionActive(false)
     console.log('🔙 Family selection modal cancelled - reverting UI state')
   }, [setSessionActive])
+
+  const handleTherapyTypeChange = useCallback((newTherapyType: TherapyType) => {
+    console.log('🔄 Switching therapy type to:', newTherapyType)
+    setShowTherapyTypeSelector(false)
+    setTherapyType(newTherapyType)
+    
+    // If session is active, show a message that they need to end current session first
+    if (session.sessionId || vapi.vapiState.isActive) {
+      setError('Please end your current session before switching therapists')
+      return
+    }
+  }, [session.sessionId, vapi.vapiState.isActive])
 
   const handleRemoveFamilyMember = useCallback(async (index: number) => {
     // Find the family member by index
@@ -1852,6 +1867,16 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       window.removeEventListener('vapiDisconnected', handleVapiDisconnected)
     }
   }, [vapi])
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (pauseResumeDebounceRef.current) {
+        clearTimeout(pauseResumeDebounceRef.current)
+        pauseResumeDebounceRef.current = null
+      }
+    }
+  }, [])
 
   // Get therapist name based on therapy type
   const getTherapistName = () => {
@@ -2112,19 +2137,42 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
                 
                 {/* Therapist Avatar */}
                 <div className="py-4 sm:py-6 relative">
-                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-lg mb-3 sm:mb-4 border-2 border-blue-300 mx-auto">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={`/images/${therapyType === 'solo' ? 'dr-elliot-mackaphy.jpg' : 
-                                    therapyType === 'family' ? 'dr-jada-pearson.jpg' : 
-                                    'dr-maya-thompson.jpg'}`}
-                      alt={getTherapistName()}
+                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-lg mb-3 sm:mb-4 border-2 border-blue-300 mx-auto relative">
+                    <video
+                      src={`/videos/${therapyType === 'solo' ? 'ian_profile.mp4' : 
+                                    therapyType === 'family' ? 'jada_profile.mp4' : 
+                                    'maya_profile.mp4'}`}
                       className="w-full h-full object-cover"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
                     />
                   </div>
-                  <p className="text-white text-center text-base sm:text-lg font-medium">
-                    {getTherapistName()}
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-white text-center text-base sm:text-lg font-medium">
+                      {getTherapistName()}
+                    </p>
+                    <button
+                      onClick={() => setShowTherapyTypeSelector(true)}
+                      className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                      aria-label="Switch therapist"
+                    >
+                      <svg 
+                        className="w-5 h-5" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth="2" 
+                          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Voice Waveform */}
@@ -2322,6 +2370,21 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             onResume={resumeExistingSession}
             onEndAndStartNew={handleEndAndStartNew}
             formatTime={formatSessionTime}
+          />
+        )}
+        
+        {/* Therapy Type Selector Modal */}
+        {showTherapyTypeSelector && (
+          <TherapyTypeSelector
+            key="therapy-type-selector"
+            isOpen={showTherapyTypeSelector}
+            onClose={() => setShowTherapyTypeSelector(false)}
+            onSelect={handleTherapyTypeChange}
+            hasFamilyMembers={familyMembers.length > 0}
+            familyMembersLoading={familyMembersLoading}
+            hasPartner={user?.hasPartner || false}
+            profileLoading={authLoading}
+            currentTherapyType={therapyType}
           />
         )}
       </AnimatePresence>

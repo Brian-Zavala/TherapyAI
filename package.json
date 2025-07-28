@@ -19,6 +19,7 @@
     "prisma:studio": "prisma studio",
     "crawl-docs": "tsx scripts/crawl-docs.ts",
     "emergency:clear-queue": "tsx scripts/emergency-clear-queue.ts",
+    "backfill:metrics": "tsx scripts/backfill-missing-metrics.ts",
     "typecheck": "tsc --noEmit",
     "perf:analyze": "npm run build:analyze",
     "perf:lighthouse": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html",

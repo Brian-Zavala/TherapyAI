@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
+import PreSessionWarmup from "@/components/PreSessionWarmup";
 import DigitalClock from "@/components/DigitalClock";
 import UnifiedSessionModal, { SessionModalMode } from "@/components/UnifiedSessionModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
@@ -204,6 +205,22 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // CRITICAL FIX: Only show therapist selector AFTER checking for active sessions
   // This prevents the modal from appearing before session recovery
   const [showTypeSelector, setShowTypeSelector] = useState(false);
+  // Show warm-up page when X is clicked
+  const [showWarmupPage, setShowWarmupPage] = useState(() => {
+    // Check if warm-up page was active before refresh
+    if (typeof window !== 'undefined') {
+      // Don't show warm-up if there's an active session recovery
+      const recoveryPending = sessionStorage.getItem('session-recovery-pending');
+      const recoveryInProgress = sessionStorage.getItem('recovery-check-in-progress');
+      if (recoveryPending || recoveryInProgress === 'true') {
+        return false;
+      }
+      
+      const warmupActive = sessionStorage.getItem('therapy-warmup-active');
+      return warmupActive === 'true';
+    }
+    return false;
+  });
   // Countdown overlay state
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
@@ -242,6 +259,15 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   }>({});
 
   // Digital clock state removed - now using DigitalClock component
+
+  // Persist warm-up page state to handle page refreshes
+  useEffect(() => {
+    if (showWarmupPage) {
+      sessionStorage.setItem('therapy-warmup-active', 'true');
+    } else {
+      sessionStorage.removeItem('therapy-warmup-active');
+    }
+  }, [showWarmupPage]);
 
   // Removed - now using ProfileProvider
 
@@ -339,6 +365,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     );
     setSelectedAssistant(assistant);
 
+    // Clear warm-up state when a therapy type is selected
+    setShowWarmupPage(false);
+    sessionStorage.removeItem('therapy-warmup-active');
+
     // Hide the type selector modal immediately to start meditation
     setShowTypeSelector(false);
 
@@ -380,7 +410,19 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   const openTherapistSelector = () => {
     // Only allow opening if initial check is complete
     if (initialCheckComplete) {
-      setShowTypeSelector(true);
+      // Don't allow switching during active session
+      if (isSessionActive) {
+        alert('Please end your current session before switching therapists.');
+        return;
+      }
+      // Reset selected assistant to allow re-selection
+      setSelectedAssistant(null);
+      setSessionType(null);
+      setMeditationStep('none');
+      // Show warm-up page first when switching therapist
+      setShowWarmupPage(true);
+      setShowTypeSelector(false);
+      console.log('🔄 Opening warm-up page for therapist switch');
     } else {
       console.log('⏳ Cannot open therapist selector - still checking for active sessions');
     }
@@ -630,6 +672,34 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     };
   }, [quickActionsOpen]);
 
+  // If showing warm-up page, render it instead of the main therapy UI
+  // But don't show it if there's an active session or recovery in progress
+  if (showWarmupPage && !isSessionActive && !hasActiveSession && !sessionModalMode) {
+    return React.createElement(
+      AnimatePresence,
+      { mode: "wait" },
+      React.createElement(
+        motion.div,
+        {
+          key: "warmup-page",
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          exit: { opacity: 0 },
+          transition: { duration: 0.3 }
+        },
+        React.createElement(PreSessionWarmup, {
+          onBeginSession: () => {
+            // Small delay to allow fade-out animation
+            setTimeout(() => {
+              setShowWarmupPage(false);
+              setShowTypeSelector(true);
+            }, 300);
+          }
+        })
+      )
+    );
+  }
+
   // Use React.createElement to avoid JSX parsing issues
   return React.createElement(React.Fragment, null, [
     // Persistent blur background that stays throughout the meditation
@@ -741,9 +811,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     // This ensures session recovery modal appears first if needed
     React.createElement(TherapyTypeSelector, {
       key: "therapy-selector",
-      isOpen: showTypeSelector && initialCheckComplete && minimumWaitComplete && !hasActiveSession && !selectedAssistant,
+      isOpen: showTypeSelector && initialCheckComplete && !showWarmupPage,
       onClose: () => {
-        /* No-op: User must select a therapist */
+        // When X is clicked, show warm-up page instead of just closing
+        setShowTypeSelector(false);
+        setShowWarmupPage(true);
       },
       onSelect: handleSelectTherapyType,
       hasFamilyMembers: familyMembers.length > 0,
@@ -752,6 +824,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       hasPartner: Boolean(profile?.partnerName) || 
                   ['dating', 'engaged', 'married', 'in a relationship'].includes(profile?.relationshipStatus?.toLowerCase() || ''),
       profileLoading: false, // Profile is already loaded from ProfileProvider
+      currentTherapyType: sessionType as TherapyType | null,
     }),
 
     // Stars background for session

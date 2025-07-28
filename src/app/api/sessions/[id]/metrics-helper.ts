@@ -147,8 +147,21 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
 
 // Helper function to analyze transcript and extract metrics
 export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60, variability = 10, therapyType: string = 'couple') {
-  // Return 0 values if no transcript - don't show fake data
+  // For solo therapy, generate minimal metrics even without transcript
   if (!transcript) {
+    if (therapyType === 'solo') {
+      // Provide baseline solo therapy metrics when no transcript is available
+      return {
+        closenessScore: 0, // Not applicable for solo therapy
+        communicationScore: Math.floor(baseScore * 0.8), // Basic communication with therapist
+        activeListeningScore: Math.floor(baseScore * 0.9), // Self-reflection and listening
+        expressingNeedsScore: Math.floor(baseScore * 0.7), // Self-expression skills
+        conflictResolutionScore: Math.floor(baseScore * 0.6), // Internal conflict resolution
+        emotionalSupportScore: Math.floor(baseScore * 0.8) // Self-care and emotional awareness
+      };
+    }
+    
+    // For couple/family therapy, require transcript for meaningful metrics
     return {
       closenessScore: 0,
       communicationScore: 0,

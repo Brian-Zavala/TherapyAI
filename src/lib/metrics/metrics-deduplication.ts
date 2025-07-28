@@ -175,6 +175,58 @@ async function performMetricsCalculation(
     }
   });
 
+  // CRITICAL: Also create ProgressTracking data for dashboard charts
+  // This is what the relationship progress dashboard actually displays
+  try {
+    const communicationScore = Math.round((engagementScore + (sentimentTrend.average || 50)) / 2);
+    const closenessScore = Math.round(sentimentTrend.average || 50);
+    
+    await prisma.progressTracking.create({
+      data: {
+        userId,
+        sessionId,
+        assistantId: session.assistantId,
+        closenessScore: Math.max(0, Math.min(100, closenessScore)),
+        communicationScore: Math.max(0, Math.min(100, communicationScore)),
+        date: new Date(),
+        notes: `Session completed with ${totalMessages} messages. Engagement: ${engagementScore}%, Sentiment: ${sentimentTrend.trend}`
+      }
+    });
+
+    logger.info('Progress tracking data created', {
+      sessionId,
+      communicationScore,
+      closenessScore
+    });
+
+    // Also create CommunicationMetrics for the insights system
+    await prisma.communicationMetric.create({
+      data: {
+        userId,
+        sessionId,
+        clarity: Math.max(0, Math.min(100, engagementScore)),
+        empathy: Math.max(0, Math.min(100, sentimentTrend.average || 50)),
+        respect: Math.max(0, Math.min(100, Math.round(engagementScore * 0.9))),
+        overall: Math.max(0, Math.min(100, communicationScore)),
+        listening: Math.max(0, Math.min(100, Math.round(engagementScore * 0.85))),
+        expression: Math.max(0, Math.min(100, Math.round(engagementScore * 0.95))),
+        metricType: 'final',
+        calculatedAt: new Date(),
+        confidence: totalMessages > 20 ? 0.8 : 0.6
+      }
+    });
+
+    logger.info('Communication metrics created', {
+      sessionId,
+      overall: communicationScore
+    });
+  } catch (error) {
+    logger.error('Failed to create progress tracking data', {
+      sessionId,
+      error: error instanceof Error ? error.message : error
+    });
+  }
+
   logger.info('Metrics calculated successfully', {
     sessionId,
     duration,

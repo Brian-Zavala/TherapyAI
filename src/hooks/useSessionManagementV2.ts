@@ -27,6 +27,80 @@ interface UseSessionManagementV2Options {
   onTimeWarning?: (remainingMinutes: number) => void
 }
 
+// Storage utility with quota error handling
+const safeSessionStorage = {
+  setItem: (key: string, value: string): boolean => {
+    try {
+      sessionStorage.setItem(key, value)
+      return true
+    } catch (error) {
+      if (error instanceof Error && 
+          (error.name === 'QuotaExceededError' || 
+           error.message.includes('QuotaExceeded'))) {
+        console.warn(`Storage quota exceeded for key: ${key}`)
+        
+        // Try to clean up old session data
+        try {
+          const oneHourAgo = Date.now() - 60 * 60 * 1000
+          const keysToRemove: string[] = []
+          
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i)
+            if (!key) continue
+            
+            // Check if it's old session data
+            if (key.includes('session-') && key.includes('-backup')) {
+              try {
+                const data = sessionStorage.getItem(key)
+                if (data) {
+                  const parsed = JSON.parse(data)
+                  if (parsed.savedAt && new Date(parsed.savedAt).getTime() < oneHourAgo) {
+                    keysToRemove.push(key)
+                  }
+                }
+              } catch {
+                // If we can't parse it, it's probably corrupted - remove it
+                keysToRemove.push(key)
+              }
+            }
+          }
+          
+          // Remove old data
+          keysToRemove.forEach(k => sessionStorage.removeItem(k))
+          
+          // Try one more time
+          sessionStorage.setItem(key, value)
+          console.log('Successfully saved after cleanup')
+          return true
+        } catch (retryError) {
+          console.error('Failed to save even after cleanup:', retryError)
+          return false
+        }
+      }
+      
+      console.error('Failed to save to sessionStorage:', error)
+      return false
+    }
+  },
+  
+  getItem: (key: string): string | null => {
+    try {
+      return sessionStorage.getItem(key)
+    } catch (error) {
+      console.error('Failed to read from sessionStorage:', error)
+      return null
+    }
+  },
+  
+  removeItem: (key: string): void => {
+    try {
+      sessionStorage.removeItem(key)
+    } catch (error) {
+      console.error('Failed to remove from sessionStorage:', error)
+    }
+  }
+}
+
 // Hook return type
 interface UseSessionManagementV2Return {
   // Session state
@@ -233,8 +307,8 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       const newSessionId = data.session.id
       
       // Clean up any pending session data after successful creation
-      sessionStorage.removeItem('pending-session-duration')
-      sessionStorage.removeItem('pending-family-members')
+      safeSessionStorage.removeItem('pending-session-duration')
+      safeSessionStorage.removeItem('pending-family-members')
       
       // Update state
       setSessionId(newSessionId)
@@ -244,9 +318,9 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       setInitialPausedTime(0)
       
       // Save to storage for recovery
-      sessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, newSessionId)
-      sessionStorage.setItem(`session-${newSessionId}-start-time`, new Date().toISOString())
-      sessionStorage.setItem('active-session-id', newSessionId)
+      safeSessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, newSessionId)
+      safeSessionStorage.setItem(`session-${newSessionId}-start-time`, new Date().toISOString())
+      safeSessionStorage.setItem('active-session-id', newSessionId)
       
       console.log(`✅ Created new session: ${newSessionId}`)
       onSessionCreated?.(newSessionId)
@@ -346,8 +420,8 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       setSessionRecovered(true)
       
       // Save recovery state
-      sessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, recoveryData.sessionId)
-      sessionStorage.setItem('active-session-id', recoveryData.sessionId)
+      safeSessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, recoveryData.sessionId)
+      safeSessionStorage.setItem('active-session-id', recoveryData.sessionId)
       
       onSessionRecovered?.(recoveryData)
       
@@ -377,7 +451,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         selectedSessionDuration: sessionDuration
       }
       
-      sessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify(pauseState))
+      safeSessionStorage.setItem(`session-${sessionId}-pause-state`, JSON.stringify(pauseState))
       
       // Update session in database
       await fetch(`/api/sessions/${sessionId}`, {
@@ -409,7 +483,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       setIsConversationActive(true)
       
       // Clear pause state
-      sessionStorage.removeItem(`session-${sessionId}-pause-state`)
+      safeSessionStorage.removeItem(`session-${sessionId}-pause-state`)
       
       // Update session in database
       await fetch(`/api/sessions/${sessionId}`, {
@@ -518,8 +592,8 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
     setInitialPausedTime(0)
     
     // Clear storage
-    sessionStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION_ID)
-    sessionStorage.removeItem('active-session-id')
+    safeSessionStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION_ID)
+    safeSessionStorage.removeItem('active-session-id')
   }, [])
   
   // Save session backup periodically
@@ -536,7 +610,11 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         savedAt: new Date().toISOString()
       }
       
-      sessionStorage.setItem(`session-${sessionId}-backup`, JSON.stringify(backup))
+      // Use safe storage utility which handles quota errors
+      const saved = safeSessionStorage.setItem(`session-${sessionId}-backup`, JSON.stringify(backup))
+      if (!saved) {
+        console.warn('Failed to save session backup - storage may be full')
+      }
     }
     
     const backupInterval = setInterval(saveBackup, 30000) // Every 30 seconds
@@ -556,7 +634,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
     if (!sessionId) return
     
     const pauseStateKey = `session-${sessionId}-pause-state`
-    const pauseState = sessionStorage.getItem(pauseStateKey)
+    const pauseState = safeSessionStorage.getItem(pauseStateKey)
     
     if (pauseState) {
       try {

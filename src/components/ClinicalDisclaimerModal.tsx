@@ -89,17 +89,18 @@ export function ClinicalDisclaimerModal({
               damping: 25,
               stiffness: 300
             }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8"
           >
             <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl">
-              {/* Gradient background effects */}
+              {/* Gradient background effects - Blue liquid glass theme */}
               <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl" />
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/30 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-2xl" />
               </div>
 
-              {/* Content */}
-              <div className="relative p-8">
+              {/* Content - Responsive padding */}
+              <div className="relative p-4 sm:p-6 lg:p-8">
                 {/* Header */}
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
@@ -107,7 +108,7 @@ export function ClinicalDisclaimerModal({
                   transition={{ delay: 0.1 }}
                   className="text-center mb-8"
                 >
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-4">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-400/20 mb-4">
                     <ShieldCheck className="w-8 h-8 text-white" />
                   </div>
                   <h2 className="text-3xl font-bold text-white mb-2">
@@ -144,7 +145,7 @@ export function ClinicalDisclaimerModal({
                         <div className={cn(
                           "p-3 rounded-lg transition-all duration-300",
                           hoveredFeature === index
-                            ? "bg-gradient-to-br from-purple-500/30 to-pink-500/30"
+                            ? "bg-gradient-to-br from-blue-500/30 to-blue-400/30"
                             : "bg-white/10"
                         )}>
                           <feature.icon className="w-6 h-6 text-white" />
@@ -217,7 +218,7 @@ export function ClinicalDisclaimerModal({
                       <div className={cn(
                         "w-6 h-6 rounded-md border-2 transition-all duration-300",
                         acknowledged 
-                          ? "bg-gradient-to-br from-purple-500 to-pink-500 border-transparent" 
+                          ? "bg-gradient-to-br from-blue-500 to-blue-600 border-transparent" 
                           : "bg-white/5 border-white/20 group-hover:border-white/40"
                       )}>
                         {acknowledged && (
@@ -239,17 +240,17 @@ export function ClinicalDisclaimerModal({
                   </label>
                 </motion.div>
 
-                {/* Actions */}
+                {/* Actions - Responsive button container */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 }}
-                  className="flex gap-4"
+                  className="flex flex-col sm:flex-row gap-3 sm:gap-4"
                 >
                   <Button
                     variant="outline"
                     onClick={onDecline}
-                    className="flex-1 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+                    className="w-full sm:flex-1 min-w-0 px-4 py-2.5 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis"
                   >
                     I'll Review Later
                   </Button>
@@ -257,9 +258,9 @@ export function ClinicalDisclaimerModal({
                     onClick={handleAccept}
                     disabled={!acknowledged}
                     className={cn(
-                      "flex-1 transition-all duration-300",
+                      "w-full sm:flex-1 min-w-0 px-4 py-2.5 transition-all duration-300 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis",
                       acknowledged
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
                         : "bg-white/10 text-white/50 cursor-not-allowed"
                     )}
                   >

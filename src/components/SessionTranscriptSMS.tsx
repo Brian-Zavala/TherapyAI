@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { useOptimizedTranscript } from '@/hooks/useOptimizedTranscript'
+import { createPortal } from 'react-dom'
 
 // Define the structure for a single transcript message
 type TranscriptEntry = {
@@ -59,6 +60,10 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
   const bottomRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [showTimestamps, setShowTimestamps] = useState(false)
+  const [showBackToTop, setShowBackToTop] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+  const [buttonClicked, setButtonClicked] = useState(false)
+  const [scrollPosition, setScrollPosition] = useState(0)
   
   // Handle scroll position for auto-scroll
   const handleScroll = useCallback(() => {
@@ -75,12 +80,52 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
     }
   }, [hasMore, transcriptLoading, loadMore])
   
+  // Scroll to top function
+  const scrollToTop = useCallback(() => {
+    // Add click animation
+    setButtonClicked(true)
+    setTimeout(() => setButtonClicked(false), 600)
+    
+    // Scroll the WINDOW, not the container
+    window.scrollTo({ 
+      top: 0, 
+      behavior: 'smooth' 
+    });
+  }, [])
+  
   // Auto-scroll to bottom when new entries arrive
   useEffect(() => {
     if (autoScroll && bottomRef.current && session?.status === 'active') {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [transcriptEntries.length, autoScroll, session?.status])
+  
+  // Check if we're on client side
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  
+  // Monitor window scroll for button visibility
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop
+      setScrollPosition(scrollTop)
+      
+      // Show button when scrolled down 200px
+      const shouldShow = scrollTop > 200
+      setShowBackToTop(shouldShow)
+    }
+    
+    // Add scroll listener to window
+    window.addEventListener('scroll', handleWindowScroll)
+    
+    // Check initial scroll position
+    handleWindowScroll()
+    
+    return () => {
+      window.removeEventListener('scroll', handleWindowScroll)
+    }
+  }, [showBackToTop])
   
   // Function to calculate elapsed time for active sessions
   useEffect(() => {
@@ -180,10 +225,6 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
     const lastGroup = groups[groups.length - 1]
     const speaker = entry.speaker?.toLowerCase()
     
-    // Debug log to see what speaker values we're getting
-    if (groups.length === 0) {
-      console.log('Transcript speaker values found:', new Set(displayEntries.map(e => e.speaker)))
-    }
     
     if (lastGroup && lastGroup.speaker === speaker) {
       lastGroup.messages.push(entry)
@@ -201,7 +242,7 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
   if (loading) {
     return (
       <div className="h-full bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 shadow-lg">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 shadow-lg">
           <h2 className="text-white font-semibold text-lg">Session Transcript</h2>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -227,9 +268,10 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
   const combinedError = transcriptError && `Transcript Error: ${transcriptError}`
 
   return (
-    <div className="h-full bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col">
+    <>
+    <div className="h-full bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col relative">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 shadow-lg">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <h2 className="text-white font-semibold text-lg">Session Transcript</h2>
@@ -283,9 +325,9 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
       <div 
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-4"
+        className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 relative"
         style={{
-          backgroundImage: `radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1), transparent 50%)`,
+          backgroundImage: `radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05), transparent 70%)`,
         }}
       >
         {transcriptLoading && displayEntries.length === 0 ? (
@@ -309,15 +351,17 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
               return (
                 <motion.div 
                   key={`group-${groupIndex}`}
-                  className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-6`}
+                  className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${
+                    groupIndex === groupedEntries.length - 1 ? 'mb-4' : 'mb-2'
+                  }`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(groupIndex * 0.05, 0.2), duration: 0.3 }}
                 >
-                  <div className={`max-w-[75%] sm:max-w-[65%] space-y-1`}>
+                  <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[70%] md:max-w-[60%]`}>
                     {/* Speaker label */}
                     <div className={`text-xs font-medium mb-1 ${
-                      isUser ? 'text-right text-blue-400' : 'text-left text-purple-400'
+                      isUser ? 'text-right text-blue-400' : 'text-left text-blue-300'
                     }`}>
                       {isUser ? 'You' : 'AI Therapist'}
                     </div>
@@ -326,12 +370,20 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
                     {group.messages.map((entry, messageIndex) => (
                       <div
                         key={entry.id}
-                        className={`relative ${
+                        className={`relative inline-block ${
                           isUser 
-                            ? 'bg-blue-600 text-white ml-auto' 
+                            ? 'bg-blue-600 text-white' 
                             : 'bg-gray-700 text-gray-100'
-                        } rounded-2xl px-4 py-2 shadow-lg ${
-                          messageIndex === 0 ? (isUser ? 'rounded-tr-sm' : 'rounded-tl-sm') : ''
+                        } ${
+                          messageIndex === 0 && messageIndex === group.messages.length - 1 
+                            ? 'rounded-[20px]' // Single message - full rounded
+                            : messageIndex === 0 
+                            ? isUser ? 'rounded-[20px] rounded-br-[4px]' : 'rounded-[20px] rounded-bl-[4px]' // First message
+                            : messageIndex === group.messages.length - 1
+                            ? isUser ? 'rounded-[20px] rounded-tr-[4px]' : 'rounded-[20px] rounded-tl-[4px]' // Last message
+                            : isUser ? 'rounded-[20px] rounded-r-[4px]' : 'rounded-[20px] rounded-l-[4px]' // Middle messages
+                        } px-3 sm:px-4 py-2 shadow-md ${
+                          messageIndex > 0 ? 'mt-[2px]' : ''
                         }`}
                       >
                         <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -340,19 +392,20 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
                         
                         {/* Timestamp on last message or if showing all timestamps */}
                         {(showTimestamps || messageIndex === group.messages.length - 1) && (
-                          <div className={`text-[10px] mt-1 ${
-                            isUser ? 'text-blue-200' : 'text-gray-400'
+                          <div className={`text-[11px] mt-1 text-right ${
+                            isUser ? 'text-blue-100/70' : 'text-gray-400'
                           }`}>
-                            {format(new Date(entry.timestamp), 'HH:mm')}
+                            {format(new Date(entry.timestamp), 'h:mm a')}
                           </div>
                         )}
                       </div>
                     ))}
                     
-                    {/* Read indicator for user messages */}
-                    {isUser && session.status === 'active' && (
-                      <div className="text-right text-xs text-gray-500 mt-1">
-                        Read
+                    {/* Read indicator for user messages - only show on last message */}
+                    {isUser && session.status === 'active' && groupIndex === groupedEntries.length - 1 && (
+                      <div className="text-right text-xs text-blue-300 mt-1 flex items-center justify-end space-x-1">
+                        <span className="text-[10px]">✓✓</span>
+                        <span>Read</span>
                       </div>
                     )}
                   </div>
@@ -414,10 +467,44 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
             disabled={transcriptLoading}
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors duration-200"
           >
-            {transcriptLoading ? 'Loading...' : 'Load Earlier Messages'}
+            {transcriptLoading ? 'Loading...' : 'Load More Messages'}
           </button>
         </div>
       )}
     </div>
+    
+    
+    {/* Portal-based Back to Top Button */}
+    {isClient && showBackToTop && createPortal(
+      <div className="fixed bottom-24 right-4 md:bottom-1/2 md:right-12 z-[99999] md:transform md:translate-y-1/2">
+        <button
+          onClick={scrollToTop}
+          className="relative bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all hover:scale-110 active:scale-95 group"
+          title="Back to top"
+        >
+          {/* Ping animation on click */}
+          {buttonClicked && (
+            <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-30"></div>
+          )}
+          
+          <svg 
+            className="h-5 w-5 relative z-10" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M5 10l7-7m0 0l7 7m-7-7v18" 
+            />
+          </svg>
+          <span className="sr-only">Back to top</span>
+        </button>
+      </div>,
+      document.body
+    )}
+    </>
   )
 }

@@ -11,7 +11,6 @@ import {
   Brain, 
   TrendingUp, 
   Calendar,
-  RefreshCw,
   AlertCircle
 } from "lucide-react";
 import { ComprehensiveTherapyInsightsUnified } from "@/components/dashboard/ComprehensiveTherapyInsightsUnified";
@@ -68,13 +67,6 @@ export default function Dashboard() {
     isRealTimeConnected,
     lastRealTimeUpdate
   } = dashboardData;
-  
-  // Memoize the refresh handler to prevent re-creating function on every render
-  // IMPORTANT: This MUST be defined before any conditional returns to follow React's Rules of Hooks
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
-  
   // Show loading state for initial load - this MUST be checked after all hooks
   // Check auth loading state first, then data availability
   if (status === "loading" || !data) {
@@ -107,16 +99,6 @@ export default function Dashboard() {
               Track your therapy progress and insights
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefetching || isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefetching || isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
         </div>
 
         {/* Error Alert */}

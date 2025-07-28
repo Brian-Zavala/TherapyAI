@@ -248,12 +248,43 @@ export class VAPIManager {
         configKeys: Object.keys(startConfig),
       });
 
+      // Store messages for injection after call-start
+      const messagesToInject = config.resumeFromMessages
+
+      // Create a promise that resolves when call-start is fired
+      // Use a one-time listener to avoid conflicts with setupEventListeners
+      const callStartPromise = new Promise<void>((resolve) => {
+        let resolved = false
+        const temporaryHandler = () => {
+          if (!resolved) {
+            resolved = true
+            this.vapi.off('call-start', temporaryHandler)
+            resolve()
+          }
+        }
+        this.vapi.on('call-start', temporaryHandler)
+      })
+
+      // Start the VAPI session
       await this.vapi.start(startConfig)
       
-      // After session starts, inject conversation history using add-message
-      if (config.resumeFromMessages && config.resumeFromMessages.length > 0) {
+      // Handle message injection or empty history
+      if (messagesToInject && messagesToInject.length > 0) {
+        console.log('Waiting for call-start event before injecting messages...')
+        
+        // Wait for call-start with timeout
+        await Promise.race([
+          callStartPromise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout waiting for call-start')), 10000)
+          )
+        ]).catch(err => {
+          console.warn('Failed to wait for call-start:', err)
+          // Continue anyway - inject messages after a delay
+        })
+        
         // Validate and format messages before injection
-        const formattedMessages = formatConversationHistory(config.resumeFromMessages, {
+        const formattedMessages = formatConversationHistory(messagesToInject, {
           maxMessages: 30, // Limit to prevent overwhelming the context
           excludeSystem: true, // System messages might confuse the conversation flow
           sanitize: true
@@ -261,30 +292,15 @@ export class VAPIManager {
         
         console.log(`Injecting ${formattedMessages.length} validated conversation history messages`)
         
-        // Wait a moment for session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Small delay to ensure VAPI is ready
+        await new Promise(resolve => setTimeout(resolve, 200))
         
-        // Inject each validated message into the conversation history
-        for (const msg of formattedMessages) {
-          try {
-            const validation = validateVapiMessage(msg)
-            if (!validation.valid) {
-              console.warn(`Skipping invalid message: ${validation.error}`)
-              continue
-            }
-            
-            this.vapi.send({
-              type: 'add-message',
-              message: {
-                role: msg.role,
-                content: msg.content
-              }
-            })
-            // Small delay between messages to ensure proper ordering
-            await new Promise(resolve => setTimeout(resolve, 100))
-          } catch (error) {
-            console.error('Failed to inject message:', error)
-          }
+        // Inject messages with guaranteed order preservation
+        const injectionResults = await this.injectMessagesInOrder(formattedMessages)
+        
+        const successCount = injectionResults.filter(r => r.success).length
+        if (successCount < formattedMessages.length) {
+          console.warn(`Only ${successCount}/${formattedMessages.length} messages were successfully injected`)
         }
         
         // Add the validated messages to our local history
@@ -294,6 +310,31 @@ export class VAPIManager {
           timestamp: Date.now(),
           metadata: {}
         }))
+      } else {
+        // Handle empty conversation history on resume
+        console.log('No conversation history to inject - starting fresh conversation')
+        
+        // Wait for call-start event
+        await Promise.race([
+          callStartPromise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout waiting for call-start')), 10000)
+          )
+        ]).catch(err => {
+          console.warn('Failed to wait for call-start:', err)
+        })
+        
+        // Small delay to ensure VAPI is ready
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Send a context-aware welcome back message for resumed sessions
+        if (config.sessionId) {
+          try {
+            this.say("Welcome back to your session. I'm ready to continue our conversation whenever you are.", false)
+          } catch (error) {
+            console.warn('Could not send welcome back message:', error)
+          }
+        }
       }
 
     } catch (error) {
@@ -397,6 +438,45 @@ export class VAPIManager {
     } else {
       console.warn('VAPI send method not available')
     }
+  }
+
+  // Inject messages with guaranteed order preservation
+  private async injectMessagesInOrder(messages: any[]): Promise<{ success: boolean; error?: Error }[]> {
+    const results: { success: boolean; error?: Error }[] = []
+    
+    // Process messages sequentially to guarantee order
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      
+      try {
+        const validation = validateVapiMessage(msg)
+        if (!validation.valid) {
+          results.push({ success: false, error: new Error(validation.error || 'Invalid message') })
+          continue
+        }
+        
+        // Send message with index for tracking
+        this.vapi.send({
+          type: 'add-message',
+          message: {
+            role: msg.role,
+            content: msg.content
+          }
+        })
+        
+        // Dynamic delay based on message position
+        // First few messages get longer delays to establish context
+        const delay = i < 3 ? 150 : 100
+        await new Promise(resolve => setTimeout(resolve, delay))
+        
+        results.push({ success: true })
+      } catch (error) {
+        console.error(`Failed to inject message ${i}:`, error)
+        results.push({ success: false, error: error as Error })
+      }
+    }
+    
+    return results
   }
 
   // Cleanup method - CRITICAL for production

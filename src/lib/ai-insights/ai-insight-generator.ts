@@ -6,6 +6,7 @@
 import { logger } from '@/lib/logger';
 import { ProcessedSessionData, SessionDataProcessor } from './session-data-processor';
 import { DeterministicInsightEngine } from './deterministic-insights-engine';
+import { ComprehensiveInsightsService } from './comprehensive-insights-service';
 
 // AI Service interface - supports multiple providers
 interface AIProvider {
@@ -324,6 +325,7 @@ Be specific, evidence-based, and actionable. Avoid generic advice that could app
 export class AIInsightGenerator {
   private aiProvider: AIProvider | null = null;
   private deterministicEngine: DeterministicInsightEngine;
+  private comprehensiveService: ComprehensiveInsightsService;
   private sessionProcessor: SessionDataProcessor;
 
   constructor(userId: string) {
@@ -340,6 +342,7 @@ export class AIInsightGenerator {
     
     // Always initialize deterministic engine as fallback
     this.deterministicEngine = new DeterministicInsightEngine();
+    this.comprehensiveService = new ComprehensiveInsightsService();
     this.sessionProcessor = new SessionDataProcessor(userId);
   }
 
@@ -360,19 +363,40 @@ export class AIInsightGenerator {
 
       // Use deterministic engine by default for reliability and cost savings
       const useDeterministic = !this.aiProvider || process.env.USE_DETERMINISTIC_INSIGHTS === 'true';
+      const useEnhanced = process.env.USE_ENHANCED_INSIGHTS === 'true';
       
       if (useDeterministic) {
-        logger.info('Using deterministic insight engine', { userId: userContext.userId });
-        const insights = this.deterministicEngine.generateInsights(sessionData, userContext);
-        
-        logger.info('Successfully generated deterministic insights', { 
-          userId: userContext.userId,
-          insightCount: insights.insights.length,
-          confidence: insights.confidence,
-          dataQuality: insights.dataQuality
-        });
-        
-        return insights;
+        // Use comprehensive service if enhanced insights are enabled
+        if (useEnhanced) {
+          logger.info('Using comprehensive insight service', { userId: userContext.userId });
+          
+          const insights = await this.comprehensiveService.generateComprehensiveInsights(
+            userContext.userId,
+            sessionData,
+            userContext
+          );
+          
+          logger.info('Successfully generated comprehensive insights', { 
+            userId: userContext.userId,
+            insightCount: insights.insights.length,
+            confidence: insights.confidence,
+            dataQuality: insights.dataQuality
+          });
+          
+          return insights;
+        } else {
+          logger.info('Using deterministic insight engine', { userId: userContext.userId });
+          const insights = this.deterministicEngine.generateInsights(sessionData, userContext);
+          
+          logger.info('Successfully generated deterministic insights', { 
+            userId: userContext.userId,
+            insightCount: insights.insights.length,
+            confidence: insights.confidence,
+            dataQuality: insights.dataQuality
+          });
+          
+          return insights;
+        }
       }
 
       // Try AI-powered insights if available
