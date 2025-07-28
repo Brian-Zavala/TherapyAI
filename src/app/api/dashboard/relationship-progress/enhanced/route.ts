@@ -8,7 +8,7 @@ import { subDays, subWeeks, subMonths, startOfDay, endOfDay } from 'date-fns'
 
 // Request validation schema
 const ProgressQuerySchema = z.object({
-  therapyType: z.enum(['couple', 'family', 'individual']).default('couple'),
+  therapyType: z.enum(['couple', 'family', 'solo']).default('couple'),
   timeframe: z.enum(['week', 'month', 'all']).default('all'),
   includeMetrics: z.boolean().default(true),
   includeSessions: z.boolean().default(true),
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
         where: {
           userId: session.user.id,
           status: 'COMPLETED',
-          sessionType: query.therapyType === 'individual' ? 'individual' : query.therapyType,
+          sessionType: query.therapyType,
           ...(startDate && {
             completedAt: {
               gte: startDate,
@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
     // Validate request body
     const MilestoneSchema = z.object({
       sessionId: z.string(),
-      therapyType: z.enum(['couple', 'family', 'individual']),
+      therapyType: z.enum(['couple', 'family', 'solo']),
       closenessScore: z.number().min(0).max(100),
       communicationScore: z.number().min(0).max(100),
       notes: z.string().optional(),

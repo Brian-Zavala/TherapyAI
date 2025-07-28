@@ -62,26 +62,6 @@ export async function POST(request: NextRequest) {
 
     // Save conversation state with transaction
     const conversationState = await prisma.$transaction(async (tx) => {
-      // Clean up old conversation states older than 30 days
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      
-      try {
-        const deletedCount = await tx.conversationState.deleteMany({
-          where: {
-            OR: [
-              { expiresAt: { lt: new Date() } },
-              { createdAt: { lt: thirtyDaysAgo } }
-            ]
-          }
-        })
-        
-        if (deletedCount.count > 0) {
-          console.log(`Cleaned up ${deletedCount.count} expired conversation states`)
-        }
-      } catch (cleanupError) {
-        // Log but don't fail the transaction
-        console.warn('Failed to cleanup old conversation states:', cleanupError)
-      }
       // Check for existing conversation state
       const existingState = await tx.conversationState.findUnique({
         where: { sessionId: validatedData.sessionId }

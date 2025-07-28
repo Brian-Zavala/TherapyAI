@@ -16,6 +16,10 @@ import {
 import { ComprehensiveTherapyInsightsUnified } from "@/components/dashboard/ComprehensiveTherapyInsightsUnified";
 import { CommunicationMetricsUnified } from "@/components/dashboard/CommunicationMetricsUnified";
 import { RelationshipProgressUnified } from "@/components/dashboard/RelationshipProgressUnified";
+// New tabbed components
+import AIInsightsWithTabs from "@/components/dashboard/AIInsightsWithTabs";
+import CommunicationMetricsWithTabs from "@/components/dashboard/CommunicationMetricsWithTabs";
+import RelationshipProgressWithTabs from "@/components/dashboard/RelationshipProgressWithTabs";
 import UpcomingSessions from "@/components/dashboard/UpcomingSessions";
 import { useDashboardDataUnified } from "@/hooks/useDashboardDataUnified";
 import { DashboardProvider } from "@/hooks/useDashboardContext";
@@ -24,6 +28,7 @@ import { DashboardErrorBoundary, DashboardErrorWrapper } from "@/components/dash
 import { useSession } from "next-auth/react";
 import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
 import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
+import "@/styles/dashboard-scoped.css";
 
 // Context to prevent child components from showing loading states during initial load
 const DashboardLoadingContext = createContext<{ isInitialLoading: boolean }>({ isInitialLoading: false });
@@ -90,7 +95,7 @@ export default function Dashboard() {
           }}
           resetKeys={[activeTab]}
         >
-        <div className="container mx-auto p-6 space-y-6">
+        <div className="dashboard-container container mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -181,7 +186,7 @@ export default function Dashboard() {
             transition={{ duration: 0.3 }}
           >
             <DashboardErrorWrapper componentName="AIInsights">
-              <ComprehensiveTherapyInsightsUnified />
+              <AIInsightsWithTabs />
             </DashboardErrorWrapper>
           </motion.div>
           
@@ -194,12 +199,12 @@ export default function Dashboard() {
           >
             {/* Communication Metrics */}
             <DashboardErrorWrapper componentName="CommunicationMetrics">
-              <CommunicationMetricsUnified />
+              <CommunicationMetricsWithTabs />
             </DashboardErrorWrapper>
             
             {/* Relationship Progress */}
             <DashboardErrorWrapper componentName="RelationshipProgress">
-              <RelationshipProgressUnified />
+              <RelationshipProgressWithTabs />
             </DashboardErrorWrapper>
           </motion.div>
         </TabsContent>
@@ -210,7 +215,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <ComprehensiveTherapyInsightsUnified />
+            <AIInsightsWithTabs />
           </motion.div>
         </TabsContent>
 
@@ -222,10 +227,10 @@ export default function Dashboard() {
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
             {/* Detailed Progress View */}
-            <RelationshipProgressUnified />
+            <RelationshipProgressWithTabs />
             
             {/* Communication Deep Dive */}
-            <CommunicationMetricsUnified />
+            <CommunicationMetricsWithTabs />
             
           </motion.div>
         </TabsContent>

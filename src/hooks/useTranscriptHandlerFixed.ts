@@ -24,6 +24,7 @@ import {
   shouldCalculateMetrics,
   markTranscriptSource
 } from '@/lib/vapi/transcript-strategy'
+import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 // Hook configuration interface
 interface UseTranscriptHandlerOptions {
@@ -178,13 +179,13 @@ export function useTranscriptHandlerFixed(options: UseTranscriptHandlerOptions):
       // Save to session storage
       try {
         const transcriptKey = `transcript-${sessionId}`
-        const existingData = sessionStorage.getItem(transcriptKey)
+        const existingData = safeSessionStorage.getItem(transcriptKey)
         const existingEntries: TranscriptDisplayEntry[] = existingData ? JSON.parse(existingData) : []
         
         // Only save final messages to storage
         if (isFinal) {
           existingEntries.push(displayEntry)
-          sessionStorage.setItem(transcriptKey, JSON.stringify(existingEntries))
+          safeSessionStorage.setItem(transcriptKey, JSON.stringify(existingEntries))
         }
       } catch (storageError) {
         console.warn('Failed to save to session storage:', storageError)
@@ -371,7 +372,7 @@ export function useTranscriptHandlerFixed(options: UseTranscriptHandlerOptions):
     
     try {
       const transcriptKey = `transcript-${sessionId}`
-      const savedData = sessionStorage.getItem(transcriptKey)
+      const savedData = safeSessionStorage.getItem(transcriptKey)
       
       if (!savedData) return []
       
@@ -399,7 +400,7 @@ export function useTranscriptHandlerFixed(options: UseTranscriptHandlerOptions):
     
     try {
       const backupKey = `transcript-backup-${sessionId}-${Date.now()}`
-      sessionStorage.setItem(backupKey, JSON.stringify(transcriptEntries))
+      safeSessionStorage.setItem(backupKey, JSON.stringify(transcriptEntries))
       console.log('📦 Transcript backup saved')
     } catch (error) {
       console.error('Failed to save transcript backup:', error)

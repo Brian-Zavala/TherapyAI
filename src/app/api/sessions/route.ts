@@ -11,6 +11,21 @@ import { validateEmailEnvironment } from '@/lib/env-validation';
 import { z } from 'zod';
 import type { Session, User } from '@prisma/client';
 
+// Utility to convert frontend sessionType to Prisma enum
+function sessionTypeToPrismaEnum(sessionType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
+  switch (sessionType.toLowerCase()) {
+    case 'solo': 
+    case 'individual':
+      return 'SOLO';
+    case 'couple':
+      return 'COUPLE';  
+    case 'family':
+      return 'FAMILY';
+    default:
+      return 'SOLO'; // fallback
+  }
+}
+
 // 2025 Standard: Type definitions
 // Define a type for the selected session fields to avoid type mismatches
 type SelectedSessionFields = {
@@ -82,7 +97,9 @@ const createSessionSchema = z.object({
   notes: z.string().max(500).default(''),
   assistantId: z.string().optional(),
   isRecurring: z.boolean().default(false),
-  recurringFrequency: z.enum(['weekly', 'biweekly', 'monthly']).nullable().default(null)
+  recurringFrequency: z.enum(['weekly', 'biweekly', 'monthly']).nullable().default(null),
+  // CRITICAL FIX: Add sessionType to ensure accurate therapy type tracking  
+  sessionType: z.enum(['couple', 'family', 'individual', 'solo']).default('solo')
 });
 
 // 2025 Standard: Lazy initialization
@@ -411,7 +428,9 @@ export async function POST(request: NextRequest) {
           assistantId: data.assistantId || user.profile?.assistantId || null,
           isPaused: false,
           conversationTimeSeconds: 0,
-          totalPausedTimeSeconds: 0
+          totalPausedTimeSeconds: 0,
+          // CRITICAL FIX: Store the actual therapy type with proper enum conversion
+          sessionType: sessionTypeToPrismaEnum(data.sessionType)
         }
       });
       

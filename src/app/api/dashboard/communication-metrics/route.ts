@@ -15,6 +15,21 @@ import { getCachedSession } from '@/lib/auth/session-cache';
 import { performanceMonitor } from '@/lib/performance/monitoring';
 import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
+// Utility to convert frontend therapy type to Prisma enum for filtering
+function therapyTypeToPrismaEnum(therapyType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
+  switch (therapyType.toLowerCase()) {
+    case 'solo': 
+    case 'individual':
+      return 'SOLO';
+    case 'couple':
+      return 'COUPLE';  
+    case 'family':
+      return 'FAMILY';
+    default:
+      return 'SOLO';
+  }
+}
+
 export async function GET(request: Request) {
   const startTime = Date.now();
   
@@ -38,27 +53,26 @@ export async function GET(request: Request) {
       );
     }
     
-    // Try cache first
-    const cacheKey = cacheKeys.metrics(user.id);
+    // Try cache first with therapy type
+    const cacheKey = cacheKeys.communicationMetrics(user.id, therapyType);
     const cached = await dashboardCache.get(cacheKey);
     if (cached) {
       const duration = Date.now() - startTime;
-      console.log(`[CommunicationMetrics] Cache hit, returned in ${duration}ms`);
-      performanceMonitor.trackApiCall('/api/dashboard/communication-metrics', duration, user.id, { cacheHit: true });
+      console.log(`[CommunicationMetrics] Cache hit for ${therapyType}, returned in ${duration}ms`);
+      performanceMonitor.trackApiCall('/api/dashboard/communication-metrics', duration, user.id, { cacheHit: true, therapyType });
       return NextResponse.json(cached);
     }
     
-    // Define theme value for consistent filtering
-    const themeValue = therapyType === 'couple' ? 'Relationship Counseling' : 
-                     therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy';
+    // CRITICAL FIX: Use sessionType for accurate filtering with proper enum conversion
+    const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
 
-    // Get the 3 most recent completed sessions for this therapy type with retry
+    // Get the 3 most recent completed sessions for this therapy type with retry and proper filtering
     const recentSessions = await withRetry(
       () => prisma.session.findMany({
         where: {
           userId: user.id,
           status: 'COMPLETED',
-          theme: themeValue
+          sessionType: sessionTypeValue
         },
         orderBy: {
           date: 'desc'
@@ -67,55 +81,67 @@ export async function GET(request: Request) {
         select: {
           id: true,
           duration: true,
-          date: true
+          date: true,
+          theme: true,
+          sessionType: true
         }
       })
     );
 
-    // Get transcript entries for recent sessions
+    // Get transcript entries for recent sessions with error handling
     let transcriptAnalysis = null;
     if (recentSessions.length > 0) {
-      const sessionIds = recentSessions.map(s => s.id);
-      const transcriptEntries = await withRetry(
-        () => prisma.transcriptEntry.findMany({
-          where: {
-            sessionId: { in: sessionIds }
-          },
-          orderBy: {
-            timestamp: 'asc'
-          },
-          select: {
-            speaker: true,
-            text: true
+      try {
+        const sessionIds = recentSessions.map(s => s.id);
+        const transcriptEntries = await withRetry(
+          () => prisma.transcriptEntry.findMany({
+            where: {
+              sessionId: { in: sessionIds }
+            },
+            orderBy: {
+              timestamp: 'asc'
+            },
+            select: {
+              speaker: true,
+              text: true
+            }
+          })
+        );
+        
+        if (transcriptEntries.length > 0) {
+          try {
+            // Import the analysis function from metrics-helper
+            const { analyzeTranscriptForMetrics } = await import('@/app/api/sessions/[id]/metrics-helper');
+            
+            // Combine transcript entries into a single transcript
+            const combinedTranscript = transcriptEntries
+              .map(entry => `${entry.speaker}: ${entry.text}`)
+              .join('\n');
+            
+            // Analyze the transcripts with error handling
+            const avgDuration = recentSessions.reduce((sum, s) => sum + (s.duration || 0), 0) / recentSessions.length;
+            transcriptAnalysis = analyzeTranscriptForMetrics(combinedTranscript, 70, 5, therapyType);
+          } catch (analysisError) {
+            console.warn(`[CommunicationMetrics] Transcript analysis failed for ${therapyType}:`, analysisError);
+            // Continue without transcript analysis rather than failing the entire request
           }
-        })
-      );
-      
-      if (transcriptEntries.length > 0) {
-        // Import the analysis function from metrics-helper
-        const { analyzeTranscriptForMetrics } = await import('@/app/api/sessions/[id]/metrics-helper');
-        
-        // Combine transcript entries into a single transcript
-        const combinedTranscript = transcriptEntries
-          .map(entry => `${entry.speaker}: ${entry.text}`)
-          .join('\n');
-        
-        // Analyze the transcripts
-        const avgDuration = recentSessions.reduce((sum, s) => sum + (s.duration || 0), 0) / recentSessions.length;
-        transcriptAnalysis = analyzeTranscriptForMetrics(combinedTranscript, 70, 5, therapyType);
+        }
+      } catch (transcriptError) {
+        console.warn(`[CommunicationMetrics] Transcript fetch failed for ${therapyType}:`, transcriptError);
+        // Continue without transcript data rather than failing the entire request
       }
     }
 
-    // Get communication metrics from the CommunicationMetric table with retry
-    // Use assistantId if available, otherwise use the latest metrics
+    // CRITICAL FIX: Get communication metrics filtered by session therapy type
     const metrics = await withRetry(
       () => prisma.communicationMetric.findFirst({
         where: {
           userId: user.id,
-          // Filter by therapy type using assistantId pattern matching
-          ...(therapyType === 'couple' && { metricType: { not: 'real-time' } }),
-          ...(therapyType === 'solo' && { metricType: { not: 'real-time' } }),
-          ...(therapyType === 'family' && { metricType: { not: 'real-time' } })
+          sessionId: { not: null }, // CRITICAL: Only include metrics with valid session links
+          metricType: { not: 'real-time' }, // Only get final calculated metrics
+          session: {
+            sessionType: sessionTypeValue // CRITICAL: Filter by the actual session therapy type
+          }
         },
         orderBy: {
           calculatedAt: 'desc'
@@ -149,7 +175,7 @@ export async function GET(request: Request) {
           where: {
             userId: user.id,
             status: 'COMPLETED',
-            theme: themeValue
+            sessionType: sessionTypeValue
           }
         })
       );
@@ -235,8 +261,8 @@ export async function GET(request: Request) {
     await dashboardCache.set(cacheKey, responseData);
     
     const duration = Date.now() - startTime;
-    console.log(`[CommunicationMetrics] Query completed in ${duration}ms`);
-    performanceMonitor.trackApiCall('/api/dashboard/communication-metrics', duration, user.id, { cacheHit: false });
+    console.log(`[CommunicationMetrics] Query completed for ${therapyType} in ${duration}ms`);
+    performanceMonitor.trackApiCall('/api/dashboard/communication-metrics', duration, user.id, { cacheHit: false, therapyType });
     
     // Log slow queries for monitoring
     if (duration > 500) {

@@ -13,6 +13,7 @@ import { useTherapyInsightsFromContext } from '@/hooks/useDashboardContext';
 import { TherapyInsightsErrorBoundary } from '@/components/therapy-insights';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
+import '@/styles/dashboard-positioning-fix.css';
 import { 
   Brain, 
   Heart, 
@@ -153,8 +154,8 @@ function ComprehensiveTherapyInsightsComponent() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Card className={`w-full border-0 ${dashboardTheme.shadows.md} hover:${dashboardTheme.shadows.lg} transition-shadow duration-300`}>
-        <CardHeader className={`${dashboardTheme.responsive.padding.mobile} ${dashboardTheme.responsive.padding.desktop} pb-4`}>
+      <Card className="therapy-insights-card">
+        <CardHeader className="therapy-insights-header metric-card-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <motion.div 
@@ -164,7 +165,7 @@ function ComprehensiveTherapyInsightsComponent() {
               >
                 <Brain className="h-5 w-5 text-white" />
               </motion.div>
-              <CardTitle className={dashboardTheme.typography.h2}>AI Insights</CardTitle>
+              <CardTitle className="dashboard-heading">AI Insights</CardTitle>
             </div>
             <motion.div
               initial={{ scale: 0 }}
@@ -181,55 +182,54 @@ function ComprehensiveTherapyInsightsComponent() {
             </motion.div>
           </div>
         </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white/95 dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
+      <CardContent className="therapy-insights-content">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full therapy-type-tabs-container">
+          <TabsList className="therapy-tabs-list flex-col sm:flex-row">
             <TabsTrigger 
               value="insights" 
-              className="gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 data-[state=active]:border-blue-200 dark:data-[state=active]:border-blue-700 transition-all duration-200 cursor-pointer"
+              className="therapy-tab-trigger w-full sm:w-auto data-[state=active]:bg-blue-500/20 data-[state=active]:text-white data-[state=active]:border-blue-500/50"
             >
               <Lightbulb className="h-4 w-4" />
-              Key Insights
+              <span>Key Insights</span>
             </TabsTrigger>
             <TabsTrigger 
               value="action-plan" 
-              className="gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-900/20 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 data-[state=active]:border-purple-200 dark:data-[state=active]:border-purple-700 transition-all duration-200 cursor-pointer"
+              className="therapy-tab-trigger w-full sm:w-auto data-[state=active]:bg-blue-500/20 data-[state=active]:text-white data-[state=active]:border-blue-500/50"
             >
               <Target className="h-4 w-4" />
-              Action Plan
+              <span>Action Plan</span>
             </TabsTrigger>
             <TabsTrigger 
               value="tips" 
-              className="gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 data-[state=active]:bg-green-50 dark:data-[state=active]:bg-green-900/20 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300 data-[state=active]:border-green-200 dark:data-[state=active]:border-green-700 transition-all duration-200 cursor-pointer"
+              className="therapy-tab-trigger w-full sm:w-auto data-[state=active]:bg-blue-500/20 data-[state=active]:text-white data-[state=active]:border-blue-500/50"
             >
               <Sparkles className="h-4 w-4" />
-              Daily Tips
+              <span>Daily Tips</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="insights" className="space-y-6 mt-6">
             {/* Progress Overview */}
             <motion.div 
-              className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+              className="progress-cards-grid"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
               <motion.div 
-                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 hover:from-blue-100 hover:to-blue-200/50 dark:hover:from-blue-900/30 dark:hover:to-blue-800/20 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 cursor-pointer"
+                className="progress-metric-card"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className={dashboardTheme.typography.label}>Communication</span>
+                  <span className="label">Communication</span>
                   <Badge variant="secondary" className="text-xs">
                     {trends.communication}
                   </Badge>
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5" />
+                <div className="progress-bar-container">
                   <motion.div
-                    className={`absolute inset-y-0 left-0 h-2.5 rounded-full ${getProgressBarClasses(getProgressValue(trends.communication))}`}
+                    className="progress-bar-fill"
                     initial={{ width: 0 }}
                     animate={{ width: `${getProgressValue(trends.communication)}%` }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
@@ -238,20 +238,19 @@ function ComprehensiveTherapyInsightsComponent() {
               </motion.div>
               
               <motion.div 
-                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border border-pink-200 dark:border-pink-800 hover:from-pink-100 hover:to-pink-200/50 dark:hover:from-pink-900/30 dark:hover:to-pink-800/20 hover:border-pink-300 dark:hover:border-pink-700 transition-all duration-200 cursor-pointer"
+                className="progress-metric-card"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className={dashboardTheme.typography.label}>Emotional Connection</span>
+                  <span className="label">Emotional Connection</span>
                   <Badge variant="secondary" className="text-xs">
                     {trends.emotional}
                   </Badge>
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5" />
+                <div className="progress-bar-container">
                   <motion.div
-                    className={`absolute inset-y-0 left-0 h-2.5 rounded-full ${getProgressBarClasses(getProgressValue(trends.emotional))}`}
+                    className="progress-bar-fill"
                     initial={{ width: 0 }}
                     animate={{ width: `${getProgressValue(trends.emotional)}%` }}
                     transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
@@ -260,20 +259,19 @@ function ComprehensiveTherapyInsightsComponent() {
               </motion.div>
               
               <motion.div 
-                className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border border-green-200 dark:border-green-800 hover:from-green-100 hover:to-green-200/50 dark:hover:from-green-900/30 dark:hover:to-green-800/20 hover:border-green-300 dark:hover:border-green-700 transition-all duration-200 cursor-pointer"
+                className="progress-metric-card"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className={dashboardTheme.typography.label}>Consistency</span>
+                  <span className="label">Consistency</span>
                   <Badge variant="secondary" className="text-xs">
                     {trends.consistency}
                   </Badge>
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5" />
+                <div className="progress-bar-container">
                   <motion.div
-                    className={`absolute inset-y-0 left-0 h-2.5 rounded-full ${getProgressBarClasses(getProgressValue(trends.consistency))}`}
+                    className="progress-bar-fill"
                     initial={{ width: 0 }}
                     animate={{ width: `${getProgressValue(trends.consistency)}%` }}
                     transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
@@ -283,7 +281,7 @@ function ComprehensiveTherapyInsightsComponent() {
             </motion.div>
 
             {/* Insights List */}
-            <div className="space-y-4">
+            <div className="insights-list">
               {insights.map((insight, index) => {
                 const Icon = categoryIcons[insight.category];
                 const metricType = categoryMapping[insight.category] || 'support';
@@ -297,13 +295,13 @@ function ComprehensiveTherapyInsightsComponent() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="border rounded-xl p-4 hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                    className="insight-card"
                     onClick={() => setExpandedInsight(isExpanded ? null : insight.id)}
                     whileHover={{ scale: 1.01 }}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="insight-card-header">
                       <motion.div 
-                        className={`p-2.5 rounded-lg bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
+                        className="insight-icon-container"
                         whileHover={{ rotate: [0, -5, 5, 0] }}
                         transition={{ duration: 0.5 }}
                       >
@@ -312,7 +310,7 @@ function ComprehensiveTherapyInsightsComponent() {
                       
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-semibold">{insight.title}</h4>
+                          <h4 className="card-title">{insight.title}</h4>
                           <Badge 
                             variant="outline" 
                             className={`ml-2 ${priorityStyle.background} ${priorityStyle.text} ${priorityStyle.border}`}
@@ -322,7 +320,7 @@ function ComprehensiveTherapyInsightsComponent() {
                           </Badge>
                         </div>
                         
-                        <p className="text-sm text-muted-foreground">{insight.description}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{insight.description}</p>
                         
                         <AnimatePresence>
                           {isExpanded && (
@@ -357,7 +355,7 @@ function ComprehensiveTherapyInsightsComponent() {
                                 </h5>
                                 <ul className="space-y-1 ml-6">
                                   {insight.mentalHealthTips.map((tip, index) => (
-                                    <li key={index} className="text-sm text-muted-foreground">
+                                    <li key={index} className="text-sm text-muted-foreground leading-relaxed">
                                       • {tip}
                                     </li>
                                   ))}
@@ -381,8 +379,8 @@ function ComprehensiveTherapyInsightsComponent() {
                                       animate={{ opacity: 1, x: 0 }}
                                       transition={{ delay: idx * 0.1 }}
                                     >
-                                      <h6 className={`${dashboardTheme.typography.label} text-gray-800 dark:text-gray-200`}>{resource.title}</h6>
-                                      <p className={`${dashboardTheme.typography.caption} mt-1`}>
+                                      <h6 className="label text-gray-800 dark:text-gray-200">{resource.title}</h6>
+                                      <p className="caption mt-1">
                                         {resource.description}
                                       </p>
                                       <Badge variant="secondary" className="mt-2 text-xs">
@@ -429,7 +427,7 @@ function ComprehensiveTherapyInsightsComponent() {
           <TabsContent value="action-plan" className="space-y-6 mt-6">
             {/* Weekly Goals */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="card-title mb-4 flex items-center gap-2">
                 <Target className="h-5 w-5 text-green-600" />
                 This Week's Goals
               </h3>
@@ -458,7 +456,7 @@ function ComprehensiveTherapyInsightsComponent() {
 
             {/* Focus Areas */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="card-title mb-4 flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
                 Areas to Focus On
               </h3>
@@ -472,7 +470,7 @@ function ComprehensiveTherapyInsightsComponent() {
                     transition={{ delay: index * 0.1 }}
                     whileHover={{ scale: 1.03 }}
                   >
-                    <h4 className={`${dashboardTheme.typography.label} text-amber-800 dark:text-amber-200`}>{area}</h4>
+                    <h4 className="label text-amber-800 dark:text-amber-200">{area}</h4>
                   </motion.div>
                 ))}
               </div>
@@ -480,7 +478,7 @@ function ComprehensiveTherapyInsightsComponent() {
 
             {/* Strengths */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="card-title mb-4 flex items-center gap-2">
                 <Award className="h-5 w-5 text-purple-600" />
                 Your Strengths
               </h3>
@@ -508,7 +506,7 @@ function ComprehensiveTherapyInsightsComponent() {
           <TabsContent value="tips" className="space-y-6 mt-6">
             {/* Daily Tips */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="card-title mb-4 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-600" />
                 Daily Practices
               </h3>
@@ -536,7 +534,7 @@ function ComprehensiveTherapyInsightsComponent() {
 
             {/* Weekly Tips */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="card-title mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-purple-600" />
                 Weekly Goals
               </h3>
@@ -564,7 +562,7 @@ function ComprehensiveTherapyInsightsComponent() {
 
             {/* Exercises */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="card-title mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5 text-green-600" />
                 Recommended Exercises
               </h3>
@@ -585,7 +583,7 @@ function ComprehensiveTherapyInsightsComponent() {
                       >
                         <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
                       </motion.div>
-                      <p className={`${dashboardTheme.typography.bodySmall} font-medium text-green-800 dark:text-green-200`}>{exercise}</p>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200 leading-relaxed">{exercise}</p>
                     </div>
                   </motion.div>
                 ))}

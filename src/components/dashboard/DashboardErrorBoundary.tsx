@@ -45,6 +45,18 @@ export class DashboardErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
+    // Filter out AbortErrors - they shouldn't trigger error boundaries
+    if (error.name === 'AbortError') {
+      console.debug('AbortError caught by error boundary, ignoring:', error.message);
+      return {}; // Don't update state, component continues normally
+    }
+
+    // Filter out network errors that are normal during development
+    if (error.message?.includes('fetch') && process.env.NODE_ENV === 'development') {
+      console.debug('Development fetch error caught, ignoring:', error.message);
+      return {};
+    }
+
     return {
       hasError: true,
       error,
@@ -56,7 +68,18 @@ export class DashboardErrorBoundary extends Component<Props, State> {
     const { onError } = this.props;
     const { errorCount } = this.state;
     
-    // Log error details
+    // Skip AbortErrors completely
+    if (error.name === 'AbortError') {
+      return;
+    }
+
+    // Skip common development errors
+    if (process.env.NODE_ENV === 'development' && this.isKnownDevError(error)) {
+      console.debug('Known development error caught, ignoring:', error.message);
+      return;
+    }
+    
+    // Log error details (but not AbortErrors)
     logger.error('Dashboard Error Boundary caught error:', {
       error: error.message,
       stack: error.stack,
@@ -112,6 +135,21 @@ export class DashboardErrorBoundary extends Component<Props, State> {
     }
   }
 
+  private isKnownDevError(error: Error): boolean {
+    const knownDevErrors = [
+      'ChunkLoadError',
+      'Loading chunk',
+      'Failed to fetch',
+      'Network request failed',
+      'AbortError',
+      'signal is aborted without reason',
+    ];
+
+    return knownDevErrors.some(knownError => 
+      error.message?.includes(knownError) || error.name?.includes(knownError)
+    );
+  }
+
   hasResetKeysChanged(resetKeys: Array<string | number>): boolean {
     if (resetKeys.length !== this.previousResetKeys.length) {
       return true;
@@ -155,6 +193,16 @@ export class DashboardErrorBoundary extends Component<Props, State> {
     const { hasError, error, errorInfo, errorCount } = this.state;
     const { children, fallback, isolate, showDetails } = this.props;
     
+    // Don't render error UI for AbortErrors
+    if (error?.name === 'AbortError') {
+      return children;
+    }
+
+    // Don't render error UI for known development errors
+    if (process.env.NODE_ENV === 'development' && error && this.isKnownDevError(error)) {
+      return children;
+    }
+
     if (hasError) {
       // Use custom fallback if provided
       if (fallback) {

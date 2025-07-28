@@ -15,6 +15,7 @@ import {
 } from '@/lib/therapy-session/constants'
 import { useAccurateSessionTimer, useSessionRecoveryTimer, useSessionTimeAlerts } from './useAccurateSessionTimer'
 import { flushSessionTranscripts } from '@/lib/transcript-service-optimized'
+import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 // Hook configuration interface
 interface UseSessionManagementV2Options {
@@ -25,80 +26,6 @@ interface UseSessionManagementV2Options {
   onSessionCompleted?: (data: SessionCompletionData) => void
   onError?: (error: Error) => void
   onTimeWarning?: (remainingMinutes: number) => void
-}
-
-// Storage utility with quota error handling
-const safeSessionStorage = {
-  setItem: (key: string, value: string): boolean => {
-    try {
-      sessionStorage.setItem(key, value)
-      return true
-    } catch (error) {
-      if (error instanceof Error && 
-          (error.name === 'QuotaExceededError' || 
-           error.message.includes('QuotaExceeded'))) {
-        console.warn(`Storage quota exceeded for key: ${key}`)
-        
-        // Try to clean up old session data
-        try {
-          const oneHourAgo = Date.now() - 60 * 60 * 1000
-          const keysToRemove: string[] = []
-          
-          for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i)
-            if (!key) continue
-            
-            // Check if it's old session data
-            if (key.includes('session-') && key.includes('-backup')) {
-              try {
-                const data = sessionStorage.getItem(key)
-                if (data) {
-                  const parsed = JSON.parse(data)
-                  if (parsed.savedAt && new Date(parsed.savedAt).getTime() < oneHourAgo) {
-                    keysToRemove.push(key)
-                  }
-                }
-              } catch {
-                // If we can't parse it, it's probably corrupted - remove it
-                keysToRemove.push(key)
-              }
-            }
-          }
-          
-          // Remove old data
-          keysToRemove.forEach(k => sessionStorage.removeItem(k))
-          
-          // Try one more time
-          sessionStorage.setItem(key, value)
-          console.log('Successfully saved after cleanup')
-          return true
-        } catch (retryError) {
-          console.error('Failed to save even after cleanup:', retryError)
-          return false
-        }
-      }
-      
-      console.error('Failed to save to sessionStorage:', error)
-      return false
-    }
-  },
-  
-  getItem: (key: string): string | null => {
-    try {
-      return sessionStorage.getItem(key)
-    } catch (error) {
-      console.error('Failed to read from sessionStorage:', error)
-      return null
-    }
-  },
-  
-  removeItem: (key: string): void => {
-    try {
-      sessionStorage.removeItem(key)
-    } catch (error) {
-      console.error('Failed to remove from sessionStorage:', error)
-    }
-  }
 }
 
 // Hook return type

@@ -13,32 +13,54 @@ import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache'
 import { getCachedSession } from '@/lib/auth/session-cache'
 import { performanceMonitor } from '@/lib/performance/monitoring'
 
+// Utility to convert frontend therapy type to Prisma enum for filtering
+function therapyTypeToPrismaEnum(therapyType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
+  switch (therapyType.toLowerCase()) {
+    case 'solo': 
+    case 'individual':
+      return 'SOLO';
+    case 'couple':
+      return 'COUPLE';  
+    case 'family':
+      return 'FAMILY';
+    default:
+      return 'SOLO';
+  }
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   
   try {
+    // Get therapy type from query parameters
+    const { searchParams } = new URL(request.url);
+    const therapyType = searchParams.get('type') || 'solo';
+    const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
+    
     // Use cached session to reduce auth overhead
     const session = await getCachedSession(request)
     const { userId } = await validateDashboardAuth(session)
     
     // Try cache first - insights have longer TTL since they don't change frequently
-    const cacheKey = cacheKeys.insights(userId)
+    // Include therapy type in cache key for therapy-specific caching
+    const cacheKey = `${cacheKeys.insights(userId)}_${therapyType}`
     const cached = await dashboardCache.get(cacheKey)
     if (cached) {
       const duration = Date.now() - startTime
-      logger.info('Therapy insights cache hit', { userId, duration })
-      performanceMonitor.trackApiCall('/api/therapy-insights', duration, userId, { cacheHit: true })
+      logger.info('Therapy insights cache hit', { userId, therapyType, duration })
+      performanceMonitor.trackApiCall('/api/therapy-insights', duration, userId, { cacheHit: true, therapyType })
       return NextResponse.json(cached)
     }
     
-    logger.info('Generating dynamic therapy insights', { userId })
+    logger.info('Generating dynamic therapy insights', { userId, therapyType })
     
-    // Fetch user's recent therapy sessions with retry
+    // CRITICAL FIX: Fetch user's recent therapy sessions filtered by therapy type
     const recentSessions = await withRetry(
       () => prisma.session.findMany({
         where: {
           userId,
           status: 'COMPLETED',
+          sessionType: sessionTypeValue, // CRITICAL: Filter by specific therapy type
           // Only include sessions with meaningful conversation time
           conversationTimeSeconds: { gt: 60 }
         },
@@ -137,12 +159,14 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime
     logger.info('Successfully generated dynamic insights', { 
       userId,
+      therapyType,
+      sessionCount: recentSessions.length,
       insightCount: insights.insights?.length || 0,
       hasPersonalizedTips: !!insights.personalizedTips?.daily?.length,
       duration
     })
     
-    performanceMonitor.trackApiCall('/api/therapy-insights', duration, userId, { cacheHit: false })
+    performanceMonitor.trackApiCall('/api/therapy-insights', duration, userId, { cacheHit: false, therapyType })
     
     // Log slow generation
     if (duration > 3000) {

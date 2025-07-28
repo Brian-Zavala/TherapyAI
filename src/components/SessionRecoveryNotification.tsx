@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 interface SessionRecoveryInfo {
   sessionId: string
@@ -22,7 +23,7 @@ export default function SessionRecoveryNotification() {
     // Check for session recovery info
     const checkRecoveryInfo = () => {
       try {
-        const storedInfo = sessionStorage.getItem('session-recovered')
+        const storedInfo = safeSessionStorage.getItem('session-recovered')
         if (storedInfo) {
           const info: SessionRecoveryInfo = JSON.parse(storedInfo)
           setRecoveryInfo(info)
@@ -35,7 +36,7 @@ export default function SessionRecoveryNotification() {
           
           // Clean up recovery info after showing
           setTimeout(() => {
-            sessionStorage.removeItem('session-recovered')
+            safeSessionStorage.removeItem('session-recovered')
             setRecoveryInfo(null)
           }, 10000)
         }
@@ -56,7 +57,7 @@ export default function SessionRecoveryNotification() {
   const handleDismiss = () => {
     setShowNotification(false)
     setTimeout(() => {
-      sessionStorage.removeItem('session-recovered')
+      safeSessionStorage.removeItem('session-recovered')
       setRecoveryInfo(null)
     }, 300)
   }

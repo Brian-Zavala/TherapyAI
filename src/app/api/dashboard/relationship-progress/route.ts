@@ -15,6 +15,21 @@ import { getCachedSession } from '@/lib/auth/session-cache';
 import { performanceMonitor } from '@/lib/performance/monitoring';
 import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
+// Utility to convert frontend therapy type to Prisma enum for filtering
+function therapyTypeToPrismaEnum(therapyType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
+  switch (therapyType.toLowerCase()) {
+    case 'solo': 
+    case 'individual':
+      return 'SOLO';
+    case 'couple':
+      return 'COUPLE';  
+    case 'family':
+      return 'FAMILY';
+    default:
+      return 'SOLO';
+  }
+}
+
 export async function GET(request: Request) {
   const startTime = Date.now();
   
@@ -44,18 +59,18 @@ export async function GET(request: Request) {
       );
     }
     
-    // Try cache first
-    const cacheKey = cacheKeys.progress(user.id, timeframe);
+    // Try cache first with therapy type
+    const cacheKey = cacheKeys.relationshipProgress(user.id, therapyType, timeframe);
     const cached = await dashboardCache.get(cacheKey);
     if (cached) {
       const duration = Date.now() - startTime;
-      console.log(`[RelationshipProgress] Cache hit, returned in ${duration}ms`);
-      performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { cacheHit: true });
+      console.log(`[RelationshipProgress] Cache hit for ${therapyType}, returned in ${duration}ms`);
+      performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { cacheHit: true, therapyType });
       return NextResponse.json(cached);
     }
     
-    // Define theme value for consistent filtering
-    const themeValue = therapyType === 'couple' ? 'Relationship Counseling' : 'Family Therapy';
+    // CRITICAL FIX: Use sessionType for accurate filtering with proper enum conversion
+    const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
 
     // Date filter based on timeframe
     const dateFilter: any = {};
@@ -69,27 +84,40 @@ export async function GET(request: Request) {
       dateFilter.gte = oneMonthAgo;
     }
 
-    // Get progress metrics from the ProgressTracking table with retry
-    const progressData = await withRetry(
-      () => prisma.progressTracking.findMany({
-        where: {
-          userId: user.id,
-          ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
-        },
-        select: {
-          date: true,
-          closenessScore: true,
-          communicationScore: true,
-          notes: true,
-          sessionId: true,
-          assistantId: true // Include assistant ID
-        },
-        orderBy: {
-          date: 'asc'
-        },
-        take: 12 // Increased to show more data points
-      })
-    );
+    // Get progress metrics from the ProgressTracking table with retry and error handling
+    // Filter by sessionType through the session relation
+    let progressData: any[] = [];
+    try {
+      progressData = await withRetry(
+        () => prisma.progressTracking.findMany({
+          where: {
+            userId: user.id,
+            sessionId: { not: null }, // CRITICAL: Only include records with valid session links
+            ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
+            // Filter by sessionType through session relation
+            session: {
+              sessionType: sessionTypeValue
+            }
+          },
+          select: {
+            date: true,
+            closenessScore: true,
+            communicationScore: true,
+            notes: true,
+            sessionId: true,
+            assistantId: true // Include assistant ID
+          },
+          orderBy: {
+            date: 'asc'
+          },
+          take: 12 // Increased to show more data points
+        })
+      );
+    } catch (progressError) {
+      console.warn(`[RelationshipProgress] Progress tracking fetch failed for ${therapyType}:`, progressError);
+      // Continue with empty array rather than failing the entire request
+      progressData = [];
+    }
 
     // Format the data for the chart based on therapy type
     let formattedData;
@@ -185,7 +213,7 @@ export async function GET(request: Request) {
           where: {
             userId: user.id,
             status: 'COMPLETED',
-            theme: themeValue
+            sessionType: sessionTypeValue
           },
           select: {
             id: true,
@@ -247,8 +275,8 @@ export async function GET(request: Request) {
     await dashboardCache.set(cacheKey, formattedData);
     
     const duration = Date.now() - startTime;
-    console.log(`[RelationshipProgress] Query completed in ${duration}ms`);
-    performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { cacheHit: false });
+    console.log(`[RelationshipProgress] Query completed for ${therapyType} in ${duration}ms`);
+    performanceMonitor.trackApiCall('/api/dashboard/relationship-progress', duration, user.id, { cacheHit: false, therapyType });
     
     // Log slow queries for monitoring
     if (duration > 500) {

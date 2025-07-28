@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useTimer, useStopwatch } from 'react-timer-hook'
+import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 interface SessionTimerV2Props {
   sessionId: string // Session ID for storage keys
@@ -105,7 +106,7 @@ export default function SessionTimerV2({
     
     // Check if we recently synced to prevent rapid re-syncs
     const lastSyncKey = `timer-last-sync-${sessionId}`
-    const lastSync = sessionStorage.getItem(lastSyncKey)
+    const lastSync = safeSessionStorage.getItem(lastSyncKey)
     if (lastSync) {
       const timeSinceSync = Date.now() - parseInt(lastSync)
       if (timeSinceSync < 10000) return // Don't sync more than once per 10 seconds
@@ -126,7 +127,7 @@ export default function SessionTimerV2({
       restartRef.current(newExpiry, true)
       
       // Update last sync time
-      sessionStorage.setItem(lastSyncKey, Date.now().toString())
+      safeSessionStorage.setItem(lastSyncKey, Date.now().toString())
     }
   }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, sessionId]) // Remove restart and calculateExpiryTimestamp to prevent infinite loops
   

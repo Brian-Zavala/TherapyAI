@@ -165,7 +165,7 @@ function MetricItem({ label, value, icon, trend, metricType, index, isAnimating 
           
           <div>
             {/* Label with better typography */}
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm sm:text-base">
+            <h3 className="card-title text-gray-800 dark:text-gray-200">
               {label}
             </h3>
             {/* Mini trend indicator - only show for non-zero values */}
@@ -311,15 +311,15 @@ function CommunicationMetricsComponent() {
         className="w-full h-full"
       >
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 min-h-[500px] h-full flex flex-col p-4 sm:p-6 lg:p-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+          <div className="flex items-center gap-4 mb-6 metric-card-header">
+            <div className="metric-icon-container p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
               <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="dashboard-heading text-gray-900 dark:text-gray-100">
                 Communication Metrics
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="caption text-gray-600 dark:text-gray-400 mt-1">
                 Track your connection journey
               </p>
             </div>
@@ -347,15 +347,15 @@ function CommunicationMetricsComponent() {
         className="w-full h-full"
       >
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 min-h-[500px] h-full flex flex-col p-4 sm:p-6 lg:p-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+          <div className="flex items-center gap-4 mb-6 metric-card-header">
+            <div className="metric-icon-container p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
               <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="dashboard-heading text-gray-900 dark:text-gray-100">
                 Communication Metrics
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="caption text-gray-600 dark:text-gray-400 mt-1">
                 Track your connection journey
               </p>
             </div>
@@ -371,8 +371,8 @@ function CommunicationMetricsComponent() {
               <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <MessageSquare className="h-8 w-8 opacity-50" />
               </div>
-              <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No communication data yet</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Complete your first session to see your metrics</p>
+              <p className="text-lg font-medium text-gray-700 dark:text-gray-300 leading-relaxed">No communication data yet</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">Complete your first session to see your metrics</p>
             </motion.div>
           </div>
         </div>
@@ -395,15 +395,15 @@ function CommunicationMetricsComponent() {
       >
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 min-h-[500px] h-full flex flex-col p-4 sm:p-6 lg:p-8">
           {/* Header Section */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+          <div className="flex items-center gap-4 mb-6 metric-card-header">
+            <div className="metric-icon-container p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
               <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="dashboard-heading text-gray-900 dark:text-gray-100">
                 Communication Metrics
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="caption text-gray-600 dark:text-gray-400 mt-1">
                 Track your connection journey
               </p>
             </div>
@@ -420,10 +420,10 @@ function CommunicationMetricsComponent() {
                 <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center">
                   <MessageSquare className="h-10 w-10 text-gray-400 dark:text-gray-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <h3 className="card-title text-gray-700 dark:text-gray-300 mb-2">
                   Ready to begin your journey?
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
                   {emptyStateMessage || "Complete your first session to see your communication metrics"}
                 </p>
               </motion.div>
@@ -490,7 +490,7 @@ function CommunicationMetricsComponent() {
                 {/* Section Title */}
                 <div className="flex items-center gap-3 pb-2 border-b border-gray-200 dark:border-gray-700">
                   <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full"></div>
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  <h3 className="card-title text-gray-800 dark:text-gray-200">
                     Communication Insights
                   </h3>
                 </div>
@@ -501,7 +501,7 @@ function CommunicationMetricsComponent() {
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <p className="text-sm sm:text-base leading-relaxed font-medium text-gray-700 dark:text-gray-300">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-relaxed">
                     Your communication journey awaits. Take the first step towards deeper connection and understanding.
                   </p>
                 </motion.div>
@@ -537,14 +537,14 @@ function CommunicationMetricsComponent() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
+            <div className="metric-icon-container p-2.5 sm:p-3 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl">
               <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-gray-700 dark:text-gray-300" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="dashboard-heading text-gray-900 dark:text-gray-100">
                 Communication Metrics
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="caption text-gray-600 dark:text-gray-400 mt-1">
                 Track your connection journey
               </p>
             </div>
@@ -563,7 +563,7 @@ function CommunicationMetricsComponent() {
               }}
             >
               <span className="text-2xl">🎯</span>
-              <span className="text-gray-700 dark:text-gray-300 font-semibold">On target</span>
+              <span className="label text-gray-700 dark:text-gray-300">On target</span>
             </motion.div>
           )}
           
@@ -666,7 +666,7 @@ function CommunicationMetricsComponent() {
                 whileHover={{ scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                <p className={`text-sm sm:text-base leading-relaxed font-medium ${
+                <p className={`text-sm font-medium leading-relaxed ${
                   data.overall >= 80 
                     ? 'text-emerald-800 dark:text-emerald-200' 
                     : data.overall >= 60 

@@ -68,7 +68,7 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
           <div className="flex items-center gap-3">
             {/* Animated icon container */}
             <motion.div 
-              className={`p-3 rounded-xl bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
+              className={`metric-icon-container p-3 rounded-xl bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
               whileHover={{ rotate: [0, -5, 5, 0] }}
               transition={{ duration: 0.5 }}
             >
@@ -78,11 +78,11 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
             </motion.div>
             
             <div>
-              <span className={`${dashboardTheme.typography.label} text-gray-800 dark:text-gray-200`}>
+              <span className="label text-gray-800 dark:text-gray-200">
                 {label}
               </span>
               {description && (
-                <p className={`${dashboardTheme.typography.caption} text-gray-600 dark:text-gray-400 mt-0.5`}>
+                <p className="caption text-gray-600 dark:text-gray-400 mt-0.5">
                   {description}
                 </p>
               )}
@@ -298,8 +298,8 @@ function RelationshipProgressComponent() {
             transition={{ duration: 0.3 }}
           >
             <Heart className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p className={dashboardTheme.typography.body}>No progress data available</p>
-            <p className={`${dashboardTheme.typography.caption} mt-1`}>Start your therapy journey to track progress</p>
+            <p className="text-sm leading-relaxed">No progress data available</p>
+            <p className="caption mt-1">Start your therapy journey to track progress</p>
           </motion.div>
         </CardContent>
       </Card>
@@ -346,11 +346,11 @@ function RelationshipProgressComponent() {
 
   return (
     <Card className="w-full h-full min-h-[500px] flex flex-col bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl border-gray-200/50 dark:border-gray-700/50">
-      <CardHeader>
+      <CardHeader className="metric-card-header">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl sm:text-2xl lg:text-3xl">Relationship Progress</CardTitle>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <CardTitle className="dashboard-heading">Relationship Progress</CardTitle>
+            <p className="caption text-gray-600 dark:text-gray-400 mt-1">
               Track your journey together
             </p>
           </div>
@@ -396,10 +396,10 @@ function RelationshipProgressComponent() {
             </motion.div>
             <span className="text-3xl font-bold text-gray-800 dark:text-gray-200">{overallScore}%</span>
           </div>
-          <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">
+          <h3 className="card-title text-gray-700 dark:text-gray-300 mb-1">
             Overall Relationship Health
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
             Based on your comprehensive progress across all areas
           </p>
         </div>
@@ -408,7 +408,7 @@ function RelationshipProgressComponent() {
         <div className="space-y-5 flex-1">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-1 h-5 bg-gradient-to-b from-green-500 to-teal-500 rounded-full"></div>
-            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300">
+            <h3 className="card-title text-gray-700 dark:text-gray-300">
               Progress Breakdown
             </h3>
           </div>
@@ -448,7 +448,7 @@ function RelationshipProgressComponent() {
           {/* Section Title */}
           <div className="flex items-center gap-3 pb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-teal-500 rounded-full"></div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+            <h3 className="card-title text-gray-800 dark:text-gray-200">
               Relationship Insights
             </h3>
           </div>
@@ -465,7 +465,7 @@ function RelationshipProgressComponent() {
             whileHover={{ scale: 1.01 }}
             transition={{ type: "spring", stiffness: 300 }}
           >
-            <p className={`text-sm sm:text-base leading-relaxed font-medium ${
+            <p className={`text-sm font-medium leading-relaxed ${
               overallScore >= 80 
                 ? 'text-emerald-800 dark:text-emerald-200' 
                 : overallScore >= 60 

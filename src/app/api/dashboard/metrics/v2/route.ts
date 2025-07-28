@@ -11,7 +11,7 @@ import { cache } from "react";
 // ========================================
 
 const MetricQuerySchema = z.object({
-  type: z.enum(['couple', 'family', 'individual']).optional().default('couple'),
+  type: z.enum(['couple', 'family', 'solo']).optional().default('couple'),
   timeRange: z.enum(['week', 'month', 'quarter', 'year', 'all']).optional().default('month'),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
@@ -184,8 +184,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 4. Determine effective therapy type
-    const effectiveType = query.type === 'individual' ? 'solo' : query.type;
+    // 4. Determine effective therapy type  
+    const effectiveType = query.type;
     const themeValue = effectiveType === 'couple' ? 'Relationship Counseling' : 
                        effectiveType === 'solo' ? 'Individual Therapy' : 'Family Therapy';
 

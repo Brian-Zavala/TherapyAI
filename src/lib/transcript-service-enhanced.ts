@@ -77,7 +77,7 @@ export class EnhancedTranscriptManager {
     if (!this.metricsCalculators.has(sessionId)) {
       const calculator = new RealTimeMetricsCalculator({
         sessionId,
-        therapyType: sessionType === 'individual' ? 'solo' : sessionType,
+        therapyType: sessionType,
         sessionDurationMinutes,
         userId
       })

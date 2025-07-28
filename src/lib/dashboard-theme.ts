@@ -92,6 +92,7 @@ export const dashboardTheme = {
       secondary: colorPalette.blue[100],
       accent: colorPalette.blue[600],
       background: `${colorPalette.blue[50]}`,
+      text: 'text-blue-600',
       gradient: `from-blue-400 to-blue-600`,
       shadow: 'shadow-blue-200/50',
       glow: 'shadow-lg shadow-blue-500/20',
@@ -101,6 +102,7 @@ export const dashboardTheme = {
       secondary: colorPalette.pink[100],
       accent: colorPalette.pink[600],
       background: `${colorPalette.pink[50]}`,
+      text: 'text-pink-600',
       gradient: `from-pink-400 to-pink-600`,
       shadow: 'shadow-pink-200/50',
       glow: 'shadow-lg shadow-pink-500/20',
@@ -110,6 +112,7 @@ export const dashboardTheme = {
       secondary: colorPalette.green[100],
       accent: colorPalette.green[600],
       background: `${colorPalette.green[50]}`,
+      text: 'text-green-600',
       gradient: `from-green-400 to-green-600`,
       shadow: 'shadow-green-200/50',
       glow: 'shadow-lg shadow-green-500/20',
@@ -119,6 +122,7 @@ export const dashboardTheme = {
       secondary: colorPalette.purple[100],
       accent: colorPalette.purple[600],
       background: `${colorPalette.purple[50]}`,
+      text: 'text-purple-600',
       gradient: `from-purple-400 to-purple-600`,
       shadow: 'shadow-purple-200/50',
       glow: 'shadow-lg shadow-purple-500/20',
@@ -128,6 +132,7 @@ export const dashboardTheme = {
       secondary: 'rgb(207 250 254)', // cyan-100
       accent: 'rgb(8 145 178)', // cyan-600
       background: 'rgb(236 254 255)', // cyan-50
+      text: 'text-cyan-600',
       gradient: 'from-cyan-400 to-cyan-600',
       shadow: 'shadow-cyan-200/50',
       glow: 'shadow-lg shadow-cyan-500/20',
@@ -137,6 +142,7 @@ export const dashboardTheme = {
       secondary: 'rgb(254 215 170)', // orange-200
       accent: 'rgb(234 88 12)', // orange-600
       background: 'rgb(255 247 237)', // orange-50
+      text: 'text-orange-600',
       gradient: 'from-orange-400 to-orange-600',
       shadow: 'shadow-orange-200/50',
       glow: 'shadow-lg shadow-orange-500/20',

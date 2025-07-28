@@ -155,8 +155,8 @@ model Session {
   theme                  String                @default("AI Therapy Session")
   notes                  String?               @default("")
   
-  // Session type and status
-  sessionType            String                @default("couple") // couple, family, individual
+  // Session type and status  
+  sessionType            SessionType           @default(SOLO)
   status                 SessionStatus         @default(SCHEDULED)
   terminationReason      String?               // user_deletion, technical_error, manual, etc.
   
@@ -748,4 +748,10 @@ enum SessionStatus {
   TERMINATED
   ABANDONED
   TECHNICAL_ISSUE
+}
+
+enum SessionType {
+  SOLO
+  COUPLE
+  FAMILY
 }

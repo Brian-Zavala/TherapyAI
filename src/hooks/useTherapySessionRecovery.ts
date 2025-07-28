@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 interface TherapySessionRecoveryState {
   isChecking: boolean
@@ -58,7 +59,7 @@ export function useTherapySessionRecovery() {
     }
     
     // More lenient deduplication: Allow re-checking if previous attempt failed or if enough time has passed
-    const timeSinceLastCheck = Date.now() - (window.sessionStorage.getItem('last-recovery-check-time') ? parseInt(window.sessionStorage.getItem('last-recovery-check-time')!) : 0)
+    const timeSinceLastCheck = Date.now() - (safeSessionStorage.getItem('last-recovery-check-time') ? parseInt(safeSessionStorage.getItem('last-recovery-check-time')!) : 0)
     const RECOVERY_CHECK_COOLDOWN = 5000 // 5 seconds cooldown between checks
     
     if (hasCheckedThisSession && timeSinceLastCheck < RECOVERY_CHECK_COOLDOWN) {
@@ -67,7 +68,7 @@ export function useTherapySessionRecovery() {
     }
 
     // Less restrictive session active check - only skip if we have a valid current session ID
-    const currentSessionId = sessionStorage.getItem('current-session-id')
+    const currentSessionId = safeSessionStorage.getItem('current-session-id')
     const hasSessionActiveClass = document.body.classList.contains('session-active')
     if (hasSessionActiveClass && currentSessionId) {
       console.log('Session already active with valid session ID - skipping recovery check')
@@ -75,7 +76,7 @@ export function useTherapySessionRecovery() {
     }
     
     // Check if recovery is already pending, but allow if it's stale (older than 30 seconds)
-    const existingRecovery = sessionStorage.getItem('session-recovery-pending')
+    const existingRecovery = safeSessionStorage.getItem('session-recovery-pending')
     if (existingRecovery) {
       try {
         const recoveryData = JSON.parse(existingRecovery)
@@ -92,20 +93,20 @@ export function useTherapySessionRecovery() {
           return null
         } else {
           console.log('🧹 Clearing stale session recovery data (age:', Math.round(recoveryAge/1000), 'seconds)')
-          sessionStorage.removeItem('session-recovery-pending')
+          safeSessionStorage.removeItem('session-recovery-pending')
         }
       } catch (error) {
         console.warn('Error parsing existing recovery data, clearing it:', error)
-        sessionStorage.removeItem('session-recovery-pending')
+        safeSessionStorage.removeItem('session-recovery-pending')
       }
     }
     
     // Set flag that we're checking to prevent modal from checking simultaneously
-    sessionStorage.setItem('recovery-check-in-progress', 'true')
+    safeSessionStorage.setItem('recovery-check-in-progress', 'true')
     
     // Set a timeout to clear the flag in case something goes wrong
     const flagTimeout = setTimeout(() => {
-      sessionStorage.removeItem('recovery-check-in-progress')
+      safeSessionStorage.removeItem('recovery-check-in-progress')
     }, 10000) // 10 second safety timeout
 
     // 2025 Standard: Reduce console noise - only log significant events
@@ -114,7 +115,7 @@ export function useTherapySessionRecovery() {
     }
     
     // CRITICAL: Check if a session just ended to prevent recovery attempts
-    const justEndedData = sessionStorage.getItem('session-just-ended')
+    const justEndedData = safeSessionStorage.getItem('session-just-ended')
     if (justEndedData) {
       try {
         const { sessionId, timestamp } = JSON.parse(justEndedData)
@@ -133,17 +134,17 @@ export function useTherapySessionRecovery() {
           return null
         } else {
           // Clean up old data
-          sessionStorage.removeItem('session-just-ended')
+          safeSessionStorage.removeItem('session-just-ended')
         }
       } catch (e) {
         console.warn('Failed to parse session-just-ended data:', e)
-        sessionStorage.removeItem('session-just-ended')
+        safeSessionStorage.removeItem('session-just-ended')
       }
     }
     
     setRecoveryState(prev => ({ ...prev, isChecking: true }))
     setHasCheckedThisSession(true) // Mark as checked to prevent duplicate runs
-    sessionStorage.setItem('last-recovery-check-time', Date.now().toString())
+    safeSessionStorage.setItem('last-recovery-check-time', Date.now().toString())
 
     try {
       const response = await fetch(`/api/sessions/active?userId=${session.user.id}`)
@@ -225,7 +226,7 @@ export function useTherapySessionRecovery() {
               }
             }
             
-            sessionStorage.setItem('session-recovery-pending', JSON.stringify(recoveryInfo))
+            safeSessionStorage.setItem('session-recovery-pending', JSON.stringify(recoveryInfo))
             console.log('💾 Session recovery info stored for UI')
             
             // Dispatch custom event to notify ActiveSessionFoundModal immediately
@@ -267,7 +268,7 @@ export function useTherapySessionRecovery() {
       return null
     } finally {
       // Always clear the in-progress flag
-      sessionStorage.removeItem('recovery-check-in-progress')
+      safeSessionStorage.removeItem('recovery-check-in-progress')
       clearTimeout(flagTimeout)
     }
   }, [session?.user?.id, status, hasCheckedThisSession])
@@ -287,7 +288,7 @@ export function useTherapySessionRecovery() {
   // Clean up old session-just-ended data periodically
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
-      const justEndedData = sessionStorage.getItem('session-just-ended')
+      const justEndedData = safeSessionStorage.getItem('session-just-ended')
       if (justEndedData) {
         try {
           const { timestamp } = JSON.parse(justEndedData)
@@ -296,10 +297,10 @@ export function useTherapySessionRecovery() {
           // Remove if older than 30 seconds
           if (age > 30000) {
             console.log('🧹 Cleaning up old session-just-ended data')
-            sessionStorage.removeItem('session-just-ended')
+            safeSessionStorage.removeItem('session-just-ended')
           }
         } catch (e) {
-          sessionStorage.removeItem('session-just-ended')
+          safeSessionStorage.removeItem('session-just-ended')
         }
       }
     }, 10000) // Check every 10 seconds
@@ -336,8 +337,8 @@ export function useTherapySessionRecovery() {
         shouldAutoRestart: false
       })
       // Clear any pending recovery data
-      sessionStorage.removeItem('session-recovery-pending')
-      sessionStorage.removeItem('recovery-check-in-progress')
+      safeSessionStorage.removeItem('session-recovery-pending')
+      safeSessionStorage.removeItem('recovery-check-in-progress')
     }
     
     window.addEventListener('sessionEnded', handleSessionEnded)

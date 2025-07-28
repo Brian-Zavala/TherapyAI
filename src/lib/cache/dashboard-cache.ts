@@ -90,17 +90,30 @@ export const cacheKeys = {
   sessions: (userId: string, status?: string, theme?: string) => 
     `dashboard:sessions:${userId}:${status || 'all'}:${theme || 'all'}`,
   
-  metrics: (userId: string, sessionId?: string) => 
-    `dashboard:metrics:${userId}:${sessionId || 'latest'}`,
+  metrics: (userId: string, sessionId?: string, therapyType?: string) => 
+    `dashboard:metrics:${userId}:${sessionId || 'latest'}:${therapyType || 'all'}`,
   
-  progress: (userId: string, timeframe: string) => 
-    `dashboard:progress:${userId}:${timeframe}`,
+  progress: (userId: string, timeframe: string, therapyType?: string) => 
+    `dashboard:progress:${userId}:${timeframe}:${therapyType || 'all'}`,
   
-  insights: (userId: string) => 
-    `dashboard:insights:${userId}`,
+  insights: (userId: string, therapyType?: string) => 
+    `dashboard:insights:${userId}:${therapyType || 'all'}`,
   
   userProfile: (userId: string) => 
     `dashboard:profile:${userId}`,
+  
+  sessionCounts: (userId: string) => 
+    `dashboard:session-counts:${userId}`,
+  
+  // Therapy-type-specific cache keys
+  communicationMetrics: (userId: string, therapyType: string) => 
+    `dashboard:communication-metrics:${userId}:${therapyType}`,
+  
+  relationshipProgress: (userId: string, therapyType: string, timeframe: string) => 
+    `dashboard:relationship-progress:${userId}:${therapyType}:${timeframe}`,
+  
+  aiInsights: (userId: string, therapyType: string) => 
+    `dashboard:ai-insights:${userId}:${therapyType}`,
 };
 
 // Main cache interface
@@ -222,6 +235,71 @@ export const dashboardCache = {
     } catch (error) {
       console.error('[DashboardCache] Invalidate user error:', error);
     }
+  },
+
+  /**
+   * Invalidate therapy-type-specific cache entries
+   */
+  async invalidateTherapyType(userId: string, therapyType: string): Promise<void> {
+    try {
+      const keys = [
+        cacheKeys.communicationMetrics(userId, therapyType),
+        cacheKeys.relationshipProgress(userId, therapyType, 'all'),
+        cacheKeys.relationshipProgress(userId, therapyType, 'week'),
+        cacheKeys.relationshipProgress(userId, therapyType, 'month'),
+        cacheKeys.aiInsights(userId, therapyType),
+        cacheKeys.sessionCounts(userId)
+      ];
+      
+      for (const key of keys) {
+        await this.invalidate(key);
+      }
+      
+      console.log(`[DashboardCache] Invalidated therapy type ${therapyType} for user: ${userId}`);
+    } catch (error) {
+      console.error('[DashboardCache] Invalidate therapy type error:', error);
+    }
+  },
+
+  /**
+   * Invalidate cache when session is completed
+   */
+  async invalidateOnSessionComplete(userId: string, sessionTheme: string, sessionType: string): Promise<void> {
+    try {
+      // Map session to therapy type
+      const therapyType = this.mapSessionToTherapyType(sessionTheme, sessionType);
+      
+      if (therapyType) {
+        await this.invalidateTherapyType(userId, therapyType);
+        
+        // Also invalidate general session counts
+        await this.invalidate(cacheKeys.sessionCounts(userId));
+      }
+      
+      console.log(`[DashboardCache] Invalidated on session complete for user: ${userId}, therapy type: ${therapyType}`);
+    } catch (error) {
+      console.error('[DashboardCache] Invalidate on session complete error:', error);
+    }
+  },
+
+  /**
+   * Map session theme/type to therapy type
+   */
+  mapSessionToTherapyType(theme: string, sessionType: string): 'solo' | 'couple' | 'family' | null {
+    const lowerTheme = theme.toLowerCase();
+    const lowerType = sessionType.toLowerCase();
+    
+    if (lowerTheme.includes('individual') || lowerTheme.includes('solo') || lowerType === 'individual') {
+      return 'solo';
+    }
+    if (lowerTheme.includes('relationship') || lowerTheme.includes('couple') || lowerType === 'couple') {
+      return 'couple';
+    }
+    if (lowerTheme.includes('family') || lowerType === 'family') {
+      return 'family';
+    }
+    
+    return null;
   },
 
   /**

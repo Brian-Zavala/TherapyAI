@@ -13,6 +13,12 @@ import { useVapiMetricsBridge } from '@/hooks/useVapiMetricsBridge'
 import { useSessionConflict } from '@/hooks/useSessionConflict'
 import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
 import { initializeSessionMetrics, cleanupSessionMetrics } from '@/lib/transcript-service-optimized'
+import { safeSessionStorage } from '@/lib/safe-session-storage'
+import { 
+  AUTH_ERRORS, 
+  SESSION_ERRORS, 
+  getUserFriendlyError 
+} from '@/lib/error-messages'
 import SessionDurationModal from './SessionDurationModal'
 import { SessionConflictDialog } from './SessionConflictDialog'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
@@ -183,7 +189,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   const handleVapiError = useCallback((error: unknown) => {
     console.error('[TherapyButton] VAPI error:', error)
-    setError(error instanceof Error ? error.message : String(error))
+    setError(getUserFriendlyError(error))
     
     // Check if this is a "Meeting has ended" error
     if (error && typeof error === 'object') {
@@ -192,7 +198,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         // Mark session as ended to prevent recovery attempts
         const currentSessionId = sessionRef.current?.sessionId
         if (currentSessionId) {
-          sessionStorage.setItem('session-just-ended', JSON.stringify({
+          safeSessionStorage.setItem('session-just-ended', JSON.stringify({
             sessionId: currentSessionId,
             timestamp: Date.now(),
             reason: 'vapi-room-ended'
@@ -224,7 +230,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         console.log('🛑 VAPI requested session end via function call');
         
         // Store reference to trigger after we have access to handleEndSession
-        sessionStorage.setItem('vapi-end-session-requested', 'true');
+        safeSessionStorage.setItem('vapi-end-session-requested', 'true');
         
         // First acknowledge to the user that we're ending the session
         const goodbyeMessage = message.functionCall.parameters?.message || "Thank you for sharing with me today. Take care until we meet again.";
@@ -512,14 +518,14 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
     
     // Clear all related session storage
-    sessionStorage.removeItem('session-recovery-pending')
-    sessionStorage.removeItem('current-session-id')
-    sessionStorage.removeItem('session-auto-start')
-    sessionStorage.removeItem(`session-${sessionId}-backup`)
-    sessionStorage.removeItem(`session-${sessionId}-pause-state`)
+    safeSessionStorage.removeItem('session-recovery-pending')
+    safeSessionStorage.removeItem('current-session-id')
+    safeSessionStorage.removeItem('session-auto-start')
+    safeSessionStorage.removeItem(`session-${sessionId}-backup`)
+    safeSessionStorage.removeItem(`session-${sessionId}-pause-state`)
     
     // Mark as just ended to prevent recovery
-    sessionStorage.setItem('session-just-ended', JSON.stringify({
+    safeSessionStorage.setItem('session-just-ended', JSON.stringify({
       sessionId: sessionId,
       timestamp: Date.now(),
       reason: reason
@@ -582,7 +588,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       setForceHidePhoneUI(false)
       
       // Clear auto-start data immediately to prevent loops
-      sessionStorage.removeItem('session-auto-start')
+      safeSessionStorage.removeItem('session-auto-start')
       
       try {
         console.log('🚀 Auto-starting VAPI session for recovered session:', sessionId)
@@ -646,11 +652,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           console.error('❌ Cannot recover session: VAPI authentication error', vapi.authError)
           
           // Clear recovery data to prevent repeated attempts
-          sessionStorage.removeItem('session-recovery-pending')
-          sessionStorage.removeItem('session-auto-start')
-          sessionStorage.removeItem('current-session-id')
+          safeSessionStorage.removeItem('session-recovery-pending')
+          safeSessionStorage.removeItem('session-auto-start')
+          safeSessionStorage.removeItem('current-session-id')
           
-          setError('Unable to recover session due to authentication error. Please refresh the page and try again.')
+          setError(SESSION_ERRORS.RECOVERY_AUTH_ERROR)
           setIsProcessingRecovery(false)
           recoveryProcessedRef.current.delete(sessionId) // Allow retry after auth error
           lastRecoveryAttemptRef.current = 0 // Reset cooldown
@@ -675,11 +681,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           console.error(`❌ VAPI failed to initialize after ${RECOVERY_CONSTANTS.VAPI_READY_TIMEOUT_MS / 1000} seconds`)
           
           // Clear recovery data to prevent repeated attempts
-          sessionStorage.removeItem('session-recovery-pending')
-          sessionStorage.removeItem('session-auto-start')
-          sessionStorage.removeItem('current-session-id')
+          safeSessionStorage.removeItem('session-recovery-pending')
+          safeSessionStorage.removeItem('session-auto-start')
+          safeSessionStorage.removeItem('current-session-id')
           
-          setError('Voice session initialization timed out. Please refresh the page and try again.')
+          setError(SESSION_ERRORS.RECOVERY_TIMEOUT)
           setIsProcessingRecovery(false)
           recoveryProcessedRef.current.delete(sessionId) // Allow retry after timeout
           lastRecoveryAttemptRef.current = 0 // Reset cooldown
@@ -843,7 +849,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         
       } catch (error) {
         console.error('❌ Failed to auto-start VAPI session for recovery:', error)
-        setError(error instanceof Error ? error.message : 'Failed to start recovered session')
+        setError(SESSION_ERRORS.RECOVERY_FAILED)
         // Remove from processed set on error so it can be retried later
         recoveryProcessedRef.current.delete(sessionId)
         lastRecoveryAttemptRef.current = 0 // Reset cooldown on error
@@ -856,7 +862,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     window.addEventListener('sessionRecoveryComplete', handleSessionRecoveryComplete as unknown as EventListener)
     
     // Check for existing auto-start flag on mount (in case event was missed)
-    const autoStartData = sessionStorage.getItem('session-auto-start')
+    const autoStartData = safeSessionStorage.getItem('session-auto-start')
     if (autoStartData && !isProcessingRecovery) {
       try {
         const { sessionId, sessionData, detectedType, timestamp } = JSON.parse(autoStartData)
@@ -865,7 +871,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         const previousProcessTime = recoveryProcessedRef.current.get(sessionId)
         if (previousProcessTime) {
           console.log('⚠️ Auto-start data already processed, removing...')
-          sessionStorage.removeItem('session-auto-start')
+          safeSessionStorage.removeItem('session-auto-start')
           return
         }
         
@@ -886,11 +892,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }) as CustomEvent)
         } else {
           console.log('⏰ Auto-start data is stale, removing...')
-          sessionStorage.removeItem('session-auto-start')
+          safeSessionStorage.removeItem('session-auto-start')
         }
       } catch (error) {
         console.warn('Failed to parse auto-start data:', error)
-        sessionStorage.removeItem('session-auto-start')
+        safeSessionStorage.removeItem('session-auto-start')
       }
     }
     
@@ -975,7 +981,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     playClick()
     
     if (!user) {
-      setError('Please log in to start a therapy session')
+      setError(AUTH_ERRORS.UNAUTHORIZED)
       return
     }
     
@@ -1015,7 +1021,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       }
       
       if (familyMembers.length === 0) {
-        setError('Please add family members to your profile before starting a family therapy session.')
+        setError(SESSION_ERRORS.NO_FAMILY_MEMBERS)
         return
       }
       
@@ -1035,8 +1041,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       setIsConflictDialogOpen(false)
       
       // Save the duration that was selected
-      const savedDuration = sessionStorage.getItem('pending-session-duration')
-      const savedFamilyMembers = sessionStorage.getItem('pending-family-members')
+      const savedDuration = safeSessionStorage.getItem('pending-session-duration')
+      const savedFamilyMembers = safeSessionStorage.getItem('pending-family-members')
       
       if (!savedDuration) {
         console.error('No pending session duration found')
@@ -1078,12 +1084,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       handleDurationSelect(duration, familyMembers)
       
       // Clean up stored data
-      sessionStorage.removeItem('pending-session-duration')
-      sessionStorage.removeItem('pending-family-members')
+      safeSessionStorage.removeItem('pending-session-duration')
+      safeSessionStorage.removeItem('pending-family-members')
       
     } catch (error) {
       console.error('Failed to end and start new session:', error)
-      setError('Failed to start new session')
+      setError(SESSION_ERRORS.START_FAILED)
       setIsLoading(false)
     }
   }, [conflictSession, selectedFamilyMembers, therapyType, user])
@@ -1093,9 +1099,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     setError(null)
     
     // Store pending session data in case of conflict
-    sessionStorage.setItem('pending-session-duration', duration.toString())
+    safeSessionStorage.setItem('pending-session-duration', duration.toString())
     if (familyMembersOverride || selectedFamilyMembers.length > 0) {
-      sessionStorage.setItem('pending-family-members', JSON.stringify(familyMembersOverride || selectedFamilyMembers))
+      safeSessionStorage.setItem('pending-family-members', JSON.stringify(familyMembersOverride || selectedFamilyMembers))
     }
     
     // Reset forceHidePhoneUI when starting a new session
@@ -1104,7 +1110,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     // Check authentication state before proceeding
     if (isAuthLoading) {
       console.log('⏳ Authentication still loading, waiting...')
-      setError('Please wait for authentication to complete')
+      setError(AUTH_ERRORS.VERIFICATION_FAILED)
       return
     }
     
@@ -1313,7 +1319,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         const conflictData = (error as any).conflictData
         
         // Check if this is a recovery scenario - if user is trying to start after page refresh
-        const hasRecoveryPending = sessionStorage.getItem('session-recovery-pending')
+        const hasRecoveryPending = safeSessionStorage.getItem('session-recovery-pending')
         const hasActiveSessionModal = document.querySelector('[data-active-session-modal]')
         
         if (hasRecoveryPending || hasActiveSessionModal) {
@@ -1462,13 +1468,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       setSessionActive(false)
       
       // Clear any session recovery data
-      sessionStorage.removeItem('session-recovery-pending')
-      sessionStorage.removeItem('current-session-id')
-      sessionStorage.removeItem('session-auto-start')
+      safeSessionStorage.removeItem('session-recovery-pending')
+      safeSessionStorage.removeItem('current-session-id')
+      safeSessionStorage.removeItem('session-auto-start')
       
       // CRITICAL: Mark session as just ended to prevent recovery attempts
       if (currentSessionId) {
-        sessionStorage.setItem('session-just-ended', JSON.stringify({
+        safeSessionStorage.setItem('session-just-ended', JSON.stringify({
           sessionId: currentSessionId,
           timestamp: Date.now()
         }))
@@ -1683,10 +1689,10 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Check for VAPI function call session end request
   useEffect(() => {
     // Only check once when handleEndSession becomes available
-    const endRequested = sessionStorage.getItem('vapi-end-session-requested');
+    const endRequested = safeSessionStorage.getItem('vapi-end-session-requested');
     if (endRequested === 'true' && !session.isEndingSession && handleEndSession) {
       console.log('📌 Processing deferred VAPI end session request');
-      sessionStorage.removeItem('vapi-end-session-requested');
+      safeSessionStorage.removeItem('vapi-end-session-requested');
       
       // Trigger session end with a delay to ensure VAPI has time to say goodbye
       const timeoutId = setTimeout(() => {
@@ -1815,9 +1821,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // Force remove session-active class
       document.body.classList.remove('session-active')
       // Clear any lingering recovery data
-      sessionStorage.removeItem('session-recovery-pending')
-      sessionStorage.removeItem('current-session-id')
-      sessionStorage.removeItem('session-auto-start')
+      safeSessionStorage.removeItem('session-recovery-pending')
+      safeSessionStorage.removeItem('current-session-id')
+      safeSessionStorage.removeItem('session-auto-start')
       // Dispatch state change event
       window.dispatchEvent(new Event('sessionStateChanged'))
     }

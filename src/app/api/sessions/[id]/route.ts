@@ -445,13 +445,9 @@ async function handleSessionUpdate(
     // Generate metrics if session was completed
     if (status === 'completed') {
       try {
-        // Determine therapy type from session theme
-        let therapyType = 'couple';
-        if (existingSession.theme && existingSession.theme.toLowerCase().includes('family')) {
-          therapyType = 'family';
-        } else if (existingSession.theme && (existingSession.theme.toLowerCase().includes('individual') || existingSession.theme.toLowerCase().includes('solo'))) {
-          therapyType = 'solo';
-        }
+        // CRITICAL FIX: Use stored sessionType instead of guessing from theme
+        const therapyType = existingSession.sessionType || 'solo';
+        console.log(`Using stored sessionType: ${therapyType} for session ${sessionId}`);
         
         // Create or update metrics - first, check if metrics already exist for this session
         const existingMetrics = await prisma.progressTracking.findFirst({

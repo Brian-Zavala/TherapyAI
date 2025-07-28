@@ -1,0 +1,347 @@
+/* ===================================
+   DASHBOARD-SCOPED STYLES (ALL-IN-ONE)
+   =================================== */
+
+/* 
+   IMPORTANT: All styles are scoped to .dashboard-container
+   to prevent affecting other pages in the application
+*/
+
+/* ===== DASHBOARD CONTAINER BASE ===== */
+.dashboard-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem;
+  overflow-x: hidden;
+  
+  /* Dashboard-specific typography variables */
+  --dashboard-font-size-base: clamp(1rem, 1vw + 0.875rem, 1.25rem);
+  --dashboard-font-size-xs: clamp(0.75rem, 0.25vw + 0.7rem, 0.875rem);
+  --dashboard-font-size-sm: clamp(0.875rem, 0.5vw + 0.8rem, 1rem);
+  --dashboard-font-size-md: var(--dashboard-font-size-base);
+  --dashboard-font-size-lg: clamp(1.2rem, 1.5vw + 1rem, 1.5rem);
+  --dashboard-font-size-xl: clamp(1.44rem, 2vw + 1.2rem, 2rem);
+  --dashboard-font-size-2xl: clamp(1.73rem, 2.5vw + 1.4rem, 2.66rem);
+  --dashboard-font-size-3xl: clamp(2.07rem, 3vw + 1.6rem, 3.55rem);
+  
+  --dashboard-line-height-tight: clamp(1.1, 0.2vw + 1, 1.2);
+  --dashboard-line-height-snug: clamp(1.3, 0.25vw + 1.2, 1.4);
+  --dashboard-line-height-normal: clamp(1.5, 0.3vw + 1.4, 1.6);
+  --dashboard-line-height-relaxed: clamp(1.6, 0.35vw + 1.5, 1.75);
+}
+
+@media (min-width: 640px) {
+  .dashboard-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-container {
+    padding: 2rem;
+  }
+}
+
+/* ===== DASHBOARD TYPOGRAPHY (SCOPED) ===== */
+
+.dashboard-container .dashboard-heading {
+  font-size: var(--dashboard-font-size-2xl);
+  font-weight: 700;
+  line-height: var(--dashboard-line-height-tight);
+  letter-spacing: -0.025em;
+}
+
+.dashboard-container .card-title {
+  font-size: var(--dashboard-font-size-lg);
+  font-weight: 600;
+  line-height: var(--dashboard-line-height-snug);
+}
+
+.dashboard-container .metric-value {
+  font-size: var(--dashboard-font-size-3xl);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.dashboard-container .label {
+  font-size: var(--dashboard-font-size-sm);
+  font-weight: 500;
+  line-height: var(--dashboard-line-height-normal);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.dashboard-container .caption {
+  font-size: var(--dashboard-font-size-xs);
+  line-height: var(--dashboard-line-height-normal);
+  opacity: 0.8;
+}
+
+.dashboard-container .tab-text {
+  font-size: var(--dashboard-font-size-sm);
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Dashboard line height utilities */
+.dashboard-container .leading-relaxed { 
+  line-height: var(--dashboard-line-height-relaxed); 
+}
+
+.dashboard-container .leading-normal { 
+  line-height: var(--dashboard-line-height-normal); 
+}
+
+/* ===== THERAPY TYPE SELECTOR TABS (SCOPED) ===== */
+
+.dashboard-container .therapy-type-tabs-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.dashboard-container .therapy-tabs-list {
+  display: flex;
+  width: 100%;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dashboard-container .therapy-tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile therapy tabs */
+@media (max-width: 639px) {
+  .dashboard-container .therapy-tabs-list {
+    flex-direction: column;
+    max-width: 100%;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  
+  .dashboard-container [role="tablist"]:has(.therapy-tab-trigger) {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem !important;
+  }
+  
+  .dashboard-container [role="tab"] {
+    width: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    min-height: 48px !important;
+  }
+}
+
+/* Tablet therapy tabs */
+@media (min-width: 640px) and (max-width: 767px) {
+  .dashboard-container .therapy-tabs-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .dashboard-container .therapy-type-tabs-container [role="tablist"] {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+  
+  .dashboard-container .therapy-type-tabs-container [role="tab"] {
+    width: auto !important;
+    flex: 1 1 45% !important;
+    min-width: 150px !important;
+  }
+}
+
+/* Tab trigger styling */
+.dashboard-container .therapy-tab-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  min-height: 44px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dashboard-container .therapy-tab-trigger:hover:not([data-state="active"]) {
+  background: rgba(59, 130, 246, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dashboard-container .therapy-tab-trigger[data-state="active"] {
+  background: rgba(59, 130, 246, 0.2);
+  color: white;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* ===== METRIC CARD FIXES (SCOPED) ===== */
+
+/* Icon container sizing - dashboard only */
+.dashboard-container .metric-icon-container,
+.dashboard-container .p-2\.5.sm\:p-3.bg-gray-100\/80,
+.dashboard-container .p-3.rounded-xl.bg-gradient-to-br {
+  width: 3.5rem !important;
+  height: 3.5rem !important;
+  min-width: 3.5rem !important;
+  min-height: 3.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 639px) {
+  .dashboard-container .metric-icon-container {
+    width: 3rem !important;
+    height: 3rem !important;
+    min-width: 3rem !important;
+    min-height: 3rem !important;
+  }
+}
+
+/* Icon SVG sizing - dashboard only */
+.dashboard-container .metric-icon-container svg,
+.dashboard-container .p-2\.5.sm\:p-3.bg-gray-100\/80 svg,
+.dashboard-container .p-3.rounded-xl.bg-gradient-to-br svg {
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+}
+
+@media (max-width: 639px) {
+  .dashboard-container .metric-icon-container svg {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+  }
+}
+
+/* ===== DASHBOARD CARD STYLES (SCOPED) ===== */
+
+.dashboard-container .therapy-insights-card {
+  width: 100%;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: visible;
+  transition: box-shadow 0.3s ease;
+}
+
+.dashboard-container .therapy-insights-header {
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(229, 231, 235, 1);
+}
+
+.dashboard-container .progress-metric-card {
+  padding: 1rem;
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== MOBILE HEADER CENTERING (SCOPED) ===== */
+
+@media (max-width: 767px) {
+  /* Center headers on mobile */
+  .dashboard-container .metric-card-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 1rem !important;
+  }
+  
+  .dashboard-container .flex.items-center.gap-4.mb-6,
+  .dashboard-container .flex.items-center.justify-between {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+  
+  .dashboard-container .flex-1:has(.dashboard-heading),
+  .dashboard-container .flex-1:has(.card-title) {
+    width: 100% !important;
+    text-align: center !important;
+  }
+  
+  /* Center metric values */
+  .dashboard-container .metric-value {
+    text-align: center !important;
+    width: 100% !important;
+  }
+  
+  .dashboard-container .label {
+    text-align: center !important;
+    width: 100% !important;
+  }
+}
+
+/* ===== INSIGHT CARD FIXES (SCOPED) ===== */
+
+.dashboard-container .insight-icon-container {
+  width: 3rem !important;
+  height: 3rem !important;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.dashboard-container .insight-icon-container svg {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+/* ===== DASHBOARD-SPECIFIC COLOR FIXES ===== */
+
+/* Only apply color changes to specific dashboard elements */
+.dashboard-container .therapy-insights-card .text-gray-600,
+.dashboard-container .metric-card .text-gray-800,
+.dashboard-container .progress-card .text-gray-200 {
+  /* Preserve existing component colors */
+}
+
+/* Dashboard card backgrounds - only for dashboard cards */
+.dashboard-container .therapy-insights-card {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.dashboard-container .metric-card {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Ensure dashboard doesn't affect global styles */
+.dashboard-container * {
+  /* All dashboard styles are isolated within this container */
+}

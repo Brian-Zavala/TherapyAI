@@ -19,15 +19,17 @@ interface ReactQueryProviderProps {
 
 // Create query client with ultra-optimized defaults
 function makeQueryClient() {
-  return new QueryClient({
+  const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         // 2025 best practices for caching
         staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
         retry: (failureCount, error) => {
-          // Smart retry logic
+          // Smart retry logic with AbortError handling
           if (error instanceof Error) {
+            // Never retry AbortErrors (component unmount, request cancellation)
+            if (error.name === 'AbortError') return false;
             // Don't retry on 4xx errors
             if (error.message.includes('4')) return false;
             // Retry up to 3 times for network errors
@@ -40,6 +42,14 @@ function makeQueryClient() {
         refetchOnReconnect: 'always',
         // Structural sharing for optimal re-renders
         structuralSharing: true,
+        // Global error handler to suppress AbortError logs
+        useErrorBoundary: (error) => {
+          // Don't trigger error boundaries for AbortErrors
+          if (error instanceof Error && error.name === 'AbortError') {
+            return false;
+          }
+          return true;
+        },
       },
       mutations: {
         retry: 1,
@@ -47,6 +57,24 @@ function makeQueryClient() {
       },
     },
   });
+
+  // Set up global error handling for query cache
+  queryClient.getQueryCache().subscribe((event) => {
+    if (event.type === 'error') {
+      const { error } = event;
+      // Suppress AbortError logs in development
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Don't log AbortErrors - they're normal during development hot reloads
+        return;
+      }
+      // Log other errors normally only in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Query failed:', error, 'Query key:', event.query?.queryKey);
+      }
+    }
+  });
+
+  return queryClient;
 }
 
 // Global query client for SSR

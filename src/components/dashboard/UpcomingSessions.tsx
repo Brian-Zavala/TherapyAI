@@ -168,8 +168,8 @@ export default function UpcomingSessions() {
             <div className="absolute top-0 left-0 w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             <div className="absolute top-2 left-2 w-10 h-10 border-2 border-blue-300/50 border-b-transparent rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
           </div>
-          <p className="mt-6 text-white/90 font-medium text-lg">Finding your next sessions...</p>
-          <p className="mt-2 text-white/60 text-sm">Preparing your personalized schedule</p>
+          <p className="mt-6 text-white/90 font-medium text-lg leading-relaxed">Finding your next sessions...</p>
+          <p className="mt-2 text-white/60 text-sm leading-relaxed">Preparing your personalized schedule</p>
         </motion.div>
       </div>
     );
@@ -206,10 +206,10 @@ export default function UpcomingSessions() {
       transition={{ duration: 0.5 }}
       className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full overflow-y-auto"
     >
-      <div className="flex items-center mb-6">
+      <div className="flex items-center mb-6 metric-card-header">
         <motion.div 
           whileHover={{ scale: 1.1, rotate: 5 }}
-          className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white mr-4 shadow-lg shadow-green-500/30"
+          className="metric-icon-container w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white mr-4 shadow-lg shadow-green-500/30"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -227,10 +227,10 @@ export default function UpcomingSessions() {
           </svg>
         </motion.div>
         <div className="flex-1">
-          <h2 className="text-xl md:text-2xl font-bold text-white">
+          <h2 className="dashboard-heading text-white">
             Upcoming Sessions
           </h2>
-          <p className="text-white/70 text-sm mt-1">Your scheduled therapy sessions</p>
+          <p className="caption text-white/70 mt-1">Your scheduled therapy sessions</p>
         </div>
         {sessions.length > 0 && (
           <motion.div

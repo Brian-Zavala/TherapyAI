@@ -13,6 +13,21 @@ import { getCachedSession } from '@/lib/auth/session-cache';
 import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache';
 import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
+// Utility to convert frontend therapy type to Prisma enum for filtering
+function therapyTypeToPrismaEnum(therapyType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
+  switch (therapyType.toLowerCase()) {
+    case 'solo': 
+    case 'individual':
+      return 'SOLO';
+    case 'couple':
+      return 'COUPLE';  
+    case 'family':
+      return 'FAMILY';
+    default:
+      return 'SOLO';
+  }
+}
+
 export async function GET(request: Request) {
   const startTime = Date.now();
   
@@ -44,9 +59,8 @@ export async function GET(request: Request) {
       return NextResponse.json(cached);
     }
     
-    // Always filter by therapy type for accurate data
-    const themeValue = therapyType === 'couple' ? 'Relationship Counseling' : 
-                       therapyType === 'solo' ? 'Individual Therapy' : 'Family Therapy';
+    // CRITICAL FIX: Use sessionType for accurate data filtering with proper enum conversion
+    const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
     
     // Get sessions for the specific therapy type only with retry
     const sessionData = await withRetry(
@@ -59,7 +73,7 @@ export async function GET(request: Request) {
         FROM "Session"
         WHERE "userId" = ${user.id}
           AND "status" = 'COMPLETED'
-          AND "theme" = ${themeValue}
+          AND "sessionType" = ${sessionTypeValue}
           AND "date" >= NOW() - INTERVAL '6 months'
         GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
         ORDER BY DATE_TRUNC('month', "date")

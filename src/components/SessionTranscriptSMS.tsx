@@ -390,8 +390,8 @@ export default function SessionTranscriptSMS({ sessionId, initialSession }: Sess
                           {entry.text}
                         </div>
                         
-                        {/* Timestamp on last message or if showing all timestamps */}
-                        {(showTimestamps || messageIndex === group.messages.length - 1) && (
+                        {/* Timestamp only when user clicks "Show Times" button */}
+                        {showTimestamps && (
                           <div className={`text-[11px] mt-1 text-right ${
                             isUser ? 'text-blue-100/70' : 'text-gray-400'
                           }`}>
