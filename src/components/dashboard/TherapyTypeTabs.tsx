@@ -121,27 +121,27 @@ export default function TherapyTypeTabs({
 
   const getTriggerClasses = (config: TherapyTypeConfig, isActive: boolean) => {
     const baseClasses = variant === 'default' 
-      ? "gap-1 cursor-pointer transition-all duration-200 min-h-[36px] flex items-center justify-center px-1.5 py-1 text-xs font-medium flex-1 min-w-0 rounded-md overflow-hidden"
-      : "gap-1 cursor-pointer transition-all duration-200 min-h-[40px] flex items-center justify-center px-2 py-1.5 text-xs font-medium flex-1 min-w-0 rounded-lg sm:text-sm sm:px-3 sm:py-2";
+      ? "gap-1 cursor-pointer transition-all duration-300 min-h-[36px] flex items-center justify-center px-1.5 py-1 text-xs font-medium flex-1 min-w-0 rounded-md overflow-hidden"
+      : "gap-1 cursor-pointer transition-all duration-300 min-h-[40px] flex items-center justify-center px-2 py-1.5 text-xs font-medium flex-1 min-w-0 rounded-lg sm:text-sm sm:px-3 sm:py-2";
     const isLoading = loading[config.id];
     const hasError = errors[config.id];
     
     if (variant === 'pills') {
       return `${baseClasses} rounded-full border ${
         isActive 
-          ? 'bg-white/20 text-white border-white/30' 
-          : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white'
+          ? 'bg-white/25 text-white border-white/40 backdrop-blur-sm shadow-lg' 
+          : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/15 hover:text-white hover:backdrop-blur-sm'
       } ${isLoading ? 'animate-pulse' : ''} ${hasError ? 'border-red-400 text-red-400' : ''}`;
     }
     
-    // Override default Radix styling with custom active state
+    // Enhanced frosted glass effect for active state
     const activeStyles = isActive 
-      ? 'text-white bg-white/20 shadow-sm' 
-      : 'text-white/60 hover:text-white hover:bg-white/10';
+      ? 'text-white bg-white/25 backdrop-blur-sm shadow-lg border border-white/40 font-medium' 
+      : 'text-white/60 hover:text-white hover:bg-white/15 hover:backdrop-blur-sm border border-transparent hover:border-white/20';
     
     return `${baseClasses} ${activeStyles} ${
       isLoading ? 'animate-pulse' : ''
-    } ${hasError ? 'text-red-400' : ''}`;
+    } ${hasError ? 'text-red-400 bg-red-500/20 border-red-400/50' : ''}`;
   };
 
   if (variant === 'pills') {
@@ -203,10 +203,7 @@ export default function TherapyTypeTabs({
             <TabsTrigger
               key={config.id}
               value={config.id}
-              className={`${getTriggerClasses(config, activeType === config.id)} !bg-transparent data-[state=active]:!bg-transparent`}
-              style={{
-                backgroundColor: activeType === config.id ? 'rgba(255, 255, 255, 0.2)' : undefined
-              }}
+              className={getTriggerClasses(config, activeType === config.id)}
               title={showDescriptions ? config.description : undefined}
             >
               <Icon className="h-4 w-4" />
