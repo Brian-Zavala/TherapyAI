@@ -94,8 +94,8 @@
 
 /* Perfect alignment fix for active tabs */
 [data-page="dashboard"] .therapy-type-tabs [role="tablist"] {
-  gap: 0.25rem !important; /* Small consistent gap for proper spacing */
-  padding: 0.5rem !important; /* Consistent padding matching other dashboard components */
+  gap: 0 !important;
+  padding: 0 !important;
 }
 
 [data-page="dashboard"] .therapy-type-tabs [role="tab"] {
@@ -118,7 +118,14 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   color: white !important;
   font-weight: 500 !important;
-  /* CRITICAL: Force no transforms and perfect positioning */
+  /* CRITICAL: Ensure background fills entire tab area including padding */
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  /* Ensure background extends to full element boundaries */
+  background-clip: border-box !important;
+  border-radius: inherit !important;
+  /* Force no transforms and perfect positioning */
   transform: none !important;
   position: relative !important;
   /* Ensure perfect alignment - reset all positioning */
@@ -130,6 +137,23 @@
   translate: none !important;
   scale: none !important;
   rotate: none !important;
+}
+
+/* Additional fix to ensure background covers all child elements within tabs */
+[data-page="dashboard"] .therapy-type-tabs [role="tablist"] [role="tab"][data-state="active"] * {
+  /* Ensure child elements don't interfere with background coverage */
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Ensure container maintains proper display and sizing */
+[data-page="dashboard"] .therapy-type-tabs [role="tablist"] [role="tab"] {
+  /* Force consistent box model for all tabs */
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
 }
 
 /* Additional tab alignment fixes to prevent any offset issues */

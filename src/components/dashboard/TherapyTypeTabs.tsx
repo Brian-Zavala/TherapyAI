@@ -114,8 +114,8 @@ export default function TherapyTypeTabs({
       case 'pills':
         return 'flex flex-wrap gap-2 bg-transparent';
       default:
-        // Always horizontal flex for proper tab visibility - no padding for perfect alignment
-        return 'flex flex-row w-full max-w-full bg-white/10 overflow-x-hidden';
+        // Always horizontal flex for proper tab visibility - no background to prevent gaps around active tabs
+        return 'flex flex-row w-full max-w-full overflow-x-hidden';
     }
   };
 
@@ -192,7 +192,7 @@ export default function TherapyTypeTabs({
       onValueChange={handleTabChange} 
       className={className}
     >
-      <TabsList className={`border border-white/20 backdrop-blur-sm ${getTabVariantClasses()}`}>
+      <TabsList className={`${getTabVariantClasses()}`}>
         {visibleConfigs.map((config) => {
           const Icon = config.icon;
           const sessionCount = sessionCounts[config.id] || 0;
