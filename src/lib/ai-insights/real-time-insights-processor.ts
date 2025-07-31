@@ -421,13 +421,15 @@ export class RealTimeInsightsProcessor {
         return `${days[t.dayOfWeek]} ${hour}`;
       });
 
+      const healthyCoping = stressPatterns.copingMechanisms.find(c => c.type === 'healthy');
+      const avoidanceCoping = stressPatterns.copingMechanisms.find(c => c.type === 'avoidance');
+      
       insights.push({
         id: `stress-pattern-${sessionData.sessionId}`,
         category: 'behavioral',
         title: `Stress Response Pattern: ${stressPatterns.stressTrajectory === 'decreasing' ? 'Improving ✓' : stressPatterns.stressTrajectory === 'increasing' ? 'Needs Attention' : 'Stable'}`,
         description: `Analysis shows you're ${
-          stressPatterns.copingMechanisms.find(c => c.type === 'healthy')?.frequency > 
-          stressPatterns.copingMechanisms.find(c => c.type === 'avoidance')?.frequency ? 
+          (healthyCoping?.frequency || 0) > (avoidanceCoping?.frequency || 0) ? 
           'transitioning from avoidance to healthy coping' : 
           'still developing healthy coping mechanisms'
         }. Peak stress times: ${timeDescriptions.join(', ')}.`,
@@ -439,6 +441,9 @@ export class RealTimeInsightsProcessor {
           `Most effective coping: ${stressPatterns.copingMechanisms
             .sort((a, b) => b.effectiveness - a.effectiveness)[0]?.type || 'Still identifying'}`
         ],
+        basedOn: [`Session ${sessionData.sessionId}`],
+        actionItems: [],
+        timeframe: 'immediate',
         recommendations: this.generateStressRecommendations(stressPatterns)
       });
     }
@@ -466,6 +471,9 @@ export class RealTimeInsightsProcessor {
         `Validation frequency: ${Math.round(communicationFlow.validationFrequency)}%`,
         `Interruption rate: ${communicationFlow.interruptionRate.toFixed(1)}/min`
       ],
+      basedOn: [`Session ${sessionData.sessionId}`],
+      actionItems: [],
+      timeframe: 'immediate',
       recommendations: this.generateCommunicationRecommendations(communicationFlow, currentMetrics)
     });
 
@@ -497,6 +505,9 @@ export class RealTimeInsightsProcessor {
           `Current trajectory: ${emotionalState.emotionalTrajectory}`,
           `Mood: ${emotionalState.currentMood}`
         ],
+        basedOn: [`Session ${sessionData.sessionId}`],
+        actionItems: [],
+        timeframe: emotionalState.emotionalTrajectory === 'declining' ? 'immediate' : 'this-week',
         recommendations: this.generateEmotionalRecommendations(emotionalState)
       });
     }
@@ -537,6 +548,9 @@ export class RealTimeInsightsProcessor {
               `Interruption rate: ${communicationFlow.interruptionRate.toFixed(1)}/min`,
               `Expressing needs: ${Math.round(currentMetrics.expressingNeedsScore)}%`
             ],
+            basedOn: [`Session ${sessionData.sessionId}`],
+            actionItems: [],
+            timeframe: 'this-week',
             recommendations: [
               'Practice the "Attachment Pause" when feeling triggered',
               'Use reassuring language to address anxious patterns'
@@ -567,6 +581,9 @@ export class RealTimeInsightsProcessor {
             `Expression clarity: ${Math.round(currentMetrics.expressingNeedsScore)}%`,
             `Emotional range: ${sessionData.emotionalState.dominantEmotions.size} emotions`
           ],
+          basedOn: [`Session ${sessionData.sessionId}`],
+          actionItems: [],
+          timeframe: 'this-week',
           recommendations: [
             'Continue daily emotion journaling',
             'Practice naming specific emotions as they arise'
@@ -594,6 +611,9 @@ export class RealTimeInsightsProcessor {
               `Turn-taking balance: ${Math.round(communicationFlow.turnTakingBalance * 100)}%`,
               `Participation rate: Varies significantly`
             ],
+            basedOn: [`Session ${sessionData.sessionId}`],
+            actionItems: [],
+            timeframe: 'immediate',
             recommendations: [
               'Implement structured sharing rounds',
               'Create safe space for all voices'
@@ -738,13 +758,14 @@ export class RealTimeInsightsProcessor {
       recommendations.push('Consider scheduling sessions outside peak stress times');
     }
 
-    if (patterns.copingMechanisms.find(c => c.type === 'avoidance')?.frequency > 3) {
+    const avoidanceCoping = patterns.copingMechanisms.find(c => c.type === 'avoidance');
+    if (avoidanceCoping && avoidanceCoping.frequency > 3) {
       recommendations.push('Practice gradual exposure to difficult topics');
       recommendations.push('Use the "Brave Conversation" framework');
     }
 
     const healthyCoping = patterns.copingMechanisms.find(c => c.type === 'healthy');
-    if (healthyCoping && healthyCoping.effectiveness > 70) {
+    if (healthyCoping && healthyCoping.effectiveness > 70 && healthyCoping.examples.length > 0) {
       recommendations.push(`Continue using ${healthyCoping.examples[0]} - it's working well`);
     }
 

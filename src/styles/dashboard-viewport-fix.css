@@ -72,6 +72,14 @@
   flex-direction: row; /* Force horizontal */
 }
 
+/* Specific styling for main navigation tabs only */
+[data-page="dashboard"] .main-nav-tabs[role="tablist"] {
+  width: auto !important;
+  max-width: fit-content !important;
+  display: flex !important;
+  grid-template-columns: none !important;
+}
+
 [data-page="dashboard"] .dashboard-main-tabs [role="tab"] {
   flex-shrink: 0;
   min-width: 0;

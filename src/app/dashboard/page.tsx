@@ -39,6 +39,17 @@ export const useDashboardLoading = () => useContext(DashboardLoadingContext);
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const { data: session, status } = useSession();
+  
+  // Generate tab classes with proper frosted glass effect
+  const getTabClasses = (tabValue: string) => {
+    const isActive = activeTab === tabValue;
+    const baseClasses = "gap-2 cursor-pointer transition-all duration-200 text-sm rounded-md flex items-center justify-center relative";
+    const activeClasses = isActive 
+      ? "text-white bg-white/25 backdrop-blur-sm shadow-lg border border-white/40 font-medium -m-2 px-5 py-4 z-10"
+      : "text-white/60 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20 px-3 py-2.5";
+    
+    return `${baseClasses} ${activeClasses}`;
+  };
   const { 
     showDisclaimer, 
     acceptDisclaimer, 
@@ -149,31 +160,31 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="dashboard-main-tabs space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-2 rounded-lg gap-2">
+        <TabsList className="main-nav-tabs grid w-full grid-cols-2 md:grid-cols-4 max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-2 rounded-lg gap-2">
           <TabsTrigger 
             value="overview" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
+            className={getTabClasses("overview")}
           >
             <LayoutDashboard className="h-5 w-5" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger 
             value="insights" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
+            className={getTabClasses("insights")}
           >
             <Brain className="h-5 w-5" />
             <span className="hidden sm:inline">Insights</span>
           </TabsTrigger>
           <TabsTrigger 
             value="progress" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
+            className={getTabClasses("progress")}
           >
             <TrendingUp className="h-5 w-5" />
             <span className="hidden sm:inline">Progress</span>
           </TabsTrigger>
           <TabsTrigger 
             value="sessions" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
+            className={getTabClasses("sessions")}
           >
             <Calendar className="h-5 w-5" />
             <span className="hidden sm:inline">Sessions</span>

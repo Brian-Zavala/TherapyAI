@@ -49,6 +49,7 @@ export interface DynamicInsight {
   actionItems: string[];
   basedOn: string[]; // Specific data points from sessions
   evidence: string[]; // Actual quotes or examples from sessions
+  recommendations?: string[]; // Specific recommendations
   timeframe: 'immediate' | 'this-week' | 'this-month';
   confidence: number; // 0-100
 }
