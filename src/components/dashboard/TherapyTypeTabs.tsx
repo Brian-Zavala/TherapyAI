@@ -114,8 +114,8 @@ export default function TherapyTypeTabs({
       case 'pills':
         return 'flex flex-wrap gap-2 bg-transparent';
       default:
-        // Always horizontal flex for proper tab visibility
-        return 'flex flex-row w-full max-w-full bg-white/10 gap-1 p-1.5 overflow-x-hidden';
+        // Always horizontal flex for proper tab visibility - no gap for perfect alignment
+        return 'flex flex-row w-full max-w-full bg-white/10 p-1.5 overflow-x-hidden';
     }
   };
 
