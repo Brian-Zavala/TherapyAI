@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         by: ['sessionType'],
         where: {
           userId: user.id,
-          status: 'COMPLETED'
+          status: 'COMPLETED' as const
         },
         _count: {
           id: true

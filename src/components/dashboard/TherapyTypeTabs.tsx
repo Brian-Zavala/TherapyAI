@@ -12,7 +12,7 @@ import {
   MessageSquare,
   Brain
 } from 'lucide-react';
-import '@/styles/dashboard-positioning-fix.css';
+import '@/styles/dashboard-scoped.css';
 
 export type TherapyType = 'solo' | 'couple' | 'family';
 
@@ -114,18 +114,15 @@ export default function TherapyTypeTabs({
       case 'pills':
         return 'flex flex-wrap gap-2 bg-transparent';
       default:
-        // Use flex for mobile, grid for larger screens
-        const layoutClasses = availableTypes.length === 1 
-          ? 'flex flex-col' 
-          : availableTypes.length === 2 
-            ? 'flex flex-col sm:grid sm:grid-cols-2' 
-            : 'flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-3';
-        return `${layoutClasses} w-full max-w-2xl bg-white/10 gap-2 p-2`;
+        // Always horizontal flex for proper tab visibility
+        return 'flex flex-row w-full max-w-full bg-white/10 gap-1 p-1.5 overflow-x-hidden';
     }
   };
 
   const getTriggerClasses = (config: TherapyTypeConfig, isActive: boolean) => {
-    const baseClasses = "gap-2 cursor-pointer transition-all duration-200 min-h-[44px] flex items-center justify-center px-3 py-2 text-sm font-medium";
+    const baseClasses = variant === 'default' 
+      ? "gap-1 cursor-pointer transition-all duration-200 min-h-[36px] flex items-center justify-center px-1.5 py-1 text-xs font-medium flex-1 min-w-0 rounded-md overflow-hidden"
+      : "gap-1 cursor-pointer transition-all duration-200 min-h-[40px] flex items-center justify-center px-2 py-1.5 text-xs font-medium flex-1 min-w-0 rounded-lg sm:text-sm sm:px-3 sm:py-2";
     const isLoading = loading[config.id];
     const hasError = errors[config.id];
     
@@ -137,7 +134,7 @@ export default function TherapyTypeTabs({
       } ${isLoading ? 'animate-pulse' : ''} ${hasError ? 'border-red-400 text-red-400' : ''}`;
     }
     
-    return `${baseClasses} text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm rounded-lg ${
+    return `${baseClasses} text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm ${
       isLoading ? 'animate-pulse' : ''
     } ${hasError ? 'text-red-400' : ''}`;
   };
@@ -164,8 +161,8 @@ export default function TherapyTypeTabs({
               <Icon className="h-4 w-4" />
               <span>{config.label}</span>
               
-              {showCounts && sessionCount > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
+              {showCounts && sessionCount > 0 && variant !== 'default' && (
+                <Badge variant="secondary" className="ml-1 text-xs hidden sm:inline-flex">
                   {sessionCount}
                 </Badge>
               )}
@@ -205,16 +202,16 @@ export default function TherapyTypeTabs({
               title={showDescriptions ? config.description : undefined}
             >
               <Icon className="h-4 w-4" />
-              <span className={variant === 'compact' ? 'text-xs sm:text-sm' : ''}>{config.label}</span>
+              <span className={variant === 'compact' ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm truncate'}>{config.label}</span>
               
-              {config.badge && (
-                <Badge variant="outline" className="ml-1 text-xs border-white/30 text-white/70">
+              {config.badge && variant !== 'default' && (
+                <Badge variant="outline" className="ml-1 text-xs border-white/30 text-white/70 hidden sm:inline-flex">
                   {config.badge}
                 </Badge>
               )}
               
-              {showCounts && sessionCount > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
+              {showCounts && sessionCount > 0 && variant !== 'default' && (
+                <Badge variant="secondary" className="ml-1 text-xs hidden sm:inline-flex">
                   {sessionCount}
                 </Badge>
               )}

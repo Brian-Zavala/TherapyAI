@@ -15,6 +15,21 @@ const ProgressQuerySchema = z.object({
   limit: z.number().min(1).max(100).default(50)
 })
 
+// Utility to convert frontend therapy type to Prisma enum
+function therapyTypeToPrismaEnum(therapyType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
+  switch (therapyType.toLowerCase()) {
+    case 'solo': 
+    case 'individual':
+      return 'SOLO';
+    case 'couple':
+      return 'COUPLE';  
+    case 'family':
+      return 'FAMILY';
+    default:
+      return 'SOLO';
+  }
+}
+
 // Progress data point type
 interface ProgressDataPoint {
   date: Date
@@ -77,12 +92,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user's completed sessions with metrics
+    const sessionTypeValue = therapyTypeToPrismaEnum(query.therapyType);
     const sessions = await withRetry(async () => 
       prisma.session.findMany({
         where: {
           userId: session.user.id,
           status: 'COMPLETED',
-          sessionType: query.therapyType,
+          sessionType: sessionTypeValue,
           ...(startDate && {
             completedAt: {
               gte: startDate,

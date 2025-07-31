@@ -42,12 +42,12 @@ export async function GET(request: Request) {
     });
 
     if (!activeSession) {
-      return NextResponse.json(null);
+      return NextResponse.json({ session: null });
     }
 
     // ADDITIONAL SAFEGUARD: Double-check session status in case of race conditions
     if (activeSession.status !== 'ACTIVE') {
-      return NextResponse.json(null);
+      return NextResponse.json({ session: null });
     }
 
     // Found active session
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     // Check session timing
 
     if (remainingMinutes <= 0) {
-      return NextResponse.json(null);
+      return NextResponse.json({ session: null });
     }
 
     // Check if session was started more than 24 hours ago (safety check)
@@ -69,11 +69,11 @@ export async function GET(request: Request) {
     const hoursAgo = (Date.now() - new Date(sessionDate).getTime()) / (1000 * 60 * 60);
     
     if (hoursAgo > 24) {
-      return NextResponse.json(null);
+      return NextResponse.json({ session: null });
     }
 
     // Return valid active session
-    return NextResponse.json(activeSession);
+    return NextResponse.json({ session: activeSession });
   } catch (error) {
     // Error fetching active session
     return NextResponse.json(

@@ -98,8 +98,9 @@ const createSessionSchema = z.object({
   assistantId: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurringFrequency: z.enum(['weekly', 'biweekly', 'monthly']).nullable().default(null),
-  // CRITICAL FIX: Add sessionType to ensure accurate therapy type tracking  
-  sessionType: z.enum(['couple', 'family', 'individual', 'solo']).default('solo')
+  // CRITICAL FIX: Add sessionType to ensure accurate therapy type tracking
+  // Accept both lowercase and uppercase, default to lowercase for consistency with frontend
+  sessionType: z.enum(['couple', 'family', 'solo', 'COUPLE', 'FAMILY', 'SOLO']).default('solo')
 });
 
 // 2025 Standard: Lazy initialization

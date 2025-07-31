@@ -129,15 +129,17 @@ async function performMetricsCalculation(
     throw new Error(`Session ${sessionId} not found`);
   }
 
-  // Calculate basic metrics
-  const duration = session.completedAt && session.startedAt
-    ? Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / 1000)
-    : 0;
+  // Calculate basic metrics - use conversationTimeSeconds if available
+  const duration = session.conversationTimeSeconds || 
+    (session.completedAt && session.createdAt
+      ? Math.floor((session.completedAt.getTime() - session.createdAt.getTime()) / 1000)
+      : 0);
 
   const messages = session.transcriptEntries || [];
   const totalMessages = messages.length;
-  const userMessages = messages.filter(m => m.role === 'user').length;
-  const assistantMessages = messages.filter(m => m.role === 'assistant' || m.role === 'vapi').length;
+  // Use speaker field instead of role for transcript entries
+  const userMessages = messages.filter(m => m.speaker === 'user').length;
+  const assistantMessages = messages.filter(m => m.speaker === 'assistant' || m.speaker === 'vapi').length;
 
   // Calculate engagement metrics
   const engagementScore = calculateEngagementScore(messages);
@@ -249,7 +251,7 @@ function calculateEngagementScore(messages: any[]): number {
 
   for (const message of messages) {
     // Track conversation flow
-    if (message.role === 'user') {
+    if (message.speaker === 'user') {
       if (lastSpeaker === 'user') {
         consecutiveUserMessages++;
       } else {
@@ -262,12 +264,12 @@ function calculateEngagementScore(messages: any[]): number {
       // Bonus for message length (indicating thoughtful responses)
       if (message.text && message.text.length > 100) score += 1;
       if (message.text && message.text.length > 200) score += 2;
-    } else if ((message.role === 'assistant' || message.role === 'vapi') && lastSpeaker === 'user') {
+    } else if ((message.speaker === 'assistant' || message.speaker === 'vapi') && lastSpeaker === 'user') {
       // Good back-and-forth conversation
       score += 1.5;
     }
     
-    lastSpeaker = message.role;
+    lastSpeaker = message.speaker;
   }
 
   // Normalize score to 0-100

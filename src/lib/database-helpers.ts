@@ -104,7 +104,7 @@ export async function createSessionWithType(data: Prisma.SessionCreateInput & { 
   return prisma.session.create({
     data: {
       ...data,
-      sessionType: data.sessionType || 'couple'
+      sessionType: data.sessionType || 'COUPLE'
     }
   })
 }

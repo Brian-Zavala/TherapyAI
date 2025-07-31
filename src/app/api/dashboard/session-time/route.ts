@@ -73,7 +73,7 @@ export async function GET(request: Request) {
         FROM "Session"
         WHERE "userId" = ${user.id}
           AND "status" = 'COMPLETED'
-          AND "sessionType" = ${sessionTypeValue}
+          AND "sessionType" = ${sessionTypeValue}::"SessionType"
           AND "date" >= NOW() - INTERVAL '6 months'
         GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
         ORDER BY DATE_TRUNC('month', "date")

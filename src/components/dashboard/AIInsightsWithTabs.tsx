@@ -1,8 +1,11 @@
 // src/components/dashboard/AIInsightsWithTabs.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InsightDetailModal } from './InsightDetailModal';
+import { getSupabaseClient } from '@/lib/supabase-singleton';
+import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -154,8 +157,10 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className={`rounded-xl border p-4 transition-all duration-200 hover:shadow-md cursor-pointer ${priorityStyles.background} ${priorityStyles.border}`}
+      className={`rounded-xl border p-3 sm:p-4 transition-all duration-200 hover:shadow-md cursor-pointer ${priorityStyles.background} ${priorityStyles.border}`}
       onClick={onViewDetails}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -344,6 +349,9 @@ export default function AIInsightsWithTabs() {
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
   const [selectedInsight, setSelectedInsight] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [realTimeInsights, setRealTimeInsights] = useState<any[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const { data: session } = useSession();
   
   // Get data for the active therapy type
   const { 
@@ -352,210 +360,80 @@ export default function AIInsightsWithTabs() {
     isLoading, 
     error, 
     refetch 
-  } = useTherapyTypeData(activeType);
-
-  // Generate comprehensive insights based on therapy type
-  const generateInsights = () => {
-    const baseInsights = {
-      solo: [
-        {
-          id: `${activeType}-emotional-awareness`,
-          category: 'mental-health',
-          title: "Emotional Intelligence Score: 78%",
-          description: "Your ability to identify and process emotions has improved by 23% over the last 4 sessions. You're particularly strong in recognizing anxiety triggers.",
-          priority: 'high',
-          metrics: {
-            score: 78,
-            improvement: 23,
-            trend: 'up'
-          },
-          actionItems: [
-            "Continue daily emotion journaling - you've maintained a 5-day streak",
-            "Practice the 5-4-3-2-1 grounding technique when feeling overwhelmed",
-            "Schedule 15 minutes for evening reflection using the provided template"
-          ],
-          resources: [
-            {
-              title: "Emotional Awareness Workbook",
-              description: "Personalized exercises based on your progress",
-              type: "workbook",
-              link: "/resources/emotional-awareness"
-            },
-            {
-              title: "Guided Meditation: Processing Emotions",
-              description: "10-minute audio guide for emotional regulation",
-              type: "audio"
-            }
-          ],
-          exercise: {
-            name: "Daily Emotional Check-In",
-            duration: "5 minutes",
-            frequency: "Daily",
-            description: "Rate your emotions on the mood wheel and identify triggers"
-          }
-        },
-        {
-          id: `${activeType}-stress-patterns`,
-          category: 'behavioral',
-          title: "Stress Response Pattern: Improving",
-          description: "Analysis shows you're transitioning from avoidance to healthy coping. Peak stress times: weekday evenings (6-8 PM).",
-          priority: 'medium',
-          metrics: {
-            stressLevel: 6.2,
-            copingEffectiveness: 72,
-            peakStressTimes: ["18:00-20:00"]
-          },
-          actionItems: [
-            "Implement evening wind-down routine starting at 7:30 PM",
-            "Use progressive muscle relaxation during high-stress periods",
-            "Track stress levels using the in-app mood tracker"
-          ],
-          resources: [
-            {
-              title: "Stress Management Toolkit",
-              description: "Evidence-based techniques for your stress profile",
-              type: "guide"
-            }
-          ]
-        }
-      ],
-      couple: [
-        {
-          id: `${activeType}-communication-quality`,
-          category: 'communication',
-          title: "Communication Health Score: 82/100",
-          description: "Your partnership shows strong active listening (89%) but needs work on emotional validation (67%). Turn-taking balance has improved significantly.",
-          priority: 'high',
-          metrics: {
-            overallScore: 82,
-            activeListening: 89,
-            emotionalValidation: 67,
-            turnTakingBalance: 0.48,
-            interruptionRate: 0.12
-          },
-          actionItems: [
-            "Practice the 'Mirror & Validate' technique during your next discussion",
-            "Set a 2-minute timer for uninterrupted speaking turns",
-            "Use validation phrases: 'I hear that you feel...', 'That makes sense because...'"
-          ],
-          resources: [
-            {
-              title: "Gottman Method: Validation Techniques",
-              description: "Master the art of emotional validation",
-              type: "video",
-              duration: "15 min"
-            },
-            {
-              title: "Communication Scorecard",
-              description: "Track your progress with weekly assessments",
-              type: "tool"
-            }
-          ],
-          exercise: {
-            name: "Daily Stress-Reducing Conversation",
-            duration: "20 minutes",
-            frequency: "Daily",
-            description: "Each partner shares for 10 minutes about external stressors without advice-giving"
-          }
-        },
-        {
-          id: `${activeType}-attachment-dynamics`,
-          category: 'relationship',
-          title: "Attachment Dynamics: Secure-Leaning",
-          description: "Partner A shows secure attachment (75%), Partner B shows anxious tendencies (65%). This creates a pursuer-distancer dynamic during conflict.",
-          priority: 'medium',
-          metrics: {
-            partnerAAttachment: { secure: 75, anxious: 20, avoidant: 5 },
-            partnerBAttachment: { secure: 35, anxious: 65, avoidant: 0 },
-            dynamicType: "pursuer-distancer"
-          },
-          actionItems: [
-            "Partner A: Provide more reassurance during discussions",
-            "Partner B: Practice self-soothing before seeking reassurance",
-            "Both: Use the 'Attachment Pause' technique when triggered"
-          ],
-          resources: [
-            {
-              title: "Understanding Your Attachment Dance",
-              description: "How different attachment styles interact",
-              type: "article"
-            }
-          ]
-        },
-        {
-          id: `${activeType}-conflict-resolution`,
-          category: 'behavioral',
-          title: "Conflict Resolution Progress: 68%",
-          description: "You're moving from criticism to complaints (good!), but still showing some defensiveness. Time to resolution has decreased from 3 days to 1 day.",
-          priority: 'high',
-          metrics: {
-            resolutionTime: "24 hours",
-            previousResolutionTime: "72 hours",
-            conflictFrequency: "2 per week",
-            repairAttempts: 85
-          },
-          actionItems: [
-            "Replace 'You always/never' with 'I feel X when Y happens'",
-            "Take a 20-minute break when conversations heat up",
-            "End conflicts with a repair ritual (hug, kind words, etc.)"
-          ],
-          resources: [
-            {
-              title: "Fair Fighting Rules",
-              description: "Guidelines for productive disagreements",
-              type: "checklist"
-            }
-          ]
-        }
-      ],
-      family: [
-        {
-          id: `${activeType}-family-cohesion`,
-          category: 'relationship',
-          title: "Family Cohesion Index: 71%",
-          description: "Your family shows strong support during challenges but struggles with consistent quality time. Individual needs are sometimes overlooked for group harmony.",
-          priority: 'medium',
-          metrics: {
-            cohesionScore: 71,
-            qualityTimeHours: 3.5,
-            supportScore: 85,
-            individualNeedsScore: 62
-          },
-          actionItems: [
-            "Schedule weekly one-on-one time with each family member",
-            "Create a family meeting structure for sharing individual needs",
-            "Implement 'appreciation rounds' during dinner"
-          ],
-          resources: [
-            {
-              title: "Building Family Connection",
-              description: "Activities and strategies for all ages",
-              type: "guide"
-            }
-          ]
-        }
-      ]
-    };
-
-    const insights = baseInsights[activeType] || [];
+  } = useTherapyTypeData(activeType, activeSessionId);
+  
+  // Subscribe to real-time insights updates
+  useEffect(() => {
+    if (!activeSessionId) return;
     
-    // Calculate summary based on insights
-    const avgProgress = insights.reduce((acc, insight) => {
-      const progress = insight.metrics?.score || insight.metrics?.overallScore || 
-                      insight.metrics?.cohesionScore || 75;
-      return acc + progress;
-    }, 0) / insights.length;
-
-    return {
-      insights,
-      summary: {
-        overallProgress: Math.round(avgProgress),
-        primaryFocus: insights[0]?.title.split(':')[0] || 'Personal Growth',
-        nextMilestone: `Achieve 85% in ${insights.find(i => i.priority === 'high')?.category || 'all areas'}`,
-        improvementRate: 15,
-        sessionsAnalyzed: sessionCount || 0
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`insights-${activeSessionId}`)
+      .on('broadcast', { event: 'insights-update' }, (payload) => {
+        logger.info('Received real-time insights update', {
+          sessionId: activeSessionId,
+          insightCount: payload.payload.insights?.length
+        });
+        setRealTimeInsights(payload.payload.insights || []);
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeSessionId]);
+  
+  // Check for active session
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      if (!session?.user?.id) return;
+      
+      try {
+        const response = await fetch(`/api/sessions/active?userId=${session.user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.session?.id) {
+            setActiveSessionId(data.session.id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check active session:', error);
       }
     };
+    
+    checkActiveSession();
+    // Check every 30 seconds
+    const interval = setInterval(checkActiveSession, 30000);
+    
+    return () => clearInterval(interval);
+  }, [session?.user?.id]);
+
+  // Use real-time insights if available, otherwise use API data
+  const generateInsights = () => {
+    // If we have real-time insights, use those
+    if (realTimeInsights.length > 0) {
+      const avgProgress = realTimeInsights.reduce((acc, insight) => {
+        const metrics = insight.metrics || {};
+        const score = metrics.score || metrics.overallScore || 
+                      metrics.currentStressLevel || metrics.cohesionScore || 75;
+        return acc + score;
+      }, 0) / realTimeInsights.length;
+      
+      return {
+        insights: realTimeInsights,
+        summary: {
+          overallProgress: Math.round(avgProgress),
+          primaryFocus: realTimeInsights[0]?.title.split(':')[0] || 'Personal Growth',
+          nextMilestone: `Continue progress in ${realTimeInsights.find(i => i.priority === 'high')?.category || 'all areas'}`,
+          improvementRate: 15,
+          sessionsAnalyzed: sessionCount || 0,
+          isRealTime: true
+        }
+      };
+    }
+    
+    // CRITICAL: Return API data directly, no fallback data
+    return aiInsights || { insights: [], summary: null };
   };
 
   const insights = generateInsights();
@@ -573,7 +451,7 @@ export default function AIInsightsWithTabs() {
   };
 
   return (
-    <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50">
+    <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50 h-full flex flex-col">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
@@ -600,7 +478,7 @@ export default function AIInsightsWithTabs() {
         </div>
 
         {/* Therapy Type Tabs */}
-        <div className="mt-4">
+        <div className="therapy-type-tabs mt-4">
           <TherapyTypeTabs
             availableTypes={availableTypes}
             activeType={activeType}
@@ -639,14 +517,25 @@ export default function AIInsightsWithTabs() {
             />
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {insights.summary.improvementRate}% improvement this month
-                </span>
+                {insights.summary.isRealTime ? (
+                  <>
+                    <Activity className="h-4 w-4 text-green-600 dark:text-green-400 animate-pulse" />
+                    <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                      Live Session Data
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {insights.summary.improvementRate}% improvement this month
+                    </span>
+                  </>
+                )}
               </div>
               {insights.summary.sessionsAnalyzed > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  Based on {insights.summary.sessionsAnalyzed} sessions
+                  {insights.summary.isRealTime ? 'Real-time' : `Based on ${insights.summary.sessionsAnalyzed} sessions`}
                 </Badge>
               )}
             </div>
@@ -654,7 +543,7 @@ export default function AIInsightsWithTabs() {
         )}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex-1">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <UnifiedLoadingState 

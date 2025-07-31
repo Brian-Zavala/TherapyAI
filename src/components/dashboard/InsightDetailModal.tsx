@@ -121,40 +121,40 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="pb-4 border-b">
-          <div className="flex items-start justify-between">
+      <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="relative flex-shrink-0 pb-4 border-b">
+          <div className="pr-12">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <InsightIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <InsightIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
               </div>
-              <div>
-                <DialogTitle className="text-xl font-bold">{insight.title}</DialogTitle>
-                <DialogDescription className="mt-1">
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-lg sm:text-xl font-bold truncate pr-2">{insight.title}</DialogTitle>
+                <DialogDescription className="mt-1 text-xs sm:text-sm">
                   In-depth analysis and personalized recommendations
                 </DialogDescription>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="progress">Progress</TabsTrigger>
-            <TabsTrigger value="patterns">Patterns</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="flex-shrink-0 grid w-full grid-cols-2 sm:grid-cols-4 mx-6">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="progress" className="text-xs sm:text-sm">Progress</TabsTrigger>
+            <TabsTrigger value="patterns" className="hidden sm:inline-flex text-xs sm:text-sm">Patterns</TabsTrigger>
+            <TabsTrigger value="resources" className="hidden sm:inline-flex text-xs sm:text-sm">Resources</TabsTrigger>
           </TabsList>
 
-          <div className="overflow-y-auto flex-1 mt-4">
+          <div className="flex-1 overflow-y-auto px-6 pb-4">
             <TabsContent value="overview" className="space-y-4 m-0">
               {/* Current Status Card */}
               <Card>
@@ -186,8 +186,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                   {insight.category === 'communication' && (
                     <div className="mt-6">
                       <h4 className="text-sm font-medium mb-4">Communication Skills Breakdown</h4>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <RadarChart data={communicationRadarData}>
+                      <div className="w-full h-[250px] sm:h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart data={communicationRadarData}>
                           <PolarGrid strokeDasharray="3 3" />
                           <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
                           <PolarRadiusAxis angle={90} domain={[0, 100]} />
@@ -199,8 +200,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                             fillOpacity={0.6}
                           />
                           <Tooltip />
-                        </RadarChart>
-                      </ResponsiveContainer>
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -282,8 +284,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                   <CardTitle className="text-lg">Progress Over Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={progressData}>
+                  <div className="w-full h-[250px] sm:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={progressData}>
                       <defs>
                         <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.8}/>
@@ -308,8 +311,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                         fillOpacity={1}
                         fill="url(#colorScore)"
                       />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                   <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-2xl font-bold text-green-600">+22%</p>
@@ -362,8 +366,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                   <CardTitle className="text-lg">Session Activity Patterns</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={sessionPatterns}>
+                  <div className="w-full h-[200px] sm:h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={sessionPatterns}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
                       <YAxis />
@@ -373,8 +378,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                           <Cell key={`cell-${index}`} fill={entry.sessions > 2 ? CHART_COLORS.accent : CHART_COLORS.primary} />
                         ))}
                       </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-sm">
                       <strong>Peak Performance:</strong> Wednesday sessions show the highest engagement and progress.
@@ -513,12 +519,12 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
           </div>
         </Tabs>
 
-        <div className="pt-4 border-t flex items-center justify-between">
+        <div className="flex-shrink-0 pt-4 px-6 border-t flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{insight.category}</Badge>
-            <Badge variant="outline">{insight.priority} priority</Badge>
+            <Badge variant="outline" className="text-xs">{insight.category}</Badge>
+            <Badge variant="outline" className="text-xs">{insight.priority} priority</Badge>
           </div>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose} size="sm">Close</Button>
         </div>
       </DialogContent>
     </Dialog>

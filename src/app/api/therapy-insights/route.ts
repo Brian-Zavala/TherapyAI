@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import { generateDynamicTherapyInsights } from '@/lib/ai-insights/dynamic-insights-service'
+import { realTimeInsightsProcessor } from '@/lib/ai-insights/real-time-insights-processor'
 import { 
   handleDashboardError, 
   validateDashboardAuth,
@@ -32,20 +33,49 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now()
   
   try {
-    // Get therapy type from query parameters
+    // Get therapy type and session ID from query parameters
     const { searchParams } = new URL(request.url);
     const therapyType = searchParams.get('type') || 'solo';
+    const activeSessionId = searchParams.get('sessionId');
     const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
     
     // Use cached session to reduce auth overhead
     const session = await getCachedSession(request)
     const { userId } = await validateDashboardAuth(session)
     
-    // Try cache first - insights have longer TTL since they don't change frequently
-    // Include therapy type in cache key for therapy-specific caching
+    // Check if there's an active session with real-time insights
+    if (activeSessionId) {
+      const realtimeInsights = await realTimeInsightsProcessor.getCurrentInsights(activeSessionId);
+      if (realtimeInsights && realtimeInsights.length > 0) {
+        const duration = Date.now() - startTime;
+        logger.info('Real-time insights retrieved', { 
+          userId, 
+          therapyType, 
+          sessionId: activeSessionId, 
+          insightCount: realtimeInsights.length,
+          duration 
+        });
+        
+        performanceMonitor.trackApiCall('/api/therapy-insights', duration, userId, { 
+          realTime: true, 
+          therapyType,
+          sessionId: activeSessionId 
+        });
+        
+        return NextResponse.json({
+          insights: realtimeInsights,
+          isRealTime: true,
+          sessionId: activeSessionId,
+          therapyType,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Try cache for historical insights when no active session
     const cacheKey = `${cacheKeys.insights(userId)}_${therapyType}`
     const cached = await dashboardCache.get(cacheKey)
-    if (cached) {
+    if (cached && !activeSessionId) {
       const duration = Date.now() - startTime
       logger.info('Therapy insights cache hit', { userId, therapyType, duration })
       performanceMonitor.trackApiCall('/api/therapy-insights', duration, userId, { cacheHit: true, therapyType })

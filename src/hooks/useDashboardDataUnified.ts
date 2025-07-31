@@ -782,10 +782,15 @@ export function useSessionAnalytics(options?: Omit<UseDashboardDataOptions, 'inc
   };
 }
 
-export function useTherapyInsights(options?: UseDashboardDataOptions) {
+export function useTherapyInsights(options?: UseDashboardDataOptions & { sessionId?: string | null }) {
   const result = useDashboardDataUnified({ ...options, includeInsights: true });
+  
+  // Check if the data includes real-time insights
+  const isRealTime = !!(options?.sessionId && result.data?.therapyInsights?.isRealTime);
+  
   return {
     ...result,
     data: result.data?.therapyInsights || null,
+    isRealTime,
   };
 }

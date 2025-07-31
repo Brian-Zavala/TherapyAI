@@ -8,53 +8,41 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ========================================
-// CORE USER & PROFILE MODELS
-// ========================================
-
 model User {
-  id                    String                 @id @default(cuid())
-  email                 String                 @unique
-  name                  String?
-  password              String?
-  image                 String?
-  emailVerified         DateTime?
-  onboardingCompleted   Boolean                @default(false)
-  onboardingData        Json?
-  hasSeenIntro          Boolean                @default(false)
-  
-  // Welcome message tracking
-  welcomeMessageSent    Boolean                @default(false)
-  welcomeMessageSentAt  DateTime?
-  
-  // Soft deletion and compliance
-  isDeleted             Boolean                @default(false)
-  deletedAt             DateTime?
-  deletionReason        String?
-  dataRetentionUntil    DateTime?              // Legal compliance retention period
-  canRecover            Boolean                @default(true)      // Whether user can recover account
-  
-  // Subscription and billing status
-  subscriptionStatus    String?                @default("free")    // free, active, cancelled, past_due
-  subscriptionId        String?                // External subscription ID
-  billingEmail          String?                // May differ from main email
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  accounts              Account[]
-  authSessions          AuthSession[]
-  sessions              Session[]
-  familyMembers         FamilyMember[]
-  communicationMetrics  CommunicationMetric[]
-  progressTracking      ProgressTracking[]
-  sessionMetrics        SessionMetrics[]
-  profile               UserProfile?
-  auditLogs             AuditLog[]
-  calendarIntegrations  CalendarIntegration[]
-  smsOptOuts            SMSOptOut[]
-  
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  password             String?
+  image                String?
+  emailVerified        DateTime?
+  onboardingCompleted  Boolean               @default(false)
+  onboardingData       Json?
+  hasSeenIntro         Boolean               @default(false)
+  welcomeMessageSent   Boolean               @default(false)
+  welcomeMessageSentAt DateTime?
+  isDeleted            Boolean               @default(false)
+  deletedAt            DateTime?
+  deletionReason       String?
+  dataRetentionUntil   DateTime?
+  canRecover           Boolean               @default(true)
+  subscriptionStatus   String?               @default("free")
+  subscriptionId       String?
+  billingEmail         String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  accounts             Account[]
+  auditLogs            AuditLog[]
+  authSessions         AuthSession[]
+  calendarIntegrations CalendarIntegration[]
+  communicationMetrics CommunicationMetric[]
+  familyMembers        FamilyMember[]
+  progressTracking     ProgressTracking[]
+  smsOptOuts           SMSOptOut[]
+  sessions             Session[]
+  sessionMetrics       SessionMetrics[]
+  therapyInsights      TherapyInsight[]
+  profile              UserProfile?
+
   @@index([email])
   @@index([createdAt])
   @@index([isDeleted, deletedAt])
@@ -63,138 +51,97 @@ model User {
 }
 
 model UserProfile {
-  id                    String                 @id @default(cuid())
-  userId                String                 @unique
-  
-  // Personal details
-  pronouns              String?
-  age                   Int?
-  phone                 String?
-  emergencyContact      String?
-  
-  // Therapy preferences
-  sessionPreference     String?
-  communicationStyle    String?
-  notificationPrefs     Json?                  @default("[]")
-  sessionFrequency      String?
-  preferredDays         Json?
-  recurringSession      String?
-  reminderTiming        String?
-  
-  // SMS Consent and Compliance (TCPA)
-  smsConsent            Boolean?               @default(false)
-  smsConsentDate        DateTime?              // When consent was given
-  phoneValidated        Boolean?               @default(false)
-  
-  // Relationship details
-  partnerName           String?
-  partnerAge            Int?
-  relationshipStatus    String?                @default("Married")
-  
-  // Additional info
-  currentConcerns       Json?
-  additionalNotes       String?
-  
-  // VAPI Configuration
-  assistantId           String?
-  
-  // AI Insights Disclaimer Tracking
-  aiDisclaimerAccepted  Boolean                @default(false)
-  aiDisclaimerDate      DateTime?              // When disclaimer was accepted
-  aiDisclaimerVersion   String?                // Version of disclaimer accepted
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  pronouns             String?
+  age                  Int?
+  phone                String?
+  emergencyContact     String?
+  sessionPreference    String?
+  communicationStyle   String?
+  notificationPrefs    Json?     @default("[]")
+  sessionFrequency     String?
+  preferredDays        Json?
+  recurringSession     String?
+  reminderTiming       String?
+  smsConsent           Boolean?  @default(false)
+  smsConsentDate       DateTime?
+  phoneValidated       Boolean?  @default(false)
+  partnerName          String?
+  partnerAge           Int?
+  relationshipStatus   String?   @default("Married")
+  currentConcerns      Json?
+  additionalNotes      String?
+  assistantId          String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  aiDisclaimerAccepted Boolean   @default(false)
+  aiDisclaimerDate     DateTime?
+  aiDisclaimerVersion  String?
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([assistantId])
 }
 
-// ========================================
-// FAMILY MEMBER MODELS (NORMALIZED)
-// ========================================
-
 model FamilyMember {
-  id                    String                 @id @default(cuid())
-  userId                String
-  name                  String
-  age                   Int?
-  relationship          String                 // e.g., "Son", "Daughter", "Parent"
-  order                 Int                    @default(0) // Display order
-  isActive              Boolean                @default(true)
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionFamilyMembers  SessionFamilyMember[]
-  
-  @@unique([userId, name]) // Prevent duplicate names per user
+  id                   String                @id @default(cuid())
+  userId               String
+  name                 String
+  age                  Int?
+  relationship         String
+  order                Int                   @default(0)
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionFamilyMembers SessionFamilyMember[]
+
+  @@unique([userId, name])
   @@index([userId, isActive])
   @@index([userId, order])
 }
 
-// ========================================
-// SESSION & THERAPY MODELS
-// ========================================
-
 model Session {
-  id                     String                @id @default(uuid())
-  userId                 String
-  assistantId            String?
-  
-  // Session details
-  date                   DateTime
-  startTime              DateTime?
-  endTime                DateTime?
-  completedAt            DateTime?
-  duration               Int                   @default(60) // Expected duration in minutes
-  theme                  String                @default("AI Therapy Session")
-  notes                  String?               @default("")
-  
-  // Session type and status  
-  sessionType            SessionType           @default(SOLO)
-  status                 SessionStatus         @default(SCHEDULED)
-  terminationReason      String?               // user_deletion, technical_error, manual, etc.
-  
-  // Conversation tracking
-  conversationTimeSeconds Int                  @default(0)
+  id                      String                @id @default(uuid())
+  userId                  String
+  assistantId             String?
+  date                    DateTime
+  startTime               DateTime?
+  endTime                 DateTime?
+  completedAt             DateTime?
+  duration                Int                   @default(60)
+  theme                   String                @default("AI Therapy Session")
+  notes                   String?               @default("")
+  status                  SessionStatus         @default(SCHEDULED)
+  terminationReason       String?
+  conversationTimeSeconds Int                   @default(0)
   lastConversationStart   DateTime?
-  isPaused               Boolean               @default(false)
-  pausedAt               DateTime?
-  resumedAt              DateTime?
-  totalPausedTimeSeconds Int                   @default(0)
-  pauseStartTime         DateTime?
-  
-  // VAPI integration
-  vapiCallId             String?
-  vapiCallCost           Float?
-  vapiRecordingUrl       String?
-  
-  // Notification tracking
-  reminderSent           Boolean               @default(false)
-  smsReminderSent        Boolean?              @default(false)
-  emailReminderSent      Boolean?              @default(false)
-  oneHourReminderSent    Boolean?              @default(false)
-  
-  // Versioning for optimistic locking
-  version                Int                   @default(0)
-  
-  createdAt              DateTime              @default(now())
-  updatedAt              DateTime              @updatedAt
-  
-  // Relations
-  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transcriptEntries      TranscriptEntry[]
-  conversationState      ConversationState?
-  communicationMetrics   CommunicationMetric[]
-  sessionFamilyMembers   SessionFamilyMember[]
-  progressTracking       ProgressTracking[]
-  sessionMetrics         SessionMetrics?
-  
+  isPaused                Boolean               @default(false)
+  pausedAt                DateTime?
+  resumedAt               DateTime?
+  totalPausedTimeSeconds  Int                   @default(0)
+  pauseStartTime          DateTime?
+  vapiCallId              String?
+  vapiCallCost            Float?
+  vapiRecordingUrl        String?
+  reminderSent            Boolean               @default(false)
+  smsReminderSent         Boolean?              @default(false)
+  emailReminderSent       Boolean?              @default(false)
+  oneHourReminderSent     Boolean?              @default(false)
+  version                 Int                   @default(0)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  sessionType             SessionType           @default(SOLO)
+  communicationMetrics    CommunicationMetric[]
+  progressTracking        ProgressTracking[]
+  user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionFamilyMembers    SessionFamilyMember[]
+  sessionMetrics          SessionMetrics?
+  therapyInsights         TherapyInsight[]
+  transcriptEntries       TranscriptEntry[]
+  conversationState       ConversationState?
+
   @@index([userId, status])
   @@index([userId, startTime])
   @@index([userId, sessionType])
@@ -204,52 +151,37 @@ model Session {
 }
 
 model SessionFamilyMember {
-  id                    String                 @id @default(cuid())
-  sessionId             String
-  familyMemberId        String
-  participationLevel    String?                @default("active") // active, observer, mentioned
-  createdAt             DateTime               @default(now())
-  
-  // Relations
-  session               Session                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  familyMember          FamilyMember           @relation(fields: [familyMemberId], references: [id], onDelete: Cascade)
-  
+  id                 String       @id @default(cuid())
+  sessionId          String
+  familyMemberId     String
+  participationLevel String?      @default("active")
+  createdAt          DateTime     @default(now())
+  familyMember       FamilyMember @relation(fields: [familyMemberId], references: [id], onDelete: Cascade)
+  session            Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   @@unique([sessionId, familyMemberId])
   @@index([sessionId])
   @@index([familyMemberId])
 }
 
-// ========================================
-// METRICS & ANALYTICS
-// ========================================
-
 model CommunicationMetric {
-  id                    String                 @id @default(cuid())
-  sessionId             String?
-  userId                String
-  
-  // Core metrics (0-100 scale)
-  clarity               Float                  @default(50)
-  empathy               Float                  @default(50)
-  respect               Float                  @default(50)
-  overall               Float                  @default(50)
-  
-  // Additional metrics
-  listening             Float?                 @default(50)
-  expression            Float?                 @default(50)
-  
-  // Metadata
-  metricType            String                 @default("real-time") // real-time, final, manual
-  calculatedAt          DateTime               @default(now())
-  confidence            Float?                 // Confidence in the metric calculation
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  session               Session?               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id           String   @id @default(cuid())
+  sessionId    String?
+  userId       String
+  clarity      Float    @default(50)
+  empathy      Float    @default(50)
+  respect      Float    @default(50)
+  overall      Float    @default(50)
+  listening    Float?   @default(50)
+  expression   Float?   @default(50)
+  metricType   String   @default("real-time")
+  calculatedAt DateTime @default(now())
+  confidence   Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  session      Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([sessionId, metricType])
   @@index([sessionId, calculatedAt])
   @@index([userId, calculatedAt])
@@ -257,94 +189,63 @@ model CommunicationMetric {
 }
 
 model SessionMetrics {
-  id                    String                 @id @default(cuid())
-  sessionId             String                 @unique
-  userId                String
-  
-  // Basic metrics
-  duration              Int                    // Session duration in seconds
-  totalMessages         Int
-  userMessages          Int
-  assistantMessages     Int
-  
-  // Engagement metrics
-  engagementScore       Float
-  sentimentScore        Float
-  sentimentTrend        String                 // improving, declining, stable
-  
-  // Content analysis
-  topicsCovered         String[]
-  emotionalInsights     Json?                  // Detailed emotional analysis
-  
-  // Quality metrics
-  completionRate        Float                  @default(1.0)
-  qualityScore          Float
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  session               Session                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id                String   @id @default(cuid())
+  sessionId         String   @unique
+  userId            String
+  duration          Int
+  totalMessages     Int
+  userMessages      Int
+  assistantMessages Int
+  engagementScore   Float
+  sentimentScore    Float
+  sentimentTrend    String
+  topicsCovered     String[]
+  emotionalInsights Json?
+  completionRate    Float    @default(1.0)
+  qualityScore      Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([createdAt])
 }
 
 model ProgressTracking {
-  id                    String                 @id @default(cuid())
-  userId                String
-  sessionId             String?
-  
-  // Progress scores
-  closenessScore        Int                    // 0-100
-  communicationScore    Int                    // 0-100
-  
-  // Metadata
-  notes                 String?
-  assistantId           String?
-  date                  DateTime               @default(now())
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session               Session?               @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  
-  @@index([userId, sessionId]) // Allow multiple progress entries per user
+  id                 String   @id @default(cuid())
+  userId             String
+  sessionId          String?
+  closenessScore     Int
+  communicationScore Int
+  notes              String?
+  assistantId        String?
+  date               DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  session            Session? @relation(fields: [sessionId], references: [id])
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sessionId])
   @@index([userId, date])
   @@index([assistantId])
 }
 
-// ========================================
-// TRANSCRIPT & CONVERSATION
-// ========================================
-
 model TranscriptEntry {
-  id                    String                 @id @default(cuid())
-  sessionId             String
-  
-  // Content
-  speaker               String                 // user, assistant, system
-  text                  String                 @db.Text
-  
-  // Metadata
-  timestamp             DateTime               @default(now())
-  isFinal               Boolean                @default(true)
-  assistantId           String?
-  sequence              Int?                   // Order within session
-  
-  // Analysis (optional)
-  sentiment             String?                // positive, negative, neutral
-  emotionalIntensity    Float?                 // 0-1 scale
-  topics                Json?                  // Extracted topics/themes
-  
-  createdAt             DateTime               @default(now())
-  
-  // Relations
-  session               Session                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+  id                 String   @id @default(cuid())
+  sessionId          String
+  speaker            String
+  text               String
+  timestamp          DateTime @default(now())
+  isFinal            Boolean  @default(true)
+  assistantId        String?
+  sequence           Int?
+  sentiment          String?
+  emotionalIntensity Float?
+  topics             Json?
+  createdAt          DateTime @default(now())
+  session            Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   @@index([sessionId, timestamp])
   @@index([sessionId, sequence])
   @@index([timestamp])
@@ -352,35 +253,24 @@ model TranscriptEntry {
 }
 
 model ConversationState {
-  id                    String                 @id @default(cuid())
-  sessionId             String                 @unique
-  userId                String
-  assistantId           String
-  
-  // Conversation content
-  messages              ConversationMessage[]
-  variableValues        Json?                  // VAPI assistant variable values
-  metadata              Json?                  // Additional metadata
-  
-  // Session metadata
-  sessionStartTime      DateTime
-  lastActiveTime        DateTime
-  totalDuration         Int                    @default(0) // Total conversation duration in ms
-  messageCount          Int                    @default(0)
-  
-  // State management
-  isActive              Boolean                @default(false)
-  isPaused              Boolean                @default(true)
-  
-  // Cleanup
-  expiresAt             DateTime?              // Auto-cleanup old conversations
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  session               Session                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+  id               String                @id @default(cuid())
+  sessionId        String                @unique
+  userId           String
+  assistantId      String
+  variableValues   Json?
+  metadata         Json?
+  sessionStartTime DateTime
+  lastActiveTime   DateTime
+  totalDuration    Int                   @default(0)
+  messageCount     Int                   @default(0)
+  isActive         Boolean               @default(false)
+  isPaused         Boolean               @default(true)
+  expiresAt        DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  messages         ConversationMessage[]
+  session          Session               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   @@index([userId, isPaused])
   @@index([userId, lastActiveTime])
   @@index([expiresAt])
@@ -388,137 +278,98 @@ model ConversationState {
 }
 
 model ConversationMessage {
-  id                    String                 @id @default(cuid())
-  conversationStateId   String
-  
-  role                  String                 // user, assistant, system
-  content               String                 @db.Text
-  timestamp             DateTime               @default(now())
-  
-  // Message metadata
-  metadata              Json?
-  
-  // Relations
-  conversationState     ConversationState      @relation(fields: [conversationStateId], references: [id], onDelete: Cascade)
-  
+  id                  String            @id @default(cuid())
+  conversationStateId String
+  role                String
+  content             String
+  timestamp           DateTime          @default(now())
+  metadata            Json?
+  conversationState   ConversationState @relation(fields: [conversationStateId], references: [id], onDelete: Cascade)
+
   @@index([conversationStateId, timestamp])
   @@map("conversation_messages")
 }
 
-// ========================================
-// AUTHENTICATION & AUTHORIZATION
-// ========================================
-
 model Account {
-  id                    String                 @id @default(cuid())
-  userId                String
-  type                  String
-  provider              String
-  providerAccountId     String
-  refresh_token         String?                @db.Text
-  access_token          String?                @db.Text
-  expires_at            Int?
-  token_type            String?
-  scope                 String?
-  id_token              String?                @db.Text
-  session_state         String?
-  
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
 model AuthSession {
-  id                    String                 @id @default(cuid())
-  sessionToken          String                 @unique
-  userId                String
-  expires               DateTime
-  
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@map("AuthSession")
 }
 
 model VerificationToken {
-  identifier            String
-  token                 String                 @unique
-  expires               DateTime
-  
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
   @@unique([identifier, token])
   @@index([expires])
 }
 
-// ========================================
-// SMS OPT-OUT TRACKING
-// ========================================
-
 model SMSOptOut {
-  id                    String                 @id @default(cuid())
-  phoneNumber           String
-  userId                String?                // User ID if known
-  
-  // Opt-out details
-  keyword               String                 // STOP, UNSUBSCRIBE, etc.
-  optOutAt              DateTime               @default(now())
-  optInAt               DateTime?              // If they resubscribe
-  active                Boolean                @default(true)
-  
-  // Tracking
-  source                String                 @default("sms") // sms, web, support
-  metadata              Json?                  // Additional context
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  id          String    @id @default(cuid())
+  phoneNumber String
+  userId      String?
+  keyword     String
+  optOutAt    DateTime  @default(now())
+  optInAt     DateTime?
+  active      Boolean   @default(true)
+  source      String    @default("sms")
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User?     @relation(fields: [userId], references: [id])
+
   @@unique([phoneNumber, active])
   @@index([phoneNumber])
   @@index([userId])
   @@index([active, optOutAt])
 }
 
-// ========================================
-// AUDIT & COMPLIANCE
-// ========================================
-
 model AuditLog {
-  id                    String                 @id @default(cuid())
-  userId                String?                // Null for system events
-  sessionId             String?                // Associated session if applicable
-  
-  // Event details
-  action                String                 // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, DATA_EXPORT, ACCOUNT_DELETION
-  entityType            String                 // User, Session, Profile, etc.
-  entityId              String?                // ID of affected entity
-  
-  // Change tracking
-  oldValues             Json?                  // Previous state
-  newValues             Json?                  // New state
-  changedFields         String[]               // List of changed field names
-  
-  // Context
-  ipAddress             String?
-  userAgent             String?
-  requestId             String?                // For tracing requests
-  metadata              Json?                  // Additional context
-  
-  // Compliance
-  reason                String?                // Business reason for change
-  complianceFlags       String[]               @default([]) // GDPR, HIPAA, etc.
-  
-  // Legal hold
-  isLegalHold           Boolean                @default(false)
-  legalHoldUntil        DateTime?
-  
-  createdAt             DateTime               @default(now())
-  
-  // Relations
-  user                  User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  id              String    @id @default(cuid())
+  userId          String?
+  sessionId       String?
+  action          String
+  entityType      String
+  entityId        String?
+  oldValues       Json?
+  newValues       Json?
+  changedFields   String[]
+  ipAddress       String?
+  userAgent       String?
+  requestId       String?
+  metadata        Json?
+  reason          String?
+  complianceFlags String[]  @default([])
+  isLegalHold     Boolean   @default(false)
+  legalHoldUntil  DateTime?
+  createdAt       DateTime  @default(now())
+  user            User?     @relation(fields: [userId], references: [id])
+
   @@index([userId, createdAt])
   @@index([action, entityType])
   @@index([sessionId])
@@ -526,180 +377,144 @@ model AuditLog {
   @@index([isLegalHold, legalHoldUntil])
 }
 
-// Data export requests for GDPR compliance
 model DataExportRequest {
-  id                    String                 @id @default(cuid())
-  userId                String
-  
-  // Request details
-  requestType           String                 @default("full") // full, partial, deletion_prep
-  status                String                 @default("pending") // pending, processing, completed, failed, expired
-  format                String                 @default("json") // json, csv, pdf
-  
-  // Export content
-  includeTranscripts    Boolean                @default(true)
-  includeMetrics        Boolean                @default(true)
-  includeProfile        Boolean                @default(true)
-  includeSessions       Boolean                @default(true)
-  
-  // Processing
-  downloadUrl           String?                // Signed URL for download
-  expiresAt             DateTime?              // When download link expires
-  fileSize              Int?                   // Size in bytes
-  processedAt           DateTime?
-  downloadedAt          DateTime?              // When user downloaded
-  
-  // Error handling
-  errorMessage          String?
-  retryCount            Int                    @default(0)
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  id                 String    @id @default(cuid())
+  userId             String
+  requestType        String    @default("full")
+  status             String    @default("pending")
+  format             String    @default("json")
+  includeTranscripts Boolean   @default(true)
+  includeMetrics     Boolean   @default(true)
+  includeProfile     Boolean   @default(true)
+  includeSessions    Boolean   @default(true)
+  downloadUrl        String?
+  expiresAt          DateTime?
+  fileSize           Int?
+  processedAt        DateTime?
+  downloadedAt       DateTime?
+  errorMessage       String?
+  retryCount         Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
   @@index([userId, status])
   @@index([status, createdAt])
   @@index([expiresAt])
 }
 
-// Account recovery for soft-deleted users
 model AccountRecovery {
-  id                    String                 @id @default(cuid())
-  userId                String                 @unique
-  email                 String
-  
-  // Recovery details
-  recoveryToken         String                 @unique
-  recoveryCode          String?                // Optional SMS/email code
-  expiresAt             DateTime               // When recovery window closes
-  
-  // Data snapshot
-  userSnapshot          Json                   // Snapshot of user data at deletion
-  profileSnapshot       Json?                  // Snapshot of profile data
-  sessionCount          Int                    @default(0)
-  
-  // Recovery attempts
-  attemptCount          Int                    @default(0)
-  lastAttemptAt         DateTime?
-  
-  // Status
-  isRecovered           Boolean                @default(false)
-  recoveredAt           DateTime?
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  email           String
+  recoveryToken   String    @unique
+  recoveryCode    String?
+  expiresAt       DateTime
+  userSnapshot    Json
+  profileSnapshot Json?
+  sessionCount    Int       @default(0)
+  attemptCount    Int       @default(0)
+  lastAttemptAt   DateTime?
+  isRecovered     Boolean   @default(false)
+  recoveredAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   @@index([recoveryToken])
   @@index([email, expiresAt])
   @@index([expiresAt, isRecovered])
 }
 
-// ========================================
-// CALENDAR INTEGRATIONS
-// ========================================
-
 model CalendarIntegration {
-  id                    String                 @id @default(cuid())
-  userId                String
-  provider              String                 // google, outlook, exchange
-  
-  // Connection details
-  enabled               Boolean                @default(false)
-  accountEmail          String?
-  calendarId            String?                // Primary calendar ID for the provider
-  
-  // OAuth tokens
-  accessToken           String?                @db.Text
-  refreshToken          String?                @db.Text
-  expiresAt             DateTime?
-  
-  // Sync status
-  lastSync              DateTime?
-  syncStatus            String                 @default("disconnected") // connected, syncing, error, disconnected
-  errorMessage          String?
-  
-  // Metadata
-  providerMetadata      Json?                  // Additional provider-specific data
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
-  // Relations
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, provider]) // One integration per provider per user
+  id               String    @id @default(cuid())
+  userId           String
+  provider         String
+  enabled          Boolean   @default(false)
+  accountEmail     String?
+  calendarId       String?
+  accessToken      String?
+  refreshToken     String?
+  expiresAt        DateTime?
+  lastSync         DateTime?
+  syncStatus       String    @default("disconnected")
+  errorMessage     String?
+  providerMetadata Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
   @@index([userId, enabled])
   @@index([provider, syncStatus])
   @@index([expiresAt])
 }
 
-// ========================================
-// NOTIFICATION & SCHEDULING
-// ========================================
+model TherapyInsight {
+  id              String   @id @default(cuid())
+  sessionId       String?
+  userId          String
+  category        String
+  title           String
+  description     String
+  priority        String   @default("medium")
+  confidence      Float    @default(0.8)
+  evidence        Json?
+  recommendations Json?
+  isRealTime      Boolean  @default(false)
+  generatedAt     DateTime @default(now())
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  session         Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category])
+  @@index([sessionId, generatedAt])
+  @@index([userId, generatedAt])
+  @@index([isRealTime, generatedAt])
+}
 
 model Notification {
-  id                    String                 @id @default(cuid())
-  userId                String
-  sessionId             String?
-  
-  // Notification details
-  type                  String                 // reminder, completion, update, alert
-  title                 String
-  message               String                 @db.Text
-  priority              String                 @default("normal") // low, normal, high, urgent
-  
-  // Delivery
-  deliveryMethod        String                 @default("email") // email, sms, push, in-app
-  deliveryStatus        String                 @default("pending") // pending, sent, delivered, failed
-  deliveryAttempts      Int                    @default(0)
-  deliveredAt           DateTime?
-  
-  // Scheduling
-  scheduledFor          DateTime?
-  sentAt                DateTime?
-  
-  // User interaction
-  readAt                DateTime?
-  actionUrl             String?
-  actionTaken           String?
-  
-  // Additional metadata for tracking
-  metadata              Json?
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  id               String    @id @default(cuid())
+  userId           String
+  sessionId        String?
+  type             String
+  title            String
+  message          String
+  priority         String    @default("normal")
+  deliveryMethod   String    @default("email")
+  deliveryStatus   String    @default("pending")
+  deliveryAttempts Int       @default(0)
+  deliveredAt      DateTime?
+  scheduledFor     DateTime?
+  sentAt           DateTime?
+  readAt           DateTime?
+  actionUrl        String?
+  actionTaken      String?
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
   @@index([userId, type, deliveryStatus])
   @@index([userId, readAt])
   @@index([scheduledFor, deliveryStatus])
   @@index([sessionId])
 }
 
-// ========================================
-// WEBHOOK TRACKING
-// ========================================
-
 model WebhookEvent {
-  id                    String                 @id @default(cuid())
-  webhookId             String                 @unique // VAPI's unique webhook ID for idempotency
-  messageType           String
-  callId                String?
-  sessionId             String?
-  
-  // Payload storage
-  payload               Json                   // Full webhook payload
-  
-  // Processing status
-  status                String                 @default("pending") // pending, processing, completed, failed
-  processedAt           DateTime?
-  error                 String?                @db.Text
-  retryCount            Int                    @default(0)
-  
-  // Metadata
-  correlationId         String?                // For request tracing
-  
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  id            String    @id @default(cuid())
+  webhookId     String    @unique
+  messageType   String
+  callId        String?
+  sessionId     String?
+  payload       Json
+  status        String    @default("pending")
+  processedAt   DateTime?
+  error         String?
+  retryCount    Int       @default(0)
+  correlationId String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
   @@index([webhookId])
   @@index([sessionId])
   @@index([callId])
@@ -707,37 +522,24 @@ model WebhookEvent {
   @@index([messageType, createdAt])
 }
 
-// ========================================
-// DEPRECATED MODELS (For backward compatibility)
-// ========================================
-
 model TherapySession {
-  id                    String                 @id @default(cuid())
-  userId                String
-  sessionDate           DateTime
-  duration              Int
-  notes                 String?
-  status                String                 @default("scheduled")
-  reminderSent          Boolean                @default(false)
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  notificationPrefs     String?                @default("email")
-  smsReminderSent       Boolean?               @default(false)
-  emailReminderSent     Boolean?               @default(false)
-  
+  id                String   @id @default(cuid())
+  userId            String
+  sessionDate       DateTime
+  duration          Int
+  notes             String?
+  status            String   @default("scheduled")
+  reminderSent      Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  notificationPrefs String?  @default("email")
+  smsReminderSent   Boolean? @default(false)
+  emailReminderSent Boolean? @default(false)
+
   @@index([userId])
   @@index([sessionDate])
   @@index([status])
-  
-  // @deprecated - Use Session model instead
 }
-
-// Note: The old CommunicationMetrics model has been replaced by CommunicationMetric
-// Migration script will be needed to transfer data from old schema to new
-
-// ========================================
-// ENUMS
-// ========================================
 
 enum SessionStatus {
   SCHEDULED

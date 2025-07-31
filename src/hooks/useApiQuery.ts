@@ -122,15 +122,17 @@ export function useSessionData(sessionId?: string) {
   });
 }
 
-export function useActiveSessions() {
+export function useActiveSessions(userId?: string) {
   return useQuery<Session[]>({
-    queryKey: ['sessions', 'active'],
+    queryKey: ['sessions', 'active', userId],
     queryFn: async () => {
-      const res = await fetch('/api/sessions/active');
+      if (!userId) throw new Error('User ID is required');
+      const res = await fetch(`/api/sessions/active?userId=${userId}`);
       if (!res.ok) throw new Error('Failed to fetch active sessions');
       return res.json();
     },
     ...queryOptions.realtime,
+    enabled: !!userId,
   });
 }
 

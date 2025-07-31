@@ -452,7 +452,7 @@ export default function RelationshipProgressWithTabs() {
         </div>
 
         {/* Therapy Type Tabs */}
-        <div className="mt-4">
+        <div className="therapy-type-tabs mt-4">
           <TherapyTypeTabs
             availableTypes={availableTypes}
             activeType={activeType}

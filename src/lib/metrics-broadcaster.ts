@@ -143,6 +143,53 @@ export async function broadcastSessionUpdate(
   }
 }
 
+// Broadcast any data to a specific channel
+export async function broadcastToChannel(
+  channelName: string,
+  event: string,
+  payload: any
+): Promise<void> {
+  try {
+    const supabase = createClient();
+    
+    // Create channel
+    const channel = supabase.channel(channelName);
+    
+    // Subscribe and wait for it to be ready
+    const { error } = await new Promise<{ error: any }>((resolve) => {
+      channel
+        .on('broadcast', { event: '*' }, () => {}) // Need at least one listener
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            resolve({ error: null });
+          }
+        });
+      
+      // Timeout after 5 seconds
+      setTimeout(() => resolve({ error: new Error('Channel subscription timeout') }), 5000);
+    });
+    
+    if (error) {
+      console.error('Failed to subscribe to channel:', error);
+      return;
+    }
+    
+    // Broadcast data
+    await channel.send({
+      type: 'broadcast',
+      event,
+      payload
+    });
+    
+    console.log(`📨 BROADCAST: Sent ${event} to ${channelName}`);
+    
+    // Clean up channel after broadcast
+    await supabase.removeChannel(channel);
+  } catch (error) {
+    console.error('Error broadcasting to channel:', error);
+  }
+}
+
 // Clean up broadcast channels when session ends
 export async function cleanupBroadcastChannels(sessionId?: string): Promise<void> {
   const supabase = createClient();

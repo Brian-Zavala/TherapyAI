@@ -101,6 +101,9 @@
   margin: 0 auto 1.5rem;
   position: relative;
   z-index: 10;
+  /* Ensure shadows are not clipped */
+  padding: 0.25rem;
+  margin-top: 0.25rem;
 }
 
 .dashboard-container .therapy-tabs-list {
@@ -117,19 +120,34 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Enhanced shadow with blur and depth */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 
+              0 4px 8px rgba(0, 0, 0, 0.15),
+              0 1px 2px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  /* Ensure shadow is visible */
+  margin-bottom: 1rem;
 }
 
 .dashboard-container .therapy-tabs-list::-webkit-scrollbar {
   display: none;
 }
 
-/* Mobile therapy tabs */
+/* CRITICAL MOBILE THERAPY TABS - ULTRA-PRECISE FIXES */
 @media (max-width: 639px) {
   .dashboard-container .therapy-tabs-list {
-    flex-direction: column;
-    max-width: 100%;
-    gap: 0.75rem;
-    padding: 0.75rem;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem !important;
+    margin: 0 !important;
+    /* Reduced shadow for mobile */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 
+                0 1px 2px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    /* Ensure no horizontal overflow */
+    overflow: visible !important;
   }
   
   .dashboard-container [role="tablist"]:has(.therapy-tab-trigger) {
@@ -137,13 +155,42 @@
     flex-direction: column !important;
     gap: 0.5rem !important;
     padding: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   
   .dashboard-container [role="tab"] {
     width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
     display: flex !important;
     min-height: 48px !important;
+    flex-shrink: 0 !important;
+    /* Prevent text overflow */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  /* ULTRA-PRECISE tab content on mobile */
+  .dashboard-container .therapy-tab-trigger {
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 0.75rem !important;
+    gap: 0.5rem !important;
+    font-size: 0.875rem !important;
+    /* Prevent badge overflow */
+    overflow: hidden !important;
+  }
+  
+  /* Fix badge visibility on mobile */
+  .dashboard-container .therapy-tab-trigger .ml-1 {
+    margin-left: 0.25rem !important;
+    flex-shrink: 0 !important;
+    font-size: 0.75rem !important;
+    padding: 0.125rem 0.375rem !important;
   }
 }
 
@@ -168,7 +215,7 @@
   }
 }
 
-/* Tab trigger styling */
+/* ULTRA-PRECISE Tab trigger styling */
 .dashboard-container .therapy-tab-trigger {
   display: flex;
   align-items: center;
@@ -184,6 +231,12 @@
   border-radius: 0.5rem;
   transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
+  box-shadow: none;
+  /* CRITICAL: Prevent overflow */
+  box-sizing: border-box;
+  width: auto;
+  flex-shrink: 0;
 }
 
 .dashboard-container .therapy-tab-trigger:hover:not([data-state="active"]) {
@@ -192,11 +245,19 @@
   border-color: rgba(59, 130, 246, 0.3);
 }
 
+/* ULTRA-PRECISE active state - exactly fits tab content */
 .dashboard-container .therapy-tab-trigger[data-state="active"] {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.25);
   color: white;
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.6);
+  /* Precise shadow that fits exactly */
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4), 
+              0 2px 4px rgba(59, 130, 246, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  position: relative;
+  /* Ensure precise fit */
+  outline: none;
+  ring: none;
 }
 
 /* ===== METRIC CARD FIXES (SCOPED) ===== */
@@ -344,4 +405,59 @@
 /* Ensure dashboard doesn't affect global styles */
 .dashboard-container * {
   /* All dashboard styles are isolated within this container */
+}
+
+/* ===== FIX TAB STYLES IN AI INSIGHTS AND OTHER COMPONENTS ===== */
+
+/* Apply consistent tab styling to all tab components in dashboard */
+.dashboard-container [role="tablist"] {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  /* Enhanced shadow matching therapy tabs */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 
+              0 4px 8px rgba(0, 0, 0, 0.15),
+              0 1px 2px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+}
+
+/* Apply to all tab triggers in dashboard */
+.dashboard-container [role="tab"] {
+  position: relative;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.dashboard-container [role="tab"][data-state="active"] {
+  background: rgba(59, 130, 246, 0.2);
+  color: white;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3), 
+              0 1px 3px rgba(59, 130, 246, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Specific override for AI Insights tabs */
+.dashboard-container .data-\[state\=active\]\:bg-blue-500\/20[data-state="active"] {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3), 
+              0 1px 3px rgba(59, 130, 246, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Fix tab list container shadows to prevent overlap */
+.dashboard-container .therapy-type-tabs-container [role="tablist"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure proper stacking context for tabs */
+.dashboard-container .therapy-tab-trigger {
+  z-index: 2;
+}
+
+.dashboard-container .therapy-tab-trigger[data-state="active"] {
+  z-index: 3;
 }

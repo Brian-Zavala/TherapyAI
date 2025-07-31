@@ -6,6 +6,7 @@
 import { prisma } from './prisma-enhanced'
 import { createSupabaseServerClient } from './supabase-server'
 import { z } from 'zod'
+import { toPrismaSessionType } from '@/lib/session-type-converter'
 
 // Error types for better error handling
 export class DatabaseError extends Error {
@@ -329,7 +330,7 @@ export const DatabaseOperations = {
               assistantId: validated.assistantId,
               theme: validated.theme || 'AI Therapy Session',
               duration: validated.duration,
-              sessionType: validated.sessionType,
+              sessionType: toPrismaSessionType(validated.sessionType),
               status: 'SCHEDULED',
               date: new Date(),
               startTime: new Date()

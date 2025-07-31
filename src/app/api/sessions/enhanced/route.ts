@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
           notes: validatedData.notes || '',
           status: 'SCHEDULED',
           assistantId: user.profile?.assistantId || null,
-          sessionType: 'couple'
+          sessionType: 'COUPLE'
         }
       });
 
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
           notes: `${validatedData.notes || ''}\n\nPart of recurring series`,
           status: 'SCHEDULED' as const,
           assistantId: user.profile?.assistantId || null,
-          sessionType: 'couple'
+          sessionType: 'COUPLE'
         }));
 
         await prisma.session.createMany({

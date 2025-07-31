@@ -29,6 +29,8 @@ import { useSession } from "next-auth/react";
 import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
 import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
 import "@/styles/dashboard-scoped.css";
+import "@/styles/dashboard-viewport-fix.css";
+import "@/styles/dashboard-colors.css";
 
 // Context to prevent child components from showing loading states during initial load
 const DashboardLoadingContext = createContext<{ isInitialLoading: boolean }>({ isInitialLoading: false });
@@ -95,9 +97,9 @@ export default function Dashboard() {
           }}
           resetKeys={[activeTab]}
         >
-        <div className="dashboard-container container mx-auto space-y-6">
+        <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl" data-page="dashboard">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Dashboard</h1>
             <p className="text-white/70">
@@ -146,35 +148,35 @@ export default function Dashboard() {
         )}
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl bg-white/10 border border-white/20 backdrop-blur-sm">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="dashboard-main-tabs space-y-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-1 rounded-lg">
           <TabsTrigger 
             value="overview" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
           >
             <LayoutDashboard className="h-4 w-4" />
-            Overview
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger 
             value="insights" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
           >
             <Brain className="h-4 w-4" />
-            AI Insights
+            <span className="hidden sm:inline">Insights</span>
           </TabsTrigger>
           <TabsTrigger 
             value="progress" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
           >
             <TrendingUp className="h-4 w-4" />
-            Progress
+            <span className="hidden sm:inline">Progress</span>
           </TabsTrigger>
           <TabsTrigger 
             value="sessions" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
           >
             <Calendar className="h-4 w-4" />
-            Sessions
+            <span className="hidden sm:inline">Sessions</span>
           </TabsTrigger>
         </TabsList>
 
@@ -231,7 +233,6 @@ export default function Dashboard() {
             
             {/* Communication Deep Dive */}
             <CommunicationMetricsWithTabs />
-            
           </motion.div>
         </TabsContent>
 

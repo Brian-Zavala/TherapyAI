@@ -1,0 +1,153 @@
+/* ==========================================
+   🔧 DASHBOARD-SCOPED VIEWPORT FIXES
+   ========================================== */
+
+/* ONLY AFFECT DASHBOARD PAGE - SCOPED TO PREVENT GLOBAL CONFLICTS */
+
+/* Dashboard page container - scoped selector */
+.dashboard-page-container,
+[data-page="dashboard"] .container {
+  width: 100%;
+  max-width: 100vw;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+@media (min-width: 640px) {
+  .dashboard-page-container,
+  [data-page="dashboard"] .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-page-container,
+  [data-page="dashboard"] .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-page-container,
+  [data-page="dashboard"] .container {
+    max-width: 1280px;
+  }
+}
+
+/* Dashboard-specific grid fixes */
+[data-page="dashboard"] .grid {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+[data-page="dashboard"] .grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Dashboard card components only */
+[data-page="dashboard"] [class*="Card"],
+[data-page="dashboard"] [class*="card"] {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Dashboard main tabs (Overview/Insights/Progress/Sessions) - KEEP HORIZONTAL */
+[data-page="dashboard"] .dashboard-main-tabs [role="tablist"] {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row; /* Force horizontal */
+}
+
+[data-page="dashboard"] .dashboard-main-tabs [role="tab"] {
+  flex-shrink: 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Dashboard therapy type tabs - KEEP HORIZONTAL ON ALL SCREENS */
+[data-page="dashboard"] .therapy-type-tabs [role="tablist"] {
+  display: flex !important;
+  flex-direction: row !important; /* Always horizontal */
+  flex-wrap: nowrap !important;
+}
+
+[data-page="dashboard"] .therapy-type-tabs [role="tab"] {
+  /* Support component's own sizing - don't override flex properties */
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Mobile optimizations for dashboard only */
+@media (max-width: 639px) {
+  
+  /* Dashboard container mobile adjustments */
+  .dashboard-page-container,
+  [data-page="dashboard"] .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Dashboard grid mobile - single column */
+  [data-page="dashboard"] .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Dashboard cards mobile */
+  [data-page="dashboard"] [class*="Card"],
+  [data-page="dashboard"] [class*="card"] {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  /* Dashboard main tabs mobile - stay horizontal but allow scroll */
+  [data-page="dashboard"] .dashboard-main-tabs [role="tablist"] {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  [data-page="dashboard"] .dashboard-main-tabs [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Therapy type tabs mobile - CRITICAL: STAY HORIZONTAL */
+  [data-page="dashboard"] .therapy-type-tabs [role="tablist"] {
+    flex-direction: row !important; /* Force horizontal even on mobile */
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  [data-page="dashboard"] .therapy-type-tabs [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+  
+  [data-page="dashboard"] .therapy-type-tabs [role="tab"] {
+    /* Let component handle flex properties, just ensure text doesn't wrap */
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* Debug helper (remove in production) */
+/*
+.debug-overflow * {
+  outline: 1px solid red !important;
+  max-width: 100vw !important;
+}
+*/

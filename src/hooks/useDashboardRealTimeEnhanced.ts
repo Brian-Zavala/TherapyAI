@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createSupabaseClient } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-singleton'
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
@@ -52,7 +52,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
   const [error, setError] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   
-  const supabase = createSupabaseClient()
+  const supabase = getSupabaseClient()
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map())
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
@@ -289,7 +289,7 @@ export function useSessionRealTimeEnhanced(sessionId: string | null) {
   const [metrics, setMetrics] = useState<any>(null)
   const [isActive, setIsActive] = useState(false)
   
-  const supabase = createSupabaseClient()
+  const supabase = getSupabaseClient()
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {

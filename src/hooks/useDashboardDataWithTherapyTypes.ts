@@ -64,10 +64,16 @@ const generateCacheKey = (endpoint: string, therapyType: TherapyType, userId?: s
 const fetchTherapyTypeData = async (
   endpoint: string, 
   therapyType: TherapyType,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  activeSessionId?: string | null
 ): Promise<any> => {
   const url = new URL(`/api/dashboard/${endpoint}`, window.location.origin);
   url.searchParams.set('type', therapyType);
+  
+  // Add session ID for real-time data if available
+  if (activeSessionId) {
+    url.searchParams.set('sessionId', activeSessionId);
+  }
   
   const response = await fetch(url.toString(), { signal });
   
@@ -324,20 +330,22 @@ export function useDashboardDataWithTherapyTypes(
 }
 
 // Optimized hook for individual therapy type data to prevent AbortErrors
-export function useTherapyTypeData(therapyType: TherapyType) {
+export function useTherapyTypeData(therapyType: TherapyType, activeSessionId?: string | null) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   
-  // Memoize the therapy type to prevent unnecessary re-renders
+  // Memoize values to prevent unnecessary re-renders
   const memoizedTherapyType = useMemo(() => therapyType, [therapyType]);
   const memoizedUserId = useMemo(() => userId, [userId]);
+  const memoizedSessionId = useMemo(() => activeSessionId, [activeSessionId]);
+  const sessionKey = memoizedSessionId || 'historical';
 
   // Individual queries per therapy type to prevent cancellation cascade
   const communicationQuery = useQuery(withFallbackCaching({
-    queryKey: ['dashboard', 'communication-metrics', memoizedTherapyType, memoizedUserId],
+    queryKey: ['dashboard', 'communication-metrics', memoizedTherapyType, memoizedUserId, sessionKey],
     queryFn: async ({ signal }) => {
       try {
-        const data = await fetchTherapyTypeData('communication-metrics', memoizedTherapyType, signal);
+        const data = await fetchTherapyTypeData('communication-metrics', memoizedTherapyType, signal, memoizedSessionId);
         // Cache successful data for fallback use
         cacheSuccessfulQueryData(['communication-metrics', memoizedTherapyType], data);
         return data;
@@ -363,11 +371,11 @@ export function useTherapyTypeData(therapyType: TherapyType) {
   }, 'communication-metrics', memoizedTherapyType));
 
   const progressQuery = useQuery(withFallbackCaching({
-    queryKey: ['dashboard', 'relationship-progress', memoizedTherapyType, memoizedUserId],
+    queryKey: ['dashboard', 'relationship-progress', memoizedTherapyType, memoizedUserId, sessionKey],
     queryFn: async ({ signal }) => {
       if (memoizedTherapyType === 'solo') return null; // Skip for solo therapy
       try {
-        const data = await fetchTherapyTypeData('relationship-progress', memoizedTherapyType, signal);
+        const data = await fetchTherapyTypeData('relationship-progress', memoizedTherapyType, signal, memoizedSessionId);
         // Cache successful data for fallback use
         cacheSuccessfulQueryData(['relationship-progress', memoizedTherapyType], data);
         return data;
@@ -391,11 +399,23 @@ export function useTherapyTypeData(therapyType: TherapyType) {
   }, 'relationship-progress', memoizedTherapyType));
 
   const insightsQuery = useQuery(withFallbackCaching({
-    queryKey: ['dashboard', 'ai-insights', memoizedTherapyType, memoizedUserId],
+    queryKey: ['dashboard', 'ai-insights', memoizedTherapyType, memoizedUserId, sessionKey],
     queryFn: async ({ signal }) => {
       try {
-        // Use communication-metrics endpoint for now as AI insights base
-        const data = await fetchTherapyTypeData('communication-metrics', memoizedTherapyType, signal);
+        // For AI insights, use the therapy-insights endpoint instead
+        const url = new URL('/api/therapy-insights', window.location.origin);
+        url.searchParams.set('type', memoizedTherapyType);
+        if (memoizedSessionId) {
+          url.searchParams.set('sessionId', memoizedSessionId);
+        }
+        
+        const response = await fetch(url.toString(), { signal });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to fetch' }));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
         // Cache successful data for fallback use
         cacheSuccessfulQueryData(['ai-insights', memoizedTherapyType], data);
         return data;

@@ -1,0 +1,212 @@
+/* ==========================================
+   🎨 STANDARDIZED DASHBOARD COLOR SYSTEM
+   ========================================== */
+
+/* Color Variables for Consistency */
+:root {
+  /* Primary Therapy Colors */
+  --therapy-blue: rgba(59, 130, 246, 1);
+  --therapy-blue-light: rgba(59, 130, 246, 0.8);
+  --therapy-blue-bg: rgba(59, 130, 246, 0.1);
+  --therapy-blue-border: rgba(59, 130, 246, 0.2);
+  
+  /* Metric Progress Colors */
+  --metric-excellent: rgba(34, 197, 94, 1);      /* Green for 80%+ */
+  --metric-excellent-bg: rgba(34, 197, 94, 0.1);
+  --metric-good: rgba(59, 130, 246, 1);          /* Blue for 60-79% */
+  --metric-good-bg: rgba(59, 130, 246, 0.1);
+  --metric-moderate: rgba(251, 191, 36, 1);      /* Yellow for 40-59% */
+  --metric-moderate-bg: rgba(251, 191, 36, 0.1);
+  --metric-needs-work: rgba(239, 68, 68, 1);     /* Red for <40% */
+  --metric-needs-work-bg: rgba(239, 68, 68, 0.1);
+  
+  /* Therapy Type Colors */
+  --therapy-individual: rgba(139, 92, 246, 1);   /* Purple */
+  --therapy-individual-bg: rgba(139, 92, 246, 0.1);
+  --therapy-couple: rgba(236, 72, 153, 1);       /* Pink */
+  --therapy-couple-bg: rgba(236, 72, 153, 0.1);
+  --therapy-family: rgba(34, 197, 94, 1);        /* Green */
+  --therapy-family-bg: rgba(34, 197, 94, 0.1);
+  
+  /* Card Background System */
+  --card-bg-primary: rgba(255, 255, 255, 0.08);
+  --card-bg-secondary: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.12);
+  --card-border-hover: rgba(255, 255, 255, 0.2);
+  
+  /* Text Colors */
+  --text-primary: rgba(255, 255, 255, 1);
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-accent: var(--therapy-blue);
+}
+
+/* Standardized Metric Card Colors */
+.metric-card {
+  background: var(--card-bg-primary);
+  border: 1px solid var(--card-border);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--card-border-hover);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Progress Bar Standardization */
+.progress-bar-excellent {
+  background: linear-gradient(90deg, var(--metric-excellent) 0%, rgba(34, 197, 94, 0.8) 100%);
+}
+
+.progress-bar-good {
+  background: linear-gradient(90deg, var(--metric-good) 0%, rgba(59, 130, 246, 0.8) 100%);
+}
+
+.progress-bar-moderate {
+  background: linear-gradient(90deg, var(--metric-moderate) 0%, rgba(251, 191, 36, 0.8) 100%);
+}
+
+.progress-bar-needs-work {
+  background: linear-gradient(90deg, var(--metric-needs-work) 0%, rgba(239, 68, 68, 0.8) 100%);
+}
+
+/* Icon Color System */
+.icon-excellent {
+  color: var(--metric-excellent);
+  background: var(--metric-excellent-bg);
+}
+
+.icon-good {
+  color: var(--metric-good);
+  background: var(--metric-good-bg);
+}
+
+.icon-moderate {
+  color: var(--metric-moderate);
+  background: var(--metric-moderate-bg);
+}
+
+.icon-needs-work {
+  color: var(--metric-needs-work);
+  background: var(--metric-needs-work-bg);
+}
+
+/* Therapy Type Icon Colors */
+.icon-individual {
+  color: var(--therapy-individual);
+  background: var(--therapy-individual-bg);
+}
+
+.icon-couple {
+  color: var(--therapy-couple);
+  background: var(--therapy-couple-bg);
+}
+
+.icon-family {
+  color: var(--therapy-family);
+  background: var(--therapy-family-bg);
+}
+
+/* Badge System */
+.badge-excellent {
+  background: var(--metric-excellent-bg);
+  color: var(--metric-excellent);
+  border: 1px solid var(--metric-excellent);
+}
+
+.badge-good {
+  background: var(--metric-good-bg);
+  color: var(--metric-good);
+  border: 1px solid var(--metric-good);
+}
+
+.badge-moderate {
+  background: var(--metric-moderate-bg);
+  color: var(--metric-moderate);
+  border: 1px solid var(--metric-moderate);
+}
+
+.badge-needs-work {
+  background: var(--metric-needs-work-bg);
+  color: var(--metric-needs-work);
+  border: 1px solid var(--metric-needs-work);
+}
+
+/* Tab System Colors */
+.therapy-tab-active {
+  background: var(--therapy-blue-bg);
+  color: var(--text-primary);
+  border-color: var(--therapy-blue-border);
+}
+
+.therapy-tab-inactive {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+
+.therapy-tab-inactive:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+}
+
+/* Text Color Classes */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-accent { color: var(--text-accent); }
+
+/* Utility Classes for Dynamic Color Assignment */
+.metric-color-80-plus {
+  color: var(--metric-excellent);
+}
+
+.metric-color-60-79 {
+  color: var(--metric-good);
+}
+
+.metric-color-40-59 {
+  color: var(--metric-moderate);
+}
+
+.metric-color-below-40 {
+  color: var(--metric-needs-work);
+}
+
+/* Progress Bar Background */
+.progress-bg {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+/* Card Header Styling */
+.card-header-standard {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Consistent Shadow System */
+.shadow-card {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-card-hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Animation Classes */
+.animate-metric {
+  animation: pulse-gentle 2s infinite;
+}
+
+@keyframes pulse-gentle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
