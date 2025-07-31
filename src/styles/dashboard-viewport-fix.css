@@ -94,29 +94,101 @@
 
 /* Perfect alignment fix for active tabs */
 [data-page="dashboard"] .therapy-type-tabs [role="tablist"] {
-  gap: 0 !important;
-  padding: 6px !important; /* Add back padding for visual spacing */
+  gap: 0.25rem !important; /* Small consistent gap for proper spacing */
+  padding: 0.5rem !important; /* Consistent padding matching other dashboard components */
 }
 
 [data-page="dashboard"] .therapy-type-tabs [role="tab"] {
   margin: 0 !important;
   box-sizing: border-box !important;
+  /* Ensure no additional transforms that could offset positioning */
+  transform: none !important;
 }
 
-/* Enhanced frosted glass effect for active tabs */
-[data-page="dashboard"] .therapy-type-tabs [role="tab"][data-state="active"] {
+/* Enhanced frosted glass effect for active tabs - MAXIMUM SPECIFICITY */
+[data-page="dashboard"] .therapy-type-tabs [role="tablist"] [role="tab"][data-state="active"] {
   background-color: rgba(255, 255, 255, 0.25) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  /* Custom frosted glass shadow - overrides shadcn/ui shadow-sm */
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 2px 8px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   color: white !important;
   font-weight: 500 !important;
-  transform: translateY(-1px) !important;
+  /* CRITICAL: Force no transforms and perfect positioning */
+  transform: none !important;
   position: relative !important;
+  /* Ensure perfect alignment - reset all positioning */
+  margin: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  /* Reset any inherited offset properties */
+  translate: none !important;
+  scale: none !important;
+  rotate: none !important;
+}
+
+/* Additional tab alignment fixes to prevent any offset issues */
+[data-page="dashboard"] .therapy-type-tabs [role="tablist"] {
+  /* Ensure perfect horizontal alignment */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+[data-page="dashboard"] .therapy-type-tabs [role="tab"] {
+  /* Reset any potential positioning issues */
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* Ensure consistent baseline alignment */
+  vertical-align: baseline !important;
+}
+
+/* Ensure Radix UI tabs don't inherit problematic transforms */
+[data-page="dashboard"] .therapy-type-tabs [data-radix-tabs-trigger] {
+  transform: none !important;
+}
+
+/* Override any default Radix UI tab styling that could cause offset */
+[data-page="dashboard"] .therapy-type-tabs [data-state="active"] {
+  /* Reset any default background/shadow that might affect positioning */
+  box-shadow: inherit !important;
+  /* Ensure the active state doesn't have positioning issues */
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Universal tab alignment fix utility class */
+.dashboard-tabs-fixed [role="tablist"] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  padding: 0.5rem !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-tabs-fixed [role="tab"] {
+  margin: 0 !important;
+  padding: 0.5rem 1rem !important;
+  transform: none !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  border-radius: 0.375rem !important;
+}
+
+.dashboard-tabs-fixed [role="tab"][data-state="active"] {
+  transform: none !important;
+  box-shadow: inherit !important;
+  z-index: 1 !important;
 }
 
 /* Mobile optimizations for dashboard only */
