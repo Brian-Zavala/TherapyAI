@@ -134,7 +134,12 @@ export default function TherapyTypeTabs({
       } ${isLoading ? 'animate-pulse' : ''} ${hasError ? 'border-red-400 text-red-400' : ''}`;
     }
     
-    return `${baseClasses} text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm ${
+    // Override default Radix styling with custom active state
+    const activeStyles = isActive 
+      ? 'text-white bg-white/20 shadow-sm' 
+      : 'text-white/60 hover:text-white hover:bg-white/10';
+    
+    return `${baseClasses} ${activeStyles} ${
       isLoading ? 'animate-pulse' : ''
     } ${hasError ? 'text-red-400' : ''}`;
   };
@@ -198,7 +203,10 @@ export default function TherapyTypeTabs({
             <TabsTrigger
               key={config.id}
               value={config.id}
-              className={getTriggerClasses(config, activeType === config.id)}
+              className={`${getTriggerClasses(config, activeType === config.id)} !bg-transparent data-[state=active]:!bg-transparent`}
+              style={{
+                backgroundColor: activeType === config.id ? 'rgba(255, 255, 255, 0.2)' : undefined
+              }}
               title={showDescriptions ? config.description : undefined}
             >
               <Icon className="h-4 w-4" />
