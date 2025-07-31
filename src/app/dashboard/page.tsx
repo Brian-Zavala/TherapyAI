@@ -149,33 +149,33 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="dashboard-main-tabs space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-2 rounded-lg gap-2">
           <TabsTrigger 
             value="overview" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
           >
-            <LayoutDashboard className="h-4 w-4" />
+            <LayoutDashboard className="h-5 w-5" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger 
             value="insights" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
           >
-            <Brain className="h-4 w-4" />
+            <Brain className="h-5 w-5" />
             <span className="hidden sm:inline">Insights</span>
           </TabsTrigger>
           <TabsTrigger 
             value="progress" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
           >
-            <TrendingUp className="h-4 w-4" />
+            <TrendingUp className="h-5 w-5" />
             <span className="hidden sm:inline">Progress</span>
           </TabsTrigger>
           <TabsTrigger 
             value="sessions" 
-            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm"
+            className="gap-2 cursor-pointer text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-sm transition-all duration-200 text-sm px-3 py-2.5 rounded-md"
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-5 w-5" />
             <span className="hidden sm:inline">Sessions</span>
           </TabsTrigger>
         </TabsList>
