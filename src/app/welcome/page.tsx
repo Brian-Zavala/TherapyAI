@@ -28,6 +28,7 @@ interface FormField {
   placeholder?: string;
   options?: { value: string; label: string }[];
   required?: boolean;
+  helperWords?: string[];
 }
 
 // Comprehensive relationship options for more precise family relationships
@@ -452,14 +453,48 @@ const formSteps: FormStep[] = [
   },
   {
     id: 5,
-    title: "Almost there!",
-    subtitle: "How can we best support you?",
+    title: "Tell us about yourself",
+    subtitle: "Help your AI therapist understand you better",
     fields: [
       {
-        name: "emergencyContact",
-        label: "Emergency contact (optional)",
-        type: "text",
-        placeholder: "Name and phone number",
+        name: "aboutYourself",
+        label: "What would you like your AI therapist to know about you?",
+        type: "enhanced_textarea",
+        placeholder: "Share anything that helps us understand you better - your background, experiences, hopes, or what brings you here...",
+        helperWords: [
+          // Starting therapy & initial concerns
+          "I've been feeling concerned about myself lately and think it's time to talk to someone.",
+          "I'm here because I can't manage it on my own anymore, and I want professional support.",
+          "I've never done therapy before, but I'm willing to try because things aren't getting better on their own.",
+          "I'm feeling down today, and recently I went through something that really affected me.",
+          
+          // Mental health struggles
+          "I've been experiencing difficulty falling asleep and staying asleep, and my mood has been depressed most days.",
+          "I've been struggling with the same patterns in my relationships and don't know how to break them.",
+          "My thoughts keep racing, and I can't seem to quiet my mind.",
+          "I feel like I'm constantly overwhelmed and nothing I do helps me feel better.",
+          
+          // Life events & current situation
+          "I lost someone important to me, and I don't know how to process this grief.",
+          "My relationship ended recently, and I'm struggling to understand what went wrong.",
+          "I've been going through a major life transition and want someone to help me cope with the change.",
+          "Something happened in my past that I've never talked about, and it's affecting me now.",
+          
+          // Goals & personal growth
+          "I want to work on expressing my emotions more openly instead of keeping everything inside.",
+          "I need to learn how to say no without feeling guilty all the time.",
+          "I want to understand why I keep repeating the same unhealthy patterns in my relationships.",
+          "I'd like to build more confidence and stop being so hard on myself.",
+          "I want to work on setting better boundaries with my family and friends.",
+          
+          // Personal challenges
+          "I feel like I'm always taking care of everyone else but neglecting my own needs.",
+          "I've been experiencing panic attacks, and they're starting to interfere with my daily life.",
+          "I struggle with perfectionism, and it's exhausting trying to do everything perfectly.",
+          "I find it hard to trust people, and I think it's keeping me from having close relationships.",
+          "I've been feeling disconnected from myself and don't know who I am anymore.",
+          "I want to heal from my past so it stops affecting my present and future relationships.",
+        ],
       },
       {
         name: "additionalNotes",
@@ -1370,10 +1405,10 @@ export default function WelcomePage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2, type: "tween" }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 text-center">
                 {formSteps[currentStep].title}
               </h1>
-              <p className="text-white/70 mb-8">
+              <p className="text-sm sm:text-base md:text-lg text-white/70 mb-8 text-center">
                 {formSteps[currentStep].subtitle}
               </p>
 
@@ -1701,6 +1736,172 @@ export default function WelcomePage() {
                                   </motion.button>
                                 );
                               })}
+                            </div>
+                          )}
+
+                          {field.type === "enhanced_textarea" && (
+                            <div className="space-y-4">
+                              {/* Helper sentences section */}
+                              <div className="space-y-4">
+                                <div className="text-white/70 text-xs sm:text-sm space-y-1">
+                                  <p className="font-medium text-sm sm:text-base">Click any sentence that resonates with you:</p>
+                                  <p className="text-white/50 text-xs sm:text-sm">These can help you find the words to express yourself. Feel free to use them as-is or modify them.</p>
+                                </div>
+                                
+                                {/* Categorized helper sentences */}
+                                <div className="space-y-4 sm:space-y-6">
+                                  {/* Initial Concerns */}
+                                  <div className="space-y-2">
+                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Starting Points</h4>
+                                    <div className="space-y-2">
+                                      {(field as any).helperWords?.slice(0, 4).map((sentence: string, index: number) => (
+                                        <motion.button
+                                          key={index}
+                                          type="button"
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => {
+                                            const currentText = formData[field.name] || "";
+                                            const newText = currentText
+                                              ? currentText.trim().endsWith(".")
+                                                ? currentText + " " + sentence
+                                                : currentText + ". " + sentence
+                                              : sentence;
+                                            handleInputChange(field.name, newText);
+                                          }}
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                        >
+                                          {sentence}
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Mental Health */}
+                                  <div className="space-y-2">
+                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Current Struggles</h4>
+                                    <div className="space-y-2">
+                                      {(field as any).helperWords?.slice(4, 8).map((sentence: string, index: number) => (
+                                        <motion.button
+                                          key={index + 4}
+                                          type="button"
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => {
+                                            const currentText = formData[field.name] || "";
+                                            const newText = currentText
+                                              ? currentText.trim().endsWith(".")
+                                                ? currentText + " " + sentence
+                                                : currentText + ". " + sentence
+                                              : sentence;
+                                            handleInputChange(field.name, newText);
+                                          }}
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                        >
+                                          {sentence}
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Life Events */}
+                                  <div className="space-y-2">
+                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Life Events</h4>
+                                    <div className="space-y-2">
+                                      {(field as any).helperWords?.slice(8, 12).map((sentence: string, index: number) => (
+                                        <motion.button
+                                          key={index + 8}
+                                          type="button"
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => {
+                                            const currentText = formData[field.name] || "";
+                                            const newText = currentText
+                                              ? currentText.trim().endsWith(".")
+                                                ? currentText + " " + sentence
+                                                : currentText + ". " + sentence
+                                              : sentence;
+                                            handleInputChange(field.name, newText);
+                                          }}
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                        >
+                                          {sentence}
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Goals */}
+                                  <div className="space-y-2">
+                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Goals & Growth</h4>
+                                    <div className="space-y-2">
+                                      {(field as any).helperWords?.slice(12, 17).map((sentence: string, index: number) => (
+                                        <motion.button
+                                          key={index + 12}
+                                          type="button"
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => {
+                                            const currentText = formData[field.name] || "";
+                                            const newText = currentText
+                                              ? currentText.trim().endsWith(".")
+                                                ? currentText + " " + sentence
+                                                : currentText + ". " + sentence
+                                              : sentence;
+                                            handleInputChange(field.name, newText);
+                                          }}
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                        >
+                                          {sentence}
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Personal Challenges */}
+                                  <div className="space-y-2">
+                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Personal Challenges</h4>
+                                    <div className="space-y-2">
+                                      {(field as any).helperWords?.slice(17).map((sentence: string, index: number) => (
+                                        <motion.button
+                                          key={index + 17}
+                                          type="button"
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => {
+                                            const currentText = formData[field.name] || "";
+                                            const newText = currentText
+                                              ? currentText.trim().endsWith(".")
+                                                ? currentText + " " + sentence
+                                                : currentText + ". " + sentence
+                                              : sentence;
+                                            handleInputChange(field.name, newText);
+                                          }}
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                        >
+                                          {sentence}
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Textarea */}
+                              <div className="space-y-2">
+                                <label className="text-white/60 text-xs sm:text-sm">Your story (feel free to edit or write your own):</label>
+                                <motion.textarea
+                                  name={field.name}
+                                  placeholder={field.placeholder}
+                                  style={{ fontSize: 'inherit' }}
+                                  value={formData[field.name] || ""}
+                                  onChange={(e) =>
+                                    handleInputChange(field.name, e.target.value)
+                                  }
+                                  rows={6}
+                                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all resize-none text-sm sm:text-base"
+                                />
+                              </div>
                             </div>
                           )}
 

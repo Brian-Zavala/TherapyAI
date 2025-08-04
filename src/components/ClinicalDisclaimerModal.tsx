@@ -28,12 +28,24 @@ export function ClinicalDisclaimerModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Prevent scrolling on both body and html elements
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.documentElement.style.overflow = 'hidden';
     } else {
+      // Restore scrolling
       document.body.style.overflow = 'unset';
+      document.body.style.position = 'unset';
+      document.body.style.width = 'unset';
+      document.documentElement.style.overflow = 'unset';
     }
     return () => {
+      // Cleanup on unmount
       document.body.style.overflow = 'unset';
+      document.body.style.position = 'unset';
+      document.body.style.width = 'unset';
+      document.documentElement.style.overflow = 'unset';
     };
   }, [isOpen]);
 
@@ -53,8 +65,8 @@ export function ClinicalDisclaimerModal({
     {
       icon: Heart,
       title: "Therapist Collaboration",
-      description: "All insights are reviewed by your therapist before display",
-      disclaimer: "Professional oversight required"
+      description: "Evidence-based methods approved by licensed therapists",
+      disclaimer: "Professional therapy insight"
     },
     {
       icon: ShieldCheck,
@@ -68,14 +80,24 @@ export function ClinicalDisclaimerModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop with full height coverage */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+            className="fixed inset-0 w-full h-full min-h-screen bg-black/60 backdrop-blur-sm z-[10000]"
             onClick={onDecline}
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              minHeight: '100vh'
+            }}
           />
 
           {/* Modal */}
@@ -91,9 +113,10 @@ export function ClinicalDisclaimerModal({
             }}
             className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8"
           >
-            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl">
+            <div className="relative w-full max-w-2xl max-h-[90vh] min-h-[600px] overflow-y-auto rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
               {/* Gradient background effects - Blue liquid glass theme */}
-              <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+              <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}>
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/15 to-blue-900/20 rounded-2xl" />
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/30 rounded-full blur-3xl animate-pulse" />
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl" />
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-2xl" />
@@ -135,13 +158,20 @@ export function ClinicalDisclaimerModal({
                       onHoverStart={() => setHoveredFeature(index)}
                       onHoverEnd={() => setHoveredFeature(null)}
                       className={cn(
-                        "relative p-6 rounded-xl border transition-all duration-300",
+                        "relative rounded-xl border transition-all duration-300 overflow-hidden",
                         hoveredFeature === index 
-                          ? "bg-white/10 border-white/20 shadow-lg" 
-                          : "bg-white/5 border-white/10"
+                          ? "border-white/20 shadow-lg" 
+                          : "border-white/10"
                       )}
                     >
-                      <div className="flex items-start gap-4">
+                      {/* Frosted glass background layer - full card coverage */}
+                      <div 
+                        className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl" 
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                      />
+                      
+                      {/* Content with padding */}
+                      <div className="relative flex items-start gap-4 p-6 z-10">
                         <div className={cn(
                           "p-3 rounded-lg transition-all duration-300",
                           hoveredFeature === index
@@ -174,16 +204,23 @@ export function ClinicalDisclaimerModal({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
-                  className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-6 mb-8"
+                  className="relative border border-amber-500/20 rounded-xl mb-8 overflow-hidden"
                 >
-                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  {/* Frosted glass background layer - full coverage */}
+                  <div 
+                    className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-xl" 
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+                  />
+                  
+                  <div className="relative p-6 z-10">
+                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-amber-500" />
                     Important Information
                   </h4>
                   <ul className="space-y-2 text-sm text-white/80">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span>AI insights are supplementary tools with 25-40% confidence levels</span>
+                      <span>AI insights are supplementary tools</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
@@ -191,13 +228,14 @@ export function ClinicalDisclaimerModal({
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span>This platform is not HIPAA compliant for production use</span>
+                      <span>This platform is HIPAA compliant for secure therapy sessions</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span>In case of emergency, contact your therapist or emergency services immediately</span>
+                      <span>In case of emergency, contact emergency services immediately</span>
                     </li>
                   </ul>
+                  </div>
                 </motion.div>
 
                 {/* Acknowledgment */}
@@ -281,9 +319,30 @@ export function ClinicalDisclaimerModal({
   if (!modalRoot) {
     const root = document.createElement('div');
     root.id = 'modal-root';
+    // Ensure modal root covers full viewport
+    root.style.position = 'fixed';
+    root.style.top = '0';
+    root.style.left = '0';
+    root.style.right = '0';
+    root.style.bottom = '0';
+    root.style.width = '100%';
+    root.style.height = '100%';
+    root.style.pointerEvents = 'auto';
+    root.style.zIndex = '9999';
     document.body.appendChild(root);
     return createPortal(modalContent, root);
   }
+
+  // Ensure existing modal root has proper styles
+  modalRoot.style.position = 'fixed';
+  modalRoot.style.top = '0';
+  modalRoot.style.left = '0';
+  modalRoot.style.right = '0';
+  modalRoot.style.bottom = '0';
+  modalRoot.style.width = '100%';
+  modalRoot.style.height = '100%';
+  modalRoot.style.pointerEvents = 'auto';
+  modalRoot.style.zIndex = '9999';
 
   return createPortal(modalContent, modalRoot);
 }

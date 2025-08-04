@@ -57,13 +57,11 @@ export function initSentry(config: Partial<SentryConfig> = {}): void {
     
     // Integrations
     integrations: [
-      new Sentry.BrowserTracing({
+      Sentry.browserTracingIntegration({
         // Set tracingOrigins to control what URLs are traced
         tracingOrigins: ['localhost', /^\//],
-        // Automatic route change tracking in Next.js
-        routingInstrumentation: Sentry.nextRouterInstrumentation(),
       }),
-      new Sentry.Replay({
+      Sentry.replayIntegration({
         // Mask all text content, but keep media playback
         maskAllText: true,
         blockAllMedia: false,
@@ -212,11 +210,12 @@ export function captureError(
 export function startTransaction(
   name: string,
   op: string = 'navigation'
-): Sentry.Transaction {
-  return Sentry.startTransaction({
+): any {
+  // In Sentry v8, startTransaction is deprecated. Use startSpan instead
+  return Sentry.startInactiveSpan({
     name,
     op,
-    tags: {
+    attributes: {
       source: 'custom',
     },
   });
@@ -226,7 +225,9 @@ export function measureApiCall(
   route: string,
   method: string = 'GET'
 ): () => void {
-  const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+  // In Sentry v8, we use getCurrentScope() instead of getCurrentHub()
+  const scope = Sentry.getCurrentScope();
+  const transaction = scope.getTransaction?.() || Sentry.getActiveTransaction?.();
   
   if (!transaction) {
     return () => {};
@@ -252,13 +253,16 @@ export function trackMetric(
   unit: string = 'none',
   tags?: Record<string, string>
 ): void {
-  Sentry.metrics.gauge(name, value, {
-    unit,
-    tags: {
-      ...tags,
-      environment: DEFAULT_CONFIG.environment,
-    },
-  });
+  // Check if metrics API is available in v8
+  if (Sentry.metrics?.gauge) {
+    Sentry.metrics.gauge(name, value, {
+      unit,
+      tags: {
+        ...tags,
+        environment: DEFAULT_CONFIG.environment,
+      },
+    });
+  }
 }
 
 export function trackSessionMetrics(metrics: {
@@ -365,8 +369,7 @@ export function profileComponent<P extends object>(
   Component: React.ComponentType<P>,
   name?: string
 ): React.ComponentType<P> {
-  if (process.env.NODE_ENV === 'production') {
-    return Sentry.withProfiler(Component, { name });
-  }
+  // Sentry.withProfiler has been removed in v8
+  // Profiling is now handled automatically
   return Component;
 }
