@@ -51,8 +51,17 @@ export function ClinicalDisclaimerModal({
 
   const handleAccept = () => {
     if (acknowledged) {
+      // Clear any declined flags and set permission granted
+      localStorage.removeItem('dashboardDisclaimerDeclined');
+      localStorage.setItem('dashboardPermissionGranted', 'true');
       onAccept();
     }
+  };
+
+  const handleDecline = () => {
+    // Set declined flag to show permission page next time
+    localStorage.setItem('dashboardDisclaimerDeclined', 'true');
+    onDecline();
   };
 
   const features = [
@@ -86,8 +95,8 @@ export function ClinicalDisclaimerModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 w-full h-full min-h-screen bg-black/60 backdrop-blur-sm z-[10000]"
-            onClick={onDecline}
+            className="fixed inset-0 w-full h-full min-h-screen bg-black/60 backdrop-blur-sm z-[10000] pointer-events-auto"
+            onClick={handleDecline}
             style={{ 
               position: 'fixed', 
               top: 0, 
@@ -111,9 +120,9 @@ export function ClinicalDisclaimerModal({
               damping: 25,
               stiffness: 300
             }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8 pointer-events-none"
           >
-            <div className="relative w-full max-w-2xl max-h-[90vh] min-h-[600px] overflow-y-auto rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
+            <div className="relative w-full max-w-2xl max-h-[90vh] min-h-[600px] overflow-y-auto rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
               {/* Gradient background effects - Blue liquid glass theme */}
               <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}>
                 <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/15 to-blue-900/20 rounded-2xl" />
@@ -287,7 +296,7 @@ export function ClinicalDisclaimerModal({
                 >
                   <Button
                     variant="outline"
-                    onClick={onDecline}
+                    onClick={handleDecline}
                     className="w-full sm:flex-1 min-w-0 px-4 py-2.5 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis"
                   >
                     I'll Review Later
@@ -319,30 +328,9 @@ export function ClinicalDisclaimerModal({
   if (!modalRoot) {
     const root = document.createElement('div');
     root.id = 'modal-root';
-    // Ensure modal root covers full viewport
-    root.style.position = 'fixed';
-    root.style.top = '0';
-    root.style.left = '0';
-    root.style.right = '0';
-    root.style.bottom = '0';
-    root.style.width = '100%';
-    root.style.height = '100%';
-    root.style.pointerEvents = 'auto';
-    root.style.zIndex = '9999';
     document.body.appendChild(root);
     return createPortal(modalContent, root);
   }
-
-  // Ensure existing modal root has proper styles
-  modalRoot.style.position = 'fixed';
-  modalRoot.style.top = '0';
-  modalRoot.style.left = '0';
-  modalRoot.style.right = '0';
-  modalRoot.style.bottom = '0';
-  modalRoot.style.width = '100%';
-  modalRoot.style.height = '100%';
-  modalRoot.style.pointerEvents = 'auto';
-  modalRoot.style.zIndex = '9999';
 
   return createPortal(modalContent, modalRoot);
 }

@@ -1,7 +1,7 @@
 // src/app/dashboard/page.tsx
 "use client";
 
-import React, { useState, useMemo, useCallback, createContext, useContext } from "react";
+import React, { useState, useMemo, useCallback, createContext, useContext, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { DashboardErrorBoundary, DashboardErrorWrapper } from "@/components/dash
 import { useSession } from "next-auth/react";
 import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
 import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
+import { DashboardPermissionPrompt } from "@/components/DashboardPermissionPrompt";
 import "@/styles/dashboard-scoped.css";
 import "@/styles/dashboard-viewport-fix.css";
 import "@/styles/dashboard-colors.css";
@@ -39,6 +40,15 @@ export const useDashboardLoading = () => useContext(DashboardLoadingContext);
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const { data: session, status } = useSession();
+  const [showPermissionPage, setShowPermissionPage] = useState(false);
+  
+  // Check if user previously declined disclaimer
+  useEffect(() => {
+    const declined = localStorage.getItem('dashboardDisclaimerDeclined');
+    if (declined === 'true') {
+      setShowPermissionPage(true);
+    }
+  }, []);
   
   // Generate tab classes with proper frosted glass effect
   const getTabClasses = (tabValue: string) => {
@@ -95,6 +105,15 @@ export default function Dashboard() {
         variant="fullscreen"
       />
     );
+  }
+  
+  // Show permission page if user previously declined disclaimer
+  if (showPermissionPage && !showDisclaimer) {
+    return <DashboardPermissionPrompt onPermissionGranted={() => {
+      localStorage.removeItem('dashboardDisclaimerDeclined');
+      setShowPermissionPage(false);
+      window.location.reload(); // Reload to show disclaimer again
+    }} />;
   }
   
   const isInitialLoading = false; // We already handled the loading state above
@@ -281,7 +300,10 @@ export default function Dashboard() {
       <ClinicalDisclaimerModal
         isOpen={showDisclaimer}
         onAccept={acceptDisclaimer}
-        onDecline={declineDisclaimer}
+        onDecline={() => {
+          declineDisclaimer();
+          setShowPermissionPage(true);
+        }}
       />
     </DashboardLoadingContext.Provider>
   );
