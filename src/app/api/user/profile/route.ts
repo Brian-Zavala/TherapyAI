@@ -223,7 +223,7 @@ export async function PATCH(request: Request) {
         }
       })
       
-      // Update family members
+      // Update family members - Delete existing first
       await tx.familyMember.deleteMany({
         where: { userId: user.id }
       })
@@ -231,17 +231,29 @@ export async function PATCH(request: Request) {
       const familyMembersToCreate = []
       for (let i = 1; i <= 7; i++) {
         const memberName = data[`familyMember${i}`]
-        if (memberName) {
+        const memberAge = data[`familyMember${i}Age`]
+        const memberRelation = data[`familyMember${i}Relation`]
+        
+        console.log(`[Profile API] Processing family member ${i}:`, {
+          name: memberName,
+          age: memberAge,
+          relation: memberRelation
+        })
+        
+        // Only create family member if name is provided and not empty
+        if (memberName && typeof memberName === 'string' && memberName.trim()) {
           familyMembersToCreate.push({
             userId: user.id,
-            name: memberName,
-            age: data[`familyMember${i}Age`] ? parseInt(data[`familyMember${i}Age`]) : null,
-            relationship: data[`familyMember${i}Relation`] || '',
+            name: memberName.trim(),
+            age: memberAge ? parseInt(String(memberAge)) : null,
+            relationship: (memberRelation && typeof memberRelation === 'string') ? memberRelation.trim() : '',
             order: i - 1,
             isActive: true
           })
         }
       }
+      
+      console.log(`[Profile API] Creating ${familyMembersToCreate.length} family members for user ${user.id}:`, familyMembersToCreate)
       
       if (familyMembersToCreate.length > 0) {
         await tx.familyMember.createMany({
@@ -330,7 +342,16 @@ export async function PUT(request: Request) {
     
     console.log("[Profile API] PUT request data:", {
       email: userEmail,
-      dataKeys: Object.keys(data)
+      dataKeys: Object.keys(data),
+      familyMemberFields: Object.keys(data).filter(key => key.startsWith('familyMember')),
+      sampleData: {
+        name: data.name,
+        pronouns: data.pronouns,
+        age: data.age,
+        familyMember1: data.familyMember1,
+        familyMember1Age: data.familyMember1Age,
+        familyMember1Relation: data.familyMember1Relation
+      }
     })
 
     // Validate the fields if they exist
@@ -484,7 +505,7 @@ export async function PUT(request: Request) {
         }
       })
       
-      // Update family members
+      // Update family members - Delete existing first
       await tx.familyMember.deleteMany({
         where: { userId: user.id }
       })
@@ -492,17 +513,29 @@ export async function PUT(request: Request) {
       const familyMembersToCreate = []
       for (let i = 1; i <= 7; i++) {
         const memberName = data[`familyMember${i}`]
-        if (memberName) {
+        const memberAge = data[`familyMember${i}Age`]
+        const memberRelation = data[`familyMember${i}Relation`]
+        
+        console.log(`[Profile API] Processing family member ${i}:`, {
+          name: memberName,
+          age: memberAge,
+          relation: memberRelation
+        })
+        
+        // Only create family member if name is provided and not empty
+        if (memberName && typeof memberName === 'string' && memberName.trim()) {
           familyMembersToCreate.push({
             userId: user.id,
-            name: memberName,
-            age: data[`familyMember${i}Age`] ? parseInt(data[`familyMember${i}Age`]) : null,
-            relationship: data[`familyMember${i}Relation`] || '',
+            name: memberName.trim(),
+            age: memberAge ? parseInt(String(memberAge)) : null,
+            relationship: (memberRelation && typeof memberRelation === 'string') ? memberRelation.trim() : '',
             order: i - 1,
             isActive: true
           })
         }
       }
+      
+      console.log(`[Profile API] Creating ${familyMembersToCreate.length} family members for user ${user.id}:`, familyMembersToCreate)
       
       if (familyMembersToCreate.length > 0) {
         await tx.familyMember.createMany({
@@ -513,17 +546,29 @@ export async function PUT(request: Request) {
       return user
     })
     
+    console.log(`[Profile API] Profile update transaction completed for user ${updatedUser.id}`)
+    
     // Invalidate cache comprehensively
-    await Promise.all([
-      profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email)),
-      updatedUser.id ? profileCache.invalidate(cacheKeys.userProfile(updatedUser.id)) : Promise.resolve(),
-      // Also invalidate pattern to clear any related cache entries
-      profileCache.invalidatePattern(`profile:*${session.user.email}*`)
-    ])
+    try {
+      await Promise.all([
+        profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email)),
+        updatedUser.id ? profileCache.invalidate(cacheKeys.userProfile(updatedUser.id)) : Promise.resolve(),
+        // Also invalidate pattern to clear any related cache entries
+        profileCache.invalidatePattern(`profile:*${session.user.email}*`)
+      ])
+      console.log(`[Profile API] Cache invalidated successfully for ${session.user.email}`)
+    } catch (cacheError) {
+      console.error(`[Profile API] Cache invalidation failed:`, cacheError)
+      // Don't fail the request if cache invalidation fails
+    }
     
     return NextResponse.json({ 
       message: "Profile updated successfully",
-      user: { id: updatedUser.id, email: updatedUser.email }
+      user: { id: updatedUser.id, email: updatedUser.email },
+      debug: process.env.NODE_ENV === 'development' ? {
+        processedFields: Object.keys(data),
+        familyMembersCreated: familyMembersToCreate?.length || 0
+      } : undefined
     })
     
   } catch (error) {

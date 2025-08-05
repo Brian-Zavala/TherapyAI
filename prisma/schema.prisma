@@ -78,6 +78,7 @@ model UserProfile {
   aiDisclaimerAccepted Boolean   @default(false)
   aiDisclaimerDate     DateTime?
   aiDisclaimerVersion  String?
+  timezone             String?   @default("UTC")
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
