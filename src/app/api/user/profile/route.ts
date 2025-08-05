@@ -374,44 +374,113 @@ export async function PUT(request: Request) {
         data: { name: data.name }
       })
       
+      // Process notification preferences with proper handling
+      const processedNotificationPrefs = (() => {
+        if (!data.notificationPrefs) return 'email';
+        if (typeof data.notificationPrefs === 'string') {
+          if (data.notificationPrefs === 'both') return ['email', 'sms'];
+          if (data.notificationPrefs === 'none') return [];
+          return data.notificationPrefs;
+        }
+        return data.notificationPrefs;
+      })();
+
+      // Process phone with SMS consent logic
+      let formattedPhone = null;
+      let phoneValidated = false;
+      let smsConsent = false;
+      let smsConsentDate = null;
+
+      if (data.phone) {
+        try {
+          formattedPhone = formatPhoneNumber(data.phone, 'US');
+          phoneValidated = validatePhoneNumber(formattedPhone);
+        } catch (error) {
+          console.warn('Phone number validation failed:', error);
+          formattedPhone = data.phone;
+        }
+        
+        // Set SMS consent if notification prefs include SMS
+        const hasSmsPref = Array.isArray(processedNotificationPrefs) 
+          ? processedNotificationPrefs.includes('sms')
+          : processedNotificationPrefs === 'sms';
+        
+        if (hasSmsPref && phoneValidated) {
+          smsConsent = true;
+          smsConsentDate = new Date();
+        }
+      }
+
+      // Process preferred days properly
+      const processedPreferredDays = (() => {
+        if (!data.preferredDays) return null;
+        if (typeof data.preferredDays === 'string') {
+          try {
+            return JSON.parse(data.preferredDays);
+          } catch {
+            return [data.preferredDays];
+          }
+        }
+        return data.preferredDays;
+      })();
+
+      // Process current concerns properly  
+      const processedCurrentConcerns = (() => {
+        if (!data.currentConcerns) return null;
+        if (typeof data.currentConcerns === 'string') {
+          try {
+            return JSON.parse(data.currentConcerns);
+          } catch {
+            return [data.currentConcerns];
+          }
+        }
+        return data.currentConcerns;
+      })();
+
       await tx.userProfile.upsert({
         where: { userId: user.id },
         create: {
           userId: user.id,
           pronouns: data.pronouns || null,
-          age: data.age ? parseInt(data.age) : null,
+          age: data.age ? parseInt(String(data.age)) : null,
           relationshipStatus: data.relationshipStatus || null,
-          notificationPrefs: data.notificationPrefs || 'email',
+          notificationPrefs: processedNotificationPrefs,
           partnerName: data.partnerName || null,
-          partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
-          currentConcerns: data.currentConcerns || null,
+          partnerAge: data.partnerAge ? parseInt(String(data.partnerAge)) : null,
+          currentConcerns: processedCurrentConcerns,
           emergencyContact: data.emergencyContact || null,
           sessionPreference: data.sessionPreference || null,
-          preferredDays: data.preferredDays || null,
+          preferredDays: processedPreferredDays,
           sessionFrequency: data.sessionFrequency || null,
           recurringSession: data.recurringSession || null,
           reminderTiming: data.reminderTiming || null,
           communicationStyle: data.communicationStyle || null,
           additionalNotes: data.additionalNotes || null,
-          phone: data.phone || null
+          phone: formattedPhone,
+          phoneValidated,
+          smsConsent,
+          smsConsentDate
         },
         update: {
           pronouns: data.pronouns || null,
-          age: data.age ? parseInt(data.age) : null,
+          age: data.age ? parseInt(String(data.age)) : null,
           relationshipStatus: data.relationshipStatus || null,
-          notificationPrefs: data.notificationPrefs || 'email',
+          notificationPrefs: processedNotificationPrefs,
           partnerName: data.partnerName || null,
-          partnerAge: data.partnerAge ? parseInt(data.partnerAge) : null,
-          currentConcerns: data.currentConcerns || null,
+          partnerAge: data.partnerAge ? parseInt(String(data.partnerAge)) : null,
+          currentConcerns: processedCurrentConcerns,
           emergencyContact: data.emergencyContact || null,
           sessionPreference: data.sessionPreference || null,
-          preferredDays: data.preferredDays || null,
+          preferredDays: processedPreferredDays,
           sessionFrequency: data.sessionFrequency || null,
           recurringSession: data.recurringSession || null,
           reminderTiming: data.reminderTiming || null,
           communicationStyle: data.communicationStyle || null,
           additionalNotes: data.additionalNotes || null,
-          phone: data.phone || null
+          phone: formattedPhone,
+          phoneValidated,
+          smsConsent,
+          smsConsentDate
         }
       })
       

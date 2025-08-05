@@ -63,6 +63,7 @@ interface TherapyButtonRefactoredProps {
   forceNewSession?: boolean
   onSessionConflict?: (conflictData: any) => void
   onSessionStarted?: () => void
+  linkedSessionId?: string | null
 }
 
 export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactored({ 
@@ -70,7 +71,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   disabled = false,
   forceNewSession = false,
   onSessionConflict,
-  onSessionStarted
+  onSessionStarted,
+  linkedSessionId = null
 }: TherapyButtonRefactoredProps) {
   const { user } = useAuth()
   const playClick = useButtonSound()
@@ -1126,7 +1128,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     
     try {
       // Create session with family members if selected
-      const newSession = await session.createSession(duration as 30 | 60, selectedFamilyMembers, forceNewSession)
+      const newSession = await session.createSession(duration as 30 | 60, selectedFamilyMembers, forceNewSession, linkedSessionId)
       
       if (!newSession) {
         throw new Error('Failed to create session')

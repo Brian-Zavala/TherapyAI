@@ -12,6 +12,7 @@ interface TherapyButtonWrapperProps {
   forceNewSession?: boolean
   onSessionConflict?: (conflictData: any) => void
   onSessionStarted?: () => void
+  linkedSessionId?: string | null
 }
 
 /**

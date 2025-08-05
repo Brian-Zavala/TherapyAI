@@ -18,10 +18,12 @@ import {
 import { useProfile } from "@/providers/ProfileProvider";
 import { isSessionActive as checkSessionActive } from "@/lib/utils/session-status";
 import { useFamilyMembersEnhanced } from "@/hooks/useFamilyMembersEnhanced";
+import { useSearchParams } from 'next/navigation';
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const { profile } = useProfile();
+  const searchParams = useSearchParams();
   
   // Family members hook
   const { familyMembers, loading: familyMembersLoading } = useFamilyMembersEnhanced({ autoSave: false });
@@ -34,6 +36,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   
   // Add minimum wait time for session check to prevent UI flash
   const [minimumWaitComplete, setMinimumWaitComplete] = useState(false);
+  
+  // State for linked session
+  const [linkedSessionId, setLinkedSessionId] = useState<string | null>(null);
+  const [linkedSessionData, setLinkedSessionData] = useState<any>(null);
+  const [isLoadingLinkedSession, setIsLoadingLinkedSession] = useState(false);
   
   // Clean up any stale recovery data on component mount (prevents HMR issues)
   useEffect(() => {
@@ -72,10 +79,68 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     const timer = setTimeout(cleanupStaleRecoveryData, 100)
     return () => clearTimeout(timer)
   }, []) // Only run once on mount
+  
+  // Handle sessionId query parameter
+  useEffect(() => {
+    const sessionId = searchParams.get('sessionId');
+    if (sessionId && !linkedSessionId) {
+      loadLinkedSession(sessionId);
+    }
+  }, [searchParams]);
+  
+  // Load linked session data
+  const loadLinkedSession = async (sessionId: string) => {
+    try {
+      setIsLoadingLinkedSession(true);
+      setLinkedSessionId(sessionId);
+      
+      const response = await fetch(`/api/sessions/${sessionId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load linked session');
+      }
+      
+      const sessionData = await response.json();
+      setLinkedSessionData(sessionData);
+      
+      // Pre-fill session data
+      setPrefilledSessionData({
+        duration: sessionData.duration || 60,
+        therapyType: sessionData.sessionType || sessionData.theme || 'individual',
+        notes: sessionData.notes
+      });
+      
+      // Set therapy type based on session data
+      const therapyType = sessionData.sessionType || sessionData.theme || 'individual';
+      setSessionType(therapyType);
+      
+      // Set the appropriate assistant config
+      if (therapyType === 'couple' || therapyType === 'COUPLE') {
+        setSelectedAssistant(COUPLE_THERAPY_ASSISTANT_CONFIG);
+      } else if (therapyType === 'family' || therapyType === 'FAMILY') {
+        setSelectedAssistant(FAMILY_THERAPY_ASSISTANT_CONFIG);
+      } else {
+        setSelectedAssistant(INDIVIDUAL_THERAPY_ASSISTANT_CONFIG);
+      }
+      
+      console.log('📅 Loaded linked session:', sessionId, therapyType);
+    } catch (error) {
+      console.error('Error loading linked session:', error);
+      // Don't show error to user - just continue without linking
+    } finally {
+      setIsLoadingLinkedSession(false);
+    }
+  };
 
   // currentTime state removed - no longer needed with DigitalClock component
   const [sessionType, setSessionType] = useState<string | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<typeof COUPLE_THERAPY_ASSISTANT_CONFIG | null>(null); // Don't default to any specific therapist
+  
+  // Pre-fill session data if coming from scheduled session
+  const [prefilledSessionData, setPrefilledSessionData] = useState<{
+    duration?: number;
+    therapyType?: string;
+    notes?: string;
+  } | null>(null);
   
   // Track if user is forcing a new session after ending previous one
   const [forceNewSession, setForceNewSession] = useState(false);
@@ -1800,6 +1865,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                     therapyType: (sessionType || "couple") as TherapyType,
                                     disabled: false,
                                     forceNewSession: forceNewSession,
+                                    linkedSessionId: linkedSessionId,
                                     onSessionConflict: (conflictData: any) => {
                                       console.log('🔴 Session conflict detected:', conflictData)
                                       setConflictSessionData(conflictData)

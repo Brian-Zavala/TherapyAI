@@ -100,7 +100,8 @@ const createSessionSchema = z.object({
   recurringFrequency: z.enum(['weekly', 'biweekly', 'monthly']).nullable().default(null),
   // CRITICAL FIX: Add sessionType to ensure accurate therapy type tracking
   // Accept both lowercase and uppercase, default to lowercase for consistency with frontend
-  sessionType: z.enum(['couple', 'family', 'solo', 'COUPLE', 'FAMILY', 'SOLO']).default('solo')
+  sessionType: z.enum(['couple', 'family', 'solo', 'COUPLE', 'FAMILY', 'SOLO']).default('solo'),
+  linkedSessionId: z.string().optional() // Link to scheduled session for tracking
 });
 
 // 2025 Standard: Lazy initialization
@@ -434,6 +435,33 @@ export async function POST(request: NextRequest) {
           sessionType: sessionTypeToPrismaEnum(data.sessionType)
         }
       });
+      
+      // Handle linked scheduled session - update its status when therapy starts
+      if (data.linkedSessionId && data.status === 'active') {
+        log.info('Updating linked scheduled session', { 
+          linkedSessionId: data.linkedSessionId,
+          newSessionId: newSession.id 
+        });
+        
+        // Update the scheduled session to indicate therapy has started
+        await tx.session.update({
+          where: { 
+            id: data.linkedSessionId,
+            userId: user.id // Ensure user owns the session
+          },
+          data: {
+            status: 'ACTIVE',
+            startTime: sessionDate,
+            notes: (await tx.session.findUnique({
+              where: { id: data.linkedSessionId },
+              select: { notes: true }
+            }))?.notes + `\n\n[Therapy started with session ${newSession.id}]`
+          }
+        }).catch(error => {
+          // Log error but don't fail the whole transaction
+          log.error('Failed to update linked session', error);
+        });
+      }
       
       // 2025 Standard: Handle recurring sessions in transaction
       const recurringSessionIds: string[] = [];
