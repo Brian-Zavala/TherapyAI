@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, CheckCircle, XCircle, Loader, AlertCircle, Calendar as CalendarIcon, Users, Repeat, Settings } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useProfile } from '@/providers/ProfileProvider'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EnhancedSchedulerModal } from '@/components/enhanced-scheduler/EnhancedSchedulerModal'
@@ -29,6 +29,7 @@ interface Session {
 export default function ScheduleClient() {
   const { data: session, status: authStatus } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { profile, isLoading: profileLoading } = useProfile()
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -39,6 +40,7 @@ export default function ScheduleClient() {
   const [showRecurringOptions, setShowRecurringOptions] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState('weekly')
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [isLoadingRescheduleSession, setIsLoadingRescheduleSession] = useState(false)
 
   // Initialize calendar OAuth
   const calendarOAuth = new CalendarOAuth()
@@ -56,6 +58,14 @@ export default function ScheduleClient() {
     const interval = setInterval(fetchSessions, 30000) // Refresh every 30 seconds
     return () => clearInterval(interval)
   }, [])
+
+  // Handle reschedule query parameter
+  useEffect(() => {
+    const rescheduleId = searchParams.get('reschedule')
+    if (rescheduleId && authStatus === 'authenticated') {
+      handleRescheduleSession(rescheduleId)
+    }
+  }, [searchParams, authStatus])
 
   // Set user preferences from profile
   useEffect(() => {
@@ -100,6 +110,44 @@ export default function ScheduleClient() {
       console.error('Error fetching sessions:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleRescheduleSession = async (sessionId: string) => {
+    try {
+      setIsLoadingRescheduleSession(true)
+      const response = await fetch(`/api/sessions/${sessionId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch session for rescheduling')
+      }
+      
+      const sessionData = await response.json()
+      
+      // Convert the session data to match the expected format
+      const formattedSession: Session = {
+        id: sessionData.id,
+        userId: sessionData.userId,
+        partnerId: sessionData.partnerId,
+        partnerName: sessionData.partnerName,
+        familyMembers: sessionData.familyMembers || [],
+        startTime: sessionData.date,
+        endTime: sessionData.endTime,
+        status: sessionData.status,
+        therapyType: sessionData.sessionType || sessionData.theme || 'individual',
+        notes: sessionData.notes,
+        duration: sessionData.duration || 60
+      }
+      
+      setSessionToEdit(formattedSession)
+      setShowScheduler(true)
+      
+      // Clear the query parameter to avoid re-triggering
+      router.replace('/schedule')
+    } catch (error) {
+      console.error('Error loading session for rescheduling:', error)
+      alert('Unable to load session for rescheduling. Please try again.')
+    } finally {
+      setIsLoadingRescheduleSession(false)
     }
   }
 
@@ -160,12 +208,12 @@ export default function ScheduleClient() {
     fetchSessions() // Refresh sessions after scheduling
   }
 
-  if (authStatus === 'loading' || profileLoading) {
+  if (authStatus === 'loading' || profileLoading || isLoadingRescheduleSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
         <div className="text-white text-center">
           <Loader className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Loading...</p>
+          <p>{isLoadingRescheduleSession ? 'Loading session for rescheduling...' : 'Loading...'}</p>
         </div>
       </div>
     )
