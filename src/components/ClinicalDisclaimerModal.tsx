@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { ShieldCheck, Brain, Heart, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useDisclaimerCheck } from '@/hooks/useDisclaimerCheck';
 
 interface ClinicalDisclaimerModalProps {
   isOpen: boolean;
@@ -21,6 +22,9 @@ export function ClinicalDisclaimerModal({
   const [isClient, setIsClient] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  
+  const { acceptDisclaimer, declineDisclaimer } = useDisclaimerCheck();
 
   useEffect(() => {
     setIsClient(true);
@@ -49,16 +53,42 @@ export function ClinicalDisclaimerModal({
     };
   }, [isOpen]);
 
-  const handleAccept = () => {
-    if (acknowledged) {
-      // Clear any declined flags and set permission granted
-      localStorage.removeItem('dashboardDisclaimerDeclined');
-      localStorage.setItem('dashboardPermissionGranted', 'true');
+  const handleAccept = async () => {
+    if (acknowledged && !isAccepting) {
+      setIsAccepting(true);
+      
+      // Call onAccept immediately to prevent modal from reopening
       onAccept();
+      
+      try {
+        // Save acceptance to database via useDisclaimerCheck
+        const success = await acceptDisclaimer();
+        
+        if (success) {
+          // Clear any declined flags and set permission granted
+          localStorage.removeItem('dashboardDisclaimerDeclined');
+          localStorage.setItem('dashboardPermissionGranted', 'true');
+        } else {
+          // Even if database save fails, let user continue but show warning
+          console.warn('Failed to save disclaimer acceptance to database');
+          localStorage.removeItem('dashboardDisclaimerDeclined');
+          localStorage.setItem('dashboardPermissionGranted', 'true');
+        }
+      } catch (error) {
+        console.error('Error accepting disclaimer:', error);
+        // Let user continue even if error occurs
+        localStorage.removeItem('dashboardDisclaimerDeclined');
+        localStorage.setItem('dashboardPermissionGranted', 'true');
+      } finally {
+        setIsAccepting(false);
+      }
     }
   };
 
   const handleDecline = () => {
+    // Use the database decline function
+    declineDisclaimer();
+    
     // Set declined flag to show permission page next time
     localStorage.setItem('dashboardDisclaimerDeclined', 'true');
     onDecline();
@@ -303,15 +333,15 @@ export function ClinicalDisclaimerModal({
                   </Button>
                   <Button
                     onClick={handleAccept}
-                    disabled={!acknowledged}
+                    disabled={!acknowledged || isAccepting}
                     className={cn(
                       "w-full sm:flex-1 min-w-0 px-4 py-2.5 transition-all duration-300 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis",
-                      acknowledged
+                      acknowledged && !isAccepting
                         ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
                         : "bg-white/10 text-white/50 cursor-not-allowed"
                     )}
                   >
-                    I Understand & Continue
+                    {isAccepting ? "Saving..." : "I Understand & Continue"}
                   </Button>
                 </motion.div>
               </div>

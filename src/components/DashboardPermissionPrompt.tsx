@@ -140,7 +140,7 @@ export function DashboardPermissionPrompt({ onPermissionGranted }: DashboardPerm
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-base sm:text-lg md:text-xl text-white/70 mb-8 sm:mb-10 md:mb-12 px-4 max-w-lg"
+              className="text-base sm:text-lg md:text-xl text-white/70 mb-8 sm:mb-10 md:mb-12 px-4 max-w-lg mx-auto"
             >
               To view your therapy insights and metrics, please grant permission for AI-enhanced analytics
             </motion.p>
@@ -152,15 +152,100 @@ export function DashboardPermissionPrompt({ onPermissionGranted }: DashboardPerm
               transition={{ duration: 0.8, delay: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 justify-center relative z-20"
             >
-              <Button
-                type="button"
-                onClick={handleGrantPermissions}
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 group pointer-events-auto relative z-50 cursor-pointer"
-              >
-                <ShieldCheck className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                Grant Permissions
-              </Button>
+              <div className="relative inline-block">
+                {/* Animated rainbow glow */}
+                <div 
+                  className="absolute inset-0 rounded-lg"
+                  style={{
+                    background: `radial-gradient(circle at center, 
+                      transparent 0%,
+                      #ff0080 10%,
+                      #ff8c00 20%, 
+                      #ffd700 30%,
+                      #00ff00 40%,
+                      #00ffff 50%,
+                      #0080ff 60%,
+                      #8000ff 70%,
+                      #ff0080 80%,
+                      transparent 100%
+                    )`,
+                    filter: 'blur(20px)',
+                    opacity: 0.7,
+                    animation: 'rainbowExpand 3s ease-in-out infinite',
+                  }}
+                />
+                
+                <Button
+                  type="button"
+                  onClick={handleGrantPermissions}
+                  size="lg"
+                  className="relative text-white px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 group pointer-events-auto z-10 cursor-pointer overflow-hidden"
+                >
+                  {/* Animated rainbow overlay inside button */}
+                  <div 
+                    className="absolute inset-0"
+                    style={{
+                      background: `radial-gradient(circle at center, 
+                        #ff0080 0%,
+                        #ff8c00 14%,
+                        #ffd700 28%,
+                        #00ff00 42%,
+                        #00ffff 56%,
+                        #0080ff 70%,
+                        #8000ff 84%,
+                        #ff0080 100%
+                      )`,
+                      backgroundSize: '200% 200%',
+                      backgroundPosition: 'center',
+                      animation: 'rainbowPulse 4s ease-in-out infinite',
+                      opacity: 0.9,
+                    }}
+                  />
+                  <span className="relative z-10 flex items-center font-semibold" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
+                    <ShieldCheck className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                    Grant Permissions
+                  </span>
+                </Button>
+                
+                <style jsx global>{`
+                  @keyframes rainbowExpand {
+                    0% {
+                      transform: scale(0.8);
+                      opacity: 0.7;
+                    }
+                    50% {
+                      transform: scale(1.4);
+                      opacity: 0.5;
+                    }
+                    100% {
+                      transform: scale(0.8);
+                      opacity: 0.7;
+                    }
+                  }
+                  
+                  @keyframes rainbowPulse {
+                    0% {
+                      background-size: 100% 100%;
+                    }
+                    50% {
+                      background-size: 300% 300%;
+                    }
+                    100% {
+                      background-size: 100% 100%;
+                    }
+                  }
+                  
+                  @media (prefers-reduced-motion: reduce) {
+                    @keyframes rainbowExpand,
+                    @keyframes rainbowPulse {
+                      0%, 100% {
+                        transform: none;
+                        background-size: 100% 100%;
+                      }
+                    }
+                  }
+                `}</style>
+              </div>
 
               <Button
                 type="button"

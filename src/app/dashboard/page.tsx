@@ -40,15 +40,45 @@ export const useDashboardLoading = () => useContext(DashboardLoadingContext);
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const { data: session, status } = useSession();
-  const [showPermissionPage, setShowPermissionPage] = useState(false);
   
-  // Check if user previously declined disclaimer
-  useEffect(() => {
-    const declined = localStorage.getItem('dashboardDisclaimerDeclined');
-    if (declined === 'true') {
-      setShowPermissionPage(true);
+  // Initialize showPermissionPage based on localStorage immediately to prevent flash
+  const [showPermissionPage, setShowPermissionPage] = useState(() => {
+    // Check if user previously declined on initial render
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('dashboardDisclaimerDeclined') === 'true';
     }
-  }, []);
+    return false;
+  });
+  
+  // Track if acceptance is in progress to prevent modal from reopening
+  const [isAcceptancePending, setIsAcceptancePending] = useState(false);
+  
+  // Call hooks in proper order - before any useEffect that depends on them
+  const { 
+    showDisclaimer, 
+    acceptDisclaimer, 
+    declineDisclaimer,
+    isLoading: disclaimerLoading 
+  } = useDisclaimerCheck();
+  
+  // Check permission page logic - database state takes priority over localStorage
+  useEffect(() => {
+    // Wait for disclaimer check to complete
+    if (disclaimerLoading) return;
+    
+    // If disclaimer was already accepted in database (showDisclaimer is false), 
+    // always clear any declined flags and don't show permission page
+    if (!showDisclaimer) {
+      localStorage.removeItem('dashboardDisclaimerDeclined');
+      setShowPermissionPage(false);
+      setIsAcceptancePending(false); // Clear pending state when DB confirms acceptance
+      return;
+    }
+    
+    // Only if user hasn't accepted in database, check if they previously declined
+    const declined = localStorage.getItem('dashboardDisclaimerDeclined');
+    setShowPermissionPage(declined === 'true');
+  }, [showDisclaimer, disclaimerLoading]);
   
   // Generate tab classes with proper frosted glass effect
   const getTabClasses = (tabValue: string) => {
@@ -60,12 +90,6 @@ export default function Dashboard() {
     
     return `${baseClasses} ${activeClasses}`;
   };
-  const { 
-    showDisclaimer, 
-    acceptDisclaimer, 
-    declineDisclaimer,
-    isLoading: disclaimerLoading 
-  } = useDisclaimerCheck();
   
   // Memoize hook options to prevent unnecessary re-renders
   const hookOptions = useMemo(() => ({
@@ -97,7 +121,8 @@ export default function Dashboard() {
   } = dashboardData;
   // Show loading state for initial load - this MUST be checked after all hooks
   // Check auth loading state first, then data availability
-  if (status === "loading" || !data) {
+  // Also wait for disclaimer check to complete to prevent flash
+  if (status === "loading" || !data || (disclaimerLoading && !showPermissionPage)) {
     return (
       <UnifiedLoadingState 
         type="brain"
@@ -107,12 +132,16 @@ export default function Dashboard() {
     );
   }
   
-  // Show permission page if user previously declined disclaimer
-  if (showPermissionPage && !showDisclaimer) {
+  // Show permission page if user previously declined disclaimer - takes priority over disclaimer modal
+  // This will only show if:
+  // 1. User has NOT accepted disclaimer in database (showDisclaimer would be true)
+  // 2. User clicked "I'll review later" (dashboardDisclaimerDeclined flag is set)
+  if (showPermissionPage) {
     return <DashboardPermissionPrompt onPermissionGranted={() => {
+      // Clear declined flag and hide permission page
       localStorage.removeItem('dashboardDisclaimerDeclined');
       setShowPermissionPage(false);
-      window.location.reload(); // Reload to show disclaimer again
+      // No need to reload - let the disclaimer modal show naturally
     }} />;
   }
   
@@ -296,15 +325,22 @@ export default function Dashboard() {
         </DashboardErrorBoundary>
       </DashboardProvider>
 
-      {/* Clinical Disclaimer Modal */}
-      <ClinicalDisclaimerModal
-        isOpen={showDisclaimer}
-        onAccept={acceptDisclaimer}
-        onDecline={() => {
-          declineDisclaimer();
-          setShowPermissionPage(true);
-        }}
-      />
+      {/* Clinical Disclaimer Modal - only show if permission page is not active AND disclaimer check is complete AND not accepting */}
+      {!showPermissionPage && !disclaimerLoading && !isAcceptancePending && showDisclaimer && (
+        <ClinicalDisclaimerModal
+          isOpen={true}
+          onAccept={() => {
+            // Modal already calls acceptDisclaimer internally
+            // Mark acceptance as pending to prevent modal from reopening
+            setIsAcceptancePending(true);
+            setShowPermissionPage(false);
+          }}
+          onDecline={() => {
+            // Modal already calls declineDisclaimer internally
+            setShowPermissionPage(true);
+          }}
+        />
+      )}
     </DashboardLoadingContext.Provider>
   );
 }
