@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 interface AddFamilyMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (member: { name: string; age: string }) => void;
+  onAdd: (member: { name: string; age: string; relationship: string }) => void;
   existingMembers: string[];
 }
 
@@ -20,6 +20,7 @@ export default function AddFamilyMemberModal({
 }: AddFamilyMemberModalProps) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [relationship, setRelationship] = useState('');
   const [error, setError] = useState('');
   const [isClient, setIsClient] = useState(false);
 
@@ -31,6 +32,7 @@ export default function AddFamilyMemberModal({
     if (isOpen) {
       setName('');
       setAge('');
+      setRelationship('');
       setError('');
     }
   }, [isOpen]);
@@ -49,7 +51,7 @@ export default function AddFamilyMemberModal({
       return;
     }
 
-    onAdd({ name: name.trim(), age: age.trim() });
+    onAdd({ name: name.trim(), age: age.trim(), relationship: relationship.trim() });
     onClose();
   };
 
@@ -124,6 +126,27 @@ export default function AddFamilyMemberModal({
                     max="120"
                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-colors"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Relationship
+                  </label>
+                  <select
+                    value={relationship}
+                    onChange={(e) => setRelationship(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="" className="bg-gray-800">Select relationship</option>
+                    <option value="Child" className="bg-gray-800">Child</option>
+                    <option value="Stepchild" className="bg-gray-800">Stepchild</option>
+                    <option value="Parent" className="bg-gray-800">Parent</option>
+                    <option value="In-law" className="bg-gray-800">In-law</option>
+                    <option value="Sibling" className="bg-gray-800">Sibling</option>
+                    <option value="Grandparent" className="bg-gray-800">Grandparent</option>
+                    <option value="Grandchild" className="bg-gray-800">Grandchild</option>
+                    <option value="Other" className="bg-gray-800">Other</option>
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-4">

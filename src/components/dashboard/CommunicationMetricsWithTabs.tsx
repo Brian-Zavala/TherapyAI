@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import { DashboardErrorWrapper } from './DashboardErrorBoundary';
 import TherapyTypeTabs, { 
@@ -174,31 +175,35 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 function EmptyState({ therapyType }: { therapyType: TherapyType }) {
   const config = THERAPY_TYPE_CONFIGS[therapyType];
   const Icon = config.icon;
+  const classes = getEmptyStateClasses();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-center py-12"
+      initial={emptyStateTheme.animations.container.initial}
+      animate={emptyStateTheme.animations.container.animate}
+      transition={emptyStateTheme.animations.container.transition}
+      className={classes.container}
     >
-      <div className="mb-6">
-        <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-          <Icon className="h-8 w-8 text-gray-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+      <div className="mb-8">
+        <motion.div 
+          className={classes.iconWrapper}
+          whileHover={emptyStateTheme.animations.icon.hover}
+          transition={emptyStateTheme.animations.icon.transition}
+        >
+          <Icon className={classes.icon} />
+        </motion.div>
+        <h3 className={classes.title}>
           No {config.label} Sessions Yet
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+        <p className={classes.description}>
           Complete your first {config.label.toLowerCase()} therapy session to see detailed communication metrics and insights.
         </p>
       </div>
       
       <Button 
-        variant="outline" 
-        className="gap-2"
+        className={classes.button}
         onClick={() => window.location.href = '/dashboard/therapy'}
       >
-        <Icon className="h-4 w-4" />
         Start {config.label} Session
       </Button>
     </motion.div>

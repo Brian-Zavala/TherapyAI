@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import TherapyTypeTabs, { 
   useTherapyTypeTabs, 
@@ -314,30 +315,35 @@ function EmptyState({ therapyType }: { therapyType: TherapyType }) {
   const config = THERAPY_INSIGHT_CONFIGS[therapyType];
   const typeConfig = THERAPY_TYPE_CONFIGS[therapyType];
   const Icon = typeConfig.icon;
+  const classes = getEmptyStateClasses();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-center py-16"
+      initial={emptyStateTheme.animations.container.initial}
+      animate={emptyStateTheme.animations.container.animate}
+      transition={emptyStateTheme.animations.container.transition}
+      className={classes.container}
     >
       <div className="mb-8">
-        <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mb-6">
-          <Icon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+        <motion.div 
+          className={classes.iconWrapper}
+          whileHover={emptyStateTheme.animations.icon.hover}
+          transition={emptyStateTheme.animations.icon.transition}
+        >
+          <Icon className={classes.icon} />
+        </motion.div>
+        <h3 className={classes.title}>
           {config.emptyState.title}
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+        <p className={classes.description}>
           {config.emptyState.description}
         </p>
       </div>
       
       <Button 
-        className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        className={classes.button}
         onClick={() => window.location.href = '/dashboard/therapy'}
       >
-        <Sparkles className="h-4 w-4" />
         {config.emptyState.cta}
       </Button>
     </motion.div>

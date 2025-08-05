@@ -91,30 +91,88 @@ function ProgressLoader({ message }: { message?: string }) {
 // AI insights loader (Brain)
 function BrainLoader({ message }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+    <div className="flex flex-col items-center justify-center space-y-6 py-12">
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="relative"
       >
-        <Brain className="h-12 w-12 text-purple-600" />
+        {/* Gradient background glow */}
         <motion.div
-          className="absolute inset-0"
+          className="absolute -inset-8 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 rounded-full blur-2xl opacity-30"
+          animate={{ 
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        
+        {/* Brain icon with enhanced purple gradient */}
+        <Brain className="h-16 w-16 text-purple-500 relative z-10" 
+          style={{
+            filter: 'drop-shadow(0 0 12px rgba(168, 85, 247, 0.5))'
+          }}
+        />
+        
+        {/* Enhanced spinning ring with glow effect */}
+        <motion.div
+          className="absolute inset-0 z-20"
           animate={{ rotate: 360 }}
           transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
         >
-          <div className="h-full w-full rounded-full border-2 border-purple-200 border-t-purple-600" />
+          <div 
+            className="h-full w-full rounded-full border-2 border-transparent"
+            style={{
+              background: 'linear-gradient(90deg, transparent 50%, rgba(255, 255, 255, 0.9) 70%, transparent 100%)',
+              backgroundSize: '200% 100%',
+              boxShadow: '0 0 20px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3)',
+            }}
+          />
         </motion.div>
+        
+        {/* Additional particle effects */}
+        {[...Array(3)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-white rounded-full"
+            style={{
+              top: '50%',
+              left: '50%',
+            }}
+            animate={{
+              x: [0, Math.cos(i * 120 * Math.PI / 180) * 30, 0],
+              y: [0, Math.sin(i * 120 * Math.PI / 180) * 30, 0],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              delay: i * 0.3,
+              ease: "easeInOut"
+            }}
+          />
+        ))}
       </motion.div>
-      <div className="text-center space-y-2">
-        <p className={`text-lg font-medium ${dashboardTheme.typography.h3}`}>
+      
+      {/* Enhanced text with better visibility */}
+      <motion.div 
+        className="text-center space-y-3 relative z-10"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        <p className="text-xl font-semibold text-white/95 tracking-wide drop-shadow-lg">
           {message || dashboardTheme.loadingStates.insights.message}
         </p>
-        <p className={`${dashboardTheme.typography.bodySmall} text-muted-foreground`}>
+        <motion.p 
+          className="text-base text-white/80 drop-shadow-md"
+          animate={{ opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
           Creating personalized recommendations
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   );
 }
@@ -213,7 +271,19 @@ export function UnifiedLoadingState({
   
   if (variant === 'fullscreen') {
     return (
-      <div className={`fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50 ${className}`}>
+      <div className={`fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 backdrop-blur-sm z-50 ${className}`}>
+        {/* Subtle animated background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.1),transparent_50%)]" />
+          <motion.div
+            className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(219,39,119,0.1),transparent_50%)]"
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, 0] 
+            }}
+            transition={{ duration: 10, repeat: Infinity }}
+          />
+        </div>
         {content}
       </div>
     );

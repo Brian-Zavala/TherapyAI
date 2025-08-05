@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardLoading } from '@/app/dashboard/page';
 import { DashboardAPIError, DataErrorCard } from './DashboardAPIErrorBoundary';
 import { useErrorRecovery } from './DashboardAPIErrorBoundary';
+import CalendarLoadingSpinner from './CalendarLoadingSpinner';
 
 type Session = {
   id: string;
@@ -88,7 +89,7 @@ export default function UpcomingSessions() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          status: 'cancelled'
+          status: 'CANCELLED'
         })
       });
       
@@ -149,30 +150,7 @@ export default function UpcomingSessions() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-6">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.05, 1],
-            opacity: [0.6, 1, 0.6]
-          }}
-          transition={{ 
-            repeat: Infinity,
-            duration: 2,
-            ease: "easeInOut"
-          }}
-          className="flex flex-col items-center text-center"
-        >
-          <div className="relative">
-            <div className="w-14 h-14 border-4 border-blue-400/30 rounded-full"></div>
-            <div className="absolute top-0 left-0 w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <div className="absolute top-2 left-2 w-10 h-10 border-2 border-blue-300/50 border-b-transparent rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
-          </div>
-          <p className="mt-6 text-white/90 font-medium text-lg leading-relaxed">Finding your next sessions...</p>
-          <p className="mt-2 text-white/60 text-sm leading-relaxed">Preparing your personalized schedule</p>
-        </motion.div>
-      </div>
-    );
+    return <CalendarLoadingSpinner />;
   }
 
   if (error) {
@@ -206,51 +184,27 @@ export default function UpcomingSessions() {
       transition={{ duration: 0.5 }}
       className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full overflow-y-auto"
     >
-      <div className="flex items-center mb-6 metric-card-header">
-        <motion.div 
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          className="metric-icon-container w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white mr-4 shadow-lg shadow-green-500/30"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-7 w-7"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-        </motion.div>
-        <div className="flex-1">
-          <h2 className="dashboard-heading text-white">
-            Upcoming Sessions
-          </h2>
-          <p className="caption text-white/70 mt-1">Your scheduled therapy sessions</p>
-        </div>
-        {sessions.length > 0 && (
+      {/* Minimal header with just session count */}
+      {sessions.length > 0 && (
+        <div className="flex justify-end mb-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-green-500/20 backdrop-blur-sm border border-green-400/30 rounded-full px-3 py-1 text-sm font-medium text-green-300"
+            className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-4 py-1.5 text-sm font-medium text-purple-300"
           >
             {sessions.length} session{sessions.length !== 1 ? 's' : ''}
           </motion.div>
-        )}
-      </div>
+        </div>
+      )}
 
 
-      <div className="h-[420px] overflow-y-auto">
+      <div className="h-full overflow-y-auto">
         {sessions.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
-          className="h-[380px] flex items-center justify-center"
+          className="h-full min-h-[400px] flex items-center justify-center"
         >
           <div className="text-center p-8 max-w-md">
             <motion.div
@@ -259,10 +213,93 @@ export default function UpcomingSessions() {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="mb-6"
             >
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+              {/* Creative Empty Calendar Visualization */}
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                {/* Main Calendar */}
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-br from-purple-500/80 to-pink-500/80 rounded-2xl shadow-xl"
+                  animate={{ 
+                    rotateY: [0, 10, 0],
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{ 
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  {/* Calendar Header */}
+                  <div className="absolute top-0 left-0 right-0 h-6 bg-white/20 rounded-t-2xl flex items-center justify-center">
+                    <div className="flex space-x-1.5">
+                      <motion.div 
+                        className="w-2 h-4 bg-white/80 rounded-full"
+                        animate={{ height: [16, 12, 16] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      <motion.div 
+                        className="w-2 h-4 bg-white/80 rounded-full"
+                        animate={{ height: [16, 12, 16] }}
+                        transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Calendar Grid with Animation */}
+                  <div className="absolute top-8 left-2 right-2 bottom-2 grid grid-cols-4 gap-1">
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="bg-white/20 rounded-sm"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ 
+                          opacity: [0.2, 0.4, 0.2],
+                          scale: [0.8, 1, 0.8]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          delay: i * 0.1
+                        }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+                
+                {/* Floating Plus Sign */}
+                <motion.div
+                  className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer"
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 90, 0]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                  </svg>
+                </motion.div>
+                
+                {/* Decorative Stars */}
+                <motion.div
+                  className="absolute -top-2 -left-2"
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0.5, 1, 0.5]
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: 0.5
+                  }}
+                >
+                  <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                </motion.div>
               </div>
             </motion.div>
             <motion.h3 
@@ -290,11 +327,8 @@ export default function UpcomingSessions() {
             >
               <Link 
                 href="/schedule" 
-                className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-400 hover:to-blue-500 transition-all duration-300 shadow-lg shadow-blue-500/30 border border-blue-400/30"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium transition-all duration-200 cursor-pointer hover:from-purple-600 hover:to-pink-600 hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-500/20"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
                 Schedule Your First Session
               </Link>
             </motion.div>
@@ -328,12 +362,12 @@ export default function UpcomingSessions() {
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0 }
                 }}
-                className={`bg-white/90 backdrop-blur-sm border rounded-xl p-4 sm:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${isExpanded ? 'border-blue-400 shadow-blue-500/20' : 'border-blue-200/50 hover:border-blue-300'} ${isSmallScreen ? 'mx-1' : ''}`}
+                className={`bg-white/90 backdrop-blur-sm border rounded-xl p-4 sm:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${isExpanded ? 'border-purple-400 shadow-purple-500/20' : 'border-purple-200/50 hover:border-purple-300'} ${isSmallScreen ? 'mx-1' : ''} cursor-pointer`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col space-y-2">
                     <div className="flex items-center flex-wrap gap-2">
-                      <h3 className={`font-semibold text-blue-800 ${isSmallScreen ? 'text-sm' : 'text-base'} leading-tight`}>{session.theme}</h3>
+                      <h3 className={`font-semibold text-purple-800 ${isSmallScreen ? 'text-sm' : 'text-base'} leading-tight`}>{session.theme}</h3>
                       <motion.span 
                         whileHover={{ scale: 1.05 }}
                         className={`text-xs px-3 py-1 rounded-full font-medium shadow-md 
@@ -373,13 +407,13 @@ export default function UpcomingSessions() {
                     </div>
                     <div className={`${isSmallScreen ? 'space-y-1' : 'space-y-1.5'}`}>
                       <p className={`${isSmallScreen ? 'text-xs' : 'text-sm'} text-gray-700 flex items-center font-medium`}>
-                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-blue-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-purple-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         {format(sessionDate, isSmallScreen ? 'MMM d, yyyy' : 'EEEE, MMMM d, yyyy')}
                       </p>
                       <p className={`${isSmallScreen ? 'text-xs' : 'text-sm'} text-gray-700 flex items-center font-medium`}>
-                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-blue-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-purple-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {format(sessionDate, 'h:mm a')} ({session.duration} min)
@@ -390,10 +424,10 @@ export default function UpcomingSessions() {
                     <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
                       <button
                         onClick={() => setExpandedSession(isExpanded ? null : session.id)}
-                        className={`p-2 rounded-full transition-all duration-300 ${isExpanded ? 'bg-blue-100 shadow-md' : 'hover:bg-blue-50'} border border-blue-200/50`}
+                        className={`p-2 rounded-full transition-all duration-300 ${isExpanded ? 'bg-purple-100 shadow-md' : 'hover:bg-purple-50'} border border-purple-200/50 cursor-pointer`}
                         title={isExpanded ? 'Collapse details' : 'View details'}
                       >
-                        <svg className={`${isSmallScreen ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`${isSmallScreen ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>

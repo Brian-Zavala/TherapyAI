@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import TherapyTypeTabs, { 
   useTherapyTypeTabs, 
@@ -188,16 +189,16 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
 
   return (
     <motion.div 
-      className="relative group"
+      className="relative group h-full"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
       whileHover={{ scale: 1.02 }}
     >
       <div 
-        className={`space-y-3 p-4 rounded-xl border transition-all duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:${theme.shadow} hover:border-opacity-60 cursor-pointer`}
+        className={`h-full flex flex-col gap-3 p-4 rounded-xl border transition-all duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:${theme.shadow} hover:border-opacity-60 cursor-pointer min-h-[140px]`}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <motion.div 
               className={`p-3 rounded-xl bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
@@ -247,8 +248,8 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
           </div>
         </div>
         
-        {/* Progress bar visualization */}
-        <div className="relative">
+        {/* Progress bar visualization - pushed to bottom with mt-auto */}
+        <div className="relative mt-auto">
           <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-3" />
           <motion.div
             className={`absolute inset-y-0 left-0 h-3 rounded-full ${getProgressBarClasses(value)}`}
@@ -275,30 +276,35 @@ function EmptyState({ therapyType }: { therapyType: Exclude<TherapyType, 'solo'>
   const config = THERAPY_PROGRESS_CONFIGS[therapyType];
   const typeConfig = THERAPY_TYPE_CONFIGS[therapyType];
   const Icon = typeConfig.icon;
+  const classes = getEmptyStateClasses();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-center py-16"
+      initial={emptyStateTheme.animations.container.initial}
+      animate={emptyStateTheme.animations.container.animate}
+      transition={emptyStateTheme.animations.container.transition}
+      className={classes.container}
     >
       <div className="mb-8">
-        <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-full flex items-center justify-center mb-6">
-          <Icon className="h-10 w-10 text-purple-600 dark:text-purple-400" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+        <motion.div 
+          className={classes.iconWrapper}
+          whileHover={emptyStateTheme.animations.icon.hover}
+          transition={emptyStateTheme.animations.icon.transition}
+        >
+          <Icon className={classes.icon} />
+        </motion.div>
+        <h3 className={classes.title}>
           {config.emptyState.title}
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+        <p className={classes.description}>
           {config.emptyState.description}
         </p>
       </div>
       
       <Button 
-        className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+        className={classes.button}
         onClick={() => window.location.href = '/dashboard/therapy'}
       >
-        <Heart className="h-4 w-4" />
         {config.emptyState.cta}
       </Button>
     </motion.div>
@@ -318,18 +324,9 @@ export default function RelationshipProgressWithTabs() {
     refetch 
   } = useTherapyTypeData(activeType);
 
-  // Mock progress data structure (replace with real data)
-  const mockProgressData = {
-    closenessScore: 78,
-    communicationScore: 82,
-    conflictResolution: 71,
-    emotionalSupport: 85,
-    trend: 'improving' as const
-  };
-
-  // Use mock data for now (replace with real relationshipProgress when available)
-  const data = mockProgressData;
-  const hasData = !!data;
+  // Use real data from the hook
+  const data = relationshipProgress;
+  const hasData = !!data && sessionCount > 0;
 
   const config = THERAPY_PROGRESS_CONFIGS[activeType as Exclude<TherapyType, 'solo'>];
 
@@ -540,7 +537,7 @@ export default function RelationshipProgressWithTabs() {
               </div>
 
               {/* Progress Metrics Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 flex-1 auto-rows-fr">
                 {config.metrics.map((metric) => (
                   <ProgressMetric
                     key={metric.key}

@@ -34,6 +34,13 @@ interface FormData {
   familyMember6Age: string
   familyMember7: string
   familyMember7Age: string
+  familyMember1Relation: string
+  familyMember2Relation: string
+  familyMember3Relation: string
+  familyMember4Relation: string
+  familyMember5Relation: string
+  familyMember6Relation: string
+  familyMember7Relation: string
   currentConcerns: string[]
   emergencyContact: string
   sessionPreference: string
@@ -81,6 +88,13 @@ export default function ProfileClient() {
     familyMember6Age: "",
     familyMember7: "",
     familyMember7Age: "",
+    familyMember1Relation: "",
+    familyMember2Relation: "",
+    familyMember3Relation: "",
+    familyMember4Relation: "",
+    familyMember5Relation: "",
+    familyMember6Relation: "",
+    familyMember7Relation: "",
     currentConcerns: [],
     emergencyContact: "",
     sessionPreference: "",
@@ -119,6 +133,13 @@ export default function ProfileClient() {
         familyMember6Age: profile.familyMember6Age?.toString() || "",
         familyMember7: profile.familyMember7 || "",
         familyMember7Age: profile.familyMember7Age?.toString() || "",
+        familyMember1Relation: profile.familyMember1Relation || "",
+        familyMember2Relation: profile.familyMember2Relation || "",
+        familyMember3Relation: profile.familyMember3Relation || "",
+        familyMember4Relation: profile.familyMember4Relation || "",
+        familyMember5Relation: profile.familyMember5Relation || "",
+        familyMember6Relation: profile.familyMember6Relation || "",
+        familyMember7Relation: profile.familyMember7Relation || "",
         currentConcerns: profile.currentConcerns || [],
         emergencyContact: profile.emergencyContact || "",
         sessionPreference: profile.sessionPreference || "",
@@ -159,6 +180,13 @@ export default function ProfileClient() {
         familyMember5Age: formData.familyMember5Age ? parseInt(formData.familyMember5Age) : null,
         familyMember6Age: formData.familyMember6Age ? parseInt(formData.familyMember6Age) : null,
         familyMember7Age: formData.familyMember7Age ? parseInt(formData.familyMember7Age) : null,
+        familyMember1Relation: formData.familyMember1Relation,
+        familyMember2Relation: formData.familyMember2Relation,
+        familyMember3Relation: formData.familyMember3Relation,
+        familyMember4Relation: formData.familyMember4Relation,
+        familyMember5Relation: formData.familyMember5Relation,
+        familyMember6Relation: formData.familyMember6Relation,
+        familyMember7Relation: formData.familyMember7Relation,
       }
 
       await updateProfile(updateData)
@@ -186,21 +214,23 @@ export default function ProfileClient() {
       setFormData(prev => ({
         ...prev,
         [`familyMember${memberToRemove}`]: "",
-        [`familyMember${memberToRemove}Age`]: ""
+        [`familyMember${memberToRemove}Age`]: "",
+        [`familyMember${memberToRemove}Relation`]: ""
       }))
     }
     setShowRemoveModal(false)
     setMemberToRemove(null)
   }
 
-  const handleAddFamilyMember = (member: { name: string; age: string }) => {
+  const handleAddFamilyMember = (member: { name: string; age: string; relationship: string }) => {
     // Find the first empty slot
     for (let i = 1; i <= 7; i++) {
       if (!formData[`familyMember${i}` as keyof FormData]) {
         setFormData(prev => ({
           ...prev,
           [`familyMember${i}`]: member.name,
-          [`familyMember${i}Age`]: member.age
+          [`familyMember${i}Age`]: member.age,
+          [`familyMember${i}Relation`]: member.relationship
         }))
         break;
       }
@@ -401,8 +431,9 @@ export default function ProfileClient() {
                     name="relationshipStatus"
                     value={formData.relationshipStatus}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
                   >
+                    <option value="">Select status</option>
                     <option value="Married">Married</option>
                     <option value="Engaged">Engaged</option>
                     <option value="Dating">Dating</option>
@@ -433,14 +464,25 @@ export default function ProfileClient() {
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5, 6, 7].map((num) => {
                   const memberName = formData[`familyMember${num}` as keyof FormData]
+                  const memberAge = formData[`familyMember${num}Age` as keyof FormData]
+                  const memberRelation = formData[`familyMember${num}Relation` as keyof FormData]
                   if (!memberName) return null
                   
                   return (
                     <div key={num} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <span className="text-white">{memberName}</span>
+                      <div className="flex-1">
+                        <span className="text-white font-medium">{memberName}</span>
+                        {(memberAge || memberRelation) && (
+                          <span className="text-gray-400 text-sm ml-2">
+                            {memberRelation && `(${memberRelation})`}
+                            {memberAge && memberRelation && ', '}
+                            {memberAge && `Age ${memberAge}`}
+                          </span>
+                        )}
+                      </div>
                       <button
                         onClick={() => handleRemoveMember(num)}
-                        className="text-red-400 hover:text-red-300 transition-colors"
+                        className="text-red-400 hover:text-red-300 transition-colors ml-4"
                       >
                         Remove
                       </button>
@@ -465,7 +507,7 @@ export default function ProfileClient() {
                     name="sessionPreference"
                     value={formData.sessionPreference}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
                   >
                     <option value="">Select preference</option>
                     <option value="30">30 minutes</option>
@@ -481,7 +523,7 @@ export default function ProfileClient() {
                     name="sessionFrequency"
                     value={formData.sessionFrequency}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
                   >
                     <option value="">Select frequency</option>
                     <option value="weekly">Weekly</option>
@@ -499,7 +541,7 @@ export default function ProfileClient() {
                     name="communicationStyle"
                     value={formData.communicationStyle}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
                   >
                     <option value="">Select style</option>
                     <option value="direct">Direct</option>
@@ -517,7 +559,7 @@ export default function ProfileClient() {
                     name="notificationPrefs"
                     value={formData.notificationPrefs}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
                   >
                     <option value="email">Email Only</option>
                     <option value="sms">SMS Only</option>
