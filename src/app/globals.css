@@ -22,6 +22,16 @@
         250% 50%;
     }
   }
+  
+  --animate-shimmer: shimmer 2s linear infinite;
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%) skewX(-12deg);
+    }
+    to {
+      transform: translateX(200%) skewX(-12deg);
+    }
+  }
 }
 
 /* --- CSS Layers for Better Cascade Control --- */

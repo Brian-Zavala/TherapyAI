@@ -202,8 +202,12 @@ export default function ProfileClient() {
 
       await updateProfile(updateData)
       setIsSuccess(true)
+      
+      // Scroll to top to show success message
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      
       // Keep form initialized after successful update
-      setTimeout(() => setIsSuccess(false), 3000)
+      setTimeout(() => setIsSuccess(false), 5000)
     } catch (error) {
       console.error("Error updating profile:", error)
       
@@ -325,12 +329,72 @@ export default function ProfileClient() {
                 className="mb-6"
               >
                 {isSuccess && (
-                  <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-green-100">Profile updated successfully!</span>
-                  </div>
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="relative overflow-hidden bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 border border-green-500/50 rounded-xl p-4 shadow-lg shadow-green-500/10"
+                  >
+                    {/* Animated background shimmer */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400/10 to-transparent -skew-x-12 animate-shimmer" />
+                    
+                    <div className="relative flex items-center gap-4">
+                      {/* Animated success icon */}
+                      <motion.div
+                        initial={{ rotate: -180, scale: 0 }}
+                        animate={{ rotate: 0, scale: 1 }}
+                        transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
+                        className="flex-shrink-0"
+                      >
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-green-400 rounded-full blur-lg opacity-50 animate-pulse" />
+                          <svg className="relative w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                      </motion.div>
+                      
+                      {/* Success message with staggered animation */}
+                      <div className="flex-1">
+                        <motion.div
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                          className="flex items-center gap-2"
+                        >
+                          <span className="text-green-100 font-semibold text-lg">Success!</span>
+                          <span className="text-green-200/90">Your profile has been updated</span>
+                        </motion.div>
+                        <motion.div
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.4 }}
+                          className="text-sm text-green-300/70 mt-1"
+                        >
+                          All changes have been saved automatically
+                        </motion.div>
+                      </div>
+                      
+                      {/* Animated checkmarks */}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="flex gap-1"
+                      >
+                        {[0, 1, 2].map((i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.6 + i * 0.1, type: "spring" }}
+                            className="w-2 h-2 bg-green-400 rounded-full"
+                          />
+                        ))}
+                      </motion.div>
+                    </div>
+                  </motion.div>
                 )}
                 {error && (
                   <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center justify-between">
@@ -364,17 +428,7 @@ export default function ProfileClient() {
               </button>
             </div>
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-600/20 border border-red-500 rounded-lg text-red-400">
-                {error}
-              </div>
-            )}
-
-            {isSuccess && (
-              <div className="mb-6 p-4 bg-green-600/20 border border-green-500 rounded-lg text-green-400">
-                Profile updated successfully!
-              </div>
-            )}
+            {/* Removed duplicate success/error messages - they're already shown above */}
 
             {/* Personal Information */}
             <div className="space-y-6">
