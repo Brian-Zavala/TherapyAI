@@ -261,6 +261,9 @@ export async function PATCH(request: Request) {
         })
       }
       
+      // Store count for debug output
+      familyMembersCreatedCount = familyMembersToCreate.length
+      
       return user
     })
     
@@ -373,6 +376,9 @@ export async function PUT(request: Request) {
     if (!data.name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
+    
+    // Track family members for debug output
+    let familyMembersCreatedCount = 0
     
     // Update with transaction
     const updatedUser = await prisma.$transaction(async (tx) => {
@@ -543,6 +549,9 @@ export async function PUT(request: Request) {
         })
       }
       
+      // Store count for debug output
+      familyMembersCreatedCount = familyMembersToCreate.length
+      
       return user
     })
     
@@ -567,7 +576,7 @@ export async function PUT(request: Request) {
       user: { id: updatedUser.id, email: updatedUser.email },
       debug: process.env.NODE_ENV === 'development' ? {
         processedFields: Object.keys(data),
-        familyMembersCreated: familyMembersToCreate?.length || 0
+        familyMembersCreated: familyMembersCreatedCount
       } : undefined
     })
     
@@ -579,6 +588,20 @@ export async function PUT(request: Request) {
       code: (error as any)?.code,
       meta: (error as any)?.meta
     })
-    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 })
+    
+    // Return more detailed error information
+    const errorMessage = error instanceof Error ? error.message : "Failed to update profile"
+    const errorDetails = {
+      error: errorMessage,
+      code: (error as any)?.code,
+      // Include Prisma-specific error info if available
+      meta: (error as any)?.meta,
+      // Only include stack in development
+      ...(process.env.NODE_ENV === 'development' && {
+        stack: error instanceof Error ? error.stack : undefined
+      })
+    }
+    
+    return NextResponse.json(errorDetails, { status: 500 })
   }
 }
