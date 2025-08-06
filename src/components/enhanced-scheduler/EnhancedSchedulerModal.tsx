@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, ChevronLeft, ChevronRight, Calendar, Clock, Users, FileText, Loader, CheckCircle } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Calendar, Clock, Users, FileText, Loader, CheckCircle, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DatePicker } from './DatePicker'
 import { TimeSlotPicker } from './TimeSlotPicker'
@@ -47,6 +47,7 @@ export function EnhancedSchedulerModal({
   const { profile } = useProfile()
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
   // Form state
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -100,12 +101,14 @@ export function EnhancedSchedulerModal({
   
   const handleNext = () => {
     if (canProceed() && currentStep < steps.length - 1) {
+      setError(null)
       setCurrentStep(currentStep + 1)
     }
   }
   
   const handlePrevious = () => {
     if (currentStep > 0) {
+      setError(null)
       setCurrentStep(currentStep - 1)
     }
   }
@@ -114,6 +117,7 @@ export function EnhancedSchedulerModal({
     if (!selectedDate || !selectedTime) return
     
     setIsSubmitting(true)
+    setError(null)
     
     try {
       const sessionData = {
@@ -133,6 +137,7 @@ export function EnhancedSchedulerModal({
       await onSchedule?.(sessionData)
     } catch (error) {
       console.error('Error scheduling session:', error)
+      setError(error instanceof Error ? error.message : 'Failed to schedule session. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -284,6 +289,31 @@ export function EnhancedSchedulerModal({
           
           {/* Content */}
           <div className="p-6 max-h-[60vh] overflow-y-auto">
+            {/* Error Display */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-4 bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex items-start gap-3"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-red-400 font-medium">Error</p>
+                    <p className="text-sm text-red-300 mt-1">{error}</p>
+                  </div>
+                  <button
+                    onClick={() => setError(null)}
+                    className="ml-auto p-1 hover:bg-red-500/20 rounded transition-colors"
+                  >
+                    <X className="w-4 h-4 text-red-400" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Step Content */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
@@ -365,6 +395,27 @@ export function EnhancedSchedulerModal({
               </div>
             </div>
           </div>
+          {/* Loading Overlay */}
+          <AnimatePresence>
+            {isSubmitting && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl"
+              >
+                <div className="bg-gray-800 rounded-xl p-6 text-center">
+                  <Loader className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-3" />
+                  <p className="text-white font-medium">
+                    {sessionToEdit ? 'Updating session...' : 'Scheduling session...'}
+                  </p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    This may take a few moments
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </AnimatePresence>
