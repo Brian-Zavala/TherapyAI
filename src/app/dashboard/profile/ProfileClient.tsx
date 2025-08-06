@@ -9,6 +9,7 @@ import Link from "next/link"
 import { useProfile } from "@/providers/ProfileProvider"
 import AddFamilyMemberModal from "@/components/AddFamilyMemberModal"
 import ProfileResetModal from "@/components/ProfileResetModal"
+import ProfileLoadingSpinner from "@/components/ProfileLoadingSpinner"
 import Navigation from "@/components/Navigation"
 
 interface FormData {
@@ -64,6 +65,7 @@ export default function ProfileClient() {
   const [updating, setUpdating] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
   
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -109,7 +111,7 @@ export default function ProfileClient() {
 
   // Update form data when profile loads
   useEffect(() => {
-    if (profile) {
+    if (profile && !isInitialized) {
       setFormData({
         name: profile.name || "",
         email: profile.email || "",
@@ -153,8 +155,10 @@ export default function ProfileClient() {
           ? profile.notificationPrefs.join(',') 
           : profile.notificationPrefs || "email"
       })
+      // Mark as initialized to prevent re-running
+      setIsInitialized(true)
     }
-  }, [profile])
+  }, [profile, isInitialized])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -198,10 +202,29 @@ export default function ProfileClient() {
 
       await updateProfile(updateData)
       setIsSuccess(true)
+      // Keep form initialized after successful update
       setTimeout(() => setIsSuccess(false), 3000)
     } catch (error) {
       console.error("Error updating profile:", error)
-      setError("Failed to update profile. Please try again.")
+      
+      // Extract meaningful error message
+      let errorMessage = "Failed to update profile. Please try again."
+      if (error instanceof Error) {
+        errorMessage = error.message
+        
+        // Check for specific error types
+        if (error.message.includes('Name is required')) {
+          errorMessage = "Name is required to update your profile"
+        } else if (error.message.includes('Invalid')) {
+          errorMessage = "Some fields contain invalid data. Please check your inputs."
+        } else if (error.message.includes('Network')) {
+          errorMessage = "Network error. Please check your connection and try again."
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Request timed out. Please try again."
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setUpdating(false)
     }
@@ -255,10 +278,19 @@ export default function ProfileClient() {
     return members;
   }
 
-  if (isLoading) {
+  // Show loading state until profile is loaded AND form is initialized
+  if (isLoading || (profile && !isInitialized)) {
+    return <ProfileLoadingSpinner />
+  }
+  
+  // Also handle case where profile doesn't exist (new user)
+  if (!isLoading && !profile) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white">Loading profile...</div>
+        <div className="text-white text-center">
+          <p className="text-xl mb-4">No profile found</p>
+          <p className="text-gray-400">Please complete your onboarding first</p>
+        </div>
       </div>
     )
   }
@@ -269,12 +301,50 @@ export default function ProfileClient() {
       
       <div className="min-h-screen bg-gray-900 pt-20">
         <motion.div
+          key="profile-form"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8"
         >
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+            {/* Success/Error Messages */}
+            {(isSuccess || error) && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-6"
+              >
+                {isSuccess && (
+                  <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3">
+                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-green-100">Profile updated successfully!</span>
+                  </div>
+                )}
+                {error && (
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-red-100">{error}</span>
+                    </div>
+                    <button
+                      onClick={() => setError(null)}
+                      className="text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+            
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
               <button
@@ -764,6 +834,9 @@ export default function ProfileClient() {
               
               // 2025 Standard: Properly invalidate cache and refetch instead of page reload
               await invalidateProfile();
+              
+              // Reset initialization flag to allow form to re-populate with new data
+              setIsInitialized(false);
               
               // Reset form data to empty state for cleared fields
               setFormData(prev => {

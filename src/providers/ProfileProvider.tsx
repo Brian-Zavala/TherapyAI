@@ -229,15 +229,33 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       })
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('[ProfileProvider] Update failed:', errorData)
+        let errorData: any = { error: 'Unknown error' }
+        let errorText = ''
+        
+        try {
+          // First try to get the response as text
+          errorText = await res.text()
+          // Then try to parse it as JSON
+          errorData = JSON.parse(errorText)
+        } catch (parseError) {
+          // If parsing fails, use the text directly
+          console.error('[ProfileProvider] Response parsing failed:', parseError)
+          console.error('[ProfileProvider] Raw response:', errorText)
+          errorData = { 
+            error: errorText || `Server error: ${res.status} ${res.statusText}`,
+            status: res.status 
+          }
+        }
+        
+        console.error('[ProfileProvider] Update failed with status:', res.status)
+        console.error('[ProfileProvider] Error data:', errorData)
         
         // Extract error details for better debugging
         if (errorData.details) {
           console.error('[ProfileProvider] Validation details:', errorData.details)
         }
         
-        throw new Error(errorData.error || 'Failed to update profile')
+        throw new Error(errorData.error || `Failed to update profile (${res.status})`)
       }
       
       const response = await res.json()
