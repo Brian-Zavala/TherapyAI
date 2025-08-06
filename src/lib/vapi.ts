@@ -324,7 +324,7 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 // Natural language formatting for therapy concerns
 export const formatConcernsNaturally = (
   concerns: string[], 
-  therapyType: string = 'couple',
+  therapyType: string = 'solo',
   context: 'system' | 'greeting' | 'conversation' = 'system'
 ): string => {
   if (!concerns || concerns.length === 0) {
@@ -675,7 +675,7 @@ export const getPersonalizedFirstMessage = (
   explicitType?: string
 ): string => {
   // CRITICAL FIX: Use explicit type parameter if provided, otherwise fall back to user profile
-  const therapyType = explicitType || userProfile?.therapyType || "couple";
+  const therapyType = explicitType || userProfile?.therapyType || "solo";
 
   if (!userProfile || !userProfile?.userName) {
     // Default first message
@@ -1820,7 +1820,7 @@ export const getPersonalizedAssistantConfig = (
   }
 ) => {
   // Determine therapy type from user profile if not explicitly provided
-  const therapyType = type || userProfile?.therapyType || "couple";
+  const therapyType = type || userProfile?.therapyType || "solo";
 
   const baseConfig = getAssistantConfigByType(therapyType);
 

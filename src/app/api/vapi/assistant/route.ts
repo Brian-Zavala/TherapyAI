@@ -96,7 +96,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
   }
 
   const queryTherapyType = searchParams.get('therapyType');
-  const therapyType = queryTherapyType || 'couple';
+  const therapyType = queryTherapyType || 'solo';
 
   const selectedFamilyMembersParam = searchParams.get('selectedFamilyMembers');
   let selectedFamilyMembers: Array<{name: string, age: number, relation: string}> = [];
@@ -142,7 +142,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
     familyMember7: familyMembers[6]?.name,
     familyMember7Age: familyMembers[6]?.age,
     familyMember7Relation: familyMembers[6]?.relationship,
-    therapyType: searchParams.get('therapyType') || 'couple',
+    therapyType: searchParams.get('therapyType') || 'solo',
     currentConcerns: user.profile?.currentConcerns || [],
     communicationStyle: user.profile?.communicationStyle || 'balanced',
     sessionPreference: user.profile?.sessionPreference || 'flexible',
