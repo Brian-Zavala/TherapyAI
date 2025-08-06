@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns';
-import { formatInTimeZone, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 /**
  * Timezone-aware date formatting utilities for the therapy platform
@@ -51,7 +51,7 @@ export function toUserTimezone(
   timezone: string = DEFAULT_TIMEZONE
 ): Date {
   const dateObject = typeof date === 'string' ? parseISO(date) : date;
-  return utcToZonedTime(dateObject, timezone);
+  return toZonedTime(dateObject, timezone);
 }
 
 /**
@@ -62,7 +62,7 @@ export function toUTC(
   timezone: string = DEFAULT_TIMEZONE
 ): Date {
   const dateObject = typeof date === 'string' ? parseISO(date) : date;
-  return zonedTimeToUtc(dateObject, timezone);
+  return fromZonedTime(dateObject, timezone);
 }
 
 /**
