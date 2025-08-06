@@ -158,6 +158,7 @@ export function EnhancedSchedulerModal({
             onTimeSelect={setSelectedTime}
             timezone={timezone}
             duration={duration}
+            calendarIntegrations={calendarIntegrations}
           />
         )
       case 2:

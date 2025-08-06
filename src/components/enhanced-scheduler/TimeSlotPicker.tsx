@@ -14,6 +14,7 @@ interface TimeSlotPickerProps {
   duration: number // in minutes
   existingSessions?: Array<{ date: Date; duration: number }>
   isLoading?: boolean
+  calendarIntegrations?: Array<{ provider: string; id: string }>
 }
 
 export function TimeSlotPicker({
@@ -23,7 +24,8 @@ export function TimeSlotPicker({
   timezone,
   duration = 60,
   existingSessions = [],
-  isLoading = false
+  isLoading = false,
+  calendarIntegrations = []
 }: TimeSlotPickerProps) {
   const [conflictCheckLoading, setConflictCheckLoading] = useState(false)
   const [conflicts, setConflicts] = useState<Set<string>>(new Set())
@@ -39,38 +41,69 @@ export function TimeSlotPicker({
     })
   }, [selectedDate, timezone])
   
-  // Check for conflicts with existing sessions
+  // Check for conflicts with existing sessions and calendar integrations
   useEffect(() => {
-    if (!selectedDate || existingSessions.length === 0) {
+    if (!selectedDate) {
       setConflicts(new Set())
       return
     }
     
-    setConflictCheckLoading(true)
-    
-    // Check each time slot for conflicts
-    const conflictSet = new Set<string>()
-    
-    timeSlots.forEach(slot => {
-      const slotEnd = new Date(slot.time.getTime() + duration * 60 * 1000)
+    const checkConflicts = async () => {
+      setConflictCheckLoading(true)
+      const conflictSet = new Set<string>()
       
-      existingSessions.forEach(session => {
-        const sessionEnd = new Date(session.date.getTime() + session.duration * 60 * 1000)
-        
-        // Check if times overlap
-        if (
-          (slot.time >= session.date && slot.time < sessionEnd) ||
-          (slotEnd > session.date && slotEnd <= sessionEnd) ||
-          (slot.time <= session.date && slotEnd >= sessionEnd)
-        ) {
-          conflictSet.add(slot.time.toISOString())
+      // Check existing sessions
+      if (existingSessions && existingSessions.length > 0) {
+        timeSlots.forEach(slot => {
+          const slotEnd = new Date(slot.time.getTime() + duration * 60 * 1000)
+          
+          existingSessions.forEach(session => {
+            const sessionEnd = new Date(session.date.getTime() + session.duration * 60 * 1000)
+            
+            // Check if times overlap
+            if (
+              (slot.time >= session.date && slot.time < sessionEnd) ||
+              (slotEnd > session.date && slotEnd <= sessionEnd) ||
+              (slot.time <= session.date && slotEnd >= sessionEnd)
+            ) {
+              conflictSet.add(slot.time.toISOString())
+            }
+          })
+        })
+      }
+      
+      // Check calendar integrations
+      if (calendarIntegrations && calendarIntegrations.length > 0) {
+        try {
+          const response = await fetch('/api/calendar/conflicts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: selectedDate.toISOString(),
+              duration,
+              timeSlots: timeSlots.map(slot => slot.time.toISOString())
+            })
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.conflicts && Array.isArray(data.conflicts)) {
+              data.conflicts.forEach((conflictTime: string) => {
+                conflictSet.add(conflictTime)
+              })
+            }
+          }
+        } catch (error) {
+          console.error('Error checking calendar conflicts:', error)
         }
-      })
-    })
+      }
+      
+      setConflicts(conflictSet)
+      setConflictCheckLoading(false)
+    }
     
-    setConflicts(conflictSet)
-    setConflictCheckLoading(false)
-  }, [selectedDate, timeSlots, existingSessions, duration])
+    checkConflicts()
+  }, [selectedDate, timeSlots, existingSessions, duration, calendarIntegrations])
   
   const isSlotAvailable = (slotTime: Date) => {
     // Check if slot is in the past
