@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import FamilyMembersStepEnhanced from './FamilyMembersStepEnhanced'
+import ConcernsOnboardingStep from './ConcernsOnboardingStep'
 import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
 import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import ButtonWithSound from '@/components/ButtonWithSound'
@@ -48,6 +49,12 @@ export default function OnboardingFlowEnhanced() {
       title: 'Your Family Members',
       description: 'Tell us about your family so we can personalize your sessions',
       component: FamilyMembersStepEnhanced
+    },
+    {
+      id: 'concerns',
+      title: 'Your Therapy Goals',
+      description: 'What would you like to work on?',
+      component: ConcernsOnboardingStep
     },
     {
       id: 'complete',

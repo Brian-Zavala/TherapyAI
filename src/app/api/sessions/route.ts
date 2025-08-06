@@ -436,6 +436,13 @@ export async function POST(request: NextRequest) {
         }
       });
       
+      // Enhance session with concerns context (non-blocking)
+      import('@/lib/session-concerns-context').then(({ enhanceSessionWithConcerns }) => {
+        enhanceSessionWithConcerns(newSession.id, user.id).catch(err => 
+          log.error('Failed to enhance session with concerns', { error: err })
+        );
+      });
+      
       // Handle linked scheduled session - update its status when therapy starts
       if (data.linkedSessionId && data.status === 'active') {
         log.info('Updating linked scheduled session', { 

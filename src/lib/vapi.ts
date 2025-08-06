@@ -321,8 +321,27 @@ export const formatSessionHistory = (sessions: any[] = []) => {
   }`;
 };
 
+import { formatConcernsForVAPI, migrateLegacyConcerns } from './concerns-formatter';
+
 // Natural language formatting for therapy concerns
+// This function now wraps the new formatter for backward compatibility
 export const formatConcernsNaturally = (
+  concerns: string[], 
+  therapyType: string = 'solo',
+  context: 'system' | 'greeting' | 'conversation' = 'system'
+): string => {
+  // Migrate legacy concerns if needed
+  const migratedConcerns = migrateLegacyConcerns(concerns);
+  // Use new formatter
+  return formatConcernsForVAPI(
+    migratedConcerns, 
+    therapyType as 'solo' | 'couple', 
+    context
+  );
+};
+
+// Keep original function body for reference (will be removed after testing)
+const formatConcernsNaturallyLegacy = (
   concerns: string[], 
   therapyType: string = 'solo',
   context: 'system' | 'greeting' | 'conversation' = 'system'
