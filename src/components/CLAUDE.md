@@ -116,34 +116,57 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 ### Container Layout
 - **Full viewport coverage**: Use `fixed inset-0 w-full h-full` NOT `min-h-screen`
 - **Scrollable content**: Add `overflow-y-auto` to content containers
-- **Mobile-first padding**: `px-4 py-8` with responsive increases
+- **Mobile-first padding**: `px-3 sm:px-4 md:px-6` or `p-3 sm:p-4 md:p-6`
+- **Border radius**: `rounded-lg sm:rounded-xl` for responsive corners
 
 ### Text Sizing (ALWAYS use breakpoints)
-- **Headings**: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl`
-- **Subheadings**: `text-xl sm:text-2xl md:text-3xl`
-- **Body text**: `text-base sm:text-lg md:text-xl`
+- **Headings**: `text-2xl sm:text-3xl md:text-4xl lg:text-5xl`
+- **Subheadings**: `text-lg sm:text-xl md:text-2xl`
+- **Body text**: `text-sm sm:text-base md:text-lg`
 - **Small text**: `text-xs sm:text-sm`
 - **Line height**: Add `leading-tight` or `leading-relaxed` as needed
 
+### Mobile-Specific Success/Error Messages (Jan 2025 Update)
+- **Container**: `p-3 sm:p-4` padding, `rounded-lg sm:rounded-xl`
+- **Title + Message**: Use `flex flex-col sm:flex-row` for stacking on mobile
+- **Title**: `text-base sm:text-lg font-semibold`
+- **Message**: `text-sm sm:text-base` 
+- **Subtitle/Helper**: `text-xs sm:text-sm opacity-70`
+- **Icons**: `w-5 h-5 sm:w-6 sm:h-6` for proper scaling
+- **Layout**: `flex items-start sm:items-center` to align properly on mobile
+- **Icon alignment**: Add `mt-1 sm:mt-0` to icons when text wraps
+
 ### Element Sizing
-- **Large elements**: `w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96`
-- **Medium elements**: `w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:w-64`
-- **Buttons**: `px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg`
+- **Large elements**: `w-48 sm:w-64 md:w-80 lg:w-96`
+- **Medium elements**: `w-32 sm:w-48 md:w-56`
+- **Small elements**: `w-1.5 h-1.5 sm:w-2 sm:h-2` (like dots)
+- **Buttons**: `px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base`
+- **Icons in messages**: `w-5 h-5 sm:w-6 sm:h-6`
 
 ### Spacing (use responsive values)
-- **Margins**: `mb-6 sm:mb-8 md:mb-10 lg:mb-12`
-- **Padding**: `p-4 sm:p-6 md:p-8`
-- **Gaps**: `gap-4 sm:gap-6 md:gap-8`
+- **Margins**: `mb-4 sm:mb-6 md:mb-8`
+- **Padding**: `p-3 sm:p-4 md:p-6`
+- **Gaps**: `gap-3 sm:gap-4 md:gap-6`
+- **Small gaps**: `gap-0.5 sm:gap-1` for tight element groups
+
+### Flexbox Patterns for Mobile
+- **Responsive direction**: `flex flex-col sm:flex-row`
+- **Alignment**: `items-start sm:items-center`
+- **Wrapping**: Add `flex-wrap` when needed
+- **Shrinking**: Use `flex-shrink-0` for icons, `flex-1 min-w-0` for text
+- **Text overflow**: Add `min-w-0` to flex children to prevent text overflow
 
 ### Interactive Elements
 - **ALWAYS add**: `cursor-pointer` to clickable elements
 - **Hover states**: Include responsive hover effects
 - **Touch targets**: Minimum 44px on mobile
+- **Icon positioning**: Add `mt-1 sm:mt-0` to align with multi-line text
 
 ### Background & Overlays
 - **Gradients**: Ensure full viewport coverage with `fixed inset-0`
 - **Modals**: Use proper z-index stacking (10000+)
 - **Pointer events**: Use `pointer-events-none` on decorative overlays
+- **Shimmer effects**: Animate with `animate-shimmer` class
 
 ### Testing Requirements
 - **iPhone SE (375x667)** - Smallest supported
@@ -151,7 +174,17 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 - **Tablet (768x1024)** - Medium screens
 - **Desktop (1920x1080)** - Large screens
 
+### Breakpoint Reference
+- **xs**: 480px (custom defined in tailwind.config.mjs)
+- **sm**: 640px
+- **md**: 768px
+- **lg**: 1024px
+- **xl**: 1280px
+- **2xl**: 1536px
+
 ⚠️ **NEVER use fixed sizes without responsive alternatives!**
+⚠️ **ALWAYS test text readability on 375px width devices!**
+⚠️ **Prevent text cramping with proper flex patterns and min-w-0!**
 
 ## Profile Loading Animation (Jan 2025)
 

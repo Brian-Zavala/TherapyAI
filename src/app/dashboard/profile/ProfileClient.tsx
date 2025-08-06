@@ -334,54 +334,54 @@ export default function ProfileClient() {
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="relative overflow-hidden bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 border border-green-500/50 rounded-xl p-4 shadow-lg shadow-green-500/10"
+                    className="relative overflow-hidden bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 border border-green-500/50 rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg shadow-green-500/10"
                   >
                     {/* Animated background shimmer */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400/10 to-transparent -skew-x-12 animate-shimmer" />
                     
-                    <div className="relative flex items-center gap-4">
+                    <div className="relative flex items-start sm:items-center gap-3 sm:gap-4">
                       {/* Animated success icon */}
                       <motion.div
                         initial={{ rotate: -180, scale: 0 }}
                         animate={{ rotate: 0, scale: 1 }}
                         transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 mt-1 sm:mt-0"
                       >
                         <div className="relative">
                           <div className="absolute inset-0 bg-green-400 rounded-full blur-lg opacity-50 animate-pulse" />
-                          <svg className="relative w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="relative w-5 h-5 sm:w-6 sm:h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                       </motion.div>
                       
-                      {/* Success message with staggered animation */}
-                      <div className="flex-1">
+                      {/* Success message with proper mobile typography */}
+                      <div className="flex-1 min-w-0">
                         <motion.div
                           initial={{ x: -20, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
                           transition={{ delay: 0.3 }}
-                          className="flex items-center gap-2"
+                          className="flex flex-col sm:flex-row sm:items-center sm:gap-2"
                         >
-                          <span className="text-green-100 font-semibold text-lg">Success!</span>
-                          <span className="text-green-200/90">Your profile has been updated</span>
+                          <span className="text-green-100 font-semibold text-base sm:text-lg">Success!</span>
+                          <span className="text-green-200/90 text-sm sm:text-base">Your profile has been updated</span>
                         </motion.div>
                         <motion.div
                           initial={{ x: -20, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
                           transition={{ delay: 0.4 }}
-                          className="text-sm text-green-300/70 mt-1"
+                          className="text-xs sm:text-sm text-green-300/70 mt-1"
                         >
                           All changes have been saved automatically
                         </motion.div>
                       </div>
                       
-                      {/* Animated checkmarks */}
+                      {/* Animated checkmarks - shown on all screens but smaller on mobile */}
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 }}
-                        className="flex gap-1"
+                        className="flex gap-0.5 sm:gap-1 flex-shrink-0"
                       >
                         {[0, 1, 2].map((i) => (
                           <motion.div
@@ -389,7 +389,7 @@ export default function ProfileClient() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.6 + i * 0.1, type: "spring" }}
-                            className="w-2 h-2 bg-green-400 rounded-full"
+                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full"
                           />
                         ))}
                       </motion.div>
