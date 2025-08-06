@@ -12,6 +12,8 @@ import { CalendarOAuth } from '@/lib/calendar-oauth'
 import TherapeuticBokehBackground from '@/components/ui/therapeutic-bokeh-background'
 import { UserPreferences } from '@/lib/enhanced-scheduler/types'
 import { formatInUserTimezone, getUserTimezone, formatSessionTime, getSessionBadgeInfo } from '@/lib/date-utils'
+import { useNotificationPermissions } from '@/hooks/useNotificationPermissions'
+import { NotificationPermissionModal } from '@/components/NotificationPermissionModal'
 
 interface Session {
   id: string
@@ -42,6 +44,10 @@ export default function ScheduleClient() {
   const [recurringFrequency, setRecurringFrequency] = useState('weekly')
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [isLoadingRescheduleSession, setIsLoadingRescheduleSession] = useState(false)
+  const [showPermissionModal, setShowPermissionModal] = useState(false)
+  
+  // Check notification permissions
+  const { hasAnyPermission, checkPermissions, hasEmailPermission, hasSmsPermission } = useNotificationPermissions()
 
   // Initialize calendar OAuth
   const calendarOAuth = new CalendarOAuth()
@@ -177,8 +183,17 @@ export default function ScheduleClient() {
   }
 
   const handleScheduleSession = () => {
-    setSessionToEdit(null)
-    setShowScheduler(true)
+    // Check if user has notification permissions
+    const { needsPermission } = checkPermissions()
+    
+    if (needsPermission) {
+      // Show permission modal first
+      setShowPermissionModal(true)
+    } else {
+      // User has permissions, proceed with scheduling
+      setSessionToEdit(null)
+      setShowScheduler(true)
+    }
   }
 
   const handleEditSession = (session: Session) => {
@@ -436,6 +451,26 @@ export default function ScheduleClient() {
             sessionToEdit={sessionToEdit}
             userPreferences={userPreferences}
             calendarIntegrations={calendarIntegrations}
+          />
+        )}
+        
+        {showPermissionModal && (
+          <NotificationPermissionModal
+            isOpen={showPermissionModal}
+            onClose={() => setShowPermissionModal(false)}
+            currentPermissions={{
+              email: hasEmailPermission,
+              sms: hasSmsPermission,
+              phone: profile?.phone
+            }}
+            onPermissionsUpdate={(permissions) => {
+              setShowPermissionModal(false)
+              // After updating permissions, proceed with scheduling
+              if (permissions.email || permissions.sms) {
+                setSessionToEdit(null)
+                setShowScheduler(true)
+              }
+            }}
           />
         )}
       </AnimatePresence>

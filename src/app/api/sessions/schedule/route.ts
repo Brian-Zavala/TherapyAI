@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth'; 
 import { prisma } from '@/lib/prisma-optimized';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -19,16 +20,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
     
-    // Create in primary Session model instead of TherapySession
+    // Check if user has notification permissions
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      select: {
+        notificationPrefs: true,
+        smsConsent: true,
+        phone: true,
+      }
+    });
+    
+    // Parse notification preferences
+    const notificationPrefs = userProfile?.notificationPrefs || [];
+    const hasEmailPermission = Array.isArray(notificationPrefs) 
+      ? notificationPrefs.includes('email') 
+      : notificationPrefs === 'email';
+    const hasSmsPermission = Array.isArray(notificationPrefs) 
+      ? notificationPrefs.includes('sms') && userProfile?.smsConsent && userProfile?.phone
+      : notificationPrefs === 'sms' && userProfile?.smsConsent && userProfile?.phone;
+    
+    // Validate at least one notification method is enabled
+    if (!hasEmailPermission && !hasSmsPermission) {
+      logger.warn('User attempting to schedule without notification permissions', {
+        userId,
+        notificationPrefs,
+        smsConsent: userProfile?.smsConsent,
+        hasPhone: !!userProfile?.phone
+      });
+      
+      return NextResponse.json({ 
+        error: 'Notification permissions required',
+        message: 'Please enable email or SMS notifications to schedule sessions. This ensures you receive important reminders.',
+        needsPermission: true 
+      }, { status: 400 });
+    }
+    
+    // Create in primary Session model
     const therapySession = await prisma.session.create({
       data: {
         userId,
-        date: new Date(sessionDate),  // Use 'date' field in Session model
+        date: new Date(sessionDate),
         duration,
         notes,
         status: 'SCHEDULED',
-        theme: theme || 'Therapy Session',  // Use theme field from request or default
+        theme: theme || 'Therapy Session',
       },
+    });
+    
+    logger.info('Session scheduled successfully', {
+      sessionId: therapySession.id,
+      userId,
+      hasEmailPermission,
+      hasSmsPermission
     });
     
     return NextResponse.json({ success: true, session: therapySession });
