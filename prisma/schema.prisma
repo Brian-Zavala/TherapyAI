@@ -42,6 +42,7 @@ model User {
   sessionMetrics       SessionMetrics[]
   therapyInsights      TherapyInsight[]
   profile              UserProfile?
+  notificationTracking NotificationTracking[]
 
   @@index([email])
   @@index([createdAt])
@@ -134,6 +135,10 @@ model Session {
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
   sessionType             SessionType           @default(SOLO)
+  notificationToken       String?
+  notificationTokenExpiry DateTime?
+  startedViaNotification  Boolean               @default(false)
+  notificationStartedAt   DateTime?
   communicationMetrics    CommunicationMetric[]
   progressTracking        ProgressTracking[]
   user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -142,12 +147,14 @@ model Session {
   therapyInsights         TherapyInsight[]
   transcriptEntries       TranscriptEntry[]
   conversationState       ConversationState?
+  notificationTracking    NotificationTracking[]
 
   @@index([userId, status])
   @@index([userId, startTime])
   @@index([userId, sessionType])
   @@index([assistantId])
   @@index([status, startTime])
+  @@index([notificationToken])
   @@index([completedAt])
 }
 
@@ -557,4 +564,21 @@ enum SessionType {
   SOLO
   COUPLE
   FAMILY
+}
+
+model NotificationTracking {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  type      String   // 'email' or 'sms'
+  action    String   // 'sent', 'clicked', 'started', 'completed'
+  token     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([token])
 }

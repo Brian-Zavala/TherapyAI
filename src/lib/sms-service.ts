@@ -119,23 +119,37 @@ export interface SMSResult {
 // Message templates with compliance
 export const SMS_TEMPLATES = {
   SESSION_REMINDER: {
-    template: (data: { date: string; duration: number }) =>
-      `Reminder: You have a therapy session scheduled for ${data.date} (${data.duration} min). Reply STOP to unsubscribe.`,
+    template: (data: { date: string; duration: number; shortUrl?: string }) =>
+      data.shortUrl 
+        ? `Your wellness session awaits\n📅 ${data.date}\n⏱ ${data.duration}min\n🔗 ${data.shortUrl}\nSTOP to unsub`
+        : `Wellness reminder: Your ${data.duration}min session is ${data.date}. We're here for your journey. STOP to unsub.`,
+    maxLength: 160
+  },
+  SESSION_REMINDER_ONE_HOUR: {
+    template: (data: { date: string; duration: number; shortUrl?: string }) =>
+      `Ready to connect? Your session starts in 1 HOUR\n⏰ ${data.date}\nJoin now: ${data.shortUrl}\nSTOP to unsub`,
     maxLength: 160
   },
   SESSION_CONFIRMATION: {
     template: (data: { date: string; duration: number }) =>
-      `Your therapy session is confirmed for ${data.date} (${data.duration} min). We'll remind you 24h before. Reply STOP to unsubscribe.`,
+      `✓ Session confirmed!\n${data.date}\n${data.duration} minutes of growth awaits.\nWe'll remind you 24h before.\nSTOP to unsub`,
     maxLength: 160
   },
   SESSION_CANCELLATION: {
     template: (data: { date: string; reason?: string }) =>
-      `Your therapy session on ${data.date} has been cancelled${data.reason ? `: ${data.reason}` : ''}. Reply STOP to unsubscribe.`,
+      `Session update: ${data.date} cancelled.${data.reason ? ` ${data.reason}` : ''} Reschedule when ready. STOP to unsub`,
     maxLength: 160
   },
   RESCHEDULE_REQUEST: {
     template: (data: { oldDate: string; newDate: string }) =>
       `Your session needs rescheduling from ${data.oldDate} to ${data.newDate}. Reply YES to confirm or NO to keep original. STOP to unsubscribe.`,
+    maxLength: 160
+  },
+  SESSION_COMPLETED: {
+    template: (data: { duration: number; nextSessionDate?: string }) =>
+      nextSessionDate
+        ? `Great session! Duration: ${data.duration}min. Next: ${nextSessionDate}. Reply STOP to unsub.`
+        : `Session completed! Duration: ${data.duration}min. Schedule your next session. Reply STOP to unsub.`,
     maxLength: 160
   }
 };
@@ -329,20 +343,25 @@ export const sendSessionReminder = async (
   phoneNumber: string,
   sessionDate: Date,
   duration: number,
-  options?: Partial<SMSOptions>
+  options?: Partial<SMSOptions> & { shortUrl?: string; isOneHour?: boolean }
 ): Promise<SMSResult> => {
   const formattedDate = sessionDate.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
   });
 
-  const body = SMS_TEMPLATES.SESSION_REMINDER.template({
+  const template = options?.isOneHour 
+    ? SMS_TEMPLATES.SESSION_REMINDER_ONE_HOUR 
+    : SMS_TEMPLATES.SESSION_REMINDER;
+    
+  const body = template.template({
     date: formattedDate,
-    duration
+    duration,
+    shortUrl: options?.shortUrl
   });
   
   return sendSMS({

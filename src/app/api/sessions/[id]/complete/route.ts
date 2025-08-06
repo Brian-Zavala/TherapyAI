@@ -8,6 +8,8 @@ import { Resend } from 'resend';
 import SessionCompletedEmail from '@/emails/SessionCompleted';
 import { rateLimitManager } from '@/lib/rate-limit-manager';
 import { logger } from '@/lib/logger';
+import { trackNotificationInteraction } from '@/lib/notification-tokens';
+import { sendSMS } from '@/lib/sms-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const lifecycleManager = SessionLifecycleManager.getInstance();
@@ -205,9 +207,21 @@ export async function POST(
       });
     }
 
-    // Send completion email
+    // Track completion if session was started via notification
+    if (therapySession.notificationToken) {
+      try {
+        await trackNotificationInteraction(therapySession.notificationToken, 'completed');
+      } catch (trackError) {
+        logger.error('Error tracking notification completion', {
+          sessionId,
+          error: trackError
+        });
+      }
+    }
+
+    // Send completion notifications
     try {
-      const durationInSeconds = finalConversationTimeSeconds || (therapySession.duration ? therapySession.duration * 60 : 1800);
+      const durationInMinutes = Math.round((finalConversationTimeSeconds || (therapySession.duration ? therapySession.duration * 60 : 1800)) / 60);
       
       // Find the next scheduled session for this user
       const nextSession = await prisma.session.findFirst({
@@ -223,25 +237,45 @@ export async function POST(
         }
       });
       
+      // Get user's profile for phone number
+      const userProfile = await prisma.userProfile.findUnique({
+        where: { userId: therapySession.userId },
+        select: { phone: true, smsConsent: true }
+      });
+      
+      // Send completion email
       await resend.emails.send({
-        from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+        from: `Therapy Platform <${process.env.EMAIL_FROM}>`,
         to: therapySession.user.email,
-        subject: 'Therapy Session Completed',
+        subject: 'Session Completed - Great Progress!',
         react: SessionCompletedEmail({
-          userName: therapySession.user.name || 'Valued Client',
-          sessionDate: therapySession.date.toLocaleDateString(),
-          sessionTime: therapySession.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          therapistName: 'Dr. Maya Thompson',
-          sessionDuration: durationInSeconds,
+          username: therapySession.user.name || 'Valued Client',
+          sessionDate: therapySession.date,
+          duration: durationInMinutes,
           sessionNotes: therapySession.notes || undefined,
-          nextSessionDate: nextSession ? nextSession.date.toLocaleDateString() : undefined,
-          nextSessionTime: nextSession ? nextSession.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+          nextSessionDate: nextSession?.date,
+          baseUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
         }) as any,
       });
-    } catch (emailError) {
-      logger.error('Error sending session completion email', {
+      
+      // Send SMS notification if consent given
+      if (userProfile?.phone && userProfile.smsConsent) {
+        const nextSessionText = nextSession 
+          ? `Next: ${nextSession.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+          : 'Schedule your next session';
+          
+        await sendSMS({
+          to: userProfile.phone,
+          body: `Session complete! ${durationInMinutes}min of growth achieved. ${nextSessionText}. STOP to unsub`,
+          priority: 'normal',
+          notificationId: `session-completed-${sessionId}`,
+          userId: therapySession.userId,
+        });
+      }
+    } catch (notificationError) {
+      logger.error('Error sending session completion notifications', {
         sessionId,
-        error: emailError
+        error: notificationError
       });
     }
     
