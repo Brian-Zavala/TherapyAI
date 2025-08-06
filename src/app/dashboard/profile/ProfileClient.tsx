@@ -170,7 +170,9 @@ export default function ProfileClient() {
 
     try {
       const updateData = {
+        // Include ALL form fields
         ...formData,
+        // Convert age fields from string to number
         age: formData.age ? parseInt(formData.age) : null,
         partnerAge: formData.partnerAge ? parseInt(formData.partnerAge) : null,
         familyMember1Age: formData.familyMember1Age ? parseInt(formData.familyMember1Age) : null,
@@ -180,14 +182,19 @@ export default function ProfileClient() {
         familyMember5Age: formData.familyMember5Age ? parseInt(formData.familyMember5Age) : null,
         familyMember6Age: formData.familyMember6Age ? parseInt(formData.familyMember6Age) : null,
         familyMember7Age: formData.familyMember7Age ? parseInt(formData.familyMember7Age) : null,
-        familyMember1Relation: formData.familyMember1Relation,
-        familyMember2Relation: formData.familyMember2Relation,
-        familyMember3Relation: formData.familyMember3Relation,
-        familyMember4Relation: formData.familyMember4Relation,
-        familyMember5Relation: formData.familyMember5Relation,
-        familyMember6Relation: formData.familyMember6Relation,
-        familyMember7Relation: formData.familyMember7Relation,
       }
+
+      console.log('[ProfileClient] Sending update with data:', {
+        fieldsIncluded: Object.keys(updateData),
+        sampleData: {
+          name: updateData.name,
+          pronouns: updateData.pronouns,
+          phone: updateData.phone,
+          currentConcerns: updateData.currentConcerns,
+          notificationPrefs: updateData.notificationPrefs,
+          sessionPreference: updateData.sessionPreference,
+        }
+      })
 
       await updateProfile(updateData)
       setIsSuccess(true)
@@ -565,6 +572,83 @@ export default function ProfileClient() {
                     <option value="sms">SMS Only</option>
                     <option value="both">Email & SMS</option>
                     <option value="none">No Notifications</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Therapy Preferences - Missing Fields */}
+            <div className="mt-8 space-y-6">
+              <h2 className="text-xl font-semibold text-white">Therapy Preferences</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Current Concerns
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Communication, Trust, Intimacy (comma-separated)"
+                    value={Array.isArray(formData.currentConcerns) ? formData.currentConcerns.join(', ') : ''}
+                    onChange={(e) => {
+                      const concerns = e.target.value.split(',').map(c => c.trim()).filter(c => c);
+                      setFormData(prev => ({ ...prev, currentConcerns: concerns }));
+                    }}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Separate multiple concerns with commas</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Preferred Days
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Monday, Wednesday, Friday (comma-separated)"
+                    value={Array.isArray(formData.preferredDays) ? formData.preferredDays.join(', ') : ''}
+                    onChange={(e) => {
+                      const days = e.target.value.split(',').map(d => d.trim()).filter(d => d);
+                      setFormData(prev => ({ ...prev, preferredDays: days }));
+                    }}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Days you prefer for sessions</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Recurring Sessions
+                  </label>
+                  <select
+                    name="recurringSession"
+                    value={formData.recurringSession}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select preference</option>
+                    <option value="yes">Yes, I want recurring sessions</option>
+                    <option value="no">No, I'll schedule individually</option>
+                    <option value="maybe">Not sure yet</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Reminder Timing
+                  </label>
+                  <select
+                    name="reminderTiming"
+                    value={formData.reminderTiming}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select timing</option>
+                    <option value="15min">15 minutes before</option>
+                    <option value="30min">30 minutes before</option>
+                    <option value="1hour">1 hour before</option>
+                    <option value="2hours">2 hours before</option>
+                    <option value="1day">1 day before</option>
                   </select>
                 </div>
               </div>
