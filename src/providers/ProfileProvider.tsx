@@ -259,7 +259,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
       
       const response = await res.json()
-      return response.user || response
+      // API now returns the complete profile data directly
+      return response
     },
     onMutate: async (newData) => {
       // Cancel any outgoing refetches

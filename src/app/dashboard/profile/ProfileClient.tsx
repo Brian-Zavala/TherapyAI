@@ -11,6 +11,13 @@ import AddFamilyMemberModal from "@/components/AddFamilyMemberModal"
 import ProfileResetModal from "@/components/ProfileResetModal"
 import ProfileLoadingSpinner from "@/components/ProfileLoadingSpinner"
 import Navigation from "@/components/Navigation"
+import ConcernsSelector from "@/components/ConcernsSelector"
+import { suppressExtensionErrors } from "./suppress-extension-errors"
+
+// Suppress browser extension errors that are outside our control
+if (typeof window !== 'undefined') {
+  suppressExtensionErrors();
+}
 
 interface FormData {
   name: string
@@ -485,14 +492,23 @@ export default function ProfileClient() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Pronouns
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="pronouns"
                     value={formData.pronouns}
                     onChange={handleInputChange}
-                    placeholder="he/him, she/her, they/them"
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
-                  />
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-gray-800">Select pronouns</option>
+                    <option value="he/him" className="bg-gray-800">he/him</option>
+                    <option value="she/her" className="bg-gray-800">she/her</option>
+                    <option value="they/them" className="bg-gray-800">they/them</option>
+                    <option value="he/they" className="bg-gray-800">he/they</option>
+                    <option value="she/they" className="bg-gray-800">she/they</option>
+                    <option value="ze/zir" className="bg-gray-800">ze/zir</option>
+                    <option value="xe/xem" className="bg-gray-800">xe/xem</option>
+                    <option value="prefer not to say" className="bg-gray-800">prefer not to say</option>
+                    <option value="use my name" className="bg-gray-800">use my name</option>
+                  </select>
                 </div>
 
                 <div>
@@ -718,17 +734,15 @@ export default function ProfileClient() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Current Concerns
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Communication, Trust, Intimacy (comma-separated)"
-                    value={Array.isArray(formData.currentConcerns) ? formData.currentConcerns.join(', ') : ''}
-                    onChange={(e) => {
-                      const concerns = e.target.value.split(',').map(c => c.trim()).filter(c => c);
+                  <ConcernsSelector
+                    value={formData.currentConcerns || []}
+                    onChange={(concerns) => {
                       setFormData(prev => ({ ...prev, currentConcerns: concerns }));
                     }}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    placeholder="Click to select your concerns..."
+                    maxSelections={10}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Separate multiple concerns with commas</p>
+                  <p className="text-xs text-gray-400 mt-1">Select up to 10 concerns that apply to your situation</p>
                 </div>
 
                 <div>

@@ -63,8 +63,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // Use optimized query that handles caching internally
-    const user = await findUserByEmailOptimized(session.user.email)
+    // CRITICAL FIX: Bypass the optimized query cache for now to ensure fresh data
+    // The findUserByEmailOptimized has its own cache that isn't being properly invalidated
+    // Instead, query the database directly for fresh data
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        profile: true,
+        familyMembers: {
+          where: { isActive: true },
+          orderBy: { order: 'asc' }
+        }
+      }
+    })
     
     if (!user) {
       // User not found - stale session, return 401 to force re-authentication
@@ -347,6 +358,13 @@ export async function PUT(request: Request) {
       email: userEmail,
       dataKeys: Object.keys(data),
       familyMemberFields: Object.keys(data).filter(key => key.startsWith('familyMember')),
+      pronounsDebug: {
+        received: data.pronouns,
+        type: typeof data.pronouns,
+        isDefined: data.pronouns !== undefined,
+        isEmptyString: data.pronouns === "",
+        isNull: data.pronouns === null
+      },
       sampleData: {
         name: data.name,
         pronouns: data.pronouns,
@@ -377,7 +395,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
     
-    // Track family members for debug output
+    // Track family members for debug output (declare outside transaction scope)
     let familyMembersCreatedCount = 0
     
     // Update with transaction
@@ -464,31 +482,33 @@ export async function PUT(request: Request) {
         return data.currentConcerns;
       })();
 
-      await tx.userProfile.upsert({
+      const upsertResult = await tx.userProfile.upsert({
         where: { userId: user.id },
         create: {
           userId: user.id,
-          pronouns: data.pronouns || null,
+          pronouns: data.pronouns !== undefined ? (data.pronouns || null) : null,
           age: data.age ? parseInt(String(data.age)) : null,
-          relationshipStatus: data.relationshipStatus || null,
+          relationshipStatus: data.relationshipStatus !== undefined ? (data.relationshipStatus || null) : null,
           notificationPrefs: processedNotificationPrefs,
-          partnerName: data.partnerName || null,
+          partnerName: data.partnerName !== undefined ? (data.partnerName || null) : null,
           partnerAge: data.partnerAge ? parseInt(String(data.partnerAge)) : null,
           currentConcerns: processedCurrentConcerns,
-          emergencyContact: data.emergencyContact || null,
-          sessionPreference: data.sessionPreference || null,
+          emergencyContact: data.emergencyContact !== undefined ? (data.emergencyContact || null) : null,
+          sessionPreference: data.sessionPreference !== undefined ? (data.sessionPreference || null) : null,
           preferredDays: processedPreferredDays,
-          sessionFrequency: data.sessionFrequency || null,
-          recurringSession: data.recurringSession || null,
-          reminderTiming: data.reminderTiming || null,
-          communicationStyle: data.communicationStyle || null,
-          additionalNotes: data.additionalNotes || null,
+          sessionFrequency: data.sessionFrequency !== undefined ? (data.sessionFrequency || null) : null,
+          recurringSession: data.recurringSession !== undefined ? (data.recurringSession || null) : null,
+          reminderTiming: data.reminderTiming !== undefined ? (data.reminderTiming || null) : null,
+          communicationStyle: data.communicationStyle !== undefined ? (data.communicationStyle || null) : null,
+          additionalNotes: data.additionalNotes !== undefined ? (data.additionalNotes || null) : null,
           phone: formattedPhone,
           phoneValidated,
           smsConsent,
           smsConsentDate
         },
         update: {
+          // CRITICAL FIX: Always update ALL fields that are sent from frontend
+          // Empty strings should become null in database
           pronouns: data.pronouns || null,
           age: data.age ? parseInt(String(data.age)) : null,
           relationshipStatus: data.relationshipStatus || null,
@@ -509,6 +529,13 @@ export async function PUT(request: Request) {
           smsConsent,
           smsConsentDate
         }
+      })
+      
+      console.log(`[Profile API] Upsert result for user ${user.id}:`, {
+        pronouns: upsertResult.pronouns,
+        age: upsertResult.age,
+        partnerName: upsertResult.partnerName,
+        updatedAt: upsertResult.updatedAt
       })
       
       // Update family members - Delete existing first
@@ -552,33 +579,106 @@ export async function PUT(request: Request) {
       // Store count for debug output
       familyMembersCreatedCount = familyMembersToCreate.length
       
-      return user
+      // Fetch the complete updated profile within the transaction to ensure consistency
+      // Add small delay to ensure upsert is fully committed in the transaction
+      const updatedUserWithProfile = await tx.user.findUnique({
+        where: { id: user.id },
+        include: {
+          profile: true,
+          familyMembers: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' }
+          }
+        }
+      })
+      
+      // Log what we're about to return
+      console.log(`[Profile API] Transaction result - user ${user.id} profile:`, {
+        pronouns: updatedUserWithProfile?.profile?.pronouns,
+        age: updatedUserWithProfile?.profile?.age,
+        partnerName: updatedUserWithProfile?.profile?.partnerName,
+        hasProfile: !!updatedUserWithProfile?.profile
+      })
+      
+      return updatedUserWithProfile
     })
     
     console.log(`[Profile API] Profile update transaction completed for user ${updatedUser.id}`)
     
-    // Invalidate cache comprehensively
+    // CRITICAL: Invalidate ALL cache layers comprehensively BEFORE setting new cache
     try {
+      // Clear ALL possible cache keys used by different parts of the system
       await Promise.all([
+        // Clear the cache used by findUserByEmailOptimized in GET handler
         profileCache.invalidate(cacheKeys.userProfileByEmail(session.user.email)),
+        // Clear user ID based cache
         updatedUser.id ? profileCache.invalidate(cacheKeys.userProfile(updatedUser.id)) : Promise.resolve(),
-        // Also invalidate pattern to clear any related cache entries
-        profileCache.invalidatePattern(`profile:*${session.user.email}*`)
+        // Clear any pattern-based caches
+        profileCache.invalidatePattern(`profile:*${session.user.email}*`),
+        profileCache.invalidatePattern(`profile:*${updatedUser.id}*`),
+        // Also clear the optimized query cache key format
+        profileCache.invalidate(`user:email:${session.user.email}`),
+        profileCache.invalidate(`user:id:${updatedUser.id}`)
       ])
-      console.log(`[Profile API] Cache invalidated successfully for ${session.user.email}`)
+      console.log(`[Profile API] Cache invalidated successfully for all layers - email: ${session.user.email}, id: ${updatedUser.id}`)
     } catch (cacheError) {
       console.error(`[Profile API] Cache invalidation failed:`, cacheError)
       // Don't fail the request if cache invalidation fails
     }
     
-    return NextResponse.json({ 
-      message: "Profile updated successfully",
-      user: { id: updatedUser.id, email: updatedUser.email },
-      debug: process.env.NODE_ENV === 'development' ? {
-        processedFields: Object.keys(data),
-        familyMembersCreated: familyMembersCreatedCount
-      } : undefined
+    // Use the profile data from the transaction (already fetched)
+    if (!updatedUser || !updatedUser.profile) {
+      throw new Error('Failed to fetch updated profile from transaction')
+    }
+    
+    // Build family member data for response
+    const familyMemberData: any = {}
+    for (let i = 1; i <= 7; i++) {
+      const member = updatedUser.familyMembers[i - 1]
+      familyMemberData[`familyMember${i}`] = member?.name || ""
+      familyMemberData[`familyMember${i}Age`] = member?.age || null
+      familyMemberData[`familyMember${i}Relation`] = member?.relationship || ""
+    }
+    
+    // Build the complete profile response matching GET format
+    const responseData = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name || "",
+      pronouns: updatedUser.profile?.pronouns || "",
+      age: updatedUser.profile?.age || null,
+      partnerName: updatedUser.profile?.partnerName || "",
+      partnerAge: updatedUser.profile?.partnerAge || null,
+      relationshipStatus: updatedUser.profile?.relationshipStatus || "",
+      ...familyMemberData,
+      currentConcerns: updatedUser.profile?.currentConcerns || null,
+      emergencyContact: updatedUser.profile?.emergencyContact || "",
+      sessionPreference: updatedUser.profile?.sessionPreference || "",
+      preferredDays: updatedUser.profile?.preferredDays || null,
+      sessionFrequency: updatedUser.profile?.sessionFrequency || "",
+      recurringSession: updatedUser.profile?.recurringSession || "",
+      reminderTiming: updatedUser.profile?.reminderTiming || "",
+      communicationStyle: updatedUser.profile?.communicationStyle || "",
+      additionalNotes: updatedUser.profile?.additionalNotes || "",
+      onboardingCompleted: updatedUser.onboardingCompleted || false,
+      onboardingData: updatedUser.onboardingData || null,
+      phone: updatedUser.profile?.phone || "",
+      notificationPrefs: updatedUser.profile?.notificationPrefs || "email",
+      hasSeenIntro: updatedUser.hasSeenIntro || false
+    }
+    
+    // Cache the updated response
+    const cacheKey = cacheKeys.userProfileByEmail(session.user.email)
+    await profileCache.set(cacheKey, responseData)
+    
+    console.log(`[Profile API] Returning updated profile data for ${session.user.email}:`, {
+      pronouns: responseData.pronouns,
+      age: responseData.age,
+      partnerName: responseData.partnerName,
+      familyMember1: responseData.familyMember1
     })
+    
+    return NextResponse.json(responseData)
     
   } catch (error) {
     console.error("[Profile API] Update error:", error)
