@@ -11,6 +11,7 @@ import { EnhancedSchedulerModal } from '@/components/enhanced-scheduler/Enhanced
 import { CalendarOAuth } from '@/lib/calendar-oauth'
 import TherapeuticBokehBackground from '@/components/ui/therapeutic-bokeh-background'
 import { UserPreferences } from '@/lib/enhanced-scheduler/types'
+import { formatInUserTimezone, getUserTimezone, formatSessionTime, getSessionBadgeInfo } from '@/lib/date-utils'
 
 interface Session {
   id: string
@@ -259,7 +260,11 @@ export default function ScheduleClient() {
                 </div>
                 {upcomingSessions.length > 0 ? (
                   <p className="text-sm text-gray-300">
-                    {new Date(upcomingSessions[0].startTime).toLocaleString()}
+                    {formatInUserTimezone(
+                      upcomingSessions[0].startTime,
+                      'MMM d, yyyy h:mm a',
+                      getUserTimezone(profile?.timezone)
+                    )}
                   </p>
                 ) : (
                   <p className="text-sm text-gray-400">No upcoming sessions</p>
@@ -388,7 +393,11 @@ export default function ScheduleClient() {
                             {session.therapyType} Therapy Session
                           </h3>
                           <p className="text-sm text-gray-300 mt-1">
-                            {new Date(session.startTime).toLocaleString()}
+                            {formatInUserTimezone(
+                              session.startTime,
+                              'MMM d, yyyy h:mm a',
+                              getUserTimezone(profile?.timezone)
+                            )}
                           </p>
                           <p className="text-sm text-gray-400 mt-1">
                             Duration: {session.duration} minutes
