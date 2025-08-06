@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 
 export default function ProfileLoadingSpinner() {
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="relative">
+    <div className="fixed inset-0 w-full h-full bg-gray-900 flex items-center justify-center px-4 py-8 overflow-y-auto">
+      <div className="relative flex flex-col items-center justify-center">
         {/* Modern 2025 Multi-Ring Loader with Morphing Effect */}
-        <div className="profile-loader-container">
+        <div className="profile-loader-container scale-75 sm:scale-90 md:scale-100 lg:scale-110">
           {/* Outer morphing ring */}
           <div className="morph-ring outer-ring">
             <div className="ring-segment"></div>
@@ -18,7 +18,7 @@ export default function ProfileLoadingSpinner() {
           
           {/* Middle pulsing ring */}
           <div className="pulse-ring middle-ring">
-            <svg width="120" height="120" viewBox="0 0 120 120">
+            <svg className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32" viewBox="0 0 120 120">
               <circle
                 cx="60"
                 cy="60"
@@ -59,7 +59,7 @@ export default function ProfileLoadingSpinner() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="mt-12 text-center"
+          className="mt-8 sm:mt-10 md:mt-12 text-center"
         >
           <div className="loading-text">
             <span className="letter letter-1">L</span>
@@ -78,7 +78,7 @@ export default function ProfileLoadingSpinner() {
             <span className="letter letter-14">e</span>
             <span className="dots-animate">...</span>
           </div>
-          <div className="text-sm text-gray-500 mt-2 opacity-75">
+          <div className="text-xs sm:text-sm text-gray-500 mt-2 opacity-75">
             Preparing your personalized experience
           </div>
         </motion.div>
@@ -87,11 +87,25 @@ export default function ProfileLoadingSpinner() {
       <style jsx>{`
         .profile-loader-container {
           position: relative;
-          width: 200px;
-          height: 200px;
+          width: 160px;
+          height: 160px;
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+        
+        @media (min-width: 640px) {
+          .profile-loader-container {
+            width: 180px;
+            height: 180px;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .profile-loader-container {
+            width: 200px;
+            height: 200px;
+          }
         }
         
         /* Morphing outer ring */
@@ -104,14 +118,28 @@ export default function ProfileLoadingSpinner() {
         
         .ring-segment {
           position: absolute;
-          width: 180px;
-          height: 180px;
+          width: 140px;
+          height: 140px;
           border: 2px solid transparent;
           border-top-color: rgba(96, 165, 250, 0.8);
           border-radius: 50%;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
+        }
+        
+        @media (min-width: 640px) {
+          .ring-segment {
+            width: 160px;
+            height: 160px;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .ring-segment {
+            width: 180px;
+            height: 180px;
+          }
         }
         
         .ring-segment:nth-child(1) {
@@ -140,12 +168,26 @@ export default function ProfileLoadingSpinner() {
         /* Middle pulsing ring */
         .pulse-ring {
           position: absolute;
-          width: 120px;
-          height: 120px;
+          width: 96px;
+          height: 96px;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
           animation: pulseScale 2s ease-in-out infinite;
+        }
+        
+        @media (min-width: 640px) {
+          .pulse-ring {
+            width: 112px;
+            height: 112px;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .pulse-ring {
+            width: 120px;
+            height: 120px;
+          }
         }
         
         .rotating-stroke {
@@ -156,21 +198,49 @@ export default function ProfileLoadingSpinner() {
         /* Inner spinning dots */
         .dots-container {
           position: absolute;
-          width: 60px;
-          height: 60px;
+          width: 48px;
+          height: 48px;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
           animation: dotsRotate 2s linear infinite;
         }
         
+        @media (min-width: 640px) {
+          .dots-container {
+            width: 54px;
+            height: 54px;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .dots-container {
+            width: 60px;
+            height: 60px;
+          }
+        }
+        
         .dot {
           position: absolute;
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           border-radius: 50%;
           box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+        
+        @media (min-width: 640px) {
+          .dot {
+            width: 7px;
+            height: 7px;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .dot {
+            width: 8px;
+            height: 8px;
+          }
         }
         
         .dot-1 {
@@ -204,11 +274,25 @@ export default function ProfileLoadingSpinner() {
         /* Center pulse effect */
         .center-pulse {
           position: absolute;
-          width: 30px;
-          height: 30px;
+          width: 24px;
+          height: 24px;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
+        }
+        
+        @media (min-width: 640px) {
+          .center-pulse {
+            width: 27px;
+            height: 27px;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .center-pulse {
+            width: 30px;
+            height: 30px;
+          }
         }
         
         .pulse-core {
@@ -221,12 +305,24 @@ export default function ProfileLoadingSpinner() {
         
         /* Loading text animation */
         .loading-text {
-          font-size: 1.25rem;
+          font-size: 1rem;
           font-weight: 500;
           color: #e5e7eb;
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+        
+        @media (min-width: 640px) {
+          .loading-text {
+            font-size: 1.125rem;
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .loading-text {
+            font-size: 1.25rem;
+          }
         }
         
         .letter {

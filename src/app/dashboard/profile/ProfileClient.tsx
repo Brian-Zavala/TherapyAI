@@ -279,20 +279,28 @@ export default function ProfileClient() {
   }
 
   // Show loading state until profile is loaded AND form is initialized
-  if (isLoading || (profile && !isInitialized)) {
+  // Also show loading if we're still waiting for initial data
+  if (isLoading || (profile && !isInitialized) || (!profile && isLoading)) {
     return <ProfileLoadingSpinner />
   }
   
-  // Also handle case where profile doesn't exist (new user)
-  if (!isLoading && !profile) {
+  // Only show "No profile found" if we're not loading AND truly have no profile
+  // This prevents the message from flashing during initial load
+  if (!isLoading && !profile && isInitialized) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gray-900 flex items-center justify-center px-4">
         <div className="text-white text-center">
-          <p className="text-xl mb-4">No profile found</p>
-          <p className="text-gray-400">Please complete your onboarding first</p>
+          <p className="text-xl sm:text-2xl mb-4">No profile found</p>
+          <p className="text-gray-400 text-sm sm:text-base">Please complete your onboarding first</p>
         </div>
       </div>
     )
+  }
+  
+  // If we're not loading but also not initialized and have no profile, show loading
+  // This catches edge cases where isLoading might be false but we're still initializing
+  if (!isInitialized) {
+    return <ProfileLoadingSpinner />
   }
 
   return (
