@@ -116,40 +116,64 @@ export interface SMSResult {
   mock?: boolean;
 }
 
-// Message templates with compliance
+// Modern 2025 Message Templates - Clean, Professional, No Emojis
 export const SMS_TEMPLATES = {
   SESSION_REMINDER: {
     template: (data: { date: string; duration: number; shortUrl?: string }) =>
       data.shortUrl 
-        ? `Your wellness session awaits\n📅 ${data.date}\n⏱ ${data.duration}min\n🔗 ${data.shortUrl}\nSTOP to unsub`
-        : `Wellness reminder: Your ${data.duration}min session is ${data.date}. We're here for your journey. STOP to unsub.`,
+        ? `Therapy Space\n\nSession: ${data.date}\n${data.duration} minutes\n\nJoin: ${data.shortUrl}\n\nReply STOP to opt out`
+        : `Therapy Space: Your ${data.duration}-minute session is ${data.date}. We're ready to support you. Reply STOP to opt out.`,
     maxLength: 160
   },
   SESSION_REMINDER_ONE_HOUR: {
     template: (data: { date: string; duration: number; shortUrl?: string }) =>
-      `Ready to connect? Your session starts in 1 HOUR\n⏰ ${data.date}\nJoin now: ${data.shortUrl}\nSTOP to unsub`,
+      data.shortUrl
+        ? `Therapy Space\n\nStarting in 1 HOUR\n${data.date}\n\nQuick join: ${data.shortUrl}\n\nPrepare for your ${data.duration}min journey`
+        : `Therapy Space: Session begins in 1 HOUR at ${data.date}. Time to prepare for your ${data.duration}-minute session.`,
     maxLength: 160
   },
   SESSION_CONFIRMATION: {
-    template: (data: { date: string; duration: number }) =>
-      `✓ Session confirmed!\n${data.date}\n${data.duration} minutes of growth awaits.\nWe'll remind you 24h before.\nSTOP to unsub`,
+    template: (data: { date: string; duration: number; shortUrl?: string }) =>
+      data.shortUrl
+        ? `Therapy Space\n\nConfirmed: ${data.date}\n${data.duration} minutes\n\nDetails: ${data.shortUrl}\n\n24hr reminder scheduled`
+        : `Therapy Space: Confirmed for ${data.date} (${data.duration} min). We'll remind you 24hrs before. Reply STOP to opt out.`,
     maxLength: 160
   },
   SESSION_CANCELLATION: {
-    template: (data: { date: string; reason?: string }) =>
-      `Session update: ${data.date} cancelled.${data.reason ? ` ${data.reason}` : ''} Reschedule when ready. STOP to unsub`,
+    template: (data: { date: string; reason?: string; shortUrl?: string }) =>
+      data.shortUrl
+        ? `Therapy Space\n\nCancelled: ${data.date}\n${data.reason ? `Reason: ${data.reason}\n` : ''}\nReschedule: ${data.shortUrl}`
+        : `Therapy Space: ${data.date} cancelled.${data.reason ? ` ${data.reason}.` : ''} Reschedule when ready.`,
     maxLength: 160
   },
   RESCHEDULE_REQUEST: {
-    template: (data: { oldDate: string; newDate: string }) =>
-      `Your session needs rescheduling from ${data.oldDate} to ${data.newDate}. Reply YES to confirm or NO to keep original. STOP to unsubscribe.`,
+    template: (data: { oldDate: string; newDate: string; shortUrl?: string }) =>
+      data.shortUrl
+        ? `Therapy Space\n\nReschedule needed:\nFrom: ${data.oldDate}\nTo: ${data.newDate}\n\nConfirm: ${data.shortUrl}`
+        : `Therapy Space: Reschedule from ${data.oldDate} to ${data.newDate}? Reply YES/NO. STOP to opt out.`,
     maxLength: 160
   },
   SESSION_COMPLETED: {
-    template: (data: { duration: number; nextSessionDate?: string }) =>
-      nextSessionDate
-        ? `Great session! Duration: ${data.duration}min. Next: ${nextSessionDate}. Reply STOP to unsub.`
-        : `Session completed! Duration: ${data.duration}min. Schedule your next session. Reply STOP to unsub.`,
+    template: (data: { duration: number; nextSessionDate?: string; shortUrl?: string }) =>
+      data.shortUrl
+        ? `Therapy Space\n\nSession complete (${data.duration}min)\n${nextSessionDate ? `Next: ${nextSessionDate}\n` : ''}\nReflect: ${data.shortUrl}`
+        : nextSessionDate
+          ? `Therapy Space: Well done! ${data.duration}min completed. Next: ${nextSessionDate}. Keep growing!`
+          : `Therapy Space: ${data.duration}min session complete. Ready to schedule your next step forward?`,
+    maxLength: 160
+  },
+  // New template for instant session start
+  SESSION_START_NOW: {
+    template: (data: { shortUrl: string; duration: number }) =>
+      `Therapy Space\n\nYour ${data.duration}min session is ready\n\nStart now: ${data.shortUrl}\n\nWe're here for you`,
+    maxLength: 160
+  },
+  // Welcome message after scheduling
+  WELCOME_SCHEDULED: {
+    template: (data: { name: string; date: string; shortUrl?: string }) =>
+      data.shortUrl
+        ? `Welcome ${data.name}!\n\nFirst session: ${data.date}\n\nPrepare: ${data.shortUrl}\n\nYour journey begins`
+        : `Welcome to Therapy Space, ${data.name}! First session: ${data.date}. We're honored to support you.`,
     maxLength: 160
   }
 };
@@ -345,14 +369,14 @@ export const sendSessionReminder = async (
   duration: number,
   options?: Partial<SMSOptions> & { shortUrl?: string; isOneHour?: boolean }
 ): Promise<SMSResult> => {
+  // Format date for better readability in SMS
   const formattedDate = sessionDate.toLocaleString('en-US', {
-    weekday: 'short',
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  });
+  }).replace(',', ' at');
 
   const template = options?.isOneHour 
     ? SMS_TEMPLATES.SESSION_REMINDER_ONE_HOUR 
@@ -376,11 +400,12 @@ export const sendSessionConfirmation = async (
   phoneNumber: string,
   sessionDate: Date,
   duration: number,
-  options?: Partial<SMSOptions>
+  options?: Partial<SMSOptions> & { shortUrl?: string }
 ): Promise<SMSResult> => {
+  // Shorter format for confirmation
   const formattedDate = sessionDate.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
@@ -389,7 +414,56 @@ export const sendSessionConfirmation = async (
 
   const body = SMS_TEMPLATES.SESSION_CONFIRMATION.template({
     date: formattedDate,
-    duration
+    duration,
+    shortUrl: options?.shortUrl
+  });
+  
+  return sendSMS({
+    to: formatPhoneNumber(phoneNumber),
+    body,
+    ...options
+  });
+};
+
+// Send instant session start notification
+export const sendInstantSessionStart = async (
+  phoneNumber: string,
+  duration: number,
+  shortUrl: string,
+  options?: Partial<SMSOptions>
+): Promise<SMSResult> => {
+  const body = SMS_TEMPLATES.SESSION_START_NOW.template({
+    duration,
+    shortUrl
+  });
+  
+  return sendSMS({
+    to: formatPhoneNumber(phoneNumber),
+    body,
+    priority: 'high',
+    ...options
+  });
+};
+
+// Send welcome message after first scheduling
+export const sendWelcomeScheduled = async (
+  phoneNumber: string,
+  name: string,
+  sessionDate: Date,
+  options?: Partial<SMSOptions> & { shortUrl?: string }
+): Promise<SMSResult> => {
+  const formattedDate = sessionDate.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  const body = SMS_TEMPLATES.WELCOME_SCHEDULED.template({
+    name: name.split(' ')[0], // First name only for SMS
+    date: formattedDate,
+    shortUrl: options?.shortUrl
   });
   
   return sendSMS({
@@ -401,7 +475,7 @@ export const sendSessionConfirmation = async (
 
 // Handle SMS opt-out (STOP keyword)
 export const handleOptOut = async (phoneNumber: string, keyword: string): Promise<void> => {
-  if (['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(keyword.toUpperCase())) {
+  if (['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'OPTOUT'].includes(keyword.toUpperCase())) {
     // Find user by phone number
     const user = await prisma.user.findFirst({
       where: {
@@ -421,10 +495,10 @@ export const handleOptOut = async (phoneNumber: string, keyword: string): Promis
       }
     });
     
-    // Send confirmation (required by regulations)
+    // Send confirmation (required by regulations) - clean, professional tone
     await sendSMS({
       to: phoneNumber,
-      body: 'You have been unsubscribed from therapy session SMS notifications. Reply START to resubscribe.',
+      body: 'Therapy Space: You\'ve been unsubscribed from SMS notifications. Reply START to resubscribe anytime.',
       priority: 'high'
     });
   }
@@ -445,10 +519,10 @@ export const handleOptIn = async (phoneNumber: string, keyword: string): Promise
       }
     });
     
-    // Send confirmation
+    // Send confirmation - welcoming tone
     await sendSMS({
       to: phoneNumber,
-      body: 'Welcome back! You have been resubscribed to therapy session SMS notifications. Reply STOP to unsubscribe.',
+      body: 'Therapy Space: Welcome back! You\'ll receive session reminders via SMS. Reply STOP to opt out.',
       priority: 'high'
     });
   }
@@ -459,6 +533,8 @@ export default {
   sendSMS,
   sendSessionReminder,
   sendSessionConfirmation,
+  sendInstantSessionStart,
+  sendWelcomeScheduled,
   formatPhoneNumber,
   validatePhoneNumber,
   calculateSegments,

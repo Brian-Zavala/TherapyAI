@@ -406,21 +406,21 @@ export class NotificationService {
     const communicationStyle = user?.profile?.communicationStyle || 'balanced';
     const isOneHourReminder = reminderType === '1_hour';
     
-    // Personalize subject based on communication style and timing
+    // Modern subject lines without emojis - professional and therapeutic
     let subject = '';
     if (isOneHourReminder) {
       subject = communicationStyle === 'gentle' 
-        ? 'Your therapy session starts soon 💚'
+        ? 'Your healing journey continues soon'
         : communicationStyle === 'direct'
         ? 'Session starting in 1 hour'
-        : 'Reminder: Your therapy session starts in 1 hour';
+        : 'Therapy Space: Your session begins in 1 hour';
     } else {
       const timeText = this.getTimeText(reminderType);
       subject = communicationStyle === 'gentle'
-        ? `Your upcoming therapy session ${timeText} 🌟`
+        ? `A gentle reminder: Your session ${timeText}`
         : communicationStyle === 'direct'
-        ? `Therapy session ${timeText}`
-        : `Reminder: Therapy session ${timeText}`;
+        ? `Session ${timeText}`
+        : `Therapy Space: Session scheduled ${timeText}`;
     }
 
     // Generate HTML content using React Email template
@@ -454,10 +454,15 @@ export class NotificationService {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit'
-    });
+    }).replace(',', ' at');
 
-    // Keep SMS concise but informative
-    return `Therapy AI: Your ${session.duration}min session ${timeText} (${sessionTime}). Ready to connect? Dashboard: ${process.env.NEXTAUTH_URL}/dashboard Reply STOP to opt out.`;
+    // Modern SMS format - clean and professional
+    const isOneHour = reminderType === '1_hour';
+    if (isOneHour) {
+      return `Therapy Space\n\nStarting in 1 HOUR\n${sessionTime}\n\nYour ${session.duration}-minute journey awaits`;
+    } else {
+      return `Therapy Space\n\nSession ${timeText}\n${sessionTime}\n${session.duration} minutes\n\nWe're ready to support you`;
+    }
   }
 
   private generatePushContent(

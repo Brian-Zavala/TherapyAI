@@ -100,6 +100,17 @@ export async function GET(request: Request) {
         if (!session.emailReminderSent && session.user.email && shouldSendEmail(session)) {
           try {
             const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            
+            // Create notification tracking token
+            const { token, expiresAt } = await createSessionNotificationToken(
+              session.id,
+              session.userId,
+              'email'
+            );
+            
+            // Generate tracking URLs
+            const urls = generateNotificationUrls(baseUrl, session.id, token);
+            
             await resend.emails.send({
               from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
               to: session.user.email,
@@ -110,6 +121,10 @@ export async function GET(request: Request) {
                 duration: session.duration,
                 notes: session.notes || '',
                 baseUrl: baseUrl,
+                trackingToken: token,
+                sessionId: session.id,
+                communicationStyle: session.user.profile?.communicationStyle as any,
+                sessionTheme: session.theme,
               }) as any,
             });
             updates.emailReminderSent = true;
@@ -122,6 +137,18 @@ export async function GET(request: Request) {
         // Send SMS reminder if user wants SMS and hasn't been sent
         if (!session.smsReminderSent && shouldSendSMS(session) && session.user.profile?.phone) {
           try {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            
+            // Create notification tracking token for SMS
+            const { token, shortToken, expiresAt } = await createSessionNotificationToken(
+              session.id,
+              session.userId,
+              'sms'
+            );
+            
+            // Generate tracking URLs
+            const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
+            
             const smsResult = await sendSessionReminder(
               session.user.profile.phone,
               session.date,
@@ -129,7 +156,8 @@ export async function GET(request: Request) {
               {
                 userId: session.user.id,
                 sessionId: session.id,
-                priority: 'high'
+                priority: 'high',
+                shortUrl: urls.shortUrl
               }
             );
             
@@ -166,6 +194,17 @@ export async function GET(request: Request) {
         if (session.user.email && shouldSendEmail(session)) {
           try {
             const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            
+            // Create notification tracking token for 1-hour reminder
+            const { token, expiresAt } = await createSessionNotificationToken(
+              session.id,
+              session.userId,
+              'email'
+            );
+            
+            // Generate tracking URLs
+            const urls = generateNotificationUrls(baseUrl, session.id, token);
+            
             await resend.emails.send({
               from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
               to: session.user.email,
@@ -175,8 +214,12 @@ export async function GET(request: Request) {
                 sessionDate: session.date,
                 duration: session.duration,
                 notes: session.notes || '',
-                isOneHourReminder: true, // Add this to customize the email template
+                isOneHourReminder: true,
                 baseUrl: baseUrl,
+                trackingToken: token,
+                sessionId: session.id,
+                communicationStyle: session.user.profile?.communicationStyle as any,
+                sessionTheme: session.theme,
               }) as any,
             });
             sentReminder = true;
@@ -189,6 +232,18 @@ export async function GET(request: Request) {
         // Send SMS 1-hour reminder if user wants SMS
         if (shouldSendSMS(session) && session.user.profile?.phone) {
           try {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            
+            // Create notification tracking token for SMS 1-hour reminder
+            const { token, shortToken, expiresAt } = await createSessionNotificationToken(
+              session.id,
+              session.userId,
+              'sms'
+            );
+            
+            // Generate tracking URLs
+            const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
+            
             const smsResult = await sendSessionReminder(
               session.user.profile.phone,
               session.date,
@@ -196,7 +251,9 @@ export async function GET(request: Request) {
               {
                 userId: session.user.id,
                 sessionId: session.id,
-                priority: 'high'
+                priority: 'high',
+                shortUrl: urls.shortUrl,
+                isOneHour: true
               }
             );
             
