@@ -1,27 +1,216 @@
 'use client'
 
-import React from 'react'
-import { X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, ChevronLeft, ChevronRight, Calendar, Clock, Users, FileText, Loader, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { DatePicker } from './DatePicker'
+import { TimeSlotPicker } from './TimeSlotPicker'
+import { TherapyTypeSelector } from './TherapyTypeSelector'
+import { SessionDurationPicker } from './SessionDurationPicker'
+import { RecurringSessionOptions } from './RecurringSessionOptions'
+import { SessionNotesForm } from './SessionNotesForm'
+import { TherapyType } from '@prisma/client'
+import { getUserTimezone, formatSessionTime } from '@/lib/date-utils'
+import { useProfile } from '@/providers/ProfileProvider'
 
 interface EnhancedSchedulerModalProps {
   isOpen: boolean
   onClose: () => void
   sessionToEdit?: any
   onSchedule?: (data: any) => void
+  userPreferences?: any
+  calendarIntegrations?: any[]
 }
+
+interface SchedulerStep {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+const steps: SchedulerStep[] = [
+  { id: 'date', label: 'Date', icon: Calendar },
+  { id: 'time', label: 'Time', icon: Clock },
+  { id: 'type', label: 'Type', icon: Users },
+  { id: 'duration', label: 'Duration', icon: Clock },
+  { id: 'notes', label: 'Details', icon: FileText }
+]
 
 export function EnhancedSchedulerModal({ 
   isOpen, 
   onClose, 
   sessionToEdit,
-  onSchedule 
+  onSchedule,
+  userPreferences,
+  calendarIntegrations = []
 }: EnhancedSchedulerModalProps) {
+  const { profile } = useProfile()
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Form state
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null)
+  const [therapyType, setTherapyType] = useState<TherapyType>('INDIVIDUAL')
+  const [duration, setDuration] = useState(60)
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurringFrequency, setRecurringFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly')
+  const [recurringEndDate, setRecurringEndDate] = useState<Date | null>(null)
+  const [recurringSessionCount, setRecurringSessionCount] = useState(4)
+  const [notes, setNotes] = useState('')
+  const [goals, setGoals] = useState<string[]>([])
+  const [focusAreas, setFocusAreas] = useState<string[]>([])
+  
+  const timezone = getUserTimezone(profile?.timezone)
+  
+  // Initialize from edit session
+  useEffect(() => {
+    if (sessionToEdit) {
+      setSelectedDate(new Date(sessionToEdit.startTime))
+      setSelectedTime(new Date(sessionToEdit.startTime))
+      setTherapyType(sessionToEdit.therapyType as TherapyType || 'INDIVIDUAL')
+      setDuration(sessionToEdit.duration || 60)
+      setNotes(sessionToEdit.notes || '')
+    }
+  }, [sessionToEdit])
+  
+  // Initialize from user preferences
+  useEffect(() => {
+    if (userPreferences && !sessionToEdit) {
+      if (userPreferences.therapyType) {
+        setTherapyType(userPreferences.therapyType)
+      }
+      if (userPreferences.recurringSession === 'yes') {
+        setIsRecurring(true)
+        setRecurringFrequency(userPreferences.sessionFrequency || 'weekly')
+      }
+    }
+  }, [userPreferences, sessionToEdit])
+  
+  const canProceed = () => {
+    switch (currentStep) {
+      case 0: return selectedDate !== null
+      case 1: return selectedTime !== null
+      case 2: return therapyType !== null
+      case 3: return duration > 0
+      case 4: return true // Notes are optional
+      default: return false
+    }
+  }
+  
+  const handleNext = () => {
+    if (canProceed() && currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+  
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+  
+  const handleSubmit = async () => {
+    if (!selectedDate || !selectedTime) return
+    
+    setIsSubmitting(true)
+    
+    try {
+      const sessionData = {
+        date: selectedTime.toISOString(),
+        duration,
+        therapyType,
+        notes,
+        goals,
+        focusAreas,
+        isRecurring,
+        recurringFrequency: isRecurring ? recurringFrequency : undefined,
+        recurringEndDate: isRecurring && recurringEndDate ? recurringEndDate.toISOString() : undefined,
+        recurringSessionCount: isRecurring && !recurringEndDate ? recurringSessionCount : undefined,
+        sessionId: sessionToEdit?.id
+      }
+      
+      await onSchedule?.(sessionData)
+    } catch (error) {
+      console.error('Error scheduling session:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
   if (!isOpen) return null
+  
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <DatePicker
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            timezone={timezone}
+          />
+        )
+      case 1:
+        return (
+          <TimeSlotPicker
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            onTimeSelect={setSelectedTime}
+            timezone={timezone}
+            duration={duration}
+          />
+        )
+      case 2:
+        return (
+          <TherapyTypeSelector
+            selectedType={therapyType}
+            onTypeSelect={setTherapyType}
+            partnerConnected={!!profile?.partnerId}
+            familyMembersCount={profile?.familyMembers?.length || 0}
+          />
+        )
+      case 3:
+        return (
+          <div className="space-y-6">
+            <SessionDurationPicker
+              selectedDuration={duration}
+              onDurationSelect={setDuration}
+              therapyType={therapyType}
+            />
+            <RecurringSessionOptions
+              isRecurring={isRecurring}
+              onRecurringChange={setIsRecurring}
+              frequency={recurringFrequency}
+              onFrequencyChange={setRecurringFrequency}
+              endDate={recurringEndDate}
+              onEndDateChange={setRecurringEndDate}
+              sessionCount={recurringSessionCount}
+              onSessionCountChange={setRecurringSessionCount}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+            />
+          </div>
+        )
+      case 4:
+        return (
+          <SessionNotesForm
+            notes={notes}
+            onNotesChange={setNotes}
+            goals={goals}
+            onGoalsChange={setGoals}
+            focusAreas={focusAreas}
+            onFocusAreasChange={setFocusAreas}
+            therapyType={therapyType}
+          />
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -36,59 +225,143 @@ export function EnhancedSchedulerModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative z-10 w-full max-w-2xl mx-4 bg-gray-800 rounded-xl p-6 shadow-xl"
+          className="relative z-10 w-full max-w-4xl bg-gray-900 rounded-xl shadow-xl overflow-hidden"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-white">
-              {sessionToEdit ? 'Edit Session' : 'Schedule Session'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
-          
-          <div className="space-y-6">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-              <p className="text-blue-400 text-sm">
-                ℹ️ Enhanced scheduling with calendar integration and advanced features is coming soon!
-              </p>
+          {/* Header */}
+          <div className="bg-gray-800 px-6 py-4 border-b border-gray-700">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-white">
+                {sessionToEdit ? 'Reschedule Session' : 'Schedule New Session'}
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
             </div>
             
-            <div className="space-y-4">
-              <p className="text-gray-300">
-                For now, let's get you scheduled with our standard booking:
-              </p>
-              
-              <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
-                <div>
-                  <label className="text-sm text-gray-400">Session Type</label>
-                  <p className="text-white">{sessionToEdit ? 'Editing Session' : 'New 60-minute Session'}</p>
-                </div>
+            {/* Step Indicators */}
+            <div className="flex items-center gap-2 mt-4">
+              {steps.map((step, idx) => {
+                const Icon = step.icon
+                const isActive = idx === currentStep
+                const isCompleted = idx < currentStep
                 
-                <div>
-                  <label className="text-sm text-gray-400">When</label>
-                  <p className="text-white">Next available slot</p>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => {
-                  onSchedule?.({ 
-                    date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-                    duration: 60
-                  })
-                }}
-                className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                return (
+                  <React.Fragment key={step.id}>
+                    <button
+                      onClick={() => isCompleted && setCurrentStep(idx)}
+                      disabled={!isCompleted}
+                      className={`
+                        flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all
+                        ${isActive 
+                          ? 'bg-blue-600 text-white' 
+                          : isCompleted
+                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 cursor-pointer'
+                          : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                        }
+                      `}
+                    >
+                      {isCompleted && !isActive ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        <Icon className="w-4 h-4" />
+                      )}
+                      <span className="text-sm font-medium">{step.label}</span>
+                    </button>
+                    {idx < steps.length - 1 && (
+                      <div className={`w-8 h-0.5 ${
+                        idx < currentStep ? 'bg-blue-600' : 'bg-gray-700'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
               >
-                Schedule Session Now
+                {renderStepContent()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          
+          {/* Footer */}
+          <div className="bg-gray-800 px-6 py-4 border-t border-gray-700">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg transition-all
+                  ${currentStep === 0
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }
+                `}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
               </button>
               
-              <p className="text-xs text-gray-500 text-center">
-                You'll receive an email confirmation with session details
-              </p>
+              <div className="flex items-center gap-3">
+                {selectedTime && (
+                  <div className="text-sm text-gray-400">
+                    {formatSessionTime(selectedTime, duration, timezone).date} at {formatSessionTime(selectedTime, duration, timezone).time}
+                  </div>
+                )}
+                
+                {currentStep === steps.length - 1 ? (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !canProceed()}
+                    className={`
+                      flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all
+                      ${isSubmitting || !canProceed()
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                      }
+                    `}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Scheduling...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        {sessionToEdit ? 'Update Session' : 'Schedule Session'}
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNext}
+                    disabled={!canProceed()}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-lg transition-all
+                      ${!canProceed()
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }
+                    `}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
