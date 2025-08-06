@@ -50,20 +50,46 @@ export function EnhancedSchedulerModal({
             </button>
           </div>
           
-          <div className="space-y-4">
-            <p className="text-gray-400">
-              Enhanced scheduling features coming soon. For now, please use the standard scheduling.
-            </p>
+          <div className="space-y-6">
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+              <p className="text-blue-400 text-sm">
+                ℹ️ Enhanced scheduling with calendar integration and advanced features is coming soon!
+              </p>
+            </div>
             
-            <button
-              onClick={() => {
-                onSchedule?.({ date: new Date().toISOString() })
-                onClose()
-              }}
-              className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Schedule Standard Session
-            </button>
+            <div className="space-y-4">
+              <p className="text-gray-300">
+                For now, let's get you scheduled with our standard booking:
+              </p>
+              
+              <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+                <div>
+                  <label className="text-sm text-gray-400">Session Type</label>
+                  <p className="text-white">{sessionToEdit ? 'Editing Session' : 'New 60-minute Session'}</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm text-gray-400">When</label>
+                  <p className="text-white">Next available slot</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => {
+                  onSchedule?.({ 
+                    date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+                    duration: 60
+                  })
+                }}
+                className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                Schedule Session Now
+              </button>
+              
+              <p className="text-xs text-gray-500 text-center">
+                You'll receive an email confirmation with session details
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -451,6 +451,36 @@ export default function ScheduleClient() {
             sessionToEdit={sessionToEdit}
             userPreferences={userPreferences}
             calendarIntegrations={calendarIntegrations}
+            onSchedule={async (sessionData) => {
+              try {
+                const response = await fetch('/api/sessions/schedule', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    date: sessionData.date || new Date().toISOString(),
+                    duration: sessionData.duration || 60,
+                    therapyType: profile?.therapyType || 'INDIVIDUAL',
+                    notes: sessionData.notes || ''
+                  })
+                })
+                
+                if (!response.ok) {
+                  const error = await response.json()
+                  if (error.needsPermission) {
+                    setShowScheduler(false)
+                    setShowPermissionModal(true)
+                    return
+                  }
+                  throw new Error(error.message || 'Failed to schedule session')
+                }
+                
+                handleSchedulerClose()
+                fetchSessions()
+              } catch (error) {
+                console.error('Error scheduling session:', error)
+                alert('Failed to schedule session. Please try again.')
+              }
+            }}
           />
         )}
         
