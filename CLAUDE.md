@@ -8,6 +8,17 @@ Production-ready Next.js 15 therapy platform with enterprise voice AI.
 
 🚨 **CRITICAL**: Platform is **NOT HIPAA COMPLIANT**. See [HIPAA-COMPLIANCE.md](./HIPAA-COMPLIANCE.md) for required actions before handling real patient data.
 
+## 🚨🚨 CRITICAL UI/UX REQUIREMENT 🚨🚨
+
+**MANDATORY FOR ALL UI UPDATES/CREATION:**
+- **ALWAYS** refer to `/src/components/CLAUDE.md` for responsive design guidelines
+- **NEVER** create UI without following the mobile-first responsive patterns
+- **MUST** test on 375px width (iPhone SE) before considering any UI complete
+- **Key patterns**: `text-sm sm:text-base`, `p-3 sm:p-4`, `flex flex-col sm:flex-row`
+- **Failure to follow responsive guidelines = BROKEN UI ON MOBILE**
+
+See detailed patterns in `/src/components/CLAUDE.md` → "📱 Responsive Design Guidelines"
+
 ## 🧠 MCP Memory Usage
 
 **CRITICAL**: Memory management workflow:
