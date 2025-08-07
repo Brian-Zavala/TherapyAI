@@ -160,10 +160,9 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-center sm:justify-between mb-6">
           <div className="text-center sm:text-left">
-            <h1 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white">Dashboard</h1>
-            <p className="text-white/70 text-sm sm:text-base lg:text-lg xl:text-xl">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white">
               Track your therapy progress and insights
-            </p>
+            </h1>
           </div>
         </div>
 
