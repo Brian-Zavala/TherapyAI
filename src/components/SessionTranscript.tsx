@@ -171,12 +171,9 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
 
   if (loading) {
     return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-5">
-          <h2 className="text-xl font-semibold text-white flex items-center">
-            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
+      <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl overflow-hidden border border-white/20">
+        <div className="bg-white/20 backdrop-blur-md p-4 sm:p-5 border-b border-white/20">
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white text-center">
             Session Transcript
           </h2>
         </div>
@@ -192,7 +189,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
 
   if (error || !session) {
     return (
-      <div className="p-6 bg-red-500/20 backdrop-blur-md text-red-300 rounded-xl border border-red-400/30">
+      <div className="p-4 sm:p-5 bg-white/10 backdrop-blur-lg text-red-300 rounded-xl border border-white/20 shadow-xl">
         {error || 'Session not found'}
       </div>
     )
@@ -219,12 +216,9 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
   }, [session?.status, sessionId])
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20">
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5">
-        <h2 className="text-xl font-semibold text-white flex items-center">
-          <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
+    <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl overflow-hidden border border-white/20">
+      <div className="bg-white/20 backdrop-blur-md p-4 sm:p-5 border-b border-white/20">
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white text-center flex items-center justify-center">
           Session Transcript
           {session.status === 'active' && (
             <span className="ml-2 flex items-center">
@@ -234,14 +228,14 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
           )}
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-md text-white border border-white/20">
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             {format(new Date(session.date), 'PPP')}
           </span>
           
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-md text-white border border-white/20">
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -254,7 +248,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             )}
           </span>
           
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 backdrop-blur-sm text-white">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-md text-white border border-white/20">
             <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
@@ -265,7 +259,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
             <button
               onClick={loadMore}
               disabled={transcriptLoading}
-              className="ml-auto text-xs text-white/80 hover:text-white transition-colors"
+              className="ml-auto text-xs sm:text-sm text-white/80 hover:text-white transition-colors"
             >
               {transcriptLoading ? 'Loading...' : 'Load More'}
             </button>
@@ -310,14 +304,14 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   transition={{ delay: Math.min(index * 0.05, 0.2), duration: 0.3 }}
                 >
                   <div 
-                    className={`max-w-[85%] sm:max-w-[80%] p-3 rounded-lg shadow-sm backdrop-blur-sm ${
+                    className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-lg shadow-sm backdrop-blur-md ${
                       isUser 
-                        ? 'bg-blue-500/20 text-white border border-blue-400/30' 
+                        ? 'bg-white/25 text-white border border-white/40' 
                         : 'bg-white/15 text-white border border-white/20'
                     }`}
                   >
-                    <div className={`text-xs font-medium mb-1 flex items-center ${
-                      isUser ? 'text-blue-300' : 'text-white/80'
+                    <div className={`text-xs sm:text-sm font-medium mb-1 flex items-center ${
+                      isUser ? 'text-white' : 'text-white/80'
                     }`}>
                       {isUser ? (
                         <>
@@ -338,7 +332,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                         {format(new Date(entry.timestamp), 'HH:mm:ss')}
                       </span>
                     </div>
-                    <div className="text-sm whitespace-pre-wrap text-white/90">{entry.text}</div>
+                    <div className="text-sm sm:text-base whitespace-pre-wrap text-white/90">{entry.text}</div>
                   </div>
                 </motion.div>
               )
@@ -349,7 +343,7 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
           </motion.div>
         ) : (
           <div className="text-center py-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 inline-block border border-white/20">
+            <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 sm:p-5 inline-block border border-white/30">
               <svg 
                 className="h-10 w-10 text-blue-400 mx-auto mb-2" 
                 fill="none" 
@@ -363,8 +357,8 @@ export default function SessionTranscript({ sessionId, initialSession }: Session
                   d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" 
                 />
               </svg>
-              <p className="text-white font-medium">No transcript available</p>
-              <p className="text-white/70 text-sm mt-1">
+              <p className="text-white font-medium text-sm sm:text-base">No transcript available</p>
+              <p className="text-white/70 text-xs sm:text-sm mt-1">
                 {session.status === 'active' 
                   ? 'The conversation will appear here as you speak...'
                   : 'This session does not have any recorded conversation.'}
