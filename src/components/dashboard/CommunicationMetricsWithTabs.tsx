@@ -119,7 +119,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 
   return (
     <motion.div 
-      className={`bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-3 sm:p-4 md:p-5 border border-gray-100 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300 ${
+      className={`bg-white/20 backdrop-blur-md rounded-2xl p-3 sm:p-4 md:p-5 border border-white/30 hover:shadow-lg transition-all duration-300 ${
         isAnimating ? 'breathing-glow breathing-glow-active' : 'breathing-glow'
       }`}
       initial={{ opacity: 0, y: 20 }}
@@ -253,7 +253,7 @@ function CommunicationMetricsContent() {
   const hasData = communicationMetrics && Array.isArray(communicationMetrics) && communicationMetrics.length > 0;
 
   return (
-    <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50">
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full sm:w-auto text-center sm:text-left">

@@ -189,7 +189,7 @@ export function UnifiedMetricCard({
     >
       <Card 
         className={cn(
-          'metric-card',
+          'metric-card bg-white/10 backdrop-blur-lg border-white/20 shadow-xl',
           currentSize.card,
           onClick && 'cursor-pointer',
           isUpdating && 'updating',

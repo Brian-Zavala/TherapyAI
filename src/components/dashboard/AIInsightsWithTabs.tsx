@@ -137,7 +137,7 @@ function MetricDisplay({ label, value, unit, trend }: { label: string; value: nu
   const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : '';
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+    <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 border border-white/30">
       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{label}</p>
       <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white text-center">
         {value}{unit || '%'} <span className={`text-xs sm:text-sm ${trendColor}`}>{trendIcon}</span>
@@ -236,7 +236,7 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
                 </h5>
                 <ul className="space-y-2">
                   {insight.actionItems.map((item: string, index: number) => (
-                    <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2 p-2 bg-white/10 backdrop-blur-sm rounded-lg">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
                       <span>{item}</span>
                     </li>
@@ -457,7 +457,7 @@ export default function AIInsightsWithTabs() {
   };
 
   return (
-    <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50 h-full flex flex-col">
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl h-full flex flex-col">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full sm:w-auto text-center sm:text-left">

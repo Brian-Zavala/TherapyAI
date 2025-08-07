@@ -186,15 +186,16 @@
 
 /* ===== METRIC CARD COMPONENT ===== */
 .metric-card {
-  background: var(--dashboard-bg-secondary);
-  border: 1px solid var(--dashboard-border-color);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.75rem;
   padding: var(--dashboard-space-3);
   transition: all var(--dashboard-transition-base);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   
   /* Mobile-first text alignment */
   text-align: center;
@@ -217,9 +218,10 @@
 /* Touch-optimized hover states */
 @media (hover: hover) {
   .metric-card:hover {
-    border-color: var(--dashboard-border-active);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
-    box-shadow: var(--dashboard-shadow-lg);
+    box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.15), 0 15px 15px -5px rgba(0, 0, 0, 0.08);
   }
 }
 
@@ -258,8 +260,9 @@
 }
 
 .metric-card.metric-card-featured {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 25px 30px -5px rgba(99, 102, 241, 0.1), 0 15px 15px -5px rgba(139, 92, 246, 0.05);
 }
 
 /* Metric Header */
