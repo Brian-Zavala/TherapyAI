@@ -156,12 +156,12 @@ export default function Dashboard() {
           }}
           resetKeys={[activeTab]}
         >
-        <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl" data-page="dashboard">
+        <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px]" data-page="dashboard">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-white/70">
+            <h1 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white">Dashboard</h1>
+            <p className="text-white/70 text-sm sm:text-base lg:text-lg xl:text-xl">
               Track your therapy progress and insights
             </p>
           </div>
@@ -256,7 +256,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10"
           >
             {/* Communication Metrics */}
             <DashboardErrorWrapper componentName="CommunicationMetrics">
@@ -285,7 +285,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10"
           >
             {/* Detailed Progress View */}
             <RelationshipProgressWithTabs />
