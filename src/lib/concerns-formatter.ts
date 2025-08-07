@@ -53,7 +53,24 @@ export const formatConcernsForVAPI = (
       }
     }
     
-    // Solo therapy or no relational concerns
+    if (therapyType === 'family') {
+      // Prioritize family and practical concerns for family therapy
+      const familyConcerns = [...grouped.practical, ...grouped.relational].filter(c => 
+        ['parenting', 'family-dynamics', 'blended-family', 'in-laws'].includes(c.id)
+      );
+      const primary = familyConcerns[0] || grouped.practical[0] || concerns[0];
+      const secondary = concerns.filter(c => c.id !== primary?.id).slice(0, 1);
+      
+      if (primary) {
+        const primaryText = primary.label.toLowerCase();
+        if (secondary.length > 0) {
+          return `I understand your family is working through ${primaryText} and also dealing with ${secondary[0].label.toLowerCase()}.`;
+        }
+        return `I see your family is here to address ${primaryText}.`;
+      }
+    }
+    
+    // Solo therapy or no specific concerns
     const topConcerns = concerns.slice(0, 3);
     if (topConcerns.length === 1) {
       return `I understand you're here to work on ${topConcerns[0].label.toLowerCase()}.`;

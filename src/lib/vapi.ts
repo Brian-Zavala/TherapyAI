@@ -337,7 +337,7 @@ export const formatConcernsNaturally = (
   // Use new formatter
   return formatConcernsForVAPI(
     migratedConcerns, 
-    therapyType as 'solo' | 'couple', 
+    therapyType as 'solo' | 'couple' | 'family', 
     context
   );
 };
@@ -1691,7 +1691,7 @@ export const getPersonalizedFirstMessageForType = (
     // Concerns acknowledgment
     let concernsIntro = "";
     if (currentConcerns && currentConcerns.length > 0) {
-      const formattedConcerns = formatConcernsNaturally(currentConcerns, 'solo', 'greeting');
+      const formattedConcerns = formatConcernsNaturally(currentConcerns, 'family', 'greeting');
       if (formattedConcerns) {
         concernsIntro = ` ${formattedConcerns} I'm here to support you in that journey.`;
       }
