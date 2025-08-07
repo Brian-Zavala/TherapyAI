@@ -144,23 +144,23 @@ export default function SessionsPage() {
         
         {/* Mobile Tabs */}
         <div className="mt-4 md:hidden w-full">
-          <div className="flex rounded-md bg-white/10 backdrop-blur-sm p-1 border border-white/20">
+          <div className="flex rounded-xl bg-white/10 backdrop-blur-lg p-1 border border-white/20 shadow-xl">
             <button
               onClick={() => setActiveTab('list')}
-              className={`flex-1 py-2 px-4 text-xs sm:text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 py-2 px-4 text-xs sm:text-sm md:text-base lg:text-lg font-medium rounded-lg transition-all ${
                 activeTab === 'list'
-                  ? 'bg-white/20 backdrop-blur-md text-white shadow-xl border border-white/30'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
+                  ? 'bg-white/25 backdrop-blur-md text-white shadow-xl border border-white/40'
+                  : 'text-white/70 hover:text-white hover:bg-white/15'
               }`}
             >
               History
             </button>
             <button
               onClick={() => setActiveTab('details')}
-              className={`flex-1 py-2 px-4 text-xs sm:text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 py-2 px-4 text-xs sm:text-sm md:text-base lg:text-lg font-medium rounded-lg transition-all ${
                 activeTab === 'details'
-                  ? 'bg-white/20 backdrop-blur-md text-white shadow-xl border border-white/30'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
+                  ? 'bg-white/25 backdrop-blur-md text-white shadow-xl border border-white/40'
+                  : 'text-white/70 hover:text-white hover:bg-white/15'
               } ${!selectedSessionId ? 'opacity-50' : ''}`}
               disabled={!selectedSessionId}
             >

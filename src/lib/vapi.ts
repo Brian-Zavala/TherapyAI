@@ -323,8 +323,6 @@ export const formatSessionHistory = (sessions: any[] = []) => {
   }`;
 };
 
-import { formatConcernsForVAPI, migrateLegacyConcerns } from './concerns-formatter';
-
 // Natural language formatting for therapy concerns
 // This function now wraps the new formatter for backward compatibility
 export const formatConcernsNaturally = (
