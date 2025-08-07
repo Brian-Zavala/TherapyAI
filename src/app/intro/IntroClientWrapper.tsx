@@ -13,7 +13,7 @@ export default function IntroClientWrapper({ children }: { children: React.React
   useEffect(() => {
     // Redirect to auth if not authenticated
     if (status === 'unauthenticated') {
-      router.push('/auth/signin?callbackUrl=/intro')
+      router.push('/auth/login?callbackUrl=/intro')
       return
     }
 

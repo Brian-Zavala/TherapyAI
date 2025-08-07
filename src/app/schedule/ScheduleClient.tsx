@@ -55,7 +55,7 @@ export default function ScheduleClient() {
   // Redirect if not authenticated
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
-      router.push('/auth/signin')
+      router.push('/auth/login')
     }
   }, [authStatus, router])
 

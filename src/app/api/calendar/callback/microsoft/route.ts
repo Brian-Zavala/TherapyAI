@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || session.user.id !== state) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/api/auth/signin?callbackUrl=/settings/integrations`
+        `${process.env.NEXTAUTH_URL}/auth/login?callbackUrl=/settings/integrations`
       );
     }
 

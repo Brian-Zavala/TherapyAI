@@ -120,7 +120,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           if (res.status === 401) {
             // Handle unauthorized - redirect to signin
             console.error('[ProfileProvider] Unauthorized, redirecting to signin')
-            router.push('/auth/signin')
+            router.push('/auth/login')
             throw new Error('Unauthorized')
           }
           
