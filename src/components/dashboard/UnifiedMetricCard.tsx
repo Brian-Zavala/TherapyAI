@@ -113,31 +113,31 @@ export function UnifiedMetricCard({
       : 0
   );
 
-  // Size classes
+  // Size classes - Mobile-first responsive
   const sizeClasses = {
     small: {
-      card: 'p-3',
-      icon: 'w-8 h-8',
-      iconSvg: 'w-4 h-4',
-      title: 'text-xs',
-      value: 'text-lg',
+      card: 'p-2 sm:p-3',
+      icon: 'w-6 h-6 sm:w-8 sm:h-8',
+      iconSvg: 'w-3 h-3 sm:w-4 sm:h-4',
+      title: 'text-xs sm:text-sm',
+      value: 'text-base sm:text-lg md:text-xl',
       trend: 'text-xs'
     },
     medium: {
-      card: 'p-4',
-      icon: 'w-10 h-10',
-      iconSvg: 'w-5 h-5',
-      title: 'text-sm',
-      value: 'text-2xl',
-      trend: 'text-sm'
+      card: 'p-3 sm:p-4 md:p-5',
+      icon: 'w-8 h-8 sm:w-10 sm:h-10',
+      iconSvg: 'w-4 h-4 sm:w-5 sm:h-5',
+      title: 'text-xs sm:text-sm md:text-base',
+      value: 'text-lg sm:text-2xl md:text-3xl',
+      trend: 'text-xs sm:text-sm'
     },
     large: {
-      card: 'p-6',
-      icon: 'w-12 h-12',
-      iconSvg: 'w-6 h-6',
-      title: 'text-base',
-      value: 'text-3xl',
-      trend: 'text-base'
+      card: 'p-4 sm:p-5 md:p-6',
+      icon: 'w-10 h-10 sm:w-12 sm:h-12',
+      iconSvg: 'w-5 h-5 sm:w-6 sm:h-6',
+      title: 'text-sm sm:text-base md:text-lg',
+      value: 'text-xl sm:text-3xl md:text-4xl',
+      trend: 'text-sm sm:text-base'
     }
   };
 
@@ -198,10 +198,10 @@ export function UnifiedMetricCard({
         onClick={onClick}
       >
         <div className="metric-header">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3">
             {Icon && (
               <div 
-                className={cn('metric-icon', currentSize.icon, iconColor)}
+                className={cn('metric-icon flex-shrink-0', currentSize.icon, iconColor)}
                 style={{
                   background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`
                 }}
@@ -209,7 +209,7 @@ export function UnifiedMetricCard({
                 <Icon className={cn('text-white', currentSize.iconSvg)} />
               </div>
             )}
-            <div className="flex-1">
+            <div className="flex-1 text-center sm:text-left">
               <h3 className={cn('metric-label', currentSize.title)}>{title}</h3>
               {isRealTime && (
                 <div className="flex items-center gap-2 mt-1">
@@ -259,7 +259,7 @@ export function UnifiedMetricCard({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 className={cn(
-                  'metric-value',
+                  'metric-value text-center',
                   currentSize.value,
                   isUpdating && 'metric-value-animated updating'
                 )}

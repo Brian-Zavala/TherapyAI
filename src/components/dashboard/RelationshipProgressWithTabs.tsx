@@ -424,13 +424,13 @@ export default function RelationshipProgressWithTabs() {
   return (
     <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50 min-h-[500px] flex flex-col">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Heart className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-auto text-center sm:text-left">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
+              <Heart className="h-5 w-5 sm:h-6 sm:w-6" />
               {config.title}
             </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
               {config.subtitle}
             </p>
           </div>
@@ -524,7 +524,7 @@ export default function RelationshipProgressWithTabs() {
                   >
                     <TrendingUp className={`h-6 w-6 ${healthIconColors.icon}`} />
                   </motion.div>
-                  <span className="text-3xl font-bold text-gray-800 dark:text-gray-200">{overallScore}%</span>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-200">{overallScore}%</span>
                 </div>
                 <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Overall {activeType === 'family' ? 'Family' : 'Relationship'} Health

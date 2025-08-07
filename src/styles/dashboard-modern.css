@@ -195,12 +195,16 @@
   overflow: hidden;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  
+  /* Mobile-first text alignment */
+  text-align: center;
 }
 
 @media (min-width: 640px) {
   .metric-card {
     border-radius: 1rem;
     padding: var(--dashboard-space-4);
+    text-align: left; /* Desktop alignment */
   }
 }
 

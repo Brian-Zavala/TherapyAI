@@ -145,8 +145,7 @@ export async function POST(request: NextRequest) {
     const userProfile = await prisma.userProfile.findUnique({
       where: { userId: session.user.id },
       select: {
-        sessionPreference: true,
-        providerMetadata: true
+        sessionPreference: true
       }
     });
 

@@ -119,7 +119,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 
   return (
     <motion.div 
-      className={`bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300 ${
+      className={`bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-3 sm:p-4 md:p-5 border border-gray-100 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300 ${
         isAnimating ? 'breathing-glow breathing-glow-active' : 'breathing-glow'
       }`}
       initial={{ opacity: 0, y: 20 }}
@@ -127,20 +127,20 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       transition={{ duration: 0.3, delay: index * 0.1 }}
       whileHover={{ y: -2 }}
     >
-      <div className="flex items-start sm:items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${theme.background}`}>
-            <Icon className={`h-5 w-5 ${theme.text}`} />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className={`p-2 rounded-lg ${theme.background} flex-shrink-0`}>
+            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${theme.text}`} />
           </div>
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-white">{name}</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{description}</p>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white text-center sm:text-left">{name}</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center sm:text-left">{description}</p>
           </div>
         </div>
         
-        <div className="text-right">
+        <div className="text-center sm:text-right w-full sm:w-auto">
           <motion.div 
-            className="text-2xl font-bold text-gray-900 dark:text-white"
+            className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"
             animate={hasReachedTarget ? { 
               scale: [1, 1.2, 1], 
               color: ['#000', theme.primary, '#000'] 

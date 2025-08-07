@@ -44,7 +44,7 @@ async function verifyEnhancedSchema() {
           data: {
             userId: 'test-user-id',
             date: new Date(),
-            sessionType: 'couple',
+            sessionType: 'COUPLE',
             status: 'SCHEDULED',
           }
         }).catch(() => {}) // Ignore error, we just want to check structure

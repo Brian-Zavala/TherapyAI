@@ -139,8 +139,8 @@ function MetricDisplay({ label, value, unit, trend }: { label: string; value: nu
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{label}</p>
-      <p className="text-xl font-bold text-gray-900 dark:text-white">
-        {value}{unit || '%'} <span className={`text-sm ${trendColor}`}>{trendIcon}</span>
+      <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white text-center">
+        {value}{unit || '%'} <span className={`text-xs sm:text-sm ${trendColor}`}>{trendIcon}</span>
       </p>
     </div>
   );
@@ -458,14 +458,14 @@ export default function AIInsightsWithTabs() {
 
   return (
     <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50 h-full flex flex-col">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Brain className="h-5 w-5" />
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-auto text-center sm:text-left">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
+              <Brain className="h-5 w-5 sm:h-6 sm:w-6" />
               AI-Powered Therapy Analytics
             </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
               Data-driven insights to accelerate your growth and strengthen relationships
             </p>
           </div>
