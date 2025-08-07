@@ -174,7 +174,7 @@ export default function SessionsPage() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mb-6 p-4 bg-red-500/20 backdrop-blur-md text-red-300 rounded-xl border border-red-400/30 flex items-center"
+          className="mb-6 p-3 sm:p-4 bg-white/10 backdrop-blur-lg text-red-300 rounded-xl border border-white/20 shadow-xl flex items-center"
         >
           <svg className="h-5 w-5 mr-2 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -193,11 +193,7 @@ export default function SessionsPage() {
             className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl overflow-hidden border border-white/20"
           >
             <div className="bg-white/20 backdrop-blur-md p-4 sm:p-5 border-b border-white/20">
-              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white text-center flex items-center justify-center">
-                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white text-center">
                 Session History
               </h2>
             </div>
@@ -226,11 +222,11 @@ export default function SessionsPage() {
                     <motion.div
                       key={session.id}
                       variants={itemVariants}
-                      whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
-                      className={`p-4 cursor-pointer transition-all duration-200 ${
+                      whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+                      className={`p-3 sm:p-4 md:p-5 cursor-pointer transition-all duration-200 ${
                         selectedSessionId === session.id 
-                          ? 'bg-blue-500/20 border-l-4 border-blue-400' 
-                          : 'border-l-4 border-transparent hover:border-white/20'
+                          ? 'bg-white/20 backdrop-blur-md border-l-4 border-white/40' 
+                          : 'border-l-4 border-transparent hover:border-white/20 hover:bg-white/10'
                       }`}
                       onClick={() => {
                         viewSessionTranscript(session.id);
@@ -297,9 +293,9 @@ export default function SessionsPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center h-full border border-white/20"
+              className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl p-6 sm:p-8 flex flex-col items-center justify-center text-center h-full border border-white/20"
             >
-              <div className="bg-blue-500/20 backdrop-blur-sm rounded-full p-4 mb-6 border border-blue-400/30">
+              <div className="bg-white/20 backdrop-blur-md rounded-full p-4 mb-6 border border-white/30">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   className="h-12 w-12 text-blue-400" 
@@ -315,8 +311,8 @@ export default function SessionsPage() {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-medium text-white mb-3">No Session Selected</h3>
-              <p className="text-white/70 max-w-md mb-6">
+              <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-3">No Session Selected</h3>
+              <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white/70 max-w-md mb-6">
                 Select a session from the list to view its transcript and detailed conversation.
               </p>
               <div className="mt-2 text-sm text-blue-400">

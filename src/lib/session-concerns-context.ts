@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getConcernsSummary } from '@/lib/concerns-formatter';
-import { log } from '@/lib/log-config';
+import { logger as log } from '@/lib/logger';
 
 /**
  * Enhance session creation with concerns context
