@@ -238,16 +238,16 @@ export default function SessionsLoadingSpinner() {
 
         {/* Loading text */}
         <motion.div
-          className="mt-8 text-center"
+          className="mt-8 flex flex-col items-center justify-center w-full"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2">
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2 text-center">
             Loading Session Transcripts
           </h2>
           <div className="flex items-center justify-center gap-1">
-            <p className="text-xs sm:text-sm md:text-base text-white/80">
+            <p className="text-xs sm:text-sm md:text-base text-white/80 text-center">
               Preparing your conversation history
             </p>
             <motion.span
@@ -264,21 +264,23 @@ export default function SessionsLoadingSpinner() {
           </div>
 
           {/* Progress indicator */}
-          <div className="mt-4 w-48 sm:w-56 md:w-64 h-1 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
-              animate={{
-                x: ['-100%', '200%']
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: 'easeInOut'
-              }}
-              style={{
-                width: '50%'
-              }}
-            />
+          <div className="mt-4 flex items-center justify-center w-full">
+            <div className="w-48 sm:w-56 md:w-64 lg:w-72 h-1 bg-white/10 rounded-full overflow-hidden mx-auto">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
+                animate={{
+                  x: ['-100%', '200%']
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut'
+                }}
+                style={{
+                  width: '50%'
+                }}
+              />
+            </div>
           </div>
         </motion.div>
       </div>

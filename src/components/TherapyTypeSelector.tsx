@@ -151,13 +151,13 @@ export default function TherapyTypeSelector({
             className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
           >
             <div
-              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-4xl max-h-[85vh] overflow-y-auto border border-indigo-100 cursor-pointer"
+              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-4xl max-h-[85vh] overflow-y-auto border border-indigo-100"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close button - always visible */}
               <button
                 onClick={onClose}
-                className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50 p-2 rounded-lg bg-white hover:bg-gray-100 shadow-md transition-all duration-200 group"
+                className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50 p-2 rounded-lg bg-white hover:bg-gray-100 shadow-md transition-all duration-200 group cursor-pointer"
                 aria-label="Close modal"
               >
                 <svg
