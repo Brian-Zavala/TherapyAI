@@ -133,16 +133,14 @@ async function getConcernsProgress(
     where: {
       userId,
       status: 'COMPLETED',
-      endedAt: { not: null }
+      completedAt: { not: null }
     },
-    orderBy: { endedAt: 'desc' },
+    orderBy: { completedAt: 'desc' },
     take: 10,
     select: {
       id: true,
-      endedAt: true,
-      notes: true,
-      insights: true,
-      metadata: true
+      completedAt: true,
+      notes: true
     }
   });
 
@@ -167,7 +165,7 @@ async function getConcernsProgress(
     })
   );
 
-  const validConcerns = concernsWithProgress.filter(Boolean);
+  const validConcerns = concernsWithProgress.filter((c): c is NonNullable<typeof c> => c !== null);
   
   // Calculate overall progress
   const overallScore = validConcerns.length > 0 
@@ -184,63 +182,63 @@ async function getConcernsProgress(
   };
 }// Helper functions for progress calculation and insights
 async function calculateConcernProgress(userId: string, concernId: string, sessions: any[]): Promise<number> {
-  // Analyze session notes and insights for progress indicators
+  // Analyze session notes for progress indicators
   let progressScore = 50; // Start with neutral baseline
   
   for (const session of sessions) {
-    const insights = session.insights as any[] || [];
-    const concernMentions = insights.filter((insight: any) => 
-      insight.concernId === concernId || 
-      insight.content?.toLowerCase().includes(concernId.replace('-', ' '))
-    );
-    
-    concernMentions.forEach((insight: any) => {
-      if (insight.type === 'progress' || insight.type === 'breakthrough') {
-        progressScore += 10;
-      } else if (insight.type === 'setback') {
-        progressScore -= 5;
+    // Check session notes for concern mentions and progress indicators
+    if (session.notes) {
+      const notesLower = session.notes.toLowerCase();
+      const concernKeyword = concernId.replace('-', ' ');
+      
+      if (notesLower.includes(concernKeyword)) {
+        // Simple progress detection based on keywords in notes
+        if (notesLower.includes('progress') || notesLower.includes('improvement') || notesLower.includes('better')) {
+          progressScore += 10;
+        } else if (notesLower.includes('struggle') || notesLower.includes('difficult') || notesLower.includes('setback')) {
+          progressScore -= 5;
+        }
       }
-    });
+    }
   }
   
   return Math.max(0, Math.min(100, progressScore));
 }
 
 async function getRecentInsightsForConcern(userId: string, concernId: string) {
-  // This would integrate with the existing insights system
-  const insights = await prisma.session.findMany({
+  // Get recent sessions and extract insights from therapy insights table
+  const therapyInsights = await prisma.therapyInsight.findMany({
     where: {
       userId,
-      insights: {
-        path: '$[*].concernId',
-        array_contains: concernId
-      }
+      category: concernId
     },
     select: {
       id: true,
-      insights: true,
-      endedAt: true
+      sessionId: true,
+      title: true,
+      description: true,
+      priority: true,
+      confidence: true,
+      generatedAt: true,
+      metadata: true
     },
     take: 5,
-    orderBy: { endedAt: 'desc' }
+    orderBy: { generatedAt: 'desc' }
   });
 
-  return insights.flatMap(session => 
-    (session.insights as any[] || [])
-      .filter((insight: any) => insight.concernId === concernId)
-      .map((insight: any) => ({
-        sessionId: session.id,
-        extractedAt: session.endedAt || new Date(),
-        type: insight.type,
-        description: insight.content,
-        confidence: insight.confidence || 0.8,
-        metadata: {
-          transcriptSegments: insight.evidence || [],
-          aiModel: 'claude-3',
-          processingVersion: '1.0'
-        }
-      }))
-  );
+  return therapyInsights.map(insight => ({
+    sessionId: insight.sessionId || '',
+    extractedAt: insight.generatedAt,
+    type: insight.priority,
+    description: insight.description,
+    confidence: insight.confidence,
+    metadata: {
+      title: insight.title,
+      originalMetadata: insight.metadata,
+      aiModel: 'claude-3',
+      processingVersion: '1.0'
+    }
+  }));
 }
 
 function calculateProgressTrend(currentScore: number, sessions: any[]): 'improving' | 'stable' | 'declining' {
@@ -307,17 +305,19 @@ async function logConcernsChange(userId: string, concerns: any[], source: string
 }
 
 async function updateSessionConcernsContext(sessionId: string, concerns: any[]) {
-  // Update session metadata with current concerns context
+  // Update session notes with current concerns context since metadata doesn't exist
+  const concernsContext = {
+    primary: concerns.filter(c => c.priority === 'high').map(c => c.id),
+    secondary: concerns.filter(c => c.priority !== 'high').map(c => c.id),
+    updatedAt: new Date().toISOString()
+  };
+  
+  const contextNote = `Concerns updated: ${JSON.stringify(concernsContext)}`;
+  
   await prisma.session.update({
     where: { id: sessionId },
     data: {
-      metadata: {
-        concernsContext: {
-          primary: concerns.filter(c => c.priority === 'high').map(c => c.id),
-          secondary: concerns.filter(c => c.priority !== 'high').map(c => c.id),
-          updatedAt: new Date().toISOString()
-        }
-      }
+      notes: contextNote
     }
   });
 }
