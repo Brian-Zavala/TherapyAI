@@ -159,10 +159,28 @@ export default function Dashboard() {
         <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] pt-8 sm:pt-10 md:pt-12" data-page="dashboard">
         {/* Header */}
         <div className="flex items-center justify-center mb-6">
-          <div className="text-center">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white">
+          <div className="text-center relative">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold 
+                         bg-gradient-to-r from-white via-purple-200 to-blue-200 
+                         bg-clip-text text-transparent
+                         tracking-[0.15em] sm:tracking-[0.2em] md:tracking-[0.25em] lg:tracking-[0.3em]
+                         uppercase
+                         relative
+                         before:content-[''] before:absolute before:inset-0
+                         before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent
+                         before:blur-2xl before:-z-10
+                         after:content-[''] after:absolute after:inset-x-0 after:bottom-0
+                         after:h-[2px] after:bg-gradient-to-r after:from-transparent after:via-purple-400 after:to-transparent
+                         after:opacity-50 after:blur-sm
+                         drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]
+                         selection:bg-purple-500/30">
               Track your therapy progress
             </h1>
+            {/* Decorative slashes */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-y-1/2 -skew-y-3"></div>
+              <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-purple-400/20 to-transparent transform -translate-y-1/2 skew-y-3"></div>
+            </div>
           </div>
         </div>
 
