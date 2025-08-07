@@ -9,7 +9,7 @@ process.env.NEXTAUTH_URL = 'http://localhost:3000'
 process.env.NEXTAUTH_SECRET = 'test-secret'
 process.env.JWT_TOKEN_SECRET = 'test-jwt-secret'
 process.env.VAPI_API_KEY = 'test-vapi-key'
-process.env.NODE_ENV = 'test'
+// process.env.NODE_ENV = 'test' // Cannot assign to readonly NODE_ENV
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

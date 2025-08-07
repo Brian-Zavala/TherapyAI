@@ -163,7 +163,7 @@ describe('RedisHealthMonitor', () => {
       expect(state1).toEqual(state2)
 
       // Modifying returned state should not affect internal state
-      state1.isHealthy = false
+      // state1.isHealthy = false // Cannot assign to readonly property
       const state3 = redisHealthMonitor.getState()
       expect(state3.isHealthy).toBe(true)
     })

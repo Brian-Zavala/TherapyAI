@@ -158,4 +158,3 @@ describe('ProfileProvider', () => {
     })
   })
 })
-TESTEOF < /dev/null

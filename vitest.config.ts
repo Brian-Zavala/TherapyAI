@@ -22,7 +22,7 @@ export default defineConfig({
       ]
     },
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    watchExclude: ['node_modules', '.next', 'build']
+    // watchExclude: // This property does not exist in vitest config ['node_modules', '.next', 'build']
   },
   resolve: {
     alias: {

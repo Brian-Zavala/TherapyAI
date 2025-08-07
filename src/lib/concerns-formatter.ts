@@ -6,7 +6,7 @@ import { THERAPY_CONCERNS, getConcernsByIds } from '@/data/therapy-concerns';
  */
 export const formatConcernsForVAPI = (
   concernIds: string[] | undefined | null,
-  therapyType: 'solo' | 'couple' = 'solo',
+  therapyType: 'solo' | 'couple' | 'family' = 'solo',
   context: 'system' | 'greeting' | 'conversation' = 'system'
 ): string => {
   if (!concernIds || concernIds.length === 0) {
