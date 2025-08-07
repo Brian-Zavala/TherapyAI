@@ -33,14 +33,18 @@ if (CSRF_PROTECTION_ENABLED) {
   });
 }
 
-// Initialize Upstash rate limiter (singleton)
+// Initialize Upstash Redis and rate limiter (singleton)
+let redis: Redis | null = null;
 let ratelimit: Ratelimit | null = null;
+
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  
   ratelimit = new Ratelimit({
-    redis: new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    }),
+    redis,
     limiter: Ratelimit.slidingWindow(60, '1 m'),
     analytics: true,
     prefix: '@upstash/ratelimit',
@@ -167,12 +171,13 @@ export async function middleware(request: NextRequest) {
     try {
       // Use custom limits if configured
       let rateLimitResult;
-      if (routeConfig) {
+      if (routeConfig && redis) {
         const [, config] = routeConfig;
         const customRatelimit = new Ratelimit({
-          redis: ratelimit.redis,
+          redis,
           limiter: Ratelimit.slidingWindow(config.requests, config.window as any),
           prefix: '@upstash/ratelimit',
+          ephemeralCache: new Map(),
         });
         rateLimitResult = await customRatelimit.limit(identifier);
       } else {
