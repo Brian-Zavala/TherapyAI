@@ -499,7 +499,8 @@ export const handleOptOut = async (phoneNumber: string, keyword: string): Promis
     await sendSMS({
       to: phoneNumber,
       body: 'Therapy Space: You\'ve been unsubscribed from SMS notifications. Reply START to resubscribe anytime.',
-      priority: 'high'
+      priority: 'high',
+      validateOnly: false
     });
   }
 };
@@ -523,7 +524,8 @@ export const handleOptIn = async (phoneNumber: string, keyword: string): Promise
     await sendSMS({
       to: phoneNumber,
       body: 'Therapy Space: Welcome back! You\'ll receive session reminders via SMS. Reply STOP to opt out.',
-      priority: 'high'
+      priority: 'high',
+      validateOnly: false
     });
   }
 };

@@ -119,11 +119,13 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 - **Mobile-first padding**: `px-3 sm:px-4 md:px-6` or `p-3 sm:p-4 md:p-6`
 - **Border radius**: `rounded-lg sm:rounded-xl` for responsive corners
 
-### Text Sizing (ALWAYS use breakpoints)
-- **Headings**: `text-2xl sm:text-3xl md:text-4xl lg:text-5xl`
-- **Subheadings**: `text-lg sm:text-xl md:text-2xl`
-- **Body text**: `text-sm sm:text-base md:text-lg`
-- **Small text**: `text-xs sm:text-sm`
+### Text Sizing (ALWAYS use breakpoints - INCLUDING LARGE SCREENS)
+- **Main Titles**: `text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl`
+- **Headings**: `text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl`
+- **Subheadings**: `text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl`
+- **Body text**: `text-sm sm:text-base md:text-lg lg:text-xl`
+- **Small text**: `text-xs sm:text-sm lg:text-base`
+- **Metric Values**: `text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl`
 - **Line height**: Add `leading-tight` or `leading-relaxed` as needed
 
 ### Mobile-Specific Success/Error Messages (Jan 2025 Update)
@@ -136,18 +138,20 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 - **Layout**: `flex items-start sm:items-center` to align properly on mobile
 - **Icon alignment**: Add `mt-1 sm:mt-0` to icons when text wraps
 
-### Element Sizing
-- **Large elements**: `w-48 sm:w-64 md:w-80 lg:w-96`
-- **Medium elements**: `w-32 sm:w-48 md:w-56`
+### Element Sizing (WITH LARGE SCREEN SUPPORT)
+- **Large elements**: `w-48 sm:w-64 md:w-80 lg:w-96 xl:w-112 2xl:w-128`
+- **Medium elements**: `w-32 sm:w-48 md:w-56 lg:w-64`
 - **Small elements**: `w-1.5 h-1.5 sm:w-2 sm:h-2` (like dots)
-- **Buttons**: `px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base`
-- **Icons in messages**: `w-5 h-5 sm:w-6 sm:h-6`
+- **Buttons**: `px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base lg:text-lg`
+- **Icons**: `h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 xl:h-8 xl:w-8`
+- **Card Icons**: `w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 xl:w-14 xl:h-14`
 
-### Spacing (use responsive values)
-- **Margins**: `mb-4 sm:mb-6 md:mb-8`
-- **Padding**: `p-3 sm:p-4 md:p-6`
-- **Gaps**: `gap-3 sm:gap-4 md:gap-6`
-- **Small gaps**: `gap-0.5 sm:gap-1` for tight element groups
+### Spacing (PROGRESSIVE SCALING FOR ALL SCREENS)
+- **Margins**: `mb-4 sm:mb-6 md:mb-8 lg:mb-10 xl:mb-12`
+- **Padding**: `p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 2xl:p-8`
+- **Container Padding**: `px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12`
+- **Gaps**: `gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10`
+- **Small gaps**: `gap-0.5 sm:gap-1 lg:gap-2` for tight element groups
 
 ### Flexbox Patterns for Mobile
 - **Responsive direction**: `flex flex-col sm:flex-row`
@@ -168,11 +172,25 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 - **Pointer events**: Use `pointer-events-none` on decorative overlays
 - **Shimmer effects**: Animate with `animate-shimmer` class
 
+### 🎨 Glassmorphism Effect (REQUIRED FOR ALL CARDS)
+- **Background**: `bg-white/10` for transparency
+- **Blur**: `backdrop-blur-lg` for frosted glass effect
+- **Border**: `border border-white/20` for subtle edges
+- **Shadow**: `shadow-xl` for depth and elevation
+- **Hover State**: `hover:bg-white/15 hover:border-white/30`
+- **Inner Elements**: `bg-white/20 backdrop-blur-md` for nested cards
+
+### 📐 Container Width & Max-Width (CRITICAL FOR LARGE SCREENS)
+- **Dashboard Container**: `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px]`
+- **Content Sections**: Maintain proper max-widths to prevent text sprawl
+- **Grid Layouts**: `grid-cols-1 md:grid-cols-2 xl:grid-cols-2` with responsive gaps
+
 ### Testing Requirements
 - **iPhone SE (375x667)** - Smallest supported
 - **iPhone 12/13 (390x844)** - Standard mobile
 - **Tablet (768x1024)** - Medium screens
 - **Desktop (1920x1080)** - Large screens
+- **4K Displays (3840x2160)** - Ultra-wide screens
 
 ### Breakpoint Reference
 - **xs**: 480px (custom defined in tailwind.config.mjs)

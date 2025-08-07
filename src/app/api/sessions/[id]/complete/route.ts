@@ -268,6 +268,7 @@ export async function POST(
           to: userProfile.phone,
           body: `Session complete! ${durationInMinutes}min of growth achieved. ${nextSessionText}. STOP to unsub`,
           priority: 'normal',
+          validateOnly: false,
           notificationId: `session-completed-${sessionId}`,
           userId: therapySession.userId,
         });
