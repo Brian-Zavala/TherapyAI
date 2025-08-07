@@ -209,6 +209,8 @@ export default function OnboardingFlowEnhanced() {
               hasLegacyData={hasLegacyData}
               onMigrateLegacy={migrateFromLegacyFormat}
               error={error}
+              onNext={handleNext}
+              onBack={handleBack}
             />
           </motion.div>
         </AnimatePresence>

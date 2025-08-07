@@ -45,9 +45,9 @@ export async function POST(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    if (existingSession.status !== 'SCHEDULED' && existingSession.status !== 'MISSED') {
+    if (existingSession.status !== 'SCHEDULED' && existingSession.status !== 'ABANDONED') {
       return NextResponse.json({ 
-        error: 'Can only reschedule scheduled or missed sessions' 
+        error: 'Can only reschedule scheduled or abandoned sessions' 
       }, { status: 400 });
     }
 

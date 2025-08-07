@@ -17,10 +17,10 @@ import {
 
 interface SessionCompletedProps {
   username: string;
-  sessionDate: Date;
+  sessionDate: Date | string;
   duration: number;
   sessionNotes?: string;
-  nextSessionDate?: Date;
+  nextSessionDate?: Date | string;
   baseUrl: string;
 }
 

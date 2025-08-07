@@ -1,5 +1,7 @@
 import Vapi from "@vapi-ai/web";
 
+import { formatConcernsForVAPI, migrateLegacyConcerns } from './concerns-formatter';
+
 // 2025 Standard: Type definitions
 export interface VapiInitOptions {
   useCustomTranscriber?: boolean;

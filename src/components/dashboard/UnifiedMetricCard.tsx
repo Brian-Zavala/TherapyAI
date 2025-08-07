@@ -113,31 +113,31 @@ export function UnifiedMetricCard({
       : 0
   );
 
-  // Size classes - Mobile-first responsive
+  // Size classes - Mobile-first responsive with larger screen support
   const sizeClasses = {
     small: {
-      card: 'p-2 sm:p-3',
-      icon: 'w-6 h-6 sm:w-8 sm:h-8',
-      iconSvg: 'w-3 h-3 sm:w-4 sm:h-4',
-      title: 'text-xs sm:text-sm',
-      value: 'text-base sm:text-lg md:text-xl',
-      trend: 'text-xs'
-    },
-    medium: {
-      card: 'p-3 sm:p-4 md:p-5',
-      icon: 'w-8 h-8 sm:w-10 sm:h-10',
-      iconSvg: 'w-4 h-4 sm:w-5 sm:h-5',
-      title: 'text-xs sm:text-sm md:text-base',
-      value: 'text-lg sm:text-2xl md:text-3xl',
+      card: 'p-2 sm:p-3 lg:p-4',
+      icon: 'w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10',
+      iconSvg: 'w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5',
+      title: 'text-xs sm:text-sm lg:text-base',
+      value: 'text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl',
       trend: 'text-xs sm:text-sm'
     },
+    medium: {
+      card: 'p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7',
+      icon: 'w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 xl:w-14 xl:h-14',
+      iconSvg: 'w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7',
+      title: 'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl',
+      value: 'text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl',
+      trend: 'text-xs sm:text-sm lg:text-base'
+    },
     large: {
-      card: 'p-4 sm:p-5 md:p-6',
-      icon: 'w-10 h-10 sm:w-12 sm:h-12',
-      iconSvg: 'w-5 h-5 sm:w-6 sm:h-6',
-      title: 'text-sm sm:text-base md:text-lg',
-      value: 'text-xl sm:text-3xl md:text-4xl',
-      trend: 'text-sm sm:text-base'
+      card: 'p-4 sm:p-5 md:p-6 lg:p-8 xl:p-10',
+      icon: 'w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16',
+      iconSvg: 'w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 xl:w-8 xl:h-8',
+      title: 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl',
+      value: 'text-xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl',
+      trend: 'text-sm sm:text-base lg:text-lg'
     }
   };
 

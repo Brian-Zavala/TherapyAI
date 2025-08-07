@@ -215,6 +215,24 @@
   }
 }
 
+/* Extra large screens */
+@media (min-width: 1280px) {
+  .metric-card {
+    padding: var(--dashboard-space-6);
+    border-radius: 1.25rem;
+  }
+}
+
+/* Ultra wide screens */
+@media (min-width: 1536px) {
+  .metric-card {
+    padding: var(--dashboard-space-8);
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.12);
+    border-width: 2px;
+  }
+}
+
 /* Touch-optimized hover states */
 @media (hover: hover) {
   .metric-card:hover {

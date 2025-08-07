@@ -273,15 +273,13 @@ export async function POST(
         to: therapySession.user.email,
         subject: 'Therapy Session Completed',
         react: SessionCompletedEmail({
-          userName: therapySession.user.name || 'Valued Client',
-          sessionDate: therapySession.date.toLocaleDateString(),
-          sessionTime: therapySession.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          therapistName: 'Dr. Maya Thompson',
-          sessionDuration: completionResult.billing.conversationTimeSeconds,
+          username: therapySession.user.name || 'Valued Client',
+          sessionDate: therapySession.date,
+          duration: completionResult.billing.conversationTimeSeconds,
           sessionNotes: therapySession.notes || undefined,
-          nextSessionDate: nextSession?.date.toLocaleDateString(),
-          nextSessionTime: nextSession?.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }) as any,
+          nextSessionDate: nextSession?.date,
+          baseUrl: process.env.NEXTAUTH_URL || 'https://localhost:3000',
+        }),
       })
     } catch (emailError) {
       console.error('Error sending completion email:', emailError)

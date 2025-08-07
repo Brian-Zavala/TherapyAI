@@ -295,31 +295,14 @@ export async function GET(request: Request) {
     const missedEmailResults = await Promise.allSettled(
       missedSessionsToUpdate.map(async (session) => {
         try {
-          // Update session status to missed
+          // Update session status to abandoned (user didn't attend scheduled session)
           await prisma.session.update({
             where: { id: session.id },
-            data: { status: 'MISSED' },
+            data: { status: 'ABANDONED' },
           });
 
-          // Find available slots for rescheduling (next 7 days)
-          const nextAvailableSlots = await prisma.session.findMany({
-            where: {
-              status: 'AVAILABLE',
-              date: {
-                gte: new Date(),
-                lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
-              },
-            },
-            orderBy: {
-              date: 'asc',
-            },
-            take: 3, // Show only 3 options
-          });
-
-          const formattedSlots = nextAvailableSlots.map(slot => ({
-            date: slot.date.toLocaleDateString(),
-            time: slot.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          }));
+          // Note: Rescheduling slots removed as sessions are user-specific
+          // Users can reschedule through the proper scheduling interface
 
           // Send missed session email
           const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -333,7 +316,7 @@ export async function GET(request: Request) {
               sessionTime: session.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
               sessionType: session.theme || 'Therapy Session',
-              nextAvailableSlots: formattedSlots.length > 0 ? formattedSlots : undefined,
+              nextAvailableSlots: undefined, // Removed: sessions are user-specific, no generic available slots
               baseUrl: baseUrl,
             }) as any,
           });
