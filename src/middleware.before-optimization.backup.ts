@@ -4,8 +4,8 @@ import { createCsrfMiddleware } from '@edge-csrf/nextjs';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
-// 2025 PRODUCTION-READY Middleware with Optimized Upstash Rate Limiting
-// Security-first with proper caching and performance optimization
+// 2025 SECURITY-FIRST Performance Optimized Middleware
+// Fixes critical authentication bypass while maintaining performance
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -31,56 +31,30 @@ if (CSRF_PROTECTION_ENABLED) {
       '/api/ws/',
     ],
   });
-}// Shared ephemeral cache for all rate limiters (better performance)
-const sharedCache = new Map();
+}
 
-// Initialize Upstash Redis (singleton)
+// Initialize Upstash Redis and rate limiter (singleton)
 let redis: Redis | null = null;
+let ratelimit: Ratelimit | null = null;
+
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
   redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   });
-}
-
-// Pre-create all rate limiters (cached for reuse)
-const rateLimiters = new Map<string, Ratelimit>();
-
-// Initialize rate limiters once
-if (redis) {
-  // Default rate limiter
-  rateLimiters.set('default', new Ratelimit({
+  
+  ratelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(60, '1 m'),
     analytics: true,
     prefix: '@upstash/ratelimit',
-    ephemeralCache: sharedCache,
+    // Enable caching for better performance
+    ephemeralCache: new Map(),
     enableProtection: true,
-  }));
+  });
+}
 
-  // Custom rate limiters for specific routes
-  const customLimits = [
-    { key: '/api/user/delete-account', requests: 3, window: '1 h' },
-    { key: '/api/user/password-reset', requests: 5, window: '1 h' },
-    { key: '/api/user/recover-account', requests: 5, window: '1 h' },
-    { key: '/api/auth/register', requests: 5, window: '1 h' },
-    { key: '/api/vapi/token', requests: 20, window: '1 h' },
-    { key: '/api/vapi/webhook', requests: 1000, window: '1 m' },
-    { key: '/api/sessions', requests: 100, window: '1 m' },
-    { key: '/api/dashboard', requests: 200, window: '1 m' },
-  ];
-
-  // Create rate limiters for each custom limit
-  for (const limit of customLimits) {
-    rateLimiters.set(limit.key, new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(limit.requests, limit.window as any),
-      analytics: true,
-      prefix: '@upstash/ratelimit',
-      ephemeralCache: sharedCache,
-    }));
-  }
-}// Static asset patterns (compiled once)
+// Static asset patterns (compiled once)
 const STATIC_PATTERNS = [
   /^\/_next/,
   /^\/static/,
@@ -112,6 +86,18 @@ const PROTECTED_ROUTES = [
   '/api/sessions',
 ];
 
+// API routes that require strict rate limiting
+const RATE_LIMITED_APIS = {
+  '/api/user/delete-account': { requests: 3, window: '1 h' },
+  '/api/user/password-reset': { requests: 5, window: '1 h' },
+  '/api/user/recover-account': { requests: 5, window: '1 h' },
+  '/api/auth/register': { requests: 5, window: '1 h' },
+  '/api/vapi/token': { requests: 20, window: '1 h' },
+  '/api/vapi/webhook': { requests: 1000, window: '1 m' },
+  '/api/sessions': { requests: 100, window: '1 m' },
+  '/api/dashboard': { requests: 200, window: '1 m' },
+};
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const method = request.method;
@@ -131,7 +117,9 @@ export async function middleware(request: NextRequest) {
   // FAST PATH 3: Skip WebSocket upgrades
   if (request.headers.get('upgrade') === 'websocket' || pathname.startsWith('/api/ws/')) {
     return NextResponse.next();
-  }  // CRITICAL SECURITY: Check authentication for protected routes
+  }
+
+  // CRITICAL SECURITY: Check authentication for protected routes
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
   
   if (isProtectedRoute) {
@@ -155,79 +143,75 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  let response = NextResponse.next();  // RATE LIMITING: Apply to API routes with Upstash
-  if (pathname.startsWith('/api/') && rateLimiters.size > 0) {
-    // Find the most specific rate limiter for this route
-    let rateLimiter: Ratelimit | undefined;
+  let response = NextResponse.next();
+
+  // RATE LIMITING: Apply to API routes with Upstash
+  if (pathname.startsWith('/api/') && ratelimit) {
+    // Get route-specific limits or use defaults
+    const routeConfig = Object.entries(RATE_LIMITED_APIS).find(([route]) => 
+      pathname.startsWith(route)
+    );
     
-    // Check for exact match or prefix match
-    for (const [route, limiter] of rateLimiters) {
-      if (route !== 'default' && pathname.startsWith(route)) {
-        rateLimiter = limiter;
-        break;
-      }
-    }
-    
-    // Fall back to default rate limiter
-    if (!rateLimiter) {
-      rateLimiter = rateLimiters.get('default');
-    }
-    
-    if (rateLimiter) {
-      // Build identifier for rate limiting
-      let identifier: string;
-      
-      // For protected routes, try to use session token for user-based limiting
-      if (isProtectedRoute) {
-        const sessionToken = request.cookies.get('next-auth.session-token')?.value ||
-                            request.cookies.get('__Secure-next-auth.session-token')?.value;
-        if (sessionToken) {
-          // Use first 16 chars of token as user identifier (no JWT decode needed)
-          identifier = `user:${sessionToken.substring(0, 16)}:${pathname}`;
-        } else {
-          identifier = `ip:${getClientIp(request)}:${pathname}`;
-        }
+    // For auth-required routes, try to get user ID for better rate limiting
+    let identifier: string;
+    if (isProtectedRoute) {
+      // Try to extract user ID from session token (without full JWT decode)
+      const sessionToken = request.cookies.get('next-auth.session-token')?.value ||
+                          request.cookies.get('__Secure-next-auth.session-token')?.value;
+      if (sessionToken) {
+        // Use first part of token as a pseudo-identifier (faster than full decode)
+        identifier = `user:${sessionToken.substring(0, 16)}:${pathname}`;
       } else {
         identifier = `ip:${getClientIp(request)}:${pathname}`;
       }
-      
-      try {
-        const { success, limit, remaining, reset } = await rateLimiter.limit(identifier);
-        
-        // Add rate limit headers
-        response.headers.set('X-RateLimit-Limit', limit.toString());
-        response.headers.set('X-RateLimit-Remaining', remaining.toString());
-        response.headers.set('X-RateLimit-Reset', new Date(reset).toISOString());
-        
-        if (!success) {
-          const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-          return new NextResponse(
-            JSON.stringify({
-              error: 'Too many requests',
-              code: 'RATE_LIMITED',
-              retryAfter,
-              message: `Rate limit exceeded. Please try again in ${retryAfter} seconds.`,
-            }),
-            {
-              status: 429,
-              headers: {
-                'Content-Type': 'application/json',
-                'Retry-After': retryAfter.toString(),
-                'X-RateLimit-Limit': limit.toString(),
-                'X-RateLimit-Remaining': '0',
-                'X-RateLimit-Reset': new Date(reset).toISOString(),
-              },
-            }
-          );
-        }
-      } catch (error) {
-        // Log error but don't block request if rate limiting fails
-        console.error('Rate limiting error:', error);
-        // In production, you might want to track this with Sentry
-        // Continue processing the request
-      }
+    } else {
+      identifier = `ip:${getClientIp(request)}:${pathname}`;
     }
-  }  // CSRF Protection (only for state-changing operations in production)
+    
+    try {
+      // Use custom limits if configured
+      let rateLimitResult;
+      if (routeConfig && redis) {
+        const [, config] = routeConfig;
+        const customRatelimit = new Ratelimit({
+          redis,
+          limiter: Ratelimit.slidingWindow(config.requests, config.window as any),
+          prefix: '@upstash/ratelimit',
+          ephemeralCache: new Map(),
+        });
+        rateLimitResult = await customRatelimit.limit(identifier);
+      } else {
+        rateLimitResult = await ratelimit.limit(identifier);
+      }
+
+      // Add rate limit headers
+      response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.reset).toISOString());
+
+      if (!rateLimitResult.success) {
+        return new NextResponse(
+          JSON.stringify({
+            error: 'Too many requests',
+            code: 'RATE_LIMITED',
+            retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
+            },
+          }
+        );
+      }
+    } catch (error) {
+      // If rate limiting fails, log but don't block the request
+      console.error('Rate limiting error:', error);
+    }
+  }
+
+  // CSRF Protection (only for state-changing operations in production)
   if (CSRF_PROTECTION_ENABLED && method !== 'GET' && method !== 'HEAD' && csrfMiddleware) {
     response = await csrfMiddleware(request);
   }
@@ -259,8 +243,6 @@ function getClientIp(request: NextRequest): string {
          request.headers.get('x-real-ip') || 
          request.headers.get('cf-connecting-ip') ||
          request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
-         request.headers.get('fly-client-ip') ||
-         request.headers.get('true-client-ip') ||
          '127.0.0.1';
 }
 
