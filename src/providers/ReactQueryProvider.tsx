@@ -42,9 +42,9 @@ function makeQueryClient() {
         refetchOnReconnect: 'always',
         // Structural sharing for optimal re-renders
         structuralSharing: true,
-        // Global error handler to suppress AbortError logs
-        useErrorBoundary: (error) => {
-          // Don't trigger error boundaries for AbortErrors
+        // Global error handling - React Query v5 uses throwOnError instead of useErrorBoundary
+        throwOnError: (error) => {
+          // Don't throw for AbortErrors to prevent error boundaries
           if (error instanceof Error && error.name === 'AbortError') {
             return false;
           }
@@ -58,10 +58,11 @@ function makeQueryClient() {
     },
   });
 
-  // Set up global error handling for query cache
+  // Set up global error handling for query cache - React Query v5
   queryClient.getQueryCache().subscribe((event) => {
-    if (event.type === 'error') {
-      const { error } = event;
+    // React Query v5 changed event types - handle query failures differently
+    if (event.type === 'updated' && event.query.state.status === 'error') {
+      const { error } = event.query.state;
       // Suppress AbortError logs in development
       if (error instanceof Error && error.name === 'AbortError') {
         // Don't log AbortErrors - they're normal during development hot reloads
@@ -69,7 +70,7 @@ function makeQueryClient() {
       }
       // Log other errors normally only in development
       if (process.env.NODE_ENV === 'development') {
-        console.error('Query failed:', error, 'Query key:', event.query?.queryKey);
+        console.error('Query failed:', error, 'Query key:', event.query.queryKey);
       }
     }
   });
@@ -103,17 +104,6 @@ export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
           initialIsOpen={false} 
           buttonPosition="bottom-right"
           styleNonce={undefined}
-          panelProps={{
-            style: { fontSize: '12px' }
-          }}
-          toggleButtonProps={{
-            style: { 
-              width: '30px', 
-              height: '30px', 
-              fontSize: '12px',
-              padding: '4px'
-            }
-          }}
         />
       )}
     </QueryClientProvider>

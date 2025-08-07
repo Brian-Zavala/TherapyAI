@@ -365,9 +365,8 @@ export function useTherapyTypeData(therapyType: TherapyType, activeSessionId?: s
       return failureCount < 2;
     },
     refetchInterval: 5 * 60 * 1000, // 5 minutes
-    // Use fallback data on error
-    useErrorBoundary: false,
-    keepPreviousData: true
+    // React Query v5: Use throwOnError instead of useErrorBoundary
+    throwOnError: false
   }, 'communication-metrics', memoizedTherapyType));
 
   const progressQuery = useQuery(withFallbackCaching({
@@ -394,8 +393,7 @@ export function useTherapyTypeData(therapyType: TherapyType, activeSessionId?: s
       return failureCount < 2;
     },
     refetchInterval: 5 * 60 * 1000,
-    useErrorBoundary: false,
-    keepPreviousData: true
+    throwOnError: false
   }, 'relationship-progress', memoizedTherapyType));
 
   const insightsQuery = useQuery(withFallbackCaching({
@@ -434,8 +432,7 @@ export function useTherapyTypeData(therapyType: TherapyType, activeSessionId?: s
       return failureCount < 2;
     },
     refetchInterval: 5 * 60 * 1000,
-    useErrorBoundary: false,
-    keepPreviousData: true
+    throwOnError: false
   }, 'ai-insights', memoizedTherapyType));
 
   const sessionCountQuery = useQuery(withFallbackCaching({
@@ -470,8 +467,7 @@ export function useTherapyTypeData(therapyType: TherapyType, activeSessionId?: s
       return failureCount < 2;
     },
     refetchInterval: 5 * 60 * 1000,
-    useErrorBoundary: false,
-    keepPreviousData: true
+    throwOnError: false
   }, 'session-counts', memoizedTherapyType));
 
   // Enhanced refetch with better error handling and cleanup
