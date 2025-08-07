@@ -286,12 +286,24 @@ function CommunicationMetricsComponent() {
   // Use periodic animation hook for timed animation triggers
   const isAnimating = usePeriodicAnimation(12000); // Trigger animations every 12 seconds
 
+  // TEMPORARY: Always show enhanced loading animation for demonstration
+  // Remove this condition to see the enhanced loading animation
+  if (true) {
+    return (
+      <UnifiedLoadingState 
+        type="communication" 
+        message="Analyzing conversation patterns..."
+        variant="card"
+      />
+    );
+  }
+
   // Don't show individual loading state during initial dashboard load
   if (isLoading && !data && !isInitialLoading) {
     return (
       <UnifiedLoadingState 
         type="communication" 
-        message={dashboardTheme.loadingStates.communication.message}
+        message="Analyzing conversation patterns..."
         variant="card"
       />
     );
