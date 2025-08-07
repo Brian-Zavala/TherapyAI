@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import SessionTranscriptSMS from '@/components/SessionTranscriptSMS'
+import SessionsLoadingSpinner from '@/components/sessions/SessionsLoadingSpinner'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -97,12 +98,8 @@ export default function SessionsPage() {
     setSelectedSessionId(sessionId)
   }
   
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    )
+  if (status === 'loading' || loading) {
+    return <SessionsLoadingSpinner />
   }
   
   // Define animations
@@ -147,7 +144,7 @@ export default function SessionsPage() {
           <div className="flex rounded-xl bg-white/10 backdrop-blur-lg p-1 border border-white/20 shadow-xl">
             <button
               onClick={() => setActiveTab('list')}
-              className={`flex-1 py-2 px-4 text-xs sm:text-sm md:text-base lg:text-lg font-medium rounded-lg transition-all ${
+              className={`flex-1 py-2 px-4 text-xs sm:text-sm md:text-base lg:text-lg font-medium rounded-lg transition-all cursor-pointer ${
                 activeTab === 'list'
                   ? 'bg-white/25 backdrop-blur-md text-white shadow-xl border border-white/40'
                   : 'text-white/70 hover:text-white hover:bg-white/15'
@@ -157,7 +154,7 @@ export default function SessionsPage() {
             </button>
             <button
               onClick={() => setActiveTab('details')}
-              className={`flex-1 py-2 px-4 text-xs sm:text-sm md:text-base lg:text-lg font-medium rounded-lg transition-all ${
+              className={`flex-1 py-2 px-4 text-xs sm:text-sm md:text-base lg:text-lg font-medium rounded-lg transition-all cursor-pointer ${
                 activeTab === 'details'
                   ? 'bg-white/25 backdrop-blur-md text-white shadow-xl border border-white/40'
                   : 'text-white/70 hover:text-white hover:bg-white/15'

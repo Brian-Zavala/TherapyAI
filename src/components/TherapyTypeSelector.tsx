@@ -151,7 +151,7 @@ export default function TherapyTypeSelector({
             className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
           >
             <div
-              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-4xl max-h-[85vh] overflow-y-auto border border-indigo-100"
+              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-4xl max-h-[85vh] overflow-y-auto border border-indigo-100 cursor-pointer"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close button - always visible */}
