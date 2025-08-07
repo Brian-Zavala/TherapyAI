@@ -254,14 +254,14 @@ function CommunicationMetricsContent() {
 
   return (
     <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-auto text-center sm:text-left">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
+              <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
               Communication Metrics
             </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
               Track your communication skills across different therapy types
             </p>
           </div>
