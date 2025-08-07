@@ -180,6 +180,12 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 - **Hover State**: `hover:bg-white/15 hover:border-white/30`
 - **Inner Elements**: `bg-white/20 backdrop-blur-md` for nested cards
 
+### 🎯 Text Alignment (CRITICAL)
+- **Card Headers/Titles**: Always `text-center` with `justify-center` for ALL screen sizes
+- **Card Content/Metrics**: Always `text-center` to maintain consistency
+- **Body Text**: Can use `text-center` or justified based on content type
+- **NEVER use `sm:text-left`** for card headers - they must remain centered
+
 ### 📐 Container Width & Max-Width (CRITICAL FOR LARGE SCREENS)
 - **Dashboard Container**: `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px]`
 - **Content Sections**: Maintain proper max-widths to prevent text sprawl

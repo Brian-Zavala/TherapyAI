@@ -209,7 +209,7 @@ export function UnifiedMetricCard({
                 <Icon className={cn('text-white', currentSize.iconSvg)} />
               </div>
             )}
-            <div className="flex-1 text-center sm:text-left">
+            <div className="flex-1 text-center">
               <h3 className={cn('metric-label', currentSize.title)}>{title}</h3>
               {isRealTime && (
                 <div className="flex items-center gap-2 mt-1">

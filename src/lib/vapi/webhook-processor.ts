@@ -78,18 +78,38 @@ export class VAPIWebhookProcessor {
 
     try {
       // 1. Update session status immediately
+      const currentSession = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { notes: true }
+      });
+
+      let existingNotes: any = {};
+      if (currentSession?.notes) {
+        try {
+          existingNotes = JSON.parse(currentSession.notes);
+        } catch {
+          // Keep existing plain text notes
+          existingNotes = { originalNotes: currentSession.notes };
+        }
+      }
+
+      const sessionMetadata = {
+        ...existingNotes,
+        callData: {
+          callId: call.id,
+          endedReason: report.endedReason,
+          duration: report.duration,
+          cost: report.cost,
+          recordingUrl: report.recordingUrl
+        }
+      };
+
       await prisma.session.update({
         where: { id: sessionId },
         data: {
           status: 'COMPLETED',
-          endedAt: new Date(report.endedAt),
-          metadata: {
-            callId: call.id,
-            endedReason: report.endedReason,
-            duration: report.duration,
-            cost: report.cost,
-            recordingUrl: report.recordingUrl
-          }
+          endTime: new Date(report.endedAt),
+          notes: JSON.stringify(sessionMetadata)
         }
       });
 
@@ -114,14 +134,14 @@ export class VAPIWebhookProcessor {
       });
 
       // 4. Send completion notification
-      const session = await prisma.session.findUnique({
+      const sessionForNotification = await prisma.session.findUnique({
         where: { id: sessionId },
         include: { user: true }
       });
 
-      if (session?.userId) {
+      if (sessionForNotification?.userId) {
         await notificationService.createNotification({
-          userId: session.userId,
+          userId: sessionForNotification.userId,
           type: 'session_completed',
           title: 'Therapy Session Completed',
           message: `Your ${Math.round(report.duration / 60)} minute session has been processed.`,
@@ -157,15 +177,34 @@ export class VAPIWebhookProcessor {
 
     if (!sessionId) return;
 
-    // Update session with status
+    // Update session with status in notes field
+    const statusSession = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { notes: true }
+    });
+
+    let existingNotes: any = {};
+    if (statusSession?.notes) {
+      try {
+        existingNotes = JSON.parse(statusSession.notes);
+      } catch {
+        existingNotes = { originalNotes: statusSession.notes };
+      }
+    }
+
+    const statusMetadata = {
+      ...existingNotes,
+      statusData: {
+        lastStatus: status,
+        lastStatusUpdate: new Date(),
+        callId
+      }
+    };
+
     await prisma.session.update({
       where: { id: sessionId },
       data: {
-        metadata: {
-          lastStatus: status,
-          lastStatusUpdate: new Date(),
-          callId
-        }
+        notes: JSON.stringify(statusMetadata)
       }
     });
 
@@ -189,27 +228,46 @@ export class VAPIWebhookProcessor {
 
     if (!sessionId) return;
 
-    // Update session with transcript URL
+    // Update session with transcript URL in notes field
+    const transcriptSession = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { notes: true }
+    });
+
+    let existingNotes: any = {};
+    if (transcriptSession?.notes) {
+      try {
+        existingNotes = JSON.parse(transcriptSession.notes);
+      } catch {
+        existingNotes = { originalNotes: transcriptSession.notes };
+      }
+    }
+
+    const transcriptMetadata = {
+      ...existingNotes,
+      transcriptData: {
+        transcriptUrl,
+        transcriptReady: true,
+        transcriptReadyAt: new Date()
+      }
+    };
+
     await prisma.session.update({
       where: { id: sessionId },
       data: {
-        metadata: {
-          transcriptUrl,
-          transcriptReady: true,
-          transcriptReadyAt: new Date()
-        }
+        notes: JSON.stringify(transcriptMetadata)
       }
     });
 
     // Notify user
-    const session = await prisma.session.findUnique({
+    const notificationSession = await prisma.session.findUnique({
       where: { id: sessionId },
       include: { user: true }
     });
 
-    if (session?.userId) {
+    if (notificationSession?.userId) {
       await notificationService.createNotification({
-        userId: session.userId,
+        userId: notificationSession.userId,
         type: 'transcript_ready',
         title: 'Transcript Available',
         message: 'Your session transcript is now available for review.',
@@ -228,14 +286,33 @@ export class VAPIWebhookProcessor {
   ): Promise<void> {
     if (attempt > this.MAX_RETRIES) {
       console.error(`Max retries reached for session ${sessionId}`);
+      const retrySession = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { notes: true }
+      });
+
+      let existingNotes: any = {};
+      if (retrySession?.notes) {
+        try {
+          existingNotes = JSON.parse(retrySession.notes);
+        } catch {
+          existingNotes = { originalNotes: retrySession.notes };
+        }
+      }
+
+      const failureMetadata = {
+        ...existingNotes,
+        processingErrors: {
+          processingFailed: true,
+          lastRetryAt: new Date(),
+          retryCount: attempt
+        }
+      };
+
       await prisma.session.update({
         where: { id: sessionId },
         data: {
-          metadata: {
-            processingFailed: true,
-            lastRetryAt: new Date(),
-            retryCount: attempt
-          }
+          notes: JSON.stringify(failureMetadata)
         }
       });
       return;

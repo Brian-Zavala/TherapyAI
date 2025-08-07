@@ -193,13 +193,24 @@ export class ConcernsProgressTracker {
       // Get session details
       const session = await prisma.session.findUnique({
         where: { id: sessionId },
-        select: { userId: true, metadata: true }
+        select: { userId: true, notes: true }
       });
 
       if (!session) return;
 
       const userId = session.userId;
-      const concernsContext = (session.metadata as any)?.concernsContext;
+      let concernsContext: any = null;
+
+      // Parse concerns context from notes
+      if (session.notes) {
+        try {
+          const notesData = JSON.parse(session.notes);
+          concernsContext = notesData?.concernsContext;
+        } catch {
+          // Notes is not JSON or doesn't contain concerns context
+          concernsContext = null;
+        }
+      }
 
       if (!concernsContext) return;
 
@@ -286,12 +297,13 @@ export class ConcernsProgressTracker {
       const progressScore = this.calculateProgressScore(insights);
       
       // Find when this concern was first selected
+      // Note: Since we moved to notes field, we'll need to search differently
+      // For now, we'll use a simpler approach and can enhance later
       const firstSession = await prisma.session.findFirst({
         where: { 
           userId,
-          metadata: {
-            path: '$.concernsContext.primary',
-            array_contains: concernId
+          notes: {
+            contains: concernId
           }
         },
         orderBy: { createdAt: 'asc' },
@@ -571,16 +583,35 @@ export class ConcernsProgressTracker {
   }
 
   private async updateSessionConcernsContext(sessionId: string, newConcerns: string[]) {
+    // Get existing notes
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { notes: true }
+    });
+
+    let existingNotes: any = {};
+    if (session?.notes) {
+      try {
+        existingNotes = JSON.parse(session.notes);
+      } catch {
+        existingNotes = { originalNotes: session.notes };
+      }
+    }
+
+    // Update concerns context in notes
+    const updatedNotes = {
+      ...existingNotes,
+      concernsContext: {
+        primary: newConcerns,
+        updatedAt: new Date().toISOString(),
+        source: 'real_time_update'
+      }
+    };
+
     await prisma.session.update({
       where: { id: sessionId },
       data: {
-        metadata: {
-          concernsContext: {
-            primary: newConcerns,
-            updatedAt: new Date().toISOString(),
-            source: 'real_time_update'
-          }
-        }
+        notes: JSON.stringify(updatedNotes)
       }
     });
   }

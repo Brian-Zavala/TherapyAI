@@ -460,8 +460,8 @@ export default function AIInsightsWithTabs() {
     <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl h-full flex flex-col">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="w-full sm:w-auto text-center sm:text-left">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center sm:justify-start gap-2 lg:gap-3">
+          <div className="w-full text-center">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2 lg:gap-3">
               <Brain className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 xl:h-8 xl:w-8" />
               AI-Powered Therapy Analytics
             </CardTitle>

@@ -205,7 +205,7 @@
   .metric-card {
     border-radius: 1rem;
     padding: var(--dashboard-space-4);
-    text-align: left; /* Desktop alignment */
+    /* Keep text centered on all screen sizes */
   }
 }
 

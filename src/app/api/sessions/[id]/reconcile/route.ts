@@ -92,13 +92,13 @@ export async function GET(
     // Validate params
     const { id: sessionId } = paramsSchema.parse(params)
 
-    // Get session metadata to check reconciliation status
+    // Get session notes to check reconciliation status
     const { prisma } = await import('@/lib/prisma')
     const sessionData = await prisma.session.findUnique({
       where: { id: sessionId },
       select: {
         id: true,
-        metadata: true,
+        notes: true,
         _count: {
           select: {
             transcriptEntries: true
@@ -114,15 +114,25 @@ export async function GET(
       )
     }
 
-    const metadata = sessionData.metadata as any || {}
+    // Parse notes as JSON to get reconciliation metadata
+    let reconciliationData: any = {}
+    if (sessionData.notes) {
+      try {
+        const notesData = JSON.parse(sessionData.notes)
+        reconciliationData = notesData.reconciliation || {}
+      } catch {
+        // Notes is not JSON or doesn't contain reconciliation data
+        reconciliationData = {}
+      }
+    }
 
     return NextResponse.json({
       sessionId: sessionData.id,
       transcriptCount: sessionData._count.transcriptEntries,
-      reconciliationCompleted: metadata.reconciliationCompleted || false,
-      reconciliationTimestamp: metadata.reconciliationTimestamp || null,
-      userWordCount: metadata.userWordCount || 0,
-      assistantWordCount: metadata.assistantWordCount || 0
+      reconciliationCompleted: reconciliationData.reconciliationCompleted || false,
+      reconciliationTimestamp: reconciliationData.reconciliationTimestamp || null,
+      userWordCount: reconciliationData.userWordCount || 0,
+      assistantWordCount: reconciliationData.assistantWordCount || 0
     })
 
   } catch (error) {

@@ -133,12 +133,12 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
             <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${theme.text}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-gray-900 dark:text-white text-center sm:text-left">{name}</h4>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400 mt-1 text-center sm:text-left">{description}</p>
+            <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-gray-900 dark:text-white text-center">{name}</h4>
+            <p className="text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400 mt-1 text-center">{description}</p>
           </div>
         </div>
         
-        <div className="text-center sm:text-right w-full sm:w-auto">
+        <div className="text-center w-full">
           <motion.div 
             className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 dark:text-white"
             animate={hasReachedTarget ? { 
@@ -256,8 +256,8 @@ function CommunicationMetricsContent() {
     <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="w-full sm:w-auto text-center sm:text-left">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center sm:justify-start gap-2 lg:gap-3">
+          <div className="w-full text-center">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2 lg:gap-3">
               <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 xl:h-8 xl:w-8" />
               Communication Metrics
             </CardTitle>

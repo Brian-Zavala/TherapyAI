@@ -147,11 +147,18 @@ GUIDANCE FOR THIS SESSION:
   private static async getSessionConcernsContext(sessionId: string): Promise<SessionConcernsContext | null> {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      select: { metadata: true }
+      select: { notes: true }
     });
 
-    const metadata = session?.metadata as any;
-    return metadata?.concernsContext || null;
+    if (!session?.notes) return null;
+
+    try {
+      const notesData = JSON.parse(session.notes);
+      return notesData?.concernsContext || null;
+    } catch {
+      // Notes is not JSON or doesn't contain concerns context
+      return null;
+    }
   }
 
   private static async prioritizeConcernsForSession(
@@ -332,14 +339,23 @@ GUIDANCE FOR THIS SESSION:
     mentionedConcerns: string[],
     confidence: number
   ) {
-    // Update session metadata with mentioned concerns
+    // Update session notes with mentioned concerns tracking
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      select: { metadata: true }
+      select: { notes: true }
     });
 
-    const currentMetadata = (session?.metadata as any) || {};
-    const concernsTracking = currentMetadata.concernsTracking || {};
+    let currentNotesData: any = {};
+    if (session?.notes) {
+      try {
+        currentNotesData = JSON.parse(session.notes);
+      } catch {
+        // Keep existing plain text notes
+        currentNotesData = { originalNotes: session.notes };
+      }
+    }
+
+    const concernsTracking = currentNotesData.concernsTracking || {};
 
     // Update tracking for each mentioned concern
     mentionedConcerns.forEach(concernId => {
@@ -356,14 +372,14 @@ GUIDANCE FOR THIS SESSION:
       concernsTracking[concernId].lastMentioned = new Date().toISOString();
     });
 
-    // Update session
+    // Update session notes with tracking data
     await prisma.session.update({
       where: { id: sessionId },
       data: {
-        metadata: {
-          ...currentMetadata,
+        notes: JSON.stringify({
+          ...currentNotesData,
           concernsTracking
-        }
+        })
       }
     });
   }

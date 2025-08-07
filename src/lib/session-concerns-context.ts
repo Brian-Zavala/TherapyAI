@@ -35,19 +35,21 @@ export async function enhanceSessionWithConcerns(
     // Get concerns summary
     const concernsSummary = getConcernsSummary(concernIds);
     
-    // Update session with concerns context
+    // Update session with concerns context in notes field
+    const concernsContextData = {
+      concernsContext: {
+        primary: concernsSummary.primary,
+        secondary: concernsSummary.secondary,
+        categories: concernsSummary.categories,
+        formatted: concernsSummary.formatted,
+        timestamp: new Date().toISOString()
+      }
+    };
+
     await prisma.session.update({
       where: { id: sessionId },
       data: {
-        metadata: {
-          concernsContext: {
-            primary: concernsSummary.primary,
-            secondary: concernsSummary.secondary,
-            categories: concernsSummary.categories,
-            formatted: concernsSummary.formatted,
-            timestamp: new Date().toISOString()
-          }
-        }
+        notes: JSON.stringify(concernsContextData)
       }
     });
     
@@ -76,7 +78,7 @@ export async function getSessionConcernsContext(
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: { 
-        metadata: true,
+        notes: true,
         user: {
           select: {
             profile: {
@@ -87,10 +89,16 @@ export async function getSessionConcernsContext(
       }
     });
     
-    // Check session metadata first
-    const metadata = session?.metadata as any;
-    if (metadata?.concernsContext?.formatted) {
-      return metadata.concernsContext.formatted;
+    // Check session notes first for concerns context
+    if (session?.notes) {
+      try {
+        const notesData = JSON.parse(session.notes);
+        if (notesData?.concernsContext?.formatted) {
+          return notesData.concernsContext.formatted;
+        }
+      } catch {
+        // Notes is not JSON, continue to fallback
+      }
     }
     
     // Fallback to user profile concerns
