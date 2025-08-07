@@ -128,16 +128,16 @@ export default function SessionsPage() {
   // Mobile tab view is handled above with the other state hooks
   
   return (
-    <div className="min-h-screen bg-gray-900 relative py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto relative z-10">
+    <div className="min-h-screen relative py-6 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] mx-auto relative z-10">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center">
+        className="flex flex-col md:flex-row justify-center md:justify-between items-center mb-6">
+        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white text-center md:text-left flex items-center">
           <span className="text-white">Your Sessions</span>
-          <span className="ml-2 text-xs bg-blue-500/30 backdrop-blur-sm text-white py-1 px-2 rounded-full border border-blue-400/30">
+          <span className="ml-2 text-xs sm:text-sm bg-white/10 backdrop-blur-lg text-white py-1 px-2 sm:px-3 rounded-full border border-white/20">
             {sessions.length} Total
           </span>
         </h1>
@@ -147,9 +147,9 @@ export default function SessionsPage() {
           <div className="flex rounded-md bg-white/10 backdrop-blur-sm p-1 border border-white/20">
             <button
               onClick={() => setActiveTab('list')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 py-2 px-4 text-xs sm:text-sm font-medium rounded-md transition-all ${
                 activeTab === 'list'
-                  ? 'bg-blue-500 text-white shadow-sm'
+                  ? 'bg-white/20 backdrop-blur-md text-white shadow-xl border border-white/30'
                   : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -157,9 +157,9 @@ export default function SessionsPage() {
             </button>
             <button
               onClick={() => setActiveTab('details')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 py-2 px-4 text-xs sm:text-sm font-medium rounded-md transition-all ${
                 activeTab === 'details'
-                  ? 'bg-blue-500 text-white shadow-sm'
+                  ? 'bg-white/20 backdrop-blur-md text-white shadow-xl border border-white/30'
                   : 'text-white/70 hover:text-white hover:bg-white/10'
               } ${!selectedSessionId ? 'opacity-50' : ''}`}
               disabled={!selectedSessionId}
@@ -190,10 +190,10 @@ export default function SessionsPage() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/20"
+            className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl overflow-hidden border border-white/20"
           >
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
-              <h2 className="text-xl font-semibold text-white flex items-center">
+            <div className="bg-white/20 backdrop-blur-md p-4 sm:p-5 border-b border-white/20">
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white text-center flex items-center justify-center">
                 <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                         d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />

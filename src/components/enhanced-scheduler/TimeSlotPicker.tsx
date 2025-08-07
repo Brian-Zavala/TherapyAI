@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useEffect, useState } from 'react'
+import React, { useMemo, useEffect, useState, useRef } from 'react'
 import { Clock, Loader } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { getAvailableTimeSlots, formatInUserTimezone } from '@/lib/date-utils'
@@ -29,6 +29,8 @@ export function TimeSlotPicker({
 }: TimeSlotPickerProps) {
   const [conflictCheckLoading, setConflictCheckLoading] = useState(false)
   const [conflicts, setConflicts] = useState<Set<string>>(new Set())
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   
   // Generate available time slots for the selected date
   const timeSlots = useMemo(() => {
@@ -43,67 +45,103 @@ export function TimeSlotPicker({
   
   // Check for conflicts with existing sessions and calendar integrations
   useEffect(() => {
+    // Cancel any pending debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
     if (!selectedDate) {
       setConflicts(new Set())
+      setConflictCheckLoading(false)
       return
     }
     
-    const checkConflicts = async () => {
-      setConflictCheckLoading(true)
-      const conflictSet = new Set<string>()
-      
-      // Check existing sessions
-      if (existingSessions && existingSessions.length > 0) {
-        timeSlots.forEach(slot => {
-          const slotEnd = new Date(slot.time.getTime() + duration * 60 * 1000)
-          
-          existingSessions.forEach(session => {
-            const sessionEnd = new Date(session.date.getTime() + session.duration * 60 * 1000)
-            
-            // Check if times overlap
-            if (
-              (slot.time >= session.date && slot.time < sessionEnd) ||
-              (slotEnd > session.date && slotEnd <= sessionEnd) ||
-              (slot.time <= session.date && slotEnd >= sessionEnd)
-            ) {
-              conflictSet.add(slot.time.toISOString())
-            }
-          })
-        })
-      }
-      
-      // Check calendar integrations
-      if (calendarIntegrations && calendarIntegrations.length > 0) {
+    // Debounce the conflict check by 300ms to prevent rapid API calls
+    debounceTimerRef.current = setTimeout(() => {
+      const checkConflicts = async () => {
+        // Create new abort controller for this request
+        const abortController = new AbortController()
+        abortControllerRef.current = abortController
+        
+        setConflictCheckLoading(true)
+        const conflictSet = new Set<string>()
+        
         try {
-          const response = await fetch('/api/calendar/conflicts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              date: selectedDate.toISOString(),
-              duration,
-              timeSlots: timeSlots.map(slot => slot.time.toISOString())
-            })
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            if (data.conflicts && Array.isArray(data.conflicts)) {
-              data.conflicts.forEach((conflictTime: string) => {
-                conflictSet.add(conflictTime)
+          // Check existing sessions locally (no API call needed)
+          if (existingSessions && existingSessions.length > 0) {
+            timeSlots.forEach(slot => {
+              const slotEnd = new Date(slot.time.getTime() + duration * 60 * 1000)
+              
+              existingSessions.forEach(session => {
+                const sessionEnd = new Date(session.date.getTime() + session.duration * 60 * 1000)
+                
+                // Check if times overlap
+                if (
+                  (slot.time >= session.date && slot.time < sessionEnd) ||
+                  (slotEnd > session.date && slotEnd <= sessionEnd) ||
+                  (slot.time <= session.date && slotEnd >= sessionEnd)
+                ) {
+                  conflictSet.add(slot.time.toISOString())
+                }
               })
+            })
+          }
+          
+          // Check calendar integrations - only if we have both integrations and time slots
+          if (calendarIntegrations && calendarIntegrations.length > 0 && timeSlots.length > 0) {
+            const response = await fetch('/api/calendar/conflicts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                date: selectedDate.toISOString(),
+                duration,
+                timeSlots: timeSlots.map(slot => slot.time.toISOString())
+              }),
+              signal: abortController.signal // Add abort signal to request
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.conflicts && Array.isArray(data.conflicts)) {
+                data.conflicts.forEach((conflictTime: string) => {
+                  conflictSet.add(conflictTime)
+                })
+              }
             }
           }
-        } catch (error) {
-          console.error('Error checking calendar conflicts:', error)
+          
+          // Only update state if this request wasn't aborted
+          if (!abortController.signal.aborted) {
+            setConflicts(conflictSet)
+            setConflictCheckLoading(false)
+          }
+        } catch (error: any) {
+          // Ignore abort errors
+          if (error?.name !== 'AbortError') {
+            console.error('Error checking calendar conflicts:', error)
+            setConflictCheckLoading(false)
+          }
         }
       }
       
-      setConflicts(conflictSet)
-      setConflictCheckLoading(false)
-    }
+      checkConflicts()
+    }, 300) // 300ms debounce delay
     
-    checkConflicts()
-  }, [selectedDate, timeSlots, existingSessions, duration, calendarIntegrations])
+    // Cleanup function
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [selectedDate, timezone, existingSessions, duration, calendarIntegrations]) // Removed timeSlots from dependencies
   
   const isSlotAvailable = (slotTime: Date) => {
     // Check if slot is in the past
