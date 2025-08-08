@@ -422,7 +422,7 @@ export default function RelationshipProgressWithTabs() {
   );
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl min-h-[500px] flex flex-col">
+    <Card className="bg-white/10 backdrop-blur-lg border-2 border-white/30 shadow-xl min-h-[500px] flex flex-col">
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">

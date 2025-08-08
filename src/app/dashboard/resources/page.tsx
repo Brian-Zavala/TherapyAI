@@ -100,22 +100,21 @@ const ResourceCard = memo(
         ref={ref}
         initial={{ opacity: 0, y: 20 }}
         animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        whileHover={{ y: -5 }}
         transition={{ duration: 0.3, delay: isVisible ? index * 0.03 : 0 }}
-        className="group relative h-full resource-card"
+        className="group relative h-full resource-card cursor-pointer"
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
-          willChange: isVisible ? "transform" : "auto",
+          willChange: "auto",
         }}
       >
-        {/* Static glow effect on hover - no animation */}
+        {/* Simple highlight effect on hover - no heavy animations */}
         <div
-          className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r ${tagColorClass} blur-md`}
+          className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-75 transition-opacity duration-200 bg-gradient-to-r ${tagColorClass} blur-sm`}
         />
 
         {/* Card container with fixed height */}
-        <div className="relative h-full bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/20 hover:border-white/30 transition-all duration-300 group-hover:bg-white/15 flex flex-col">
+        <div className="relative h-full bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/20 hover:border-white/30 transition-colors duration-200 group-hover:bg-white/15 flex flex-col">
           {/* Top accent bar */}
           <div
             className={`h-1 bg-gradient-to-r ${tagColorClass} flex-shrink-0`}
@@ -172,11 +171,11 @@ const ResourceCard = memo(
                 href={resource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-blue-300 hover:text-blue-200 font-medium transition-colors group/link"
+                className="inline-flex items-center text-blue-300 hover:text-blue-200 font-medium transition-colors group/link cursor-pointer"
               >
                 <span className="mr-1">Access Resource</span>
                 <svg
-                  className="w-4 h-4 transition-transform group-hover/link:translate-x-1"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -223,13 +222,12 @@ const CategoryButton = memo(
           isVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }
         }
         transition={{ delay: index * 0.03, duration: 0.3 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className={`relative px-4 sm:px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 overflow-hidden group ${
+        className={`relative px-4 sm:px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 overflow-hidden group cursor-pointer ${
           isActive ? "text-white shadow-lg" : "text-white/80 hover:text-white"
         }`}
-        style={{ willChange: "transform" }}
+        style={{ willChange: "auto" }}
       >
         {/* Background gradient */}
         <span
@@ -727,9 +725,8 @@ export default function ResourcesOptimized() {
                 transition={{ duration: 0.5 }}
                 className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold mb-8"
               >
-                <span className="text-white">Therapy</span>
-                <br />
-                <span className="text-white">Resources</span>
+                <span className="text-white block lg:inline">Therapy</span>
+                <span className="text-white block lg:inline lg:ml-4">Resources</span>
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -754,10 +751,9 @@ export default function ResourcesOptimized() {
               className="mt-8 inline-block"
             >
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleEmergencySupportToggle}
-                className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 text-base font-semibold rounded-full text-white overflow-hidden transition-all duration-300 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg hover:shadow-xl"
+                className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 text-base font-semibold rounded-full text-white overflow-hidden transition-colors duration-200 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg hover:shadow-xl cursor-pointer"
               >
                 <span className="relative flex items-center">
                   <svg
@@ -1072,10 +1068,9 @@ export default function ResourcesOptimized() {
                   </p>
                 </div>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleResetSearch}
-                  className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-colors duration-200 cursor-pointer"
                 >
                   <svg
                     className="w-4 h-4 mr-2"
@@ -1269,12 +1264,11 @@ const SupportMessage = memo(() => {
               className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4"
             >
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <Link
                   href="/schedule"
-                  className="group relative inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                  className="group relative inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200 shadow-lg hover:shadow-blue-500/25 cursor-pointer"
                 >
                   <span className="relative flex items-center">
                     <svg
@@ -1295,12 +1289,11 @@ const SupportMessage = memo(() => {
                 </Link>
               </motion.div>
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <Link
                   href="/dashboard/therapy"
-                  className="group relative inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl text-white border border-white/30 backdrop-blur-sm hover:bg-white/10 transition-all duration-200"
+                  className="group relative inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl text-white border border-white/30 backdrop-blur-sm hover:bg-white/10 transition-colors duration-200 cursor-pointer"
                 >
                   <span className="flex items-center">
                     <svg
@@ -1403,8 +1396,7 @@ const CommunityWisdom = memo(() => {
             initial={{ opacity: 0, y: 20 }}
             animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -5 }}
-            className="relative bg-white/10 backdrop-blur-xl p-5 rounded-2xl border border-white/20 hover:border-white/30 transition-all duration-200 group"
+            className="relative bg-white/10 backdrop-blur-xl p-5 rounded-2xl border border-white/20 hover:border-white/30 transition-colors duration-200 group cursor-pointer"
           >
             <div className="relative">
               <div className="flex items-center mb-3">
@@ -1474,9 +1466,8 @@ const NewsletterSignup = memo(() => {
                   className="px-3 py-2 sm:px-4 sm:py-2 rounded-xl bg-white/10 backdrop-blur-sm text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 w-full"
                 />
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 whitespace-nowrap shadow-lg"
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 whitespace-nowrap shadow-lg cursor-pointer"
                 >
                   Subscribe
                 </motion.button>

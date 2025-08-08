@@ -457,7 +457,7 @@ export default function AIInsightsWithTabs() {
   };
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg shadow-xl h-full flex flex-col">
+    <Card className="bg-white/10 backdrop-blur-lg border-2 border-white/30 shadow-xl h-full flex flex-col">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">
