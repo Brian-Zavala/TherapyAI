@@ -1,5 +1,10 @@
 // Optimized profile API with caching and async operations
 import { NextRequest, NextResponse } from "next/server"
+
+// Next.js 15 route segment configuration for optimal performance
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const maxDuration = 30 // 30 seconds max for Railway
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma-optimized"
@@ -57,18 +62,31 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now()
   
   try {
+    // Add response headers for better performance
+    const headers = new Headers(CACHE_HEADERS)
+    headers.set('X-Response-Time', startTime.toString())
+    
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // PERFORMANCE FIX: Use optimized parallel queries instead of slow nested includes
-    // Add timeout wrapper for additional protection
+    // PERFORMANCE FIX: Check cache first before querying database
+    const cacheKey = cacheKeys.userProfileByEmail(session.user.email)
+    const cached = await profileCache.get(cacheKey)
+    
+    if (cached) {
+      console.log(`[Profile API] Cache hit for ${session.user.email} (${Date.now() - startTime}ms)`)
+      return NextResponse.json(cached, { headers: CACHE_HEADERS })
+    }
+    
+    // Use optimized parallel queries with increased timeout
+    // Timeout should be less than the client's 20 seconds to allow for error handling
     let user = await Promise.race([
       findUserByEmailOptimized(session.user.email),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile query timeout after 15 seconds')), 15000)
+        setTimeout(() => reject(new Error('Profile query timeout after 18 seconds')), 18000)
       )
     ]) as any
     
@@ -147,9 +165,8 @@ export async function GET(req: NextRequest) {
       hasSeenIntro: user.hasSeenIntro || false
     }
     
-    // Cache the response
-    const cacheKey = cacheKeys.userProfileByEmail(session.user.email)
-    await profileCache.set(cacheKey, responseData)
+    // Cache the response with longer TTL for better performance
+    await profileCache.set(cacheKey, responseData, 10 * 60 * 1000) // 10 minutes
     
     console.log(`[Profile API] Fetched profile for ${session.user.email} (${Date.now() - startTime}ms)`)
     return NextResponse.json(responseData, { headers: CACHE_HEADERS })

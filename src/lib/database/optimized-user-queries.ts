@@ -50,13 +50,7 @@ const familyMemberSelect = {
  * Uses parallel queries instead of nested relations for better performance
  */
 export async function findUserByEmailOptimized(email: string) {
-  // Check cache first
-  const cacheKey = cacheKeys.userProfileByEmail(email);
-  const cached = await profileCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
+  // Note: Cache is now checked in the API route for better control
   // Execute queries in parallel for better performance
   const [user, profile, familyMembers] = await Promise.all([
     // Query 1: Get basic user data
@@ -96,9 +90,7 @@ export async function findUserByEmailOptimized(email: string) {
     familyMembers,
   };
 
-  // Cache the result
-  await profileCache.set(cacheKey, result, 300); // 5 minute TTL
-
+  // Note: Caching is now handled in the API route
   return result;
 }
 

@@ -104,7 +104,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
         
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout (less than API timeout)
+        const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout (to match backend)
         
         const res = await fetch('/api/user/profile', {
           headers: {
@@ -188,9 +188,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     queryKey: ['user', 'profile', session?.user?.email],
     queryFn: fetchProfile,
     enabled: status === 'authenticated' && !!session?.user?.email,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000, // 10 minutes (increased for better performance)
+    gcTime: 30 * 60 * 1000, // 30 minutes (increased cache time)
+    refetchOnWindowFocus: false, // Reduce unnecessary refetches
     refetchOnReconnect: true,
     retry: (failureCount, error) => {
       // Don't retry on 401, 404, or timeout errors
@@ -243,7 +243,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-        signal: AbortSignal.timeout(25000), // 25 second timeout (allow for API processing time)
+        signal: AbortSignal.timeout(30000), // 30 second timeout (allow for API processing time)
       })
       
       if (!res.ok) {

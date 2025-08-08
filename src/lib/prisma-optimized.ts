@@ -8,8 +8,8 @@ const globalForPrisma = global as unknown as {
 }
 
 // Connection configuration
-const CONNECTION_TIMEOUT = 20000 // 20 seconds
-const QUERY_TIMEOUT = 10000 // 10 seconds
+const CONNECTION_TIMEOUT = 25000 // 25 seconds
+const QUERY_TIMEOUT = 15000 // 15 seconds (increased for complex queries)
 const MAX_RETRIES = 3
 const RETRY_DELAY = 1000 // 1 second base delay
 
