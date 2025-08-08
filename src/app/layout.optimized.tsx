@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     description: 'Experience personalized AI-powered couple therapy sessions designed to strengthen your bond and improve communication.',
     images: [
       {
-        url: '/images/og-image.jpg',
+        url: '/images/og-image.webp',
         width: 1200,
         height: 630,
         alt: 'AI Couple Therapy Platform'
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'AI Couple Therapy - Transform Your Relationship',
     description: 'Experience personalized AI-powered couple therapy sessions designed to strengthen your bond and improve communication.',
-    images: ['/images/og-image.jpg']
+    images: ['/images/og-image.webp']
   },
   
   // Performance optimization
@@ -148,7 +148,7 @@ export default function OptimizedRootLayout({
         <link rel="dns-prefetch" href="//api.supabase.com" />
         
         {/* Preload critical images */}
-        <link rel="preload" href="/images/home/3.jpg" as="image" type="image/jpeg" />
+        <link rel="preload" href="/images/home/3.webp" as="image" type="image/jpeg" />
         
         {/* Service Worker registration */}
         <script

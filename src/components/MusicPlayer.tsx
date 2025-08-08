@@ -24,121 +24,121 @@ const tracks = [
     title: 'Balcony Nights', 
     artist: 'Back to Nature', 
     src: '/sounds/music/balconyNights.mp3', 
-    image: '/images/music/1.jpg'
+    image: '/images/music/1.webp'
   },
   { 
     title: 'Cascsades', 
     artist: 'David Thomas', 
     src: '/sounds/music/Cascades.mp3',
-    image: '/images/music/2.jpg' 
+    image: '/images/music/2.webp' 
   },
   { 
     title: 'After The Rain', 
     artist: 'Daniel James', 
     src: '/sounds/music/AfterTheRain.mp3', 
-    image: '/images/music/3.jpg'
+    image: '/images/music/3.webp'
   },
   { 
     title: 'Before The End', 
     artist: 'Dan Phillipson', 
     src: '/sounds/music/BeforeTheEnd.mp3', 
-    image: '/images/music/4.jpg'
+    image: '/images/music/4.webp'
   },
   { 
     title: 'Circles Of Life', 
     artist: 'Todd James Carlin Baker', 
     src: '/sounds/music/life.mp3', 
-    image: '/images/music/5.jpg'
+    image: '/images/music/5.webp'
   },
   { 
     title: 'DNA', 
     artist: 'Rachael Irene Jones', 
     src: '/sounds/music/DNA.mp3', 
-    image: '/images/music/6.jpg'
+    image: '/images/music/6.webp'
   },
   { 
     title: 'Focus Flow', 
     artist: 'Runone', 
     src: '/sounds/music/FocusFlow.mp3', 
-    image: '/images/music/7.jpg'
+    image: '/images/music/7.webp'
   },
   { 
     title: 'Fragile Balance', 
     artist: 'Rainman', 
     src: '/sounds/music/FragileBalance.mp3', 
-    image: '/images/music/8.jpg'
+    image: '/images/music/8.webp'
   },
   { 
     title: 'Fresh Air', 
     artist: 'Mark Russell', 
     src: '/sounds/music/FreshAir.mp3', 
-    image: '/images/music/9.jpg'
+    image: '/images/music/9.webp'
   },
   { 
     title: 'Fresh Starts', 
     artist: 'Rainman', 
     src: '/sounds/music/FreshStarts.mp3', 
-    image: '/images/music/10.jpg'
+    image: '/images/music/10.webp'
   },
   { 
     title: 'Full Moon', 
     artist: 'Alexander Hitchens', 
     src: '/sounds/music/FullMoon.mp3', 
-    image: '/images/music/11.jpg'
+    image: '/images/music/11.webp'
   },
   { 
     title: 'Great Void', 
     artist: 'Benjamin Charles Francis Baptie', 
     src: '/sounds/music/GreatVoid.mp3', 
-    image: '/images/music/12.jpg'
+    image: '/images/music/12.webp'
   },
   { 
     title: 'Happy Endings', 
     artist: 'Rainman', 
     src: '/sounds/music/HappyEndings.mp3', 
-    image: '/images/music/13.jpg'
+    image: '/images/music/13.webp'
   },
   { 
     title: 'Monkeying Around', 
     artist: 'Carolina Vanessa James', 
     src: '/sounds/music/MonkeyAround.mp3', 
-    image: '/images/music/14.jpg'
+    image: '/images/music/14.webp'
   },
   { 
     title: 'Morning Chorus', 
     artist: 'Rainman', 
     src: '/sounds/music/Morning.mp3', 
-    image: '/images/music/15.jpg'
+    image: '/images/music/15.webp'
   },
   { 
     title: 'Open Circle', 
     artist: 'Jonathan Elias', 
     src: '/sounds/music/openCircle.mp3', 
-    image: '/images/music/16.jpg'
+    image: '/images/music/16.webp'
   },
   { 
     title: 'Serenading Stars', 
     artist: 'Journey Sol Terrae', 
     src: '/sounds/music/serenadingStars.mp3', 
-    image: '/images/music/17.jpg'
+    image: '/images/music/17.webp'
   },
   { 
     title: 'Smooth It Out', 
     artist: 'Josh Duplessis', 
     src: '/sounds/music/SmoothItOut.mp3', 
-    image: '/images/music/18.jpg'
+    image: '/images/music/18.webp'
   },
   { 
     title: 'Thinking Of You', 
     artist: 'Pat McCusker', 
     src: '/sounds/music/ThinkingOfYou.mp3', 
-    image: '/images/music/19.jpg'
+    image: '/images/music/19.webp'
   },
   { 
     title: 'Trouble Cleansing', 
     artist: 'Ngok Ting Lam', 
     src: '/sounds/music/troubleCleansing.mp3', 
-    image: '/images/music/20.jpg'
+    image: '/images/music/20.webp'
   },
 ]
 

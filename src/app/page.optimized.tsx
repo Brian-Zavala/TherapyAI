@@ -98,16 +98,16 @@ export default function OptimizedLandingPage() {
   // Optimized image arrays - load only what's needed
   const heroImages = isMobileView 
     ? [
-        "/images/home/3.jpg",
-        "/images/home/2.jpg", 
-        "/images/home/happy-person.jpg",
-        "/images/home/group.jpg"
+        "/images/home/3.webp",
+        "/images/home/2.webp", 
+        "/images/home/happy-person.webp",
+        "/images/home/group.webp"
       ].map(src => createImageConfig(src, true))
     : [
-        "/images/home/large/1-lg.jpg",
-        "/images/home/large/2-lg.jpg",
-        "/images/home/large/3-lg.jpg",
-        "/images/home/large/4-lg.jpg"
+        "/images/home/large/1-lg.webp",
+        "/images/home/large/2-lg.webp",
+        "/images/home/large/3-lg.webp",
+        "/images/home/large/4-lg.webp"
       ].map(src => createImageConfig(src, false))
   
   return (

@@ -47,7 +47,7 @@ export const metadata = {
     siteName: "TherapyAI",
     images: [
       {
-        url: "/images/home/happy-couple.jpg",
+        url: "/images/home/happy-couple.webp",
         width: 1200,
         height: 630,
         alt: "TherapyAI - AI-powered therapy",
@@ -58,16 +58,16 @@ export const metadata = {
     card: "summary_large_image",
     title: "TherapyAI",
     description: "AI-powered therapy to help couples build stronger, healthier relationships",
-    images: ["/images/home/happy-couple.jpg"],
+    images: ["/images/home/happy-couple.webp"],
   },
   icons: {
     icon: [
       { url: "/favicon.ico" },
-      { url: "/favicons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicons/favicon-16x16.webp", sizes: "16x16", type: "image/png" },
+      { url: "/favicons/favicon-32x32.webp", sizes: "32x32", type: "image/png" },
     ],
     apple: [
-      { url: "/favicons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/favicons/apple-touch-icon.webp", sizes: "180x180", type: "image/png" },
     ],
     other: [
       {

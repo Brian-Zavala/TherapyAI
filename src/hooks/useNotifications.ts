@@ -569,8 +569,8 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     if ('Notification' in window && Notification.permission === 'granted') {
       const browserNotification = new Notification(notification.title, {
         body: notification.message,
-        icon: '/icon-192x192.png',
-        badge: '/icon-72x72.png',
+        icon: '/icon-192x192.webp',
+        badge: '/icon-72x72.webp',
         tag: notification.id,
         requireInteraction: notification.priority === 'urgent',
         silent: false,

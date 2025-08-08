@@ -94,12 +94,12 @@ export default function TranscriptOverlay({
   const getTherapistAvatar = () => {
     switch (therapyType) {
       case 'solo':
-        return '/images/dr-elliot-mackaphy.jpg'
+        return '/images/dr-elliot-mackaphy.webp'
       case 'family':
-        return '/images/dr-jada-pearson.jpg'
+        return '/images/dr-jada-pearson.webp'
       case 'couple':
       default:
-        return '/images/dr-maya-thompson.jpg'
+        return '/images/dr-maya-thompson.webp'
     }
   }
 

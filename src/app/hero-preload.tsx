@@ -8,7 +8,7 @@ export default function HeroPreloads() {
       <link 
         rel="preload" 
         as="image" 
-        href="/images/home/7.jpg" 
+        href="/images/home/7.webp" 
         type="image/jpeg"
         fetchPriority="high"
       />

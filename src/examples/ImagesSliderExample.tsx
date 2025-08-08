@@ -7,11 +7,11 @@ export function ImagesSliderExample() {
   // Example with dynamically sized images
   const images: (string | ImageConfig)[] = [
     // Simple string (default behavior - full size, object-cover)
-    '/images/music/1.jpg',
+    '/images/music/1.webp',
     
     // Custom sized image with contain
     {
-      src: '/images/music/2.jpg',
+      src: '/images/music/2.webp',
       width: '400px',
       height: '300px',
       objectFit: 'contain',
@@ -19,7 +19,7 @@ export function ImagesSliderExample() {
     
     // Different aspect ratio
     {
-      src: '/images/music/3.jpg',
+      src: '/images/music/3.webp',
       width: '80%',
       height: '60%',
       objectFit: 'cover',
@@ -28,7 +28,7 @@ export function ImagesSliderExample() {
     
     // Portrait orientation
     {
-      src: '/images/music/4.jpg',
+      src: '/images/music/4.webp',
       width: '300px',
       height: '500px',
       objectFit: 'contain',
@@ -36,7 +36,7 @@ export function ImagesSliderExample() {
     
     // Full width, custom height
     {
-      src: '/images/music/5.jpg',
+      src: '/images/music/5.webp',
       width: '100%',
       height: '400px',
       objectFit: 'cover',

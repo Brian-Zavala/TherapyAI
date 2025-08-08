@@ -15,17 +15,17 @@ export const THERAPY_TYPES = {
 export const THERAPIST_INFO = {
   [THERAPY_TYPES.SOLO]: {
     name: 'Dr. Elliot Mackaphy',
-    image: '/images/dr-elliot-mackaphy.jpg',
+    image: '/images/dr-elliot-mackaphy.webp',
     assistantId: process.env.NEXT_PUBLIC_VAPI_INDIVIDUAL_ASSISTANT_ID
   },
   [THERAPY_TYPES.COUPLE]: {
     name: 'Dr. Maya Thompson',
-    image: '/images/dr-maya-thompson.jpg',
+    image: '/images/dr-maya-thompson.webp',
     assistantId: process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID
   },
   [THERAPY_TYPES.FAMILY]: {
     name: 'Dr. Jada Pearson',
-    image: '/images/dr-jada-pearson.jpg',
+    image: '/images/dr-jada-pearson.webp',
     assistantId: process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID
   }
 } as const;

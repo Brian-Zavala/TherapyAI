@@ -17,20 +17,20 @@ export default function SiteMetadata() {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       
       {/* Preload critical assets */}
-      <link rel="preload" href="/images/home/happy-couple.jpg" as="image" fetchPriority="high" />
-      <link rel="preload" href="/images/home/happy-family.jpg" as="image" fetchPriority="high" />
-      <link rel="preload" href="/images/therapyType/couple.jpg" as="image" />
-      <link rel="preload" href="/images/therapyType/family.jpg" as="image" />
-      <link rel="preload" href="/images/therapyType/solo.jpg" as="image" />
-      <link rel="preload" href="/images/therapyType/mental_health.jpg" as="image" />
+      <link rel="preload" href="/images/home/happy-couple.webp" as="image" fetchPriority="high" />
+      <link rel="preload" href="/images/home/happy-family.webp" as="image" fetchPriority="high" />
+      <link rel="preload" href="/images/therapyType/couple.webp" as="image" />
+      <link rel="preload" href="/images/therapyType/family.webp" as="image" />
+      <link rel="preload" href="/images/therapyType/solo.webp" as="image" />
+      <link rel="preload" href="/images/therapyType/mental_health.webp" as="image" />
       <link rel="preload" href="/fonts/DS-DIGI.TTF" as="font" type="font/ttf" crossOrigin="anonymous" fetchPriority="high" />
       <link rel="preload" href="/fonts/DS-DIGIB.TTF" as="font" type="font/ttf" crossOrigin="anonymous" fetchPriority="high" />
       
       {/* Favicons */}
       <link rel="icon" href="/favicon.ico" />
-      <link rel="icon" href="/favicons/favicon-16x16.png" sizes="16x16" type="image/png" />
-      <link rel="icon" href="/favicons/favicon-32x32.png" sizes="32x32" type="image/png" />
-      <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.png" sizes="180x180" type="image/png" />
+      <link rel="icon" href="/favicons/favicon-16x16.webp" sizes="16x16" type="image/png" />
+      <link rel="icon" href="/favicons/favicon-32x32.webp" sizes="32x32" type="image/png" />
+      <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.webp" sizes="180x180" type="image/png" />
       <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6" />
       <link rel="manifest" href="/site.webmanifest" />
       
@@ -41,7 +41,7 @@ export default function SiteMetadata() {
       <meta property="og:title" content="TherapyAI" />
       <meta property="og:description" content="AI-powered therapy to help couples build stronger, healthier relationships" />
       <meta property="og:site_name" content="TherapyAI" />
-      <meta property="og:image" content="/images/home/happy-couple.jpg" />
+      <meta property="og:image" content="/images/home/happy-couple.webp" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content="TherapyAI - AI-powered therapy" />
@@ -50,7 +50,7 @@ export default function SiteMetadata() {
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content="TherapyAI" />
       <meta name="twitter:description" content="AI-powered therapy to help couples build stronger, healthier relationships" />
-      <meta name="twitter:image" content="/images/home/happy-couple.jpg" />
+      <meta name="twitter:image" content="/images/home/happy-couple.webp" />
     </Head>
   );
 }

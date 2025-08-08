@@ -723,7 +723,7 @@ export default function ResourcesOptimized() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold mb-8"
+                className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold mb-6 sm:mb-8 lg:mb-10"
               >
                 <span className="text-white block lg:inline">Therapy</span>
                 <span className="text-white block lg:inline lg:ml-4">Resources</span>
@@ -732,7 +732,7 @@ export default function ResourcesOptimized() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-xl sm:text-2xl lg:text-3xl text-white/90 max-w-4xl mx-auto mb-10 leading-relaxed font-light"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-white/90 max-w-3xl lg:max-w-4xl mx-auto mb-6 sm:mb-8 lg:mb-10 leading-relaxed font-light px-4 sm:px-6 lg:px-0"
               >
                 Every relationship faces challenges. You're not alone, and
                 reaching out for support is a{" "}

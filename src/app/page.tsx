@@ -60,33 +60,33 @@ const MOBILE_BREAKPOINT = 768; // px
 // Hero images - moved outside component to prevent recreation on each render
 // 2025 Standard: Optimize initial load by only loading first few images
 const MOBILE_HERO_IMAGES = [
-  "/images/home/3.jpg", // First image - the one that should show immediately
-  "/images/home/2.jpg",
-  "/images/home/happy-person.jpg",
-  "/images/home/group.jpg",
-  "/images/home/4.jpg",
-  "/images/home/5.jpg",
-  "/images/home/9.jpg",
-  "/images/home/10.jpg",
-  "/images/home/happy-couple.jpg",
-  "/images/home/hands.jpg",
-  "/images/home/7.jpg",
-  "/images/home/6.jpg",
+  "/images/home/3.webp", // First image - the one that should show immediately
+  "/images/home/2.webp",
+  "/images/home/happy-person.webp",
+  "/images/home/group.webp",
+  "/images/home/4.webp",
+  "/images/home/5.webp",
+  "/images/home/9.webp",
+  "/images/home/10.webp",
+  "/images/home/happy-couple.webp",
+  "/images/home/hands.webp",
+  "/images/home/7.webp",
+  "/images/home/6.webp",
 ];
 
 const DESKTOP_HERO_IMAGES = [
-  "/images/home/large/1-lg.jpg", // First image - the one that should show immediately
-  "/images/home/large/2-lg.jpg",
-  "/images/home/large/3-lg.jpg",
-  "/images/home/large/4-lg.jpg",
-  "/images/home/large/5-lg.jpg",
-  "/images/home/large/6-lg.jpg",
-  "/images/home/large/7-lg.jpg",
-  "/images/home/large/8-lg.jpg",
-  "/images/home/large/9-lg.jpg",
-  "/images/home/large/10-lg.jpg",
-  "/images/home/large/11-lg.jpg",
-  "/images/home/large/12-lg.jpg",
+  "/images/home/large/1-lg.webp", // First image - the one that should show immediately
+  "/images/home/large/2-lg.webp",
+  "/images/home/large/3-lg.webp",
+  "/images/home/large/4-lg.webp",
+  "/images/home/large/5-lg.webp",
+  "/images/home/large/6-lg.webp",
+  "/images/home/large/7-lg.webp",
+  "/images/home/large/8-lg.webp",
+  "/images/home/large/9-lg.webp",
+  "/images/home/large/10-lg.webp",
+  "/images/home/large/11-lg.webp",
+  "/images/home/large/12-lg.webp",
 ];
 
 // 2025 Standard: Only preload the first 3 images for faster LCP
@@ -935,7 +935,7 @@ export default function Home() {
                     transform: 'translateZ(0)', // Force GPU layer
                     backfaceVisibility: 'hidden' // Prevent flickering
                   }}
-                  // poster="/videos/rain-poster.jpg" // Optional: Add poster image
+                  // poster="/videos/rain-poster.webp" // Optional: Add poster image
                 >
                   <source src="/videos/depressed.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
@@ -1073,7 +1073,7 @@ export default function Home() {
                           loop
                           muted
                           playsInline
-                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
                         >
                           {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
                           <source
@@ -1107,7 +1107,7 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-2 row-span-1 md:row-span-1 md:col-start-1 md:row-start-1", // Position in first row, first column for md+
-                    thumbnail: "/images/therapyType/couple.jpg",
+                    thumbnail: "/images/therapyType/couple.webp",
                     size: "large",
                     title: "Couples Therapy",
                   },
@@ -1122,7 +1122,7 @@ export default function Home() {
                           loop
                           muted
                           playsInline
-                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
                         >
                           {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
                           <source
@@ -1156,7 +1156,7 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2", // Position in second row, first column for md+
-                    thumbnail: "/images/therapyType/mental_health.jpg",
+                    thumbnail: "/images/therapyType/mental_health.webp",
                     size: "medium",
                     title: "Mental Health Challenges",
                   },
@@ -1171,7 +1171,7 @@ export default function Home() {
                           loop
                           muted
                           playsInline
-                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
                         >
                           {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
                           <source
@@ -1205,7 +1205,7 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2", // Position in second row, second column for md+
-                    thumbnail: "/images/therapyType/family.jpg",
+                    thumbnail: "/images/therapyType/family.webp",
                     size: "medium",
                     title: "Family Therapy",
                   },
@@ -1220,7 +1220,7 @@ export default function Home() {
                           loop
                           muted
                           playsInline
-                          // Optional: poster="/images/fallback-image.jpg" // Add path to fallback image here
+                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
                         >
                           {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
                           <source
@@ -1254,7 +1254,7 @@ export default function Home() {
                     ),
                     className:
                       "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-1", // Position in first row, second column for md+
-                    thumbnail: "/images/therapyType/solo.jpg",
+                    thumbnail: "/images/therapyType/solo.webp",
                     size: "large",
                     title: "Solo Therapy",
                   },

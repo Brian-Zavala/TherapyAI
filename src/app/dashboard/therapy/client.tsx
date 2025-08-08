@@ -1526,10 +1526,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               key: "doctor-photo",
                                               src:
                                                 sessionType === "couple"
-                                                  ? "/images/dr-maya-thompson.jpg"
+                                                  ? "/images/dr-maya-thompson.webp"
                                                   : sessionType === "solo"
-                                                    ? "/images/dr-elliot-mackaphy.jpg"
-                                                    : "/images/dr-jada-pearson.jpg",
+                                                    ? "/images/dr-elliot-mackaphy.webp"
+                                                    : "/images/dr-jada-pearson.webp",
                                               alt: selectedAssistant?.name || "Therapist",
                                               className:
                                                 "w-full h-full object-cover",

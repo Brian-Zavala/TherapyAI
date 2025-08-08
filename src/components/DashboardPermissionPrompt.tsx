@@ -94,7 +94,7 @@ export function DashboardPermissionPrompt({ onPermissionGranted }: DashboardPerm
           <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
           
           {/* Mesh gradient overlay */}
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[url('/noise.webp')] opacity-5 mix-blend-overlay" />
         </div>
 
         {/* Content */}
