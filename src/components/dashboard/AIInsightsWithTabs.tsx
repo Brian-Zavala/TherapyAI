@@ -555,7 +555,7 @@ export default function AIInsightsWithTabs() {
               key="loading"
               type="insights" 
               message={`Analyzing your ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} therapy insights...`}
-              variant="card"
+              variant="inline"
             />
           ) : error ? (
             <DashboardAPIError 
