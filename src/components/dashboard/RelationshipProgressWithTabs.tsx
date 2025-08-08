@@ -482,21 +482,25 @@ export default function RelationshipProgressWithTabs() {
       <CardContent className="space-y-6 flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <UnifiedLoadingState 
-              key="loading"
-              type="progress" 
-              message={`Loading ${config.title.toLowerCase()}...`}
-              variant="card"
-            />
+            <div key="loading" className="flex-1 min-h-[400px]">
+              <UnifiedLoadingState 
+                type="progress" 
+                message={`Loading ${config.title.toLowerCase()}...`}
+                variant="card"
+              />
+            </div>
           ) : error ? (
-            <DashboardAPIError 
-              key="error"
-              error={error}
-              onRetry={refetch}
-              context={`${config.title} for ${activeType} therapy`}
-            />
+            <div key="error" className="flex-1 min-h-[400px] flex items-center justify-center">
+              <DashboardAPIError 
+                error={error}
+                onRetry={refetch}
+                context={`${config.title} for ${activeType} therapy`}
+              />
+            </div>
           ) : !hasData ? (
-            <EmptyState key="empty" therapyType={activeType as Exclude<TherapyType, 'solo'>} />
+            <div key="empty" className="flex-1 min-h-[400px] flex items-center justify-center">
+              <EmptyState therapyType={activeType as Exclude<TherapyType, 'solo'>} />
+            </div>
           ) : (
             <motion.div
               key={`progress-${activeType}`}
@@ -536,7 +540,7 @@ export default function RelationshipProgressWithTabs() {
               </div>
 
               {/* Progress Metrics Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 flex-1 auto-rows-fr">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10 flex-1 auto-rows-fr items-stretch">
                 {config.metrics.map((metric) => (
                   <ProgressMetric
                     key={metric.key}

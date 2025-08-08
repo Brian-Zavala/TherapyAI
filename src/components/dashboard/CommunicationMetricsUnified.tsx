@@ -287,14 +287,16 @@ function CommunicationMetricsComponent() {
   const isAnimating = usePeriodicAnimation(12000); // Trigger animations every 12 seconds
 
   // TEMPORARY: Always show enhanced loading animation for demonstration
-  // Remove this condition to see the enhanced loading animation
+  // This will show the enhanced loading spinner with modern animations
   if (true) {
     return (
-      <UnifiedLoadingState 
-        type="communication" 
-        message="Analyzing conversation patterns..."
-        variant="card"
-      />
+      <div className="w-full h-full min-h-[500px] bg-white dark:bg-gray-800 rounded-3xl shadow-lg">
+        <UnifiedLoadingState 
+          type="communication" 
+          message="✨ Enhanced Loading Animation Active ✨"
+          variant="card"
+        />
+      </div>
     );
   }
 

@@ -119,7 +119,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 
   return (
     <motion.div 
-      className={`bg-white/20 backdrop-blur-md rounded-2xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 border border-white/30 hover:shadow-lg transition-all duration-300 ${
+      className={`bg-white/20 backdrop-blur-md rounded-2xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 border border-white/30 hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full box-border ${
         isAnimating ? 'breathing-glow breathing-glow-active' : 'breathing-glow'
       }`}
       initial={{ opacity: 0, y: 20 }}
@@ -165,7 +165,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       </div>
 
       {/* Inspirational Message */}
-      <div className="text-xs text-gray-600 dark:text-gray-300 italic leading-relaxed">
+      <div className="text-xs text-gray-600 dark:text-gray-300 italic leading-relaxed text-center mt-auto">
         "{getSaying()}"
       </div>
     </motion.div>
@@ -253,7 +253,7 @@ function CommunicationMetricsContent() {
   const hasData = communicationMetrics && Array.isArray(communicationMetrics) && communicationMetrics.length > 0;
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl min-h-[500px] flex flex-col">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">
@@ -294,24 +294,28 @@ function CommunicationMetricsContent() {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <UnifiedLoadingState 
-              key="loading"
-              type="metrics" 
-              message={`Loading ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} communication metrics...`}
-              variant="card"
-            />
+            <div key="loading" className="flex-1 min-h-[400px]">
+              <UnifiedLoadingState 
+                type="communication" 
+                message={`Loading ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} communication metrics...`}
+                variant="card"
+              />
+            </div>
           ) : error && error.name !== 'AbortError' ? (
-            <DashboardAPIError 
-              key="error"
-              error={error}
-              onRetry={refetch}
-              context={`Communication metrics for ${activeType} therapy`}
-            />
+            <div key="error" className="flex-1 min-h-[400px] flex items-center justify-center">
+              <DashboardAPIError 
+                error={error}
+                onRetry={refetch}
+                context={`Communication metrics for ${activeType} therapy`}
+              />
+            </div>
           ) : !hasData ? (
-            <EmptyState key="empty" therapyType={activeType} />
+            <div key="empty" className="flex-1 min-h-[400px] flex items-center justify-center">
+              <EmptyState therapyType={activeType} />
+            </div>
           ) : (
             <motion.div
               key={`metrics-${activeType}`}
@@ -319,7 +323,7 @@ function CommunicationMetricsContent() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10 flex-1 items-stretch auto-rows-fr"
             >
               {metricConfigs.map((config, index) => {
                 const metric = communicationMetrics.find((m: any) => m.name === config.name);
@@ -343,7 +347,7 @@ function CommunicationMetricsContent() {
 
         {/* Session Count Badge */}
         {sessionCount > 0 && (
-          <div className="mt-4 text-center">
+          <div className="mt-auto pt-4 text-center">
             <Badge variant="secondary" className="text-xs">
               Based on {sessionCount} completed {activeType} session{sessionCount > 1 ? 's' : ''}
             </Badge>

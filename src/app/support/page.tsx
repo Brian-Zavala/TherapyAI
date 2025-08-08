@@ -187,28 +187,28 @@ export default function SupportPage() {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-blue-500/20 rounded-xl text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-white/15 backdrop-blur-md border border-blue-500/30 rounded-xl text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer [&>option:disabled]:text-white/90 [&>option:disabled]:bg-gray-800"
                     required
                   >
-                    <option value="" disabled className="bg-gray-900">
+                    <option value="" disabled className="bg-gray-800 text-white/90">
                       Select a subject
                     </option>
-                    <option value="account" className="bg-gray-900">
+                    <option value="account" className="bg-gray-800 text-white">
                       Account Issues
                     </option>
-                    <option value="billing" className="bg-gray-900">
+                    <option value="billing" className="bg-gray-800 text-white">
                       Billing Questions
                     </option>
-                    <option value="technical" className="bg-gray-900">
+                    <option value="technical" className="bg-gray-800 text-white">
                       Technical Support
                     </option>
-                    <option value="therapy" className="bg-gray-900">
+                    <option value="therapy" className="bg-gray-800 text-white">
                       Therapy Services
                     </option>
-                    <option value="feedback" className="bg-gray-900">
+                    <option value="feedback" className="bg-gray-800 text-white">
                       Feedback
                     </option>
-                    <option value="other" className="bg-gray-900">
+                    <option value="other" className="bg-gray-800 text-white">
                       Other
                     </option>
                   </select>

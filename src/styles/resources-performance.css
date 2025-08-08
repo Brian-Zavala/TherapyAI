@@ -1,0 +1,432 @@
+/* Resources Page Performance Optimization CSS */
+/* This file contains additional performance optimizations that can be imported globally */
+
+@layer base {
+  /* Critical font loading with preload hints */
+  @font-face {
+    font-family: 'Inter Variable';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/InterVariable.woff2') format('woff2-variations');
+    font-named-instance: 'Regular';
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  /* Root performance optimizations */
+  :root {
+    /* Custom properties for consistent spacing */
+    --space-xs: clamp(0.25rem, 1vw, 0.5rem);
+    --space-sm: clamp(0.5rem, 2vw, 1rem);
+    --space-md: clamp(1rem, 3vw, 1.5rem);
+    --space-lg: clamp(1.5rem, 4vw, 2rem);
+    --space-xl: clamp(2rem, 5vw, 3rem);
+    
+    /* Typography scale */
+    --text-xs: clamp(0.75rem, 1.5vw, 0.875rem);
+    --text-sm: clamp(0.875rem, 2vw, 1rem);
+    --text-base: clamp(1rem, 2.5vw, 1.125rem);
+    --text-lg: clamp(1.125rem, 3vw, 1.25rem);
+    --text-xl: clamp(1.25rem, 3.5vw, 1.5rem);
+    --text-2xl: clamp(1.5rem, 4vw, 2rem);
+    --text-3xl: clamp(2rem, 5vw, 3rem);
+    
+    /* Performance-focused colors */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-hover: rgba(255, 255, 255, 0.15);
+    
+    /* Animation durations */
+    --duration-fast: 0.15s;
+    --duration-normal: 0.3s;
+    --duration-slow: 0.5s;
+    
+    /* Easing functions */
+    --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Global performance optimizations */
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  }
+
+  body {
+    font-family: 'Inter Variable', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'slnt' 0;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Improved focus management */
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Enhanced scroll performance */
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Performance-optimized scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+}
+
+@layer utilities {
+  /* High-performance utility classes */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  .hardware-accelerated {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  .optimized-transitions {
+    transition-property: transform, opacity;
+    transition-timing-function: var(--ease-out);
+    transition-duration: var(--duration-normal);
+  }
+
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-auto {
+    will-change: auto;
+  }
+
+  /* Content visibility utilities */
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 300px;
+  }
+
+  .content-hidden {
+    content-visibility: hidden;
+  }
+
+  .content-visible {
+    content-visibility: visible;
+  }
+
+  /* Container query utilities */
+  .container-layout {
+    contain: layout;
+  }
+
+  .container-style {
+    contain: style;
+  }
+
+  .container-paint {
+    contain: paint;
+  }
+
+  .container-size {
+    contain: size;
+  }
+
+  .container-strict {
+    contain: strict;
+  }
+
+  .container-content {
+    contain: content;
+  }
+
+  /* Performance-focused layout utilities */
+  .layout-optimized {
+    contain: layout style;
+    transform: translateZ(0);
+  }
+
+  .paint-optimized {
+    contain: layout style paint;
+    transform: translateZ(0);
+  }
+
+  /* Advanced text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .hyphenate {
+    hyphens: auto;
+    word-break: break-word;
+  }
+
+  /* Modern image optimization */
+  .image-optimized {
+    object-fit: cover;
+    object-position: center;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* Advanced grid utilities */
+  .grid-auto-fit {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--min-width, 300px)), 1fr));
+  }
+
+  .grid-auto-fill {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--min-width, 300px)), 1fr));
+  }
+
+  /* Intersection observer optimization */
+  .lazy-load {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity var(--duration-slow) var(--ease-out),
+                transform var(--duration-slow) var(--ease-out);
+  }
+
+  .lazy-load.loaded {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Advanced hover states */
+  .hover-lift {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px) scale(1.02);
+  }
+
+  .hover-glow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hover-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease-out);
+  }
+
+  .hover-glow:hover::before {
+    opacity: 1;
+  }
+
+  /* Loading states */
+  .skeleton-loading {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 2s infinite;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .lazy-load,
+    .hover-lift,
+    .optimized-transitions,
+    .skeleton-loading {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    .hover-lift:hover {
+      transform: none !important;
+    }
+
+    * {
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .glass-bg {
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid white;
+    }
+
+    .text-white\/80 {
+      color: white;
+    }
+
+    .text-white\/70 {
+      color: white;
+    }
+  }
+
+  /* Dark mode optimizations */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+    }
+  }
+
+  /* Print styles for accessibility */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    * {
+      background: transparent !important;
+      color: black !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+/* Component-specific optimizations */
+@layer components {
+  /* Resource card performance patterns */
+  .resource-card-performance {
+    contain: layout style paint;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 350px;
+    transform: translateZ(0);
+    will-change: auto;
+  }
+
+  .resource-card-performance:hover {
+    will-change: transform;
+  }
+
+  .resource-card-performance:not(:hover) {
+    will-change: auto;
+  }
+
+  /* Advanced typography optimizations */
+  .typography-performance {
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'ss01' 1;
+    font-variant-numeric: tabular-nums;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Modal performance optimizations */
+  .modal-performance {
+    contain: layout style paint;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    isolation: isolate;
+  }
+
+  /* Advanced grid performance */
+  .grid-performance {
+    display: grid;
+    contain: layout;
+    transform: translateZ(0);
+  }
+
+  /* Button performance patterns */
+  .button-performance {
+    contain: layout style;
+    transform: translateZ(0);
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .button-performance:hover {
+    will-change: transform;
+  }
+
+  .button-performance:not(:hover) {
+    will-change: auto;
+  }
+
+  .button-performance:active {
+    transform: translateZ(0) scale(0.98);
+  }
+}
+
+/* Media queries for performance */
+@media (max-width: 768px) {
+  /* Mobile-specific optimizations */
+  .mobile-optimized {
+    /* Reduce complexity on mobile */
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  /* Disable hover effects on touch devices */
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  /* Simpler animations on mobile */
+  .resource-card-performance:hover {
+    will-change: auto;
+  }
+}
+
+/* High performance mode for low-end devices */
+@media (max-width: 480px), (pointer: coarse) {
+  .performance-critical {
+    /* Minimal effects for performance */
+    backdrop-filter: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: none;
+  }
+
+  .performance-critical * {
+    will-change: auto !important;
+  }
+}
