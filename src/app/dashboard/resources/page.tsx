@@ -9,6 +9,7 @@ import {
   useMemo,
   useCallback,
   useRef,
+  startTransition,
 } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,7 +40,27 @@ type Category = {
   color: string;
 };
 
-// Intersection Observer hook for lazy animations
+// Performance monitoring hook
+const usePerformanceMonitor = () => {
+  const [metrics, setMetrics] = useState({
+    renderTime: 0,
+    reRenders: 0,
+    lastRender: Date.now()
+  });
+
+  useEffect(() => {
+    const start = performance.now();
+    setMetrics(prev => ({
+      renderTime: performance.now() - start,
+      reRenders: prev.reRenders + 1,
+      lastRender: Date.now()
+    }));
+  });
+
+  return metrics;
+};
+
+// Enhanced Intersection Observer hook with virtual scrolling support
 const useIntersectionAnimation = (threshold = 0.1) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -49,10 +70,16 @@ const useIntersectionAnimation = (threshold = 0.1) => {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.disconnect();
+          // Keep observing for virtual scrolling
+          // observer.disconnect(); // Removed for better performance
+        } else {
+          setIsVisible(false); // Reset when out of view for virtual scrolling
         }
       },
-      { threshold }
+      { 
+        threshold,
+        rootMargin: '50px 0px', // Preload items 50px before they come into view
+      }
     );
 
     if (ref.current) {
@@ -65,10 +92,86 @@ const useIntersectionAnimation = (threshold = 0.1) => {
   return { ref, isVisible };
 };
 
-// Ultra-optimized ResourceCard with Intersection Observer
+// Debounced search hook for performance
+const useDebouncedSearch = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Virtual scrolling hook for large lists
+const useVirtualScroll = (items: any[], itemHeight = 300, containerHeight = 600) => {
+  const [scrollTop, setScrollTop] = useState(0);
+  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 });
+
+  const handleScroll = useCallback((e: Event) => {
+    const target = e.target as HTMLElement;
+    setScrollTop(target.scrollTop);
+  }, []);
+
+  useEffect(() => {
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(
+      startIndex + Math.ceil(containerHeight / itemHeight) + 2, // Buffer of 2 items
+      items.length
+    );
+    
+    setVisibleRange({ start: Math.max(0, startIndex - 1), end: endIndex });
+  }, [scrollTop, itemHeight, containerHeight, items.length]);
+
+  return {
+    visibleRange,
+    handleScroll,
+    totalHeight: items.length * itemHeight,
+    offsetY: visibleRange.start * itemHeight,
+  };
+};
+
+// Ultra-optimized ResourceCard with virtual scrolling and content-visibility
 const ResourceCard = memo(
   ({ resource, index }: { resource: Resource; index: number }) => {
     const { ref, isVisible } = useIntersectionAnimation(0.1);
+    const [shouldRender, setShouldRender] = useState(false);
+
+      // Progressive rendering with startTransition and RAF
+    useEffect(() => {
+      if (isVisible) {
+        // Use requestAnimationFrame for smoother rendering
+        requestAnimationFrame(() => {
+          startTransition(() => {
+            setShouldRender(true);
+          });
+        });
+      } else {
+        // Reset render state when not visible for virtual scrolling
+        setShouldRender(false);
+      }
+    }, [isVisible]);
+
+    // Skip rendering if not visible and not ready
+    if (!isVisible || !shouldRender) {
+      return (
+        <div 
+          ref={ref}
+          className="h-80 bg-white/5 rounded-2xl animate-pulse shimmer-effect"
+          style={{
+            contain: "layout style",
+            contentVisibility: "auto",
+            containIntrinsicSize: "auto 320px"
+          }}
+        />
+      );
+    }
 
     const getTypeIcon = useCallback((type: Resource["type"]) => {
       const icons: Record<Resource["type"], string> = {
@@ -102,11 +205,12 @@ const ResourceCard = memo(
         animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         whileHover={{ y: -5 }}
         transition={{ duration: 0.3, delay: isVisible ? index * 0.03 : 0 }}
-        className="group relative h-full resource-card"
+        className="group relative h-full resource-card card-hover-effect typography-optimized focus-visible-enhanced"
         style={{
           contain: "layout style paint",
-          contentVisibility: "auto",
-          willChange: isVisible ? "transform" : "auto",
+          contentVisibility: isVisible ? "visible" : "auto",
+          containIntrinsicSize: "auto 300px", // Helps with layout stability
+          willChange: isVisible && shouldRender ? "transform" : "auto",
         }}
       >
         {/* Static glow effect on hover - no animation */}
@@ -114,35 +218,35 @@ const ResourceCard = memo(
           className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r ${tagColorClass} blur-md`}
         />
 
-        {/* Card container with fixed height */}
-        <div className="relative h-full bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/20 hover:border-white/30 transition-all duration-300 group-hover:bg-white/15 flex flex-col">
+        {/* Card container with fixed height and vertical rhythm */}
+        <div className="relative h-full bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/20 hover:border-white/30 transition-all duration-300 group-hover:bg-white/15 flex flex-col vertical-rhythm">
           {/* Top accent bar */}
           <div
             className={`h-1 bg-gradient-to-r ${tagColorClass} flex-shrink-0`}
           />
 
-          <div className="p-5 sm:p-6 flex flex-col flex-grow">
+          <div className="p-4 sm:p-5 lg:p-6 flex flex-col flex-grow" data-flow="tight">
             <div className="flex items-start mb-4 flex-shrink-0">
               <div
-                className={`rounded-xl w-12 h-12 flex items-center justify-center mr-4 bg-gradient-to-br ${tagColorClass} shadow-lg flex-shrink-0`}
+                className={`rounded-xl w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 flex items-center justify-center mr-3 sm:mr-4 bg-gradient-to-br ${tagColorClass} shadow-lg flex-shrink-0`}
               >
-                <span className="text-xl text-white">
+                <span className="text-lg sm:text-xl lg:text-2xl text-white">
                   {getTypeIcon(resource.type)}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base sm:text-lg font-semibold text-white leading-tight mb-1 line-clamp-2">
+                <h3 className="responsive-subtitle font-semibold text-white leading-tight mb-1 line-clamp-2-gpu">
                   {resource.title}
                 </h3>
                 {resource.source && (
-                  <p className="text-xs sm:text-sm text-blue-300/70 truncate">
+                  <p className="text-xs sm:text-sm lg:text-base text-blue-300/70 truncate">
                     Source: {resource.source}
                   </p>
                 )}
               </div>
             </div>
 
-            <p className="text-sm text-white/80 mb-4 line-clamp-3 flex-grow">
+            <p className="responsive-body text-white/80 mb-4 line-clamp-3-gpu flex-grow">
               {resource.description}
             </p>
 
@@ -195,12 +299,20 @@ const ResourceCard = memo(
         </div>
       </motion.div>
     );
+  },
+  // Apply custom comparison for better performance
+  (prevProps, nextProps) => {
+    return (
+      prevProps.resource.id === nextProps.resource.id &&
+      prevProps.index === nextProps.index &&
+      prevProps.resource.title === nextProps.resource.title
+    );
   }
 );
 
 ResourceCard.displayName = "ResourceCard";
 
-// Memoized category button component
+// Memoized category button component with custom comparison
 const CategoryButton = memo(
   ({
     category,
@@ -226,10 +338,10 @@ const CategoryButton = memo(
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onClick}
-        className={`relative px-4 sm:px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 overflow-hidden group ${
+        className={`category-button typography-optimized focus-visible-enhanced relative px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-full responsive-body font-medium overflow-hidden group ${
           isActive ? "text-white shadow-lg" : "text-white/80 hover:text-white"
         }`}
-        style={{ willChange: "transform" }}
+        style={{ willChange: isVisible ? "transform" : "auto" }}
       >
         {/* Background gradient */}
         <span
@@ -266,44 +378,410 @@ const CategoryButton = memo(
         </span>
       </motion.button>
     );
+  },
+  // Apply custom comparison for better performance
+  (prevProps, nextProps) => {
+    return (
+      prevProps.category.id === nextProps.category.id &&
+      prevProps.isActive === nextProps.isActive &&
+      prevProps.index === nextProps.index
+    );
   }
 );
 
 CategoryButton.displayName = "CategoryButton";
 
-// CSS @layer styles
+// High-performance CSS animations without JavaScript
+const cssAnimations = `
+  /* CSS-only fade in animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px) translateZ(0);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) translateZ(0);
+    }
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateZ(0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateZ(0);
+    }
+  }
+
+  /* FLIP animation for smooth transitions */
+  @keyframes flipSlideIn {
+    from {
+      transform: translateX(-100%) translateZ(0);
+    }
+    to {
+      transform: translateX(0) translateZ(0);
+    }
+  }
+
+  /* Enhanced FLIP animation system */
+  .flip-enter {
+    opacity: 0;
+    transform: scale(0.8) translateZ(0);
+  }
+
+  .flip-enter-active {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .flip-exit {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+
+  .flip-exit-active {
+    opacity: 0;
+    transform: scale(0.8) translateZ(0);
+    transition: all 0.2s ease-in;
+  }
+
+  /* Progressive reveal animation */
+  .progressive-reveal {
+    animation: fadeInUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation-play-state: paused;
+  }
+
+  .progressive-reveal.animate {
+    animation-play-state: running;
+  }
+
+  /* Staggered animation delays */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+`;
+
+// Optimized CSS @layer styles with performance enhancements
 const layerStyles = `
 @layer components {
+  ${cssAnimations}
+  /* Font loading optimization */
+  @font-face {
+    font-family: 'InterVariable';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/InterVariable.woff2') format('woff2-variations');
+  }
+
+  /* Root typography optimizations */
+  .resources-page {
+    font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04', 'cv05', 'cv06', 'cv07', 'cv08', 'cv09', 'cv10', 'cv11';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-optical-sizing: auto;
+  }
+
+  /* Performance-optimized typography */
+  .typography-optimized {
+    font-family: 'InterVariable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.6;
+    letter-spacing: -0.025em;
+    text-rendering: optimizeLegibility;
+    font-variant-ligatures: common-ligatures contextual;
+    font-kerning: auto;
+  }
+
+  /* High-performance resource cards */
   .resource-card {
+    contain: layout style paint;
+    content-visibility: auto;
     contain-intrinsic-size: auto 300px;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
-  
+
+  .resource-card:hover {
+    will-change: transform;
+  }
+
+  .resource-card:not(:hover) {
+    will-change: auto;
+  }
+
+  /* GPU-accelerated text truncation */
+  .line-clamp-2-gpu {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    contain: layout style;
+    transform: translateZ(0);
+  }
+
+  .line-clamp-3-gpu {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    contain: layout style;
+    transform: translateZ(0);
+  }
+
+  /* High-performance grid layout with virtual scrolling */
+  .resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+    gap: clamp(1rem, 4vw, 1.5rem);
+    contain: layout style;
+    transform: translateZ(0);
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Virtual scrolling optimization */
+  .virtual-scroll-container {
+    contain: strict;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1000px;
+  }
+
+  @media (min-width: 768px) {
+    .resource-grid {
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .resource-grid {
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+  }
+
+  /* Hardware-accelerated animations with reduced complexity */
   .emergency-icon-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: emergency-pulse 2s ease-in-out infinite;
+    transform: translateZ(0);
+    will-change: opacity;
   }
-  
-  @keyframes pulse {
+
+  @keyframes emergency-pulse {
     0%, 100% {
       opacity: 1;
     }
     50% {
-      opacity: .5;
+      opacity: 0.6;
     }
+  }
+
+  /* Micro-interaction hover effects with CSS only */
+  .css-hover-lift {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateZ(0);
+  }
+
+  .css-hover-lift:hover {
+    transform: translateY(-4px) translateZ(0);
+  }
+
+  /* Optimized hover effects */
+  .card-hover-effect {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateZ(0);
+  }
+
+  .card-hover-effect:hover {
+    transform: translateZ(0) translateY(-8px) scale(1.02);
+    will-change: transform;
+  }
+
+  .card-hover-effect:not(:hover) {
+    will-change: auto;
+  }
+
+  /* Category button optimizations */
+  .category-button {
+    contain: layout style;
+    transform: translateZ(0);
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .category-button:hover {
+    transform: translateZ(0) scale(1.05);
+    will-change: transform;
+  }
+
+  .category-button:not(:hover) {
+    will-change: auto;
+  }
+
+  .category-button:active {
+    transform: translateZ(0) scale(0.98);
+  }
+
+  /* Vertical rhythm optimization */
+  .vertical-rhythm {
+    --flow-space: 1rem;
+  }
+
+  .vertical-rhythm > * + * {
+    margin-block-start: var(--flow-space);
+  }
+
+  .vertical-rhythm[data-flow="tight"] {
+    --flow-space: 0.5rem;
+  }
+
+  .vertical-rhythm[data-flow="loose"] {
+    --flow-space: 1.5rem;
+  }
+
+  /* Responsive typography scale */
+  .responsive-title {
+    font-size: clamp(1.75rem, 5vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .responsive-subtitle {
+    font-size: clamp(1.125rem, 3vw, 1.5rem);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  .responsive-body {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    line-height: 1.6;
+  }
+
+  /* Mobile-optimized animations (reduced motion) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    
+    .emergency-icon-pulse,
+    .shimmer-effect,
+    .skeleton-image,
+    .progressive-reveal {
+      animation: none;
+    }
+    
+    .resource-card:hover,
+    .card-hover-effect:hover,
+    .category-button:hover {
+      transform: none;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .resource-card {
+      border: 2px solid;
+    }
+    
+    .shimmer-effect {
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.1) 10px,
+        rgba(255, 255, 255, 0.1) 20px
+      );
+    }
+  }
+
+  /* High-performance loading states */
+  .shimmer-effect {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    transform: translateZ(0);
+    will-change: background-position;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Skeleton loading for images */
+  .skeleton-image {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    animation: skeleton-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-pulse {
+    0%, 100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  /* Scroll performance */
+  .scroll-optimized {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Focus visible improvements */
+  .focus-visible-enhanced:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 `;
 
 export default function ResourcesOptimized() {
+  // Performance monitoring in development
+  const performanceMetrics = usePerformanceMonitor();
   // State for active category filter
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  // State for search query
+  // State for search query (immediate)
   const [searchQuery, setSearchQuery] = useState<string>("");
+  // Debounced search query for performance
+  const debouncedSearchQuery = useDebouncedSearch(searchQuery, 300);
   // State for emergency support visibility
   const [showEmergencySupport, setShowEmergencySupport] =
     useState<boolean>(false);
   // State for mobile tab management
   const [activeTab, setActiveTab] = useState<"search" | "results">("search");
   const [isMobile, setIsMobile] = useState(false);
+  // Performance tracking
+  const [renderCount, setRenderCount] = useState(0);
 
   // Categories for relationship resources - memoized
   const categories = useMemo<Category[]>(
@@ -553,25 +1031,58 @@ export default function ResourcesOptimized() {
     []
   );
 
-  // Memoized filter function
+  // Optimized filter function with debounced search
   const filteredResources = useMemo(() => {
+    setRenderCount(prev => prev + 1); // Track re-renders for debugging
+    
     return resources.filter((resource) => {
-      // Filter by category
+      // Filter by category (fast check first)
       const matchesCategory =
         activeCategory === "all" ||
-        (resource.tags && resource.tags.includes(activeCategory));
+        resource.tags?.includes(activeCategory);
 
-      // Filter by search query
-      const searchLower = searchQuery.toLowerCase();
+      if (!matchesCategory) return false;
+
+      // Filter by debounced search query (expensive check second)
+      if (!debouncedSearchQuery) return true;
+      
+      const searchLower = debouncedSearchQuery.toLowerCase();
       const matchesSearch =
         resource.title.toLowerCase().includes(searchLower) ||
         resource.description.toLowerCase().includes(searchLower) ||
-        (resource.source &&
-          resource.source.toLowerCase().includes(searchLower));
+        resource.source?.toLowerCase().includes(searchLower);
 
-      return matchesCategory && matchesSearch;
+      return matchesSearch;
     });
-  }, [resources, activeCategory, searchQuery]);
+  }, [resources, activeCategory, debouncedSearchQuery]);
+
+  // Virtual scrolling setup for large resource lists
+  const { visibleRange, handleScroll, totalHeight, offsetY } = useVirtualScroll(
+    filteredResources,
+    320, // Approximate card height
+    typeof window !== 'undefined' ? window.innerHeight : 600
+  );
+
+  // Performance monitoring and debugging (development only)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      // Batch console logs to prevent performance impact
+      const logBatch = () => {
+        console.groupCollapsed('🚀 ResourcesPage Performance Metrics');
+        console.log(`Renders: ${renderCount} | Last render: ${performanceMetrics.renderTime.toFixed(2)}ms`);
+        console.log(`Resources: ${filteredResources.length} filtered from ${resources.length} total`);
+        console.log(`Virtual range: ${visibleRange.start}-${visibleRange.end} (${visibleRange.end - visibleRange.start} visible)`);
+        console.log(`Search: "${searchQuery}" (debounced: "${debouncedSearchQuery}")`);
+        console.log(`Category: ${activeCategory}`);
+        console.groupEnd();
+      };
+      
+      // Only log every 3rd render to reduce noise
+      if (renderCount % 3 === 0) {
+        requestAnimationFrame(logBatch);
+      }
+    }
+  }, [renderCount, filteredResources.length, visibleRange, performanceMetrics, searchQuery, debouncedSearchQuery, activeCategory, resources.length]);
 
   // Callbacks
   const handleCategoryChange = useCallback((categoryId: string) => {
@@ -580,7 +1091,10 @@ export default function ResourcesOptimized() {
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchQuery(e.target.value);
+      const value = e.target.value;
+      // Update UI immediately for responsiveness
+      setSearchQuery(value);
+      // Actual filtering will be debounced
     },
     []
   );
@@ -590,17 +1104,19 @@ export default function ResourcesOptimized() {
   }, []);
 
   const handleResetSearch = useCallback(() => {
-    setSearchQuery("");
-    setActiveCategory("all");
-    if (isMobile) setActiveTab("search");
+    startTransition(() => {
+      setSearchQuery("");
+      setActiveCategory("all");
+      if (isMobile) setActiveTab("search");
+    });
   }, [isMobile]);
 
-  // Change to results tab when search is performed on mobile
+  // Change to results tab when search is performed on mobile (debounced)
   useEffect(() => {
-    if (isMobile && searchQuery && filteredResources.length > 0) {
+    if (isMobile && debouncedSearchQuery && filteredResources.length > 0) {
       setActiveTab("results");
     }
-  }, [searchQuery, filteredResources.length, isMobile]);
+  }, [debouncedSearchQuery, filteredResources.length, isMobile]);
 
   // Check if it's mobile view on mount and window resize
   useEffect(() => {
@@ -629,7 +1145,16 @@ export default function ResourcesOptimized() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+    <div className="resources-page scroll-optimized relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+      {/* Performance indicator in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 right-4 z-50 bg-black/80 text-white p-2 rounded text-xs font-mono">
+          <div>Renders: {performanceMetrics.reRenders}</div>
+          <div>Last: {performanceMetrics.renderTime.toFixed(1)}ms</div>
+          <div>Items: {filteredResources.length}</div>
+          <div>Range: {visibleRange.start}-{visibleRange.end}</div>
+        </div>
+      )}
       {/* Therapeutic Background - static, no parallax */}
       <Suspense fallback={<div className="absolute inset-0 bg-slate-900" />}>
         <div className="absolute inset-0">
@@ -638,7 +1163,13 @@ export default function ResourcesOptimized() {
       </Suspense>
 
       {/* Static gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-pink-900/20" />
+      <div 
+        className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-pink-900/20"
+        style={{
+          contain: 'layout style paint',
+          willChange: 'auto'
+        }}
+      />
 
       {/* Main overlay for content readability */}
       <div className="relative z-10 min-h-screen backdrop-blur-lg bg-gradient-to-b from-slate-900/60 via-slate-900/70 to-slate-900/80 py-12 px-4 sm:px-6 lg:px-8">
@@ -725,7 +1256,7 @@ export default function ResourcesOptimized() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold mb-8"
+                className="responsive-title font-heading font-bold mb-8 typography-optimized"
               >
                 <span className="text-white">Therapy</span>
                 <br />
@@ -735,7 +1266,7 @@ export default function ResourcesOptimized() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-xl sm:text-2xl lg:text-3xl text-white/90 max-w-4xl mx-auto mb-10 leading-relaxed font-light"
+                className="responsive-subtitle text-white/90 max-w-4xl mx-auto mb-10 leading-relaxed font-light typography-optimized"
               >
                 Every relationship faces challenges. You're not alone, and
                 reaching out for support is a{" "}
@@ -757,7 +1288,7 @@ export default function ResourcesOptimized() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleEmergencySupportToggle}
-                className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 text-base font-semibold rounded-full text-white overflow-hidden transition-all duration-300 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg hover:shadow-xl"
+                className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 responsive-body font-semibold rounded-full text-white overflow-hidden transition-all duration-300 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg hover:shadow-xl typography-optimized focus-visible-enhanced"
               >
                 <span className="relative flex items-center">
                   <svg
@@ -917,7 +1448,7 @@ export default function ResourcesOptimized() {
               <div className="flex flex-wrap gap-3 sm:gap-4">
                 {categories.map((category, index) => (
                   <CategoryButton
-                    key={category.id}
+                    key={`category-${category.id}`}
                     category={category}
                     isActive={activeCategory === category.id}
                     onClick={() => handleCategoryChange(category.id)}
@@ -943,6 +1474,10 @@ export default function ResourcesOptimized() {
                     onChange={handleSearchChange}
                     placeholder="Search resources by keyword, topic, or source..."
                     className="w-full px-6 py-4 bg-slate-900/60 backdrop-blur-md rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                    // Progressive enhancement attributes
+                    autoComplete="off"
+                    spellCheck="false"
+                    data-testid="resource-search"
                   />
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200"
@@ -1038,20 +1573,44 @@ export default function ResourcesOptimized() {
             )}
 
             {filteredResources.length > 0 ? (
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-                style={{ contain: "layout", willChange: "contents" }}
+              <div
+                className="resource-grid scroll-optimized"
+                style={{ 
+                  contain: "layout", 
+                  willChange: "contents",
+                  minHeight: totalHeight,
+                  position: "relative"
+                }}
+                onScroll={handleScroll}
               >
-                {filteredResources.map((resource, index) => (
-                  <ResourceCard
-                    key={resource.id}
-                    resource={resource}
-                    index={index}
-                  />
-                ))}
-              </motion.div>
+                {/* Virtual scrolling container */}
+                <div 
+                  style={{
+                    height: totalHeight,
+                    position: "relative"
+                  }}
+                >
+                  <div
+                    style={{
+                      transform: `translateY(${offsetY}px)`,
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                    }}
+                  >
+                    {filteredResources
+                      .slice(visibleRange.start, visibleRange.end)
+                      .map((resource, index) => (
+                        <ResourceCard
+                          key={`${resource.id}-${visibleRange.start + index}`}
+                          resource={resource}
+                          index={visibleRange.start + index}
+                        />
+                      ))}
+                  </div>
+                </div>
+              </div>
             ) : (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1156,7 +1715,7 @@ const VideoSection = memo(() => {
 
             {/* Video container */}
             <div className="relative rounded-xl overflow-hidden shadow-2xl">
-              <div className="relative aspect-video">
+              <div className="relative aspect-video bg-slate-800 rounded-xl overflow-hidden">
                 <iframe
                   src="https://www.youtube.com/embed/uPh4-DU6MDU"
                   title="Transformative Relationship Insights"
@@ -1164,7 +1723,14 @@ const VideoSection = memo(() => {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   loading="lazy"
+                  // Performance optimizations
+                  referrerPolicy="no-referrer-when-downgrade"
+                  sandbox="allow-scripts allow-same-origin allow-presentation"
                 />
+                {/* Loading placeholder */}
+                <div className="absolute inset-0 bg-slate-800 flex items-center justify-center pointer-events-none opacity-0 animate-pulse">
+                  <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
               </div>
             </div>
 
@@ -1472,6 +2038,10 @@ const NewsletterSignup = memo(() => {
                   type="email"
                   placeholder="Your email"
                   className="px-3 py-2 sm:px-4 sm:py-2 rounded-xl bg-white/10 backdrop-blur-sm text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 w-full"
+                  // Progressive enhancement
+                  autoComplete="email"
+                  inputMode="email"
+                  enterKeyHint="send"
                 />
                 <motion.button
                   whileHover={{ scale: 1.05 }}
