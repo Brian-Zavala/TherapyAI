@@ -88,17 +88,24 @@ export const profileCache = {
 
   async invalidate(key: string): Promise<void> {
     try {
+      // RACE CONDITION: Delete from memory first to prevent stale reads
+      memoryCache.delete(key)
+      
       if (redis && isRedisHealthy()) {
         try {
-          await redis.del(key)
+          // Non-blocking Redis delete
+          redis.del(key).catch(err => 
+            console.warn('[ProfileCache] Redis delete error:', err)
+          )
         } catch (redisError) {
           console.warn('[ProfileCache] Redis delete error:', redisError)
         }
       }
-      memoryCache.delete(key)
+      
       console.log(`[ProfileCache] Invalidated: ${key}`)
     } catch (error) {
       console.error('[ProfileCache] Error invalidating cache:', error)
+      // Ensure memory cache is cleared even on error
       memoryCache.delete(key)
     }
   },
@@ -144,11 +151,19 @@ export const profileCache = {
 function cleanupMemoryCache() {
   const now = Date.now()
   let cleaned = 0
+  const maxCleanup = 100 // Prevent blocking with too many cleanups
   
   for (const [key, value] of memoryCache.entries()) {
     if (value.expires < now) {
       memoryCache.delete(key)
       cleaned++
+      
+      // EDGE CASE: Prevent blocking with large cache cleanup
+      if (cleaned >= maxCleanup) {
+        console.log(`[ProfileCache] Cleanup limit reached, scheduling next cleanup`)
+        setTimeout(cleanupMemoryCache, 100)
+        break
+      }
     }
   }
   
@@ -157,9 +172,19 @@ function cleanupMemoryCache() {
   }
 }
 
-// Export cache key helpers
+// Export cache key helpers with validation
 export const cacheKeys = {
-  userProfile: (userId: string) => `profile:${userId}`,
-  userProfileByEmail: (email: string) => `profile:email:${email}`,
+  userProfile: (userId: string) => {
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Invalid userId for cache key')
+    }
+    return `profile:${userId}`
+  },
+  userProfileByEmail: (email: string) => {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      throw new Error('Invalid email for cache key')
+    }
+    return `profile:email:${email}`
+  },
   allProfiles: () => 'profile:*'
 }

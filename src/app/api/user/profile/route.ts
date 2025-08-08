@@ -60,25 +60,61 @@ function processNotificationData(data: any) {
 // GET handler with caching and optimized queries
 export async function GET(req: NextRequest) {
   const startTime = Date.now()
+  let session: any = null
   
   try {
     // Add response headers for better performance
     const headers = new Headers(CACHE_HEADERS)
     headers.set('X-Response-Time', startTime.toString())
     
-    const session = await getServerSession(authOptions)
+    // EDGE CASE: Session retrieval with timeout protection
+    try {
+      session = await Promise.race([
+        getServerSession(authOptions),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session retrieval timeout')), 5000)
+        )
+      ])
+    } catch (sessionError) {
+      console.error('[Profile API] Session retrieval error:', sessionError)
+      return NextResponse.json({ 
+        error: "Authentication service unavailable",
+        code: "AUTH_TIMEOUT" 
+      }, { status: 503 })
+    }
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
+    // EDGE CASE: Validate email format before using in queries
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(session.user.email)) {
+      console.error('[Profile API] Invalid email format:', session.user.email)
+      return NextResponse.json({ 
+        error: "Invalid email format",
+        code: "INVALID_EMAIL" 
+      }, { status: 400 })
+    }
+    
     // PERFORMANCE FIX: Check cache first before querying database
     const cacheKey = cacheKeys.userProfileByEmail(session.user.email)
-    const cached = await profileCache.get(cacheKey)
+    let cached = null
+    
+    try {
+      cached = await Promise.race([
+        profileCache.get(cacheKey),
+        new Promise((resolve) => setTimeout(() => resolve(null), 2000)) // 2s cache timeout
+      ])
+    } catch (cacheError) {
+      console.warn('[Profile API] Cache retrieval error, continuing without cache:', cacheError)
+    }
     
     if (cached) {
       console.log(`[Profile API] Cache hit for ${session.user.email} (${Date.now() - startTime}ms)`)
-      return NextResponse.json(cached, { headers: CACHE_HEADERS })
+      headers.set('X-Cache', 'HIT')
+      headers.set('X-Response-Time', (Date.now() - startTime).toString())
+      return NextResponse.json(cached, { headers })
     }
     
     // Use optimized parallel queries with increased timeout
@@ -125,9 +161,18 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    // Transform data for response
-    const profile = user.profile
-    const familyMembers = user.familyMembers || []
+    // EDGE CASE: Ensure user object has expected structure
+    if (!user || typeof user !== 'object') {
+      console.error('[Profile API] Invalid user object structure')
+      return NextResponse.json({ 
+        error: "Invalid user data structure",
+        code: "DATA_INTEGRITY_ERROR" 
+      }, { status: 500 })
+    }
+    
+    // Transform data for response with null safety
+    const profile = user.profile || {}
+    const familyMembers = Array.isArray(user.familyMembers) ? user.familyMembers : []
     
     // Map family members to legacy format
     const familyMemberData: any = {}
@@ -166,10 +211,15 @@ export async function GET(req: NextRequest) {
     }
     
     // Cache the response with longer TTL for better performance
-    await profileCache.set(cacheKey, responseData, 10 * 60 * 1000) // 10 minutes
+    // EDGE CASE: Don't block response on cache write failure
+    profileCache.set(cacheKey, responseData, 10 * 60 * 1000).catch(cacheError => {
+      console.warn('[Profile API] Failed to cache response:', cacheError)
+    })
     
     console.log(`[Profile API] Fetched profile for ${session.user.email} (${Date.now() - startTime}ms)`)
-    return NextResponse.json(responseData, { headers: CACHE_HEADERS })
+    headers.set('X-Cache', 'MISS')
+    headers.set('X-Response-Time', (Date.now() - startTime).toString())
+    return NextResponse.json(responseData, { headers })
     
   } catch (error) {
     const userEmail = session?.user?.email || 'unknown'
@@ -299,9 +349,10 @@ export async function PATCH(request: Request) {
         }
       })
       
-      // Update family members - Delete existing first
-      await tx.familyMember.deleteMany({
-        where: { userId: user.id }
+      // EDGE CASE: Soft delete to prevent data loss on transaction failure
+      await tx.familyMember.updateMany({
+        where: { userId: user.id },
+        data: { isActive: false }
       })
       
       const familyMembersToCreate = []
@@ -603,9 +654,10 @@ export async function PUT(request: Request) {
         updatedAt: upsertResult.updatedAt
       })
       
-      // Update family members - Delete existing first
-      await tx.familyMember.deleteMany({
-        where: { userId: user.id }
+      // EDGE CASE: Soft delete to prevent data loss on transaction failure
+      await tx.familyMember.updateMany({
+        where: { userId: user.id },
+        data: { isActive: false }
       })
       
       const familyMembersToCreate = []

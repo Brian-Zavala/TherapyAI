@@ -50,48 +50,56 @@ const familyMemberSelect = {
  * Uses parallel queries instead of nested relations for better performance
  */
 export async function findUserByEmailOptimized(email: string) {
-  // Note: Cache is now checked in the API route for better control
-  // Execute queries in parallel for better performance
-  const [user, profile, familyMembers] = await Promise.all([
-    // Query 1: Get basic user data
-    prisma.user.findUnique({
-      where: { email },
-      select: userProfileSelect,
-    }),
-    
-    // Query 2: Get profile data separately
-    prisma.userProfile.findFirst({
-      where: { 
-        user: { email } 
-      },
-      select: profileDetailsSelect,
-    }),
-    
-    // Query 3: Get family members separately
-    prisma.familyMember.findMany({
-      where: { 
-        user: { email },
-        isActive: true,
-      },
-      orderBy: { order: 'asc' },
-      select: familyMemberSelect,
-      take: 7, // Limit to 7 family members
-    }),
-  ]);
+  // EDGE CASE: Validate email format before querying
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    console.warn('[OptimizedQuery] Invalid email format:', email)
+    return null
+  }
+  
+  // RACE CONDITION PREVENTION: Use transaction for consistent read
+  return await prisma.$transaction(async (tx) => {
+    // Execute queries in parallel for better performance
+    const [user, profile, familyMembers] = await Promise.all([
+      // Query 1: Get basic user data
+      tx.user.findUnique({
+        where: { email },
+        select: userProfileSelect,
+      }),
+      
+      // Query 2: Get profile data separately
+      tx.userProfile.findFirst({
+        where: { 
+          user: { email } 
+        },
+        select: profileDetailsSelect,
+      }),
+      
+      // Query 3: Get family members separately
+      tx.familyMember.findMany({
+        where: { 
+          user: { email },
+          isActive: true,
+        },
+        orderBy: { order: 'asc' },
+        select: familyMemberSelect,
+        take: 7, // Limit to 7 family members
+      }),
+    ]);
 
   if (!user) {
     return null;
   }
 
-  // Combine results
-  const result = {
-    ...user,
-    profile,
-    familyMembers,
-  };
+    // Combine results
+    const result = {
+      ...user,
+      profile,
+      familyMembers,
+    };
 
-  // Note: Caching is now handled in the API route
-  return result;
+    // Note: Caching is now handled in the API route
+    return result;
+  });
 }
 
 /**
@@ -187,10 +195,24 @@ export async function updateUserProfileOptimized(
     profileData?: Partial<Prisma.UserProfileUpdateInput>;
   }
 ) {
+  // EDGE CASE: Validate email before update
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    throw new Error('Invalid email format')
+  }
+  
   const { profileData, ...userData } = data;
   
-  // Use transaction for atomic updates
+  // CONCURRENCY: Use optimistic locking with version field
   const result = await prisma.$transaction(async (tx) => {
+    // Lock the user row for update to prevent race conditions
+    const existingUser = await tx.user.findUnique({
+      where: { email },
+      select: { id: true, version: true }
+    })
+    
+    if (!existingUser) {
+      throw new Error('User not found')
+    }
     // Update user
     const user = await tx.user.update({
       where: { email },

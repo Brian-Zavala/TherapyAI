@@ -130,18 +130,18 @@ const ResourceCard = memo(
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base sm:text-lg font-semibold text-white leading-tight mb-1 line-clamp-2">
+                <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-white leading-tight mb-1 line-clamp-2">
                   {resource.title}
                 </h3>
                 {resource.source && (
-                  <p className="text-xs sm:text-sm text-blue-300/70 truncate">
+                  <p className="text-xs sm:text-sm lg:text-base text-blue-300/70 truncate">
                     Source: {resource.source}
                   </p>
                 )}
               </div>
             </div>
 
-            <p className="text-sm text-white/80 mb-4 line-clamp-3 flex-grow">
+            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white/80 mb-3 sm:mb-4 line-clamp-3 flex-grow leading-relaxed">
               {resource.description}
             </p>
 
@@ -150,14 +150,14 @@ const ResourceCard = memo(
                 {resource.tags?.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/30 text-white/90"
+                    className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-sm border border-white/30 text-white/90"
                   >
                     {tag.charAt(0).toUpperCase() + tag.slice(1)}
                   </span>
                 ))}
 
                 {resource.difficulty && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/30 text-white/90">
+                  <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-sm border border-white/30 text-white/90">
                     {resource.difficulty === "beginner"
                       ? "🌱 Beginner"
                       : resource.difficulty === "intermediate"
@@ -171,7 +171,7 @@ const ResourceCard = memo(
                 href={resource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-blue-300 hover:text-blue-200 font-medium transition-colors group/link cursor-pointer"
+                className="inline-flex items-center text-sm sm:text-base lg:text-lg text-blue-300 hover:text-blue-200 font-medium transition-colors group/link cursor-pointer"
               >
                 <span className="mr-1">Access Resource</span>
                 <svg
@@ -789,7 +789,7 @@ export default function ResourcesOptimized() {
               >
                 <div className="relative bg-gradient-to-r from-red-500/20 to-pink-500/20 backdrop-blur-xl rounded-3xl p-1 border border-red-400/30">
                   <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl p-6 sm:p-8">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 flex items-center justify-center sm:justify-start">
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center justify-center sm:justify-start">
                       <svg
                         className="h-8 w-8 text-red-500 mr-3 emergency-icon-pulse"
                         fill="none"
@@ -805,7 +805,7 @@ export default function ResourcesOptimized() {
                       </svg>
                       Immediate Support Resources
                     </h2>
-                    <p className="text-red-200 mb-8 text-base sm:text-lg">
+                    <p className="text-red-200 mb-6 sm:mb-8 text-sm sm:text-base md:text-lg lg:text-xl">
                       If you're in danger or experiencing a crisis, please use
                       these resources for immediate help:
                     </p>
@@ -819,17 +819,17 @@ export default function ResourcesOptimized() {
                           transition={{ delay: index * 0.1, duration: 0.3 }}
                           className="relative bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20 hover:border-red-400/50 transition-all duration-200"
                         >
-                          <h3 className="font-bold text-lg text-white mb-2">
+                          <h3 className="font-bold text-base sm:text-lg lg:text-xl text-white mb-2">
                             {resource.title}
                           </h3>
-                          <p className="font-mono text-red-300 text-lg my-3">
+                          <p className="font-mono text-red-300 text-sm sm:text-base lg:text-lg my-2 sm:my-3">
                             {resource.phone}
                           </p>
                           <a
                             href={resource.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-300 hover:text-blue-200 font-medium mb-3 transition-colors"
+                            className="inline-flex items-center text-sm sm:text-base text-blue-300 hover:text-blue-200 font-medium mb-3 transition-colors cursor-pointer"
                           >
                             Visit Website
                             <svg
@@ -846,7 +846,7 @@ export default function ResourcesOptimized() {
                               />
                             </svg>
                           </a>
-                          <p className="text-sm text-white/70">
+                          <p className="text-xs sm:text-sm lg:text-base text-white/70">
                             {resource.description}
                           </p>
                         </motion.div>
@@ -907,7 +907,7 @@ export default function ResourcesOptimized() {
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="mb-12"
             >
-              <h2 className="text-xl font-semibold text-white mb-6 pl-1">
+              <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-white mb-4 sm:mb-6 pl-1">
                 Filter by category:
               </h2>
               <div className="flex flex-wrap gap-3 sm:gap-4">
@@ -1059,10 +1059,10 @@ export default function ResourcesOptimized() {
                   <span className="relative z-10">🔍</span>
                 </div>
                 <div className="relative z-10">
-                  <h3 className="text-2xl font-semibold text-white mb-3">
+                  <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-white mb-3">
                     No resources found
                   </h3>
-                  <p className="text-white/70 mb-6">
+                  <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/70 mb-6">
                     Try adjusting your search or category filter to find what
                     you're looking for.
                   </p>
@@ -1134,15 +1134,15 @@ const VideoSection = memo(() => {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white">
+                  <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">
                     Featured Resource
                   </h2>
-                  <p className="text-blue-200/80">
+                  <p className="text-sm sm:text-base lg:text-lg text-blue-200/80">
                     Essential viewing for couples
                   </p>
                 </div>
               </div>
-              <p className="text-lg text-white/90 leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 leading-relaxed">
                 Discover powerful insights on building lasting relationships
                 through this transformative talk that has helped millions of
                 couples worldwide.
@@ -1230,7 +1230,7 @@ const SupportMessage = memo(() => {
               initial={{ opacity: 0, y: 20 }}
               animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ delay: 0.2 }}
-              className="text-xl sm:text-2xl font-bold text-white mb-3 flex items-center justify-center"
+              className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-3 flex items-center justify-center"
             >
               <svg
                 className="h-6 w-6 mr-2 text-blue-300"
@@ -1251,7 +1251,7 @@ const SupportMessage = memo(() => {
               initial={{ opacity: 0, y: 20 }}
               animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ delay: 0.3 }}
-              className="text-white/80 mb-6 text-sm sm:text-base"
+              className="text-white/80 mb-6 text-xs sm:text-sm md:text-base lg:text-lg"
             >
               While these resources are helpful, sometimes you need professional
               guidance tailored to your unique situation. Our trained therapists
@@ -1368,7 +1368,7 @@ const CommunityWisdom = memo(() => {
       <motion.h2
         initial={{ opacity: 0, y: 20 }}
         animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        className="text-xl sm:text-2xl font-bold text-center text-white mb-8 flex items-center justify-center"
+        className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-center text-white mb-6 sm:mb-8 flex items-center justify-center"
       >
         <svg
           className="h-6 w-6 mr-2 text-blue-300"
@@ -1405,12 +1405,12 @@ const CommunityWisdom = memo(() => {
                 >
                   {item.icon}
                 </div>
-                <h3 className="font-semibold text-white">{item.title}</h3>
+                <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-white">{item.title}</h3>
               </div>
-              <p className="text-white/80 text-sm leading-relaxed">
+              <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed">
                 &ldquo;{item.quote}&rdquo;
               </p>
-              <p className="text-white/60 mt-3 text-xs italic">
+              <p className="text-white/60 mt-3 text-xs sm:text-sm italic">
                 — {item.source}
               </p>
             </div>
@@ -1446,10 +1446,10 @@ const NewsletterSignup = memo(() => {
               transition={{ delay: 0.2 }}
               className="sm:w-7/12 mb-5 sm:mb-0 text-center sm:text-left"
             >
-              <h3 className="text-xl font-bold text-white mb-2">
+              <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-white mb-2">
                 Weekly Relationship Insights
               </h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-white/70 text-xs sm:text-sm lg:text-base">
                 Join our community for expert tips and supportive guidance.
               </p>
             </motion.div>
@@ -1472,7 +1472,7 @@ const NewsletterSignup = memo(() => {
                   Subscribe
                 </motion.button>
               </div>
-              <p className="text-xs text-white/60 mt-2 text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-white/60 mt-2 text-center sm:text-left">
                 We respect your privacy. Unsubscribe anytime.
               </p>
             </motion.div>
