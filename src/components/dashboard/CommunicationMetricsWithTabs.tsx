@@ -297,15 +297,14 @@ function CommunicationMetricsContent() {
       <CardContent className="flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <div key="loading" className="flex-1 min-h-[400px]">
-              <UnifiedLoadingState 
-                type="communication" 
-                message={`Loading ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} communication metrics...`}
-                variant="card"
-              />
-            </div>
+            <UnifiedLoadingState 
+              key="loading"
+              type="communication" 
+              message={`Loading ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} communication metrics...`}
+              variant="inline"
+            />
           ) : error && error.name !== 'AbortError' ? (
-            <div key="error" className="flex-1 min-h-[400px] flex items-center justify-center">
+            <div key="error" className="flex-1 flex items-center justify-center">
               <DashboardAPIError 
                 error={error}
                 onRetry={refetch}
@@ -313,7 +312,7 @@ function CommunicationMetricsContent() {
               />
             </div>
           ) : !hasData ? (
-            <div key="empty" className="flex-1 min-h-[400px] flex items-center justify-center">
+            <div key="empty" className="flex-1 flex items-center justify-center">
               <EmptyState therapyType={activeType} />
             </div>
           ) : (

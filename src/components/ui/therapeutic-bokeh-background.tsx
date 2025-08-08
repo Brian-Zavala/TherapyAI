@@ -15,51 +15,58 @@ interface BokehParticle {
   delay: number
 }
 
+// Static therapeutic color palette to avoid recreating on every render
+const THERAPEUTIC_COLORS = [
+  // Red: Energy, vitality, stimulation
+  'rgba(255, 64, 64, OPACITY)',
+  
+  // Orange: Energy, creativity, enthusiasm, positive outlook
+  'rgba(255, 165, 0, OPACITY)',
+  
+  // Yellow: Happiness, optimism, creativity, mental clarity
+  'rgba(255, 215, 0, OPACITY)',
+  
+  // Green: Balance, harmony, nature, equilibrium
+  'rgba(50, 205, 50, OPACITY)',
+  
+  // Blue: Calming, soothing, relaxation, stress reduction
+  'rgba(30, 144, 255, OPACITY)',
+  
+  // Indigo: Intuition, inner wisdom, mental clarity
+  'rgba(75, 0, 130, OPACITY)',
+  
+  // Violet: Spirituality, intuition, transformation
+  'rgba(138, 43, 226, OPACITY)',
+  
+  // Pink: Love, compassion, emotional well-being
+  'rgba(255, 105, 180, OPACITY)',
+  
+  // White/Turquoise: Purity, clarity, cleansing
+  'rgba(173, 216, 230, OPACITY)',
+];
+
 // Memoized particle component with color transitions for chromatherapy effects
 const Particle = memo(({ particle }: { particle: BokehParticle }) => {
   const prefersReducedMotion = useReducedMotion();
   const [colorIndex, setColorIndex] = useState(0);
   
-  // Therapeutic color palette based on chromatherapy principles
-  const therapeuticColors = [
-    // Red: Energy, vitality, stimulation
-    particle.color.includes('red') ? particle.color : `rgba(255, 64, 64, ${particle.opacity})`,
-    
-    // Orange: Energy, creativity, enthusiasm, positive outlook
-    `rgba(255, 165, 0, ${particle.opacity})`,
-    
-    // Yellow: Happiness, optimism, creativity, mental clarity
-    `rgba(255, 215, 0, ${particle.opacity})`,
-    
-    // Green: Balance, harmony, nature, equilibrium
-    `rgba(50, 205, 50, ${particle.opacity})`,
-    
-    // Blue: Calming, soothing, relaxation, stress reduction
-    `rgba(30, 144, 255, ${particle.opacity})`,
-    
-    // Indigo: Intuition, inner wisdom, mental clarity
-    `rgba(75, 0, 130, ${particle.opacity})`,
-    
-    // Violet: Spirituality, intuition, transformation
-    `rgba(138, 43, 226, ${particle.opacity})`,
-    
-    // Pink: Love, compassion, emotional well-being
-    `rgba(255, 105, 180, ${particle.opacity})`,
-    
-    // White/Turquoise: Purity, clarity, cleansing
-    `rgba(173, 216, 230, ${particle.opacity})`,
-  ];
+  // Memoize therapeutic colors with proper opacity
+  const therapeuticColors = useMemo(() => {
+    return THERAPEUTIC_COLORS.map(color => 
+      color.replace('OPACITY', particle.opacity.toString())
+    );
+  }, [particle.opacity]);
   
-  // Color transition effect
+  // Color transition effect with stable dependencies
   useEffect(() => {
     if (prefersReducedMotion) return;
     
     const interval = setInterval(() => {
-      setColorIndex((prevIndex) => (prevIndex + 1) % therapeuticColors.length);
+      setColorIndex((prevIndex) => (prevIndex + 1) % THERAPEUTIC_COLORS.length);
     }, 5000 + Math.random() * 5000); // Random interval between 5-10 seconds
     
     return () => clearInterval(interval);
-  }, [prefersReducedMotion, therapeuticColors.length]);
+  }, [prefersReducedMotion]); // Removed therapeuticColors.length dependency to prevent infinite loop
   
   // Optimize animations for users who prefer reduced motion
   const animationProps = prefersReducedMotion

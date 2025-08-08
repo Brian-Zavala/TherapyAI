@@ -104,7 +104,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
         
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout (less than API timeout)
         
         const res = await fetch('/api/user/profile', {
           headers: {
@@ -128,6 +128,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             // User not found - might need to create profile
             console.warn('[ProfileProvider] User profile not found')
             throw new Error('Profile not found')
+          }
+          
+          if (res.status === 408) {
+            // Timeout from server - don't retry immediately
+            console.error('[ProfileProvider] Profile API timeout')
+            throw new Error('Profile request timed out')
+          }
+          
+          if (res.status === 503) {
+            // Service unavailable (DB connection issues) - will trigger retry
+            console.error('[ProfileProvider] Service unavailable:', res.status)
+            throw new Error('Service temporarily unavailable')
           }
           
           if (res.status >= 500) {
@@ -181,9 +193,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: (failureCount, error) => {
-      // Don't retry on 401 or 404
+      // Don't retry on 401, 404, or timeout errors
       if (error instanceof Error) {
         if (error.message === 'Unauthorized' || error.message === 'Profile not found') {
+          return false
+        }
+        
+        // Don't retry timeout errors immediately - they indicate system load
+        if (error.message.includes('timeout') || error.message.includes('timed out')) {
+          console.warn('[ProfileProvider] Timeout error - not retrying immediately')
           return false
         }
       }
@@ -225,7 +243,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        signal: AbortSignal.timeout(25000), // 25 second timeout (allow for API processing time)
       })
       
       if (!res.ok) {

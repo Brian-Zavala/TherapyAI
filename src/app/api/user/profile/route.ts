@@ -52,7 +52,7 @@ function processNotificationData(data: any) {
   }
 }
 
-// GET handler with caching
+// GET handler with caching and optimized queries
 export async function GET(req: NextRequest) {
   const startTime = Date.now()
   
@@ -63,27 +63,48 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // CRITICAL FIX: Bypass the optimized query cache for now to ensure fresh data
-    // The findUserByEmailOptimized has its own cache that isn't being properly invalidated
-    // Instead, query the database directly for fresh data
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        profile: true,
-        familyMembers: {
-          where: { isActive: true },
-          orderBy: { order: 'asc' }
-        }
-      }
-    })
+    // PERFORMANCE FIX: Use optimized parallel queries instead of slow nested includes
+    // Add timeout wrapper for additional protection
+    let user = await Promise.race([
+      findUserByEmailOptimized(session.user.email),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile query timeout after 15 seconds')), 15000)
+      )
+    ]) as any
     
+    // If optimized query returns null, try direct query as fallback
     if (!user) {
-      // User not found - stale session, return 401 to force re-authentication
-      console.log(`[Profile API] User not found for ${session.user.email} - stale session`)
-      return NextResponse.json({ 
-        error: "User not found - please log in again",
-        code: "STALE_SESSION" 
-      }, { status: 401 })
+      console.log(`[Profile API] Optimized query returned null, trying direct query for ${session.user.email}`)
+      
+      const fallbackUser = await Promise.race([
+        prisma.user.findUnique({
+          where: { email: session.user.email },
+          include: {
+            profile: true,
+            familyMembers: {
+              where: { isActive: true },
+              orderBy: { order: 'asc' }
+            }
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Fallback query timeout after 10 seconds')), 10000)
+        )
+      ]) as any
+      
+      if (!fallbackUser) {
+        console.log(`[Profile API] User not found for ${session.user.email} - stale session`)
+        return NextResponse.json({ 
+          error: "User not found - please log in again",
+          code: "STALE_SESSION" 
+        }, { status: 401 })
+      }
+      
+      // Transform fallback result to match optimized query structure
+      user = {
+        ...fallbackUser,
+        familyMembers: fallbackUser.familyMembers || []
+      }
     }
     
     // Transform data for response
@@ -134,7 +155,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(responseData, { headers: CACHE_HEADERS })
     
   } catch (error) {
+    const userEmail = session?.user?.email || 'unknown'
     console.error("[Profile API] Error:", error)
+    
+    // Handle timeout errors specifically
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        console.error(`[Profile API] Query timeout for ${userEmail} after ${Date.now() - startTime}ms`)
+        return NextResponse.json({ 
+          error: "Profile request timed out. Please try again.", 
+          code: "TIMEOUT",
+          details: "The profile query took too long to complete. This may be due to high database load."
+        }, { status: 408 })
+      }
+      
+      // Handle connection errors
+      if (error.message.includes('connection') || error.message.includes('ECONNREFUSED')) {
+        console.error(`[Profile API] Database connection error for ${userEmail}`)
+        return NextResponse.json({ 
+          error: "Database connection error. Please try again shortly.",
+          code: "CONNECTION_ERROR"
+        }, { status: 503 })
+      }
+    }
+    
+    // Generic error response
     return NextResponse.json(
       { error: "Failed to fetch profile" }, 
       { status: 500 }
@@ -164,6 +209,9 @@ export async function PATCH(request: Request) {
       console.error('[Profile API] Onboarding validation error:', error);
       return NextResponse.json({ error: "Invalid onboarding data", details: error }, { status: 400 });
     }
+    
+    // Track family members for debug output (declare outside transaction scope)
+    let familyMembersCreatedCount = 0
     
     // Use transaction for atomic updates
     const updatedUser = await prisma.$transaction(async (tx) => {

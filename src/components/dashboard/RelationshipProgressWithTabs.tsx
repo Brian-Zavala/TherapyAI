@@ -482,15 +482,14 @@ export default function RelationshipProgressWithTabs() {
       <CardContent className="space-y-6 flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <div key="loading" className="flex-1 min-h-[400px]">
-              <UnifiedLoadingState 
-                type="progress" 
-                message={`Loading ${config.title.toLowerCase()}...`}
-                variant="card"
-              />
-            </div>
+            <UnifiedLoadingState 
+              key="loading"
+              type="progress" 
+              message={`Loading ${config.title.toLowerCase()}...`}
+              variant="inline"
+            />
           ) : error ? (
-            <div key="error" className="flex-1 min-h-[400px] flex items-center justify-center">
+            <div key="error" className="flex-1 flex items-center justify-center">
               <DashboardAPIError 
                 error={error}
                 onRetry={refetch}
@@ -498,7 +497,7 @@ export default function RelationshipProgressWithTabs() {
               />
             </div>
           ) : !hasData ? (
-            <div key="empty" className="flex-1 min-h-[400px] flex items-center justify-center">
+            <div key="empty" className="flex-1 flex items-center justify-center">
               <EmptyState therapyType={activeType as Exclude<TherapyType, 'solo'>} />
             </div>
           ) : (

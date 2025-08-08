@@ -11,8 +11,32 @@ export default function SupportPage() {
   // Enable smooth scrolling for this page
   useEffect(() => {
     document.documentElement.classList.add("smooth-scroll");
+    
+    // Add custom CSS for select dropdown accessibility
+    const style = document.createElement('style');
+    style.textContent = `
+      select option:disabled {
+        background-color: #6b7280 !important;
+        color: #ffffff !important;
+      }
+      select option:disabled:hover {
+        background-color: #4b5563 !important;
+        color: #ffffff !important;
+      }
+      select option:not(:disabled) {
+        background-color: #1f2937 !important;
+        color: #ffffff !important;
+      }
+      select option:not(:disabled):hover {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
     return () => {
       document.documentElement.classList.remove("smooth-scroll");
+      document.head.removeChild(style);
     };
   }, []);
   const { data: session } = useSession();
@@ -187,28 +211,34 @@ export default function SupportPage() {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/15 backdrop-blur-md border border-blue-500/30 rounded-xl text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer [&>option:disabled]:text-white/90 [&>option:disabled]:bg-gray-800"
+                    className="w-full px-4 py-3 pr-10 bg-white/15 backdrop-blur-md border border-blue-500/30 rounded-xl text-white focus:outline-none focus:border-blue-400 focus:bg-white/20 hover:bg-white/20 appearance-none cursor-pointer"
                     required
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundPosition: 'right 0.75rem center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1.5em 1.5em'
+                    }}
                   >
-                    <option value="" disabled className="bg-gray-800 text-white/90">
+                    <option value="" disabled className="bg-gray-600 text-white" style={{backgroundColor: '#6b7280', color: '#ffffff'}}>
                       Select a subject
                     </option>
-                    <option value="account" className="bg-gray-800 text-white">
+                    <option value="account" className="bg-gray-900 text-white hover:bg-blue-600 hover:text-white">
                       Account Issues
                     </option>
-                    <option value="billing" className="bg-gray-800 text-white">
+                    <option value="billing" className="bg-gray-900 text-white hover:bg-blue-600 hover:text-white">
                       Billing Questions
                     </option>
-                    <option value="technical" className="bg-gray-800 text-white">
+                    <option value="technical" className="bg-gray-900 text-white hover:bg-blue-600 hover:text-white">
                       Technical Support
                     </option>
-                    <option value="therapy" className="bg-gray-800 text-white">
+                    <option value="therapy" className="bg-gray-900 text-white hover:bg-blue-600 hover:text-white">
                       Therapy Services
                     </option>
-                    <option value="feedback" className="bg-gray-800 text-white">
+                    <option value="feedback" className="bg-gray-900 text-white hover:bg-blue-600 hover:text-white">
                       Feedback
                     </option>
-                    <option value="other" className="bg-gray-800 text-white">
+                    <option value="other" className="bg-gray-900 text-white hover:bg-blue-600 hover:text-white">
                       Other
                     </option>
                   </select>
