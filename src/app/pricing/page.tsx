@@ -4,9 +4,36 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { CheckIcon, XMarkIcon, SparklesIcon, StarIcon, ShieldCheckIcon, HeartIcon, ChartBarIcon, ClockIcon, UsersIcon, BoltIcon } from '@heroicons/react/24/solid';
+import { createCheckoutSession } from '@/lib/stripe-client';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 const PricingPage = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Handle Stripe checkout
+  const handleCheckout = async (planType: 'essential' | 'growth' | 'unlimited', priceId: string) => {
+    try {
+      setLoadingPlan(planType);
+      
+      // For production, you'll need to set up the actual price IDs in your environment variables
+      // For now, we'll use placeholder IDs
+      const actualPriceId = priceId || `price_test_${planType}_${isAnnual ? 'annual' : 'monthly'}`;
+      
+      await createCheckoutSession({
+        priceId: actualPriceId,
+        planType,
+        isAnnual,
+      });
+      
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast.error(error.message || 'Failed to start checkout. Please try again.');
+      setLoadingPlan(null);
+    }
+  };
 
   // Animation variants
   const containerVariants = {
@@ -64,6 +91,8 @@ const PricingPage = () => {
       icon: <HeartIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 0,
       annualPrice: 0,
+      monthlyPriceId: null,
+      annualPriceId: null,
       tagline: 'Start your journey',
       highlight: false,
       gradient: 'from-blue-700 to-blue-900',
@@ -79,7 +108,8 @@ const PricingPage = () => {
         { text: 'Personalized therapy plans', included: false },
       ],
       cta: 'Start Free',
-      ctaLink: '/auth/register'
+      ctaLink: '/auth/register',
+      isFree: true
     },
     {
       id: 'essential',
@@ -87,6 +117,8 @@ const PricingPage = () => {
       icon: <StarIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 12.99,
       annualPrice: 129,
+      monthlyPriceId: process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY || '',
+      annualPriceId: process.env.STRIPE_PRICE_ESSENTIAL_ANNUAL || '',
       tagline: 'Perfect for regular use',
       highlight: false,
       gradient: 'from-blue-600 to-cyan-600',
@@ -102,7 +134,8 @@ const PricingPage = () => {
         { text: 'Personalized therapy plans', included: false },
       ],
       cta: 'Choose Essential',
-      ctaLink: '/dashboard/therapy'
+      ctaLink: '/dashboard/therapy',
+      isFree: false
     },
     {
       id: 'growth',
@@ -110,6 +143,8 @@ const PricingPage = () => {
       icon: <ChartBarIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 24.99,
       annualPrice: 249,
+      monthlyPriceId: process.env.STRIPE_PRICE_GROWTH_MONTHLY || '',
+      annualPriceId: process.env.STRIPE_PRICE_GROWTH_ANNUAL || '',
       tagline: 'Most popular choice',
       highlight: true,
       gradient: 'from-green-600 to-emerald-600',
@@ -125,7 +160,8 @@ const PricingPage = () => {
         { text: 'Personalized therapy plans', included: false },
       ],
       cta: 'Get Growth',
-      ctaLink: '/dashboard/therapy'
+      ctaLink: '/dashboard/therapy',
+      isFree: false
     },
     {
       id: 'unlimited',
@@ -133,6 +169,8 @@ const PricingPage = () => {
       icon: <BoltIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 44.99,
       annualPrice: 449,
+      monthlyPriceId: process.env.STRIPE_PRICE_UNLIMITED_MONTHLY || '',
+      annualPriceId: process.env.STRIPE_PRICE_UNLIMITED_ANNUAL || '',
       tagline: 'Maximum flexibility',
       highlight: false,
       gradient: 'from-indigo-700 to-blue-800',
@@ -151,7 +189,8 @@ const PricingPage = () => {
         { text: 'Downloadable transcripts', included: true },
       ],
       cta: 'Go Unlimited',
-      ctaLink: '/dashboard/therapy'
+      ctaLink: '/dashboard/therapy',
+      isFree: false
     }
   ];
 
@@ -361,16 +400,43 @@ const PricingPage = () => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Link
-                        href={plan.ctaLink}
-                        className={`block w-full text-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium text-sm sm:text-base lg:text-lg transition-all duration-300 cursor-pointer ${
-                          plan.highlight
-                            ? 'bg-gradient-to-r from-green-400 to-emerald-400 text-black hover:from-green-500 hover:to-emerald-500'
-                            : 'bg-white/20 backdrop-blur-md text-white hover:bg-white/30'
-                        }`}
-                      >
-                        {plan.cta}
-                      </Link>
+                      {plan.isFree ? (
+                        <Link
+                          href={plan.ctaLink}
+                          className={`block w-full text-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium text-sm sm:text-base lg:text-lg transition-all duration-300 cursor-pointer ${
+                            plan.highlight
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-400 text-black hover:from-green-500 hover:to-emerald-500'
+                              : 'bg-white/20 backdrop-blur-md text-white hover:bg-white/30'
+                          }`}
+                        >
+                          {plan.cta}
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => handleCheckout(
+                            plan.id as 'essential' | 'growth' | 'unlimited',
+                            isAnnual ? plan.annualPriceId : plan.monthlyPriceId
+                          )}
+                          disabled={loadingPlan === plan.id}
+                          className={`block w-full text-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium text-sm sm:text-base lg:text-lg transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                            plan.highlight
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-400 text-black hover:from-green-500 hover:to-emerald-500'
+                              : 'bg-white/20 backdrop-blur-md text-white hover:bg-white/30'
+                          }`}
+                        >
+                          {loadingPlan === plan.id ? (
+                            <span className="flex items-center justify-center">
+                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Processing...
+                            </span>
+                          ) : (
+                            plan.cta
+                          )}
+                        </button>
+                      )}
                     </motion.div>
                   </div>
                 </motion.div>

@@ -92,8 +92,8 @@ const ResourceCard = memo(
           className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-150 bg-gradient-to-r ${tagColorClass}`}
         />
 
-        {/* Card container with fixed height */}
-        <div className="relative h-full bg-white/10 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/20 hover:border-white/30 transition-colors duration-200 group-hover:bg-white/15 flex flex-col">
+        {/* Modern Glass Card Container with Enhanced Effects */}
+        <div className="relative h-full glass-card rounded-3xl overflow-hidden transition-all duration-300 flex flex-col group-hover:shadow-2xl">
           {/* Top accent bar */}
           <div
             className={`h-1 bg-gradient-to-r ${tagColorClass} flex-shrink-0`}
@@ -109,18 +109,18 @@ const ResourceCard = memo(
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-white leading-tight mb-1 line-clamp-2">
+                <h3 className="modern-title text-sm sm:text-base md:text-lg lg:text-xl font-bold leading-tight mb-1 line-clamp-2">
                   {resource.title}
                 </h3>
                 {resource.source && (
-                  <p className="text-xs sm:text-sm lg:text-base text-blue-300/70 truncate">
-                    Source: {resource.source}
+                  <p className="modern-subtitle text-xs sm:text-sm lg:text-base text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300 truncate font-medium">
+                    {resource.source}
                   </p>
                 )}
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white/80 mb-3 sm:mb-4 line-clamp-3 flex-grow leading-relaxed">
+            <p className="modern-body text-xs sm:text-sm md:text-base lg:text-lg mb-3 sm:mb-4 line-clamp-3 flex-grow leading-relaxed">
               {resource.description}
             </p>
 
@@ -150,7 +150,7 @@ const ResourceCard = memo(
                 href={resource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-sm sm:text-base lg:text-lg text-blue-300 hover:text-blue-200 font-medium transition-colors group/link cursor-pointer"
+                className="inline-flex items-center text-sm sm:text-base lg:text-lg font-semibold transition-all duration-300 group/link cursor-pointer text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 hover:from-blue-300 hover:to-purple-300"
               >
                 <span className="mr-1">Access Resource</span>
                 <svg
@@ -313,107 +313,107 @@ export default function ResourcesOptimized() {
     []
   );
 
-  // Resources with actual external links - memoized
+  // Resources with verified 2025 URLs - memoized
   const resources = useMemo<Resource[]>(
     () => [
       {
         id: "1",
-        title: "The Gottman Institute: The Four Horsemen",
+        title: "Gottman Love Notes: Weekly Relationship Tips",
         description:
-          "Learn to identify and counteract the four communication styles that can predict the end of a relationship.",
+          "Get expert relationship advice, research-based tips, and monthly couples exercises delivered to your inbox.",
         type: "article",
-        url: "https://www.gottman.com/blog/the-four-horsemen-recognizing-criticism-contempt-defensiveness-and-stonewalling/",
+        url: "https://www.gottman.com/couples/",
         source: "The Gottman Institute",
-        tags: ["communication", "conflict"],
+        tags: ["communication", "growth"],
         difficulty: "beginner",
       },
       {
         id: "2",
-        title: "Active Listening Exercise for Couples",
+        title: "21 Couples Therapy Worksheets & Activities",
         description:
-          "Practice truly hearing your partner with this guided step-by-step exercise for deeper understanding.",
+          "Evidence-based worksheets, exercises, and activities designed by psychologists to strengthen your relationship.",
         type: "exercise",
-        url: "https://www.therapistaid.com/therapy-worksheet/active-listening",
-        source: "TherapistAid",
-        tags: ["communication"],
-        difficulty: "beginner",
+        url: "https://positivepsychology.com/couples-therapy-worksheets-activities/",
+        source: "Positive Psychology",
+        tags: ["communication", "intimacy"],
+        difficulty: "intermediate",
       },
       {
         id: "3",
-        title: "Emotional Intelligence Assessment",
+        title: "The Paper Exercise - Breakthrough Tool",
         description:
-          "Discover your emotional intelligence patterns and how they affect your relationships.",
+          "A powerful therapeutic technique to reduce reactivity, improve clarity, and create deeper breakthroughs in your relationship.",
         type: "exercise",
-        url: "https://www.psychologytoday.com/us/tests/personality/emotional-intelligence-test",
-        source: "Psychology Today",
+        url: "https://www.couplesinstitute.com/couples-therapy-tools-the-paper-exercise/",
+        source: "Couples Institute",
+        tags: ["conflict", "communication"],
+        difficulty: "advanced",
+      },
+      {
+        id: "4",
+        title: "Hold Me Tight - EFT Conversation Exercise",
+        description:
+          "Dr. Sue Johnson's emotionally focused therapy approach that emphasizes emotional bonds over just communication.",
+        type: "exercise",
+        url: "https://yung-sidekick.com/blog/17-proven-couples-therapy-exercises-that-actually-work-in-2025",
+        source: "EFT Resources",
+        tags: ["intimacy", "communication"],
+        difficulty: "intermediate",
+      },
+      {
+        id: "5",
+        title: "Relationship Worksheets Collection",
+        description:
+          "Free downloadable worksheets for fair fighting, communication, conflict resolution, and relationship building.",
+        type: "exercise",
+        url: "https://www.therapistaid.com/therapy-worksheets/relationships/none",
+        source: "Therapist Aid",
+        tags: ["communication", "conflict"],
+        difficulty: "beginner",
+      },
+      {
+        id: "6",
+        title: "Best Online Couples Therapy 2025",
+        description:
+          "Compare top-rated online therapy platforms with various price points and specializations for couples.",
+        type: "article",
+        url: "https://www.healthline.com/health/mental-health/therapy-for-couples",
+        source: "Healthline",
+        tags: ["growth", "communication"],
+        difficulty: "beginner",
+      },
+      {
+        id: "7",
+        title: "33 Couples Therapy Exercises & Activities",
+        description:
+          "Comprehensive guide with questions designed to strengthen relationships and deepen emotional connection.",
+        type: "exercise",
+        url: "https://www.carepatron.com/guides/couples-therapy-exercises",
+        source: "CarePatron",
         tags: ["intimacy", "growth"],
         difficulty: "intermediate",
       },
       {
-        id: "4",
-        title: "The 5 Love Languages Online Quiz",
-        description:
-          "Find out how you and your partner express and receive love with this popular assessment.",
-        type: "exercise",
-        url: "https://5lovelanguages.com/quizzes/love-language",
-        source: "The 5 Love Languages",
-        tags: ["intimacy", "communication"],
-        difficulty: "beginner",
-      },
-      {
-        id: "5",
-        title: "Nonviolent Communication Basics",
-        description:
-          "Learn the fundamentals of expressing needs and feelings without blame or criticism.",
-        type: "article",
-        url: "https://www.cnvc.org/learn-nvc/what-is-nvc",
-        source: "Center for Nonviolent Communication",
-        tags: ["communication", "conflict"],
-        difficulty: "intermediate",
-      },
-      {
-        id: "6",
-        title: "Rebuilding Trust After Betrayal",
-        description:
-          "Evidence-based guidance for couples healing from infidelity or broken trust.",
-        type: "article",
-        url: "https://www.gottman.com/blog/reviving-trust-after-an-affair/",
-        source: "The Gottman Institute",
-        tags: ["crisis", "intimacy"],
-        difficulty: "advanced",
-      },
-      {
-        id: "7",
-        title: "Esther Perel: Rethinking Infidelity",
-        description:
-          "A fresh perspective on affair recovery that has helped countless couples rebuild trust.",
-        type: "video",
-        url: "https://www.youtube.com/watch?v=P2AUat93a8Q",
-        source: "TED",
-        tags: ["crisis", "intimacy"],
-        difficulty: "intermediate",
-      },
-      {
         id: "8",
-        title: "Conflict Resolution Skills for Couples",
+        title: "Marriage Counseling Toolkit: 30 Worksheets",
         description:
-          "Research-based strategies for managing disagreements in healthy ways.",
-        type: "article",
-        url: "https://www.gottman.com/blog/manage-conflict-solvable-vs-perpetual-problems/",
-        source: "The Gottman Institute",
-        tags: ["conflict"],
+          "Science-based exercises and interventions created by experts using the latest positive psychology research.",
+        type: "exercise",
+        url: "https://positivepsychology.com/marriage-counseling/",
+        source: "Positive Psychology Toolkit",
+        tags: ["conflict", "communication"],
         difficulty: "intermediate",
       },
       {
         id: "9",
-        title: "Relationship Repair After an Argument",
+        title: "Interactive Relationship Tools & Guides",
         description:
-          "Evidence-based strategies for reconnecting after conflict.",
-        type: "article",
-        url: "https://www.healthline.com/health/relationships/how-to-fix-a-relationship-after-a-fight",
-        source: "Healthline",
-        tags: ["conflict", "communication"],
-        difficulty: "intermediate",
+          "Free therapy resources including worksheets, treatment guides, and interactive tools for couples.",
+        type: "exercise",
+        url: "https://www.therapistaid.com/tools/relationships",
+        source: "Therapist Aid",
+        tags: ["communication", "growth"],
+        difficulty: "beginner",
       },
       {
         id: "10",
