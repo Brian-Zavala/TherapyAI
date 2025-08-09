@@ -68,16 +68,22 @@ export function TimeSlotPicker({
         const abortController = new AbortController()
         abortControllerRef.current = abortController
         
+        // Only set loading if we have time slots to check
+        const slots = getAvailableTimeSlots(selectedDate, timezone, {
+          startHour: 9,
+          endHour: 21,
+          interval: 30
+        })
+        
+        if (slots.length === 0) {
+          setConflictCheckLoading(false)
+          return
+        }
+        
         setConflictCheckLoading(true)
         const conflictSet = new Set<string>()
         
         try {
-          // Generate time slots for conflict checking
-          const slots = getAvailableTimeSlots(selectedDate, timezone, {
-            startHour: 9,
-            endHour: 21,
-            interval: 30
-          })
           
           // Check existing sessions locally (no API call needed)
           if (existingSessions && existingSessions.length > 0) {
@@ -100,8 +106,16 @@ export function TimeSlotPicker({
           }
           
           // Check calendar integrations - only if we have both integrations and time slots
-          if (calendarIntegrations && calendarIntegrations.length > 0 && slots.length > 0) {
-            const response = await fetch('/api/calendar/conflicts', {
+          // Temporarily disable external calendar checks to fix infinite loop
+          const skipExternalCalendarCheck = true
+          
+          if (!skipExternalCalendarCheck && calendarIntegrations && calendarIntegrations.length > 0 && slots.length > 0) {
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Request timeout')), 5000)
+            )
+            
+            const fetchPromise = fetch('/api/calendar/conflicts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -111,6 +125,8 @@ export function TimeSlotPicker({
               }),
               signal: abortController.signal // Add abort signal to request
             })
+            
+            const response = await Promise.race([fetchPromise, timeoutPromise]) as Response
             
             if (response.ok) {
               const data = await response.json()
@@ -125,12 +141,15 @@ export function TimeSlotPicker({
           // Only update state if this request wasn't aborted
           if (!abortController.signal.aborted) {
             setConflicts(conflictSet)
-            setConflictCheckLoading(false)
           }
         } catch (error: any) {
           // Ignore abort errors
           if (error?.name !== 'AbortError') {
             console.error('Error checking calendar conflicts:', error)
+          }
+        } finally {
+          // Always clear loading state unless request was aborted
+          if (!abortController.signal.aborted) {
             setConflictCheckLoading(false)
           }
         }
@@ -148,7 +167,7 @@ export function TimeSlotPicker({
         abortControllerRef.current.abort()
       }
     }
-  }, [selectedDate, timezone, existingSessions, duration, calendarIntegrations]) // Removed timeSlots from dependencies
+  }, [selectedDate, timezone, existingSessions, duration, calendarIntegrations?.length]) // Use stable reference to prevent loops
   
   const isSlotAvailable = (slotTime: Date) => {
     // Check if slot is in the past
