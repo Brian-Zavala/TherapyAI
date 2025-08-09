@@ -433,6 +433,21 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       // Dispatch event to notify UI
       window.dispatchEvent(new Event('sessionStateChanged'))
       
+      // Navigate to dashboard when session completes naturally
+      // Check if this is a natural completion (not user-initiated)
+      const isNaturalCompletion = reason && 
+        (reason.includes('max-duration') || 
+         reason.includes('silence-timeout') || 
+         reason.includes('assistant-request') ||
+         reason.includes('completed'))
+      
+      if (isNaturalCompletion) {
+        console.log('🚀 Natural session completion detected, navigating to dashboard')
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 1000) // Delay to show completion message if any
+      }
+      
       // Notify parent
       optionsRef.current.onCallEnd?.(reason)
     })

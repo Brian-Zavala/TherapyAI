@@ -1,6 +1,6 @@
 /**
- * Calendar Conflicts API Route
- * Checks for scheduling conflicts with existing sessions and external calendars
+ * Session Conflicts API Route
+ * Checks for scheduling conflicts with existing sessions
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const { date, duration, timeSlots } = validation.data;
     const conflicts: string[] = [];
 
-    // 1. Check conflicts with existing sessions
+    // Check conflicts with existing sessions only
     const existingSessions = await prisma.session.findMany({
       where: {
         userId: session.user.id,
@@ -83,65 +83,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Check conflicts with calendar integrations
-    const calendarIntegrations = await prisma.calendarIntegration.findMany({
-      where: {
-        userId: session.user.id,
-        enabled: true,
-        syncStatus: 'connected'
-      },
-      select: {
-        id: true,
-        provider: true,
-        accessToken: true,
-        calendarId: true,
-        providerMetadata: true
-      }
-    });
-
-    // For each enabled calendar integration, check for conflicts
-    for (const integration of calendarIntegrations) {
-      try {
-        // Check if access token is still valid
-        if (!integration.accessToken) {
-          continue;
-        }
-
-        // Provider-specific conflict checking
-        switch (integration.provider) {
-          case 'google':
-            // In production, this would call Google Calendar API
-            // For now, we'll add mock conflict checking
-            // const googleConflicts = await checkGoogleCalendarConflicts(
-            //   integration.accessToken,
-            //   integration.calendarId,
-            //   timeSlots,
-            //   duration
-            // );
-            // conflicts.push(...googleConflicts);
-            break;
-
-          case 'outlook':
-          case 'exchange':
-            // In production, this would call Microsoft Graph API
-            // const outlookConflicts = await checkOutlookCalendarConflicts(
-            //   integration.accessToken,
-            //   timeSlots,
-            //   duration
-            // );
-            // conflicts.push(...outlookConflicts);
-            break;
-
-          default:
-            console.warn(`Unknown calendar provider: ${integration.provider}`);
-        }
-      } catch (error) {
-        console.error(`Error checking conflicts for ${integration.provider}:`, error);
-        // Continue checking other integrations even if one fails
-      }
-    }
-
-    // 3. Check for buffer time preferences
+    // Check for buffer time preferences (optional enhancement)
     const userProfile = await prisma.userProfile.findUnique({
       where: { userId: session.user.id },
       select: {
@@ -149,9 +91,8 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Add buffer time conflicts if user has preferences set
-    // This could be expanded to include buffer times between sessions
-    // For example, 15 minutes before and after each existing session
+    // Could add buffer time logic here in the future
+    // For example, 15 minutes before and after each session
 
     // Remove duplicates from conflicts array
     const uniqueConflicts = [...new Set(conflicts)];
@@ -159,64 +100,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       conflicts: uniqueConflicts,
       totalChecked: timeSlots.length,
-      hasConflicts: uniqueConflicts.length > 0,
-      integrations: calendarIntegrations.map(i => ({
-        provider: i.provider,
-        connected: true
-      }))
+      hasConflicts: uniqueConflicts.length > 0
     });
 
   } catch (error) {
-    console.error('Failed to check calendar conflicts:', error);
+    console.error('Failed to check session conflicts:', error);
     return NextResponse.json({
-      error: 'Failed to check calendar conflicts',
+      error: 'Failed to check session conflicts',
       message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
-
-// Helper function for Google Calendar conflict checking (placeholder)
-async function checkGoogleCalendarConflicts(
-  accessToken: string,
-  calendarId: string | null,
-  timeSlots: string[],
-  duration: number
-): Promise<string[]> {
-  // Implementation would use Google Calendar API
-  // This is a placeholder for the actual implementation
-  const conflicts: string[] = [];
-  
-  // Example API call structure:
-  // const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-  // const events = await calendar.events.list({
-  //   calendarId: calendarId || 'primary',
-  //   timeMin: startTime,
-  //   timeMax: endTime,
-  //   singleEvents: true,
-  //   orderBy: 'startTime'
-  // });
-  
-  return conflicts;
-}
-
-// Helper function for Outlook/Exchange conflict checking (placeholder)
-async function checkOutlookCalendarConflicts(
-  accessToken: string,
-  timeSlots: string[],
-  duration: number
-): Promise<string[]> {
-  // Implementation would use Microsoft Graph API
-  // This is a placeholder for the actual implementation
-  const conflicts: string[] = [];
-  
-  // Example API call structure:
-  // const client = Client.init({
-  //   authProvider: (done) => done(null, accessToken)
-  // });
-  // const events = await client
-  //   .api('/me/events')
-  //   .filter(`start/dateTime ge '${startTime}' and end/dateTime le '${endTime}'`)
-  //   .get();
-  
-  return conflicts;
 }

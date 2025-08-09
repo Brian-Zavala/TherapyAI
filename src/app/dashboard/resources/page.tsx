@@ -109,18 +109,18 @@ const ResourceCard = memo(
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="modern-title text-sm sm:text-base md:text-lg lg:text-xl font-bold leading-tight mb-1 line-clamp-2">
+                <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-white leading-tight mb-1 line-clamp-2">
                   {resource.title}
                 </h3>
                 {resource.source && (
-                  <p className="modern-subtitle text-xs sm:text-sm lg:text-base text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300 truncate font-medium">
+                  <p className="text-xs sm:text-sm lg:text-base text-white/80 truncate font-medium">
                     {resource.source}
                   </p>
                 )}
               </div>
             </div>
 
-            <p className="modern-body text-xs sm:text-sm md:text-base lg:text-lg mb-3 sm:mb-4 line-clamp-3 flex-grow leading-relaxed">
+            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white/85 mb-3 sm:mb-4 line-clamp-3 flex-grow leading-relaxed">
               {resource.description}
             </p>
 
@@ -129,14 +129,14 @@ const ResourceCard = memo(
                 {resource.tags?.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-sm border border-white/30 text-white/90"
+                    className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-sm border border-white/40 text-white"
                   >
                     {tag.charAt(0).toUpperCase() + tag.slice(1)}
                   </span>
                 ))}
 
                 {resource.difficulty && (
-                  <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/10 backdrop-blur-sm border border-white/30 text-white/90">
+                  <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-sm border border-white/40 text-white">
                     {resource.difficulty === "beginner"
                       ? "🌱 Beginner"
                       : resource.difficulty === "intermediate"
@@ -150,7 +150,7 @@ const ResourceCard = memo(
                 href={resource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-sm sm:text-base lg:text-lg font-semibold transition-all duration-300 group/link cursor-pointer text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 hover:from-blue-300 hover:to-purple-300"
+                className="inline-flex items-center text-sm sm:text-base lg:text-lg font-semibold transition-all duration-300 group/link cursor-pointer text-blue-400 hover:text-blue-300"
               >
                 <span className="mr-1">Access Resource</span>
                 <svg

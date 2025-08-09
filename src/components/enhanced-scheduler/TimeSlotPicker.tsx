@@ -14,7 +14,6 @@ interface TimeSlotPickerProps {
   duration: number // in minutes
   existingSessions?: Array<{ date: Date; duration: number }>
   isLoading?: boolean
-  calendarIntegrations?: Array<{ provider: string; id: string }>
 }
 
 export function TimeSlotPicker({
@@ -24,8 +23,7 @@ export function TimeSlotPicker({
   timezone,
   duration = 60,
   existingSessions = [],
-  isLoading = false,
-  calendarIntegrations = []
+  isLoading = false
 }: TimeSlotPickerProps) {
   const [conflictCheckLoading, setConflictCheckLoading] = useState(false)
   const [conflicts, setConflicts] = useState<Set<string>>(new Set())
@@ -105,38 +103,8 @@ export function TimeSlotPicker({
             })
           }
           
-          // Check calendar integrations - only if we have both integrations and time slots
-          // Temporarily disable external calendar checks to fix infinite loop
-          const skipExternalCalendarCheck = true
-          
-          if (!skipExternalCalendarCheck && calendarIntegrations && calendarIntegrations.length > 0 && slots.length > 0) {
-            // Add timeout to prevent hanging
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Request timeout')), 5000)
-            )
-            
-            const fetchPromise = fetch('/api/calendar/conflicts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                date: selectedDate.toISOString(),
-                duration,
-                timeSlots: slots.map(slot => slot.time.toISOString())
-              }),
-              signal: abortController.signal // Add abort signal to request
-            })
-            
-            const response = await Promise.race([fetchPromise, timeoutPromise]) as Response
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.conflicts && Array.isArray(data.conflicts)) {
-                data.conflicts.forEach((conflictTime: string) => {
-                  conflictSet.add(conflictTime)
-                })
-              }
-            }
-          }
+          // External calendar checking has been removed
+          // We only check internal session conflicts now
           
           // Only update state if this request wasn't aborted
           if (!abortController.signal.aborted) {
@@ -167,7 +135,7 @@ export function TimeSlotPicker({
         abortControllerRef.current.abort()
       }
     }
-  }, [selectedDate, timezone, existingSessions, duration, calendarIntegrations?.length]) // Use stable reference to prevent loops
+  }, [selectedDate, timezone, existingSessions, duration]) // Dependencies without calendar integrations
   
   const isSlotAvailable = (slotTime: Date) => {
     // Check if slot is in the past

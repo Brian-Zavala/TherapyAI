@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createCheckoutSession, getCustomerByEmail, createCustomer, STRIPE_PRICES } from '@/lib/stripe';
-import prisma from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/prisma-optimized';
 
 export async function POST(request: NextRequest) {
   try {

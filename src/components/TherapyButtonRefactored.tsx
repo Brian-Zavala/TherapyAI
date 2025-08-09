@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useVapiSession } from '@/hooks/useVapiSession'
 import { useSessionManagementV2 } from '@/hooks/useSessionManagementV2'
@@ -75,6 +76,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   linkedSessionId = null
 }: TherapyButtonRefactoredProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const playClick = useButtonSound()
   
   // Session conflict handling
@@ -1498,6 +1500,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       // Dispatch event to notify UI components
       window.dispatchEvent(new Event('sessionEnded'))
+      
+      // Navigate to dashboard after session ends successfully
+      console.log('🚀 Navigating to dashboard after session end')
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 500) // Small delay to ensure all cleanup is complete
       
     } catch (error) {
       console.error('[TherapyButton] Failed to end session:', error)

@@ -8,7 +8,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useProfile } from '@/providers/ProfileProvider'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EnhancedSchedulerModal } from '@/components/enhanced-scheduler/EnhancedSchedulerModal'
-import { CalendarOAuth } from '@/lib/calendar-oauth'
 import TherapeuticBokehBackground from '@/components/ui/therapeutic-bokeh-background'
 import { UserPreferences } from '@/lib/enhanced-scheduler/types'
 import { formatInUserTimezone, getUserTimezone, formatSessionTime, getSessionBadgeInfo } from '@/lib/date-utils'
@@ -38,7 +37,6 @@ export default function ScheduleClient() {
   const [isLoading, setIsLoading] = useState(true)
   const [showScheduler, setShowScheduler] = useState(false)
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null)
-  const [calendarIntegrations, setCalendarIntegrations] = useState<any[]>([])
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null)
   const [showRecurringOptions, setShowRecurringOptions] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState('weekly')
@@ -48,9 +46,6 @@ export default function ScheduleClient() {
   
   // Check notification permissions
   const { hasAnyPermission, checkPermissions, hasEmailPermission, hasSmsPermission } = useNotificationPermissions()
-
-  // Initialize calendar OAuth
-  const calendarOAuth = new CalendarOAuth()
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -95,16 +90,6 @@ export default function ScheduleClient() {
       }
     }
   }, [profile, profileLoading])
-
-  // Fetch calendar integrations
-  useEffect(() => {
-    if (authStatus === 'authenticated') {
-      fetch('/api/calendar/integrations')
-        .then(res => res.json())
-        .then(data => setCalendarIntegrations(data.integrations || []))
-        .catch(error => console.error('Error fetching calendar integrations:', error))
-    }
-  }, [authStatus])
 
   const fetchSessions = async () => {
     try {
@@ -155,30 +140,6 @@ export default function ScheduleClient() {
       alert('Unable to load session for rescheduling. Please try again.')
     } finally {
       setIsLoadingRescheduleSession(false)
-    }
-  }
-
-  const handleConnectCalendar = async (provider: 'google' | 'outlook') => {
-    try {
-      const authUrl = await calendarOAuth.getAuthUrl(provider)
-      window.location.href = authUrl
-    } catch (error) {
-      console.error('Error connecting calendar:', error)
-    }
-  }
-
-  const handleDisconnectCalendar = async (integrationId: string) => {
-    try {
-      await fetch(`/api/calendar/integrations/${integrationId}`, {
-        method: 'DELETE'
-      })
-      
-      // Refresh integrations
-      const response = await fetch('/api/calendar/integrations')
-      const data = await response.json()
-      setCalendarIntegrations(data.integrations || [])
-    } catch (error) {
-      console.error('Error disconnecting calendar:', error)
     }
   }
 
@@ -300,80 +261,6 @@ export default function ScheduleClient() {
               </motion.div>
             </div>
 
-            {/* Calendar Integrations */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                Calendar Integrations
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Google Calendar */}
-                <div className="bg-white/5 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                        <CalendarIcon className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium">Google Calendar</h3>
-                        <p className="text-sm text-gray-400">
-                          {calendarIntegrations.find(i => i.provider === 'google') ? 'Connected' : 'Not connected'}
-                        </p>
-                      </div>
-                    </div>
-                    {calendarIntegrations.find(i => i.provider === 'google') ? (
-                      <button
-                        onClick={() => handleDisconnectCalendar(calendarIntegrations.find(i => i.provider === 'google')!.id)}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Disconnect
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleConnectCalendar('google')}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        Connect
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Outlook Calendar */}
-                <div className="bg-white/5 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
-                        <CalendarIcon className="w-5 h-5 text-purple-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium">Outlook Calendar</h3>
-                        <p className="text-sm text-gray-400">
-                          {calendarIntegrations.find(i => i.provider === 'outlook') ? 'Connected' : 'Not connected'}
-                        </p>
-                      </div>
-                    </div>
-                    {calendarIntegrations.find(i => i.provider === 'outlook') ? (
-                      <button
-                        onClick={() => handleDisconnectCalendar(calendarIntegrations.find(i => i.provider === 'outlook')!.id)}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Disconnect
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleConnectCalendar('outlook')}
-                        className="text-purple-400 hover:text-purple-300 text-sm"
-                      >
-                        Connect
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Upcoming Sessions */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Upcoming Sessions</h2>
@@ -450,7 +337,6 @@ export default function ScheduleClient() {
             onClose={handleSchedulerClose}
             sessionToEdit={sessionToEdit}
             userPreferences={userPreferences}
-            calendarIntegrations={calendarIntegrations}
             onSchedule={async (sessionData) => {
               try {
                 const response = await fetch('/api/sessions/schedule', {

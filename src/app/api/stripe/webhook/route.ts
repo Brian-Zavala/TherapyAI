@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { constructWebhookEvent, stripe } from '@/lib/stripe';
-import prisma from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/prisma-optimized';
 import Stripe from 'stripe';
 
 // Stripe requires the raw body to verify webhook signatures.

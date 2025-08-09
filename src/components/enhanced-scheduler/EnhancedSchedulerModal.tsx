@@ -19,7 +19,6 @@ interface EnhancedSchedulerModalProps {
   sessionToEdit?: any
   onSchedule?: (data: any) => void
   userPreferences?: any
-  calendarIntegrations?: any[]
 }
 
 interface SchedulerStep {
@@ -41,8 +40,7 @@ export function EnhancedSchedulerModal({
   onClose, 
   sessionToEdit,
   onSchedule,
-  userPreferences,
-  calendarIntegrations = []
+  userPreferences
 }: EnhancedSchedulerModalProps) {
   const { profile } = useProfile()
   const [currentStep, setCurrentStep] = useState(0)
@@ -163,7 +161,6 @@ export function EnhancedSchedulerModal({
             onTimeSelect={setSelectedTime}
             timezone={timezone}
             duration={duration}
-            calendarIntegrations={calendarIntegrations}
           />
         )
       case 2:
