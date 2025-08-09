@@ -167,6 +167,21 @@ export default function Navigation() {
                   </a>
                 </b>
 
+                {/* Pricing */}
+                <b>
+                  <a
+                    href="/pricing"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsMenuOpen(false);
+                      window.location.href = "/pricing";
+                    }}
+                    tabIndex={isMenuOpen ? 0 : -1}
+                  >
+                    Pricing
+                  </a>
+                </b>
+
                 {/* E */}
                 {isAuthenticated && (
                   <b>
@@ -437,6 +452,37 @@ export default function Navigation() {
             </Link>
             </motion.div>
 
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.17, duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Link
+                href="/pricing"
+                className={`menu-item js-cdpn-mobile-menu__link text-2xl text-center w-full ${linkStyles(pathname === "/pricing")} py-4 px-6 rounded-lg hover:bg-black transition-colors flex items-center justify-center`}
+                onClick={() => optimizedSetMenuOpen(false)}
+                style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
+              >
+                <svg
+                  className="w-7 h-7 mr-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Pricing
+              </Link>
+            </motion.div>
+
             {isLoading ? (
               <div className="text-indigo-100 py-4 px-6 text-2xl flex items-center justify-center">
                 <svg
@@ -620,6 +666,27 @@ export default function Navigation() {
               </>
             ) : (
               <>
+                <Link
+                  href="/pricing"
+                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/pricing")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <svg
+                    className="w-7 h-7 mr-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Pricing
+                </Link>
                 <Link
                   href="/auth/login"
                   className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/auth/login")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}

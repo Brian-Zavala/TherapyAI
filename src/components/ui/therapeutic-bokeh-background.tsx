@@ -57,16 +57,11 @@ const Particle = memo(({ particle }: { particle: BokehParticle }) => {
     );
   }, [particle.opacity]);
   
-  // Color transition effect with stable dependencies
+  // Remove color transitions for better performance
   useEffect(() => {
     if (prefersReducedMotion) return;
-    
-    const interval = setInterval(() => {
-      setColorIndex((prevIndex) => (prevIndex + 1) % THERAPEUTIC_COLORS.length);
-    }, 5000 + Math.random() * 5000); // Random interval between 5-10 seconds
-    
-    return () => clearInterval(interval);
-  }, [prefersReducedMotion]); // Removed therapeuticColors.length dependency to prevent infinite loop
+    // Color transitions disabled for performance
+  }, [prefersReducedMotion]);
   
   // Optimize animations for users who prefer reduced motion
   const animationProps = prefersReducedMotion
@@ -101,10 +96,11 @@ const Particle = memo(({ particle }: { particle: BokehParticle }) => {
         top: `${particle.y}%`,
         width: particle.size,
         height: particle.size,
-        background: `radial-gradient(circle, ${therapeuticColors[colorIndex]} 0%, transparent 70%)`,
+        background: `radial-gradient(circle, ${particle.color} 0%, transparent 70%)`,
         filter: `blur(${particle.blur}px)`,
-        contain: 'layout',
-        transition: 'background 2s ease-in-out',
+        contain: 'layout style paint',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
       }}
       initial={{ opacity: 0, scale: 0 }}
       animate={animationProps}
@@ -144,14 +140,14 @@ export default function TherapeuticBokehBackground() {
       'rgba(173, 216, 230, 0.7)'  // Light blue - clarity
     ]
 
-    // Reduce particle count on smaller screens
-    let particleCount = 30; // Slightly more particles for richer effect
+    // Drastically reduce particle count for performance
+    let particleCount = 8; // Much fewer particles
     
     if (windowSize) {
       if (windowSize.width < 768) {
-        particleCount = 20; // Still more particles on mobile than standard
+        particleCount = 5; // Minimal particles on mobile
       } else if (windowSize.width < 1280) {
-        particleCount = 25;
+        particleCount = 6;
       }
     }
 
@@ -162,11 +158,11 @@ export default function TherapeuticBokehBackground() {
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
-        size: Math.random() * 400 + 200, // Slightly larger particles
-        opacity: Math.random() * 0.4 + 0.6, // Higher base opacity
-        blur: Math.random() * 35 + 10, // Less blur for sharper definition
+        size: Math.random() * 300 + 150, // Smaller particles for performance
+        opacity: Math.random() * 0.3 + 0.2, // Lower opacity
+        blur: Math.random() * 40 + 20, // More blur to hide fewer particles
         color: colors[Math.floor(Math.random() * colors.length)],
-        duration: Math.random() * 25 + 20, // Slightly slower, more calming motion
+        duration: Math.random() * 30 + 25, // Even slower for less CPU usage
         delay: Math.random() * 5,
       })
     }

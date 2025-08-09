@@ -1,6 +1,9 @@
 import Vapi from "@vapi-ai/web";
 
-import { formatConcernsForVAPI, migrateLegacyConcerns } from './concerns-formatter';
+import {
+  formatConcernsForVAPI,
+  migrateLegacyConcerns,
+} from "./concerns-formatter";
 
 // 2025 Standard: Type definitions
 export interface VapiInitOptions {
@@ -29,19 +32,19 @@ export interface VapiInstance extends Vapi {
 // 2025 Standard: Structured logging
 const logger = {
   info: (message: string, data?: any) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[VAPI] ${message}`, data || '');
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[VAPI] ${message}`, data || "");
     }
   },
   error: (message: string, error: any) => {
     console.error(`[VAPI Error] ${message}`, {
       error: error instanceof Error ? error.message : error,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
   warn: (message: string, data?: any) => {
-    console.warn(`[VAPI Warning] ${message}`, data || '');
-  }
+    console.warn(`[VAPI Warning] ${message}`, data || "");
+  },
 };
 
 /**
@@ -54,7 +57,7 @@ export const initVapi = async (
 ): Promise<VapiInstance> => {
   try {
     // 2025 Standard: Input validation
-    if (!token || typeof token !== 'string') {
+    if (!token || typeof token !== "string") {
       throw new Error("Valid JWT token is required to initialize Vapi");
     }
 
@@ -63,14 +66,14 @@ export const initVapi = async (
       throw new Error("Invalid token format");
     }
 
-    logger.info("Initializing Vapi instance", { 
+    logger.info("Initializing Vapi instance", {
       tokenLength: token.length,
-      options: { ...options, iceServers: options.iceServers?.length }
+      options: { ...options, iceServers: options.iceServers?.length },
     });
 
     // Create Vapi instance with type safety
     const vapiInstance = new Vapi(token) as VapiInstance;
-    
+
     logger.info("Vapi instance created successfully");
 
     // 2025 Standard: Initialize state tracking
@@ -79,14 +82,26 @@ export const initVapi = async (
 
     // 2025 Standard: Event configuration
     const eventConfig = {
-      critical: ["call-start", "call-end", "error", "ice-connection-state-change", "connection-state-change"],
-      verbose: ["message", "transcript", "transcript-response", "model-output", "status-update"],
-      transport: ["transport-state-change"]
+      critical: [
+        "call-start",
+        "call-end",
+        "error",
+        "ice-connection-state-change",
+        "connection-state-change",
+      ],
+      verbose: [
+        "message",
+        "transcript",
+        "transcript-response",
+        "model-output",
+        "status-update",
+      ],
+      transport: ["transport-state-change"],
     };
 
     // 2025 Standard: Transport state tracking
     vapiInstance.on("transport-state-change" as any, (data: VapiEvent) => {
-      const state = data?.state || 'unknown';
+      const state = data?.state || "unknown";
       logger.info(`Transport state: ${state}`);
       vapiInstance._transportState = state;
     });
@@ -98,18 +113,20 @@ export const initVapi = async (
         switch (eventType) {
           case "call-start":
             vapiInstance._isCallActive = true;
-            logger.info("Call started", { assistantId: data?.data?.assistantId });
+            logger.info("Call started", {
+              assistantId: data?.data?.assistantId,
+            });
             break;
-            
+
           case "call-end":
             vapiInstance._isCallActive = false;
             logger.info("Call ended", { duration: data?.data?.duration });
             break;
-            
+
           case "error":
             handleVapiError(data, vapiInstance);
             break;
-            
+
           default:
             logger.info(`Event: ${eventType}`, data);
         }
@@ -117,7 +134,7 @@ export const initVapi = async (
     });
 
     // 2025 Standard: Optimized verbose event handling
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       eventConfig.verbose.forEach((eventType) => {
         vapiInstance.on(eventType as any, (data: VapiEvent) => {
           if (eventType === "message" && data?.type) {
@@ -141,30 +158,33 @@ export const initVapi = async (
 
     logger.info("Vapi initialization complete");
     return vapiInstance;
-    
   } catch (error) {
     logger.error("Failed to initialize Vapi", error);
-    throw error instanceof Error ? error : new Error("Failed to initialize Vapi");
+    throw error instanceof Error
+      ? error
+      : new Error("Failed to initialize Vapi");
   }
 };
 
 // 2025 Standard: Error handling helper
 function handleVapiError(event: VapiEvent, instance: VapiInstance) {
   const errorInfo = extractErrorInfo(event);
-  
+
   logger.error("Vapi error occurred", errorInfo);
-  
+
   if (errorInfo.isAuthError) {
     logger.error("Authentication error detected - token may be expired");
-    
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('vapi-auth-error', { 
-        detail: { 
-          error: errorInfo.message, 
-          timestamp: Date.now(),
-          code: errorInfo.code 
-        } 
-      }));
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("vapi-auth-error", {
+          detail: {
+            error: errorInfo.message,
+            timestamp: Date.now(),
+            code: errorInfo.code,
+          },
+        })
+      );
     }
   }
 }
@@ -175,10 +195,10 @@ function extractErrorInfo(event: VapiEvent): {
   code?: string;
   isAuthError: boolean;
 } {
-  let message = '';
+  let message = "";
   let code: string | undefined;
-  
-  if (typeof event === 'string') {
+
+  if (typeof event === "string") {
     message = event;
   } else if (event?.error?.message) {
     message = event.error.message;
@@ -186,32 +206,39 @@ function extractErrorInfo(event: VapiEvent): {
   } else if (event?.message) {
     message = event.message;
   } else if (event?.error) {
-    message = typeof event.error === 'string' ? event.error : JSON.stringify(event.error);
+    message =
+      typeof event.error === "string"
+        ? event.error
+        : JSON.stringify(event.error);
   }
-  
-  const isAuthError = message.toLowerCase().match(/unauthorized|401|token|auth|jwt/) !== null;
-  
+
+  const isAuthError =
+    message.toLowerCase().match(/unauthorized|401|token|auth|jwt/) !== null;
+
   return { message, code, isAuthError };
 }
 
 // 2025 Standard: Custom transcriber configuration
-async function configureCustomTranscriber(instance: VapiInstance): Promise<void> {
+async function configureCustomTranscriber(
+  instance: VapiInstance
+): Promise<void> {
   try {
-    const baseUrl = typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     logger.info("Fetching transcriber configuration");
 
     const response = await fetch(`${baseUrl}/api/vapi/transcriber`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch transcriber config: ${response.status}`);
     }
 
     const transcriberConfig = await response.json();
     instance._transcriberConfig = transcriberConfig;
-    
+
     logger.info("Custom transcriber configured successfully");
   } catch (error) {
     logger.warn("Failed to configure custom transcriber", error);
@@ -223,24 +250,29 @@ async function configureCustomTranscriber(instance: VapiInstance): Promise<void>
 function setupBrowserLifecycleHandlers(instance: VapiInstance): void {
   const handleVisibilityChange = () => {
     if (document.visibilityState === "visible") {
-      const isDisconnected = instance._transportState === "disconnected" || 
-                           instance._transportState === "failed";
-      
+      const isDisconnected =
+        instance._transportState === "disconnected" ||
+        instance._transportState === "failed";
+
       if (isDisconnected && instance._isCallActive) {
-        logger.info("Page visible with disconnected call - recovery may be needed");
+        logger.info(
+          "Page visible with disconnected call - recovery may be needed"
+        );
         // Emit event for recovery handling
-        window.dispatchEvent(new CustomEvent('vapi-connection-recovery-needed', {
-          detail: { 
-            transportState: instance._transportState,
-            assistantId: instance._currentAssistantId 
-          }
-        }));
+        window.dispatchEvent(
+          new CustomEvent("vapi-connection-recovery-needed", {
+            detail: {
+              transportState: instance._transportState,
+              assistantId: instance._currentAssistantId,
+            },
+          })
+        );
       }
     }
   };
-  
+
   document.addEventListener("visibilitychange", handleVisibilityChange);
-  
+
   // Cleanup on page unload
   window.addEventListener("beforeunload", () => {
     if (instance._isCallActive) {
@@ -251,7 +283,7 @@ function setupBrowserLifecycleHandlers(instance: VapiInstance): void {
 
 // 2025 Standard: Enhanced type definitions
 export interface AssistantMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -280,7 +312,7 @@ export interface AssistantTranscriber {
 export interface AssistantConfig {
   id?: string;
   name?: string;
-  type?: 'couple' | 'solo' | 'family';
+  type?: "couple" | "solo" | "family";
   model: AssistantModel;
   voice: AssistantVoice;
   transcriber?: AssistantTranscriber;
@@ -326,83 +358,105 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 // Natural language formatting for therapy concerns
 // This function now wraps the new formatter for backward compatibility
 export const formatConcernsNaturally = (
-  concerns: string[], 
-  therapyType: string = 'solo',
-  context: 'system' | 'greeting' | 'conversation' = 'system'
+  concerns: string[],
+  therapyType: string = "solo",
+  context: "system" | "greeting" | "conversation" = "system"
 ): string => {
   // Migrate legacy concerns if needed
   const migratedConcerns = migrateLegacyConcerns(concerns);
   // Use new formatter
   return formatConcernsForVAPI(
-    migratedConcerns, 
-    therapyType as 'solo' | 'couple' | 'family', 
+    migratedConcerns,
+    therapyType as "solo" | "couple" | "family",
     context
   );
 };
 
 // Keep original function body for reference (will be removed after testing)
 const formatConcernsNaturallyLegacy = (
-  concerns: string[], 
-  therapyType: string = 'solo',
-  context: 'system' | 'greeting' | 'conversation' = 'system'
+  concerns: string[],
+  therapyType: string = "solo",
+  context: "system" | "greeting" | "conversation" = "system"
 ): string => {
   if (!concerns || concerns.length === 0) {
-    return '';
+    return "";
   }
 
   // Map technical concern values to natural phrases
   const concernsMap: Record<string, string> = {
-    'anxiety': 'anxiety and worry',
-    'depression': 'feelings of depression',
-    'relationships': 'relationship challenges',
-    'communication': 'communication patterns',
-    'conflict': 'conflict resolution',
-    'intimacy': 'emotional and physical intimacy',
-    'trust': 'trust issues',
-    'stress': 'stress management',
-    'self-esteem': 'self-esteem and confidence',
-    'grief': 'grief and loss',
-    'trauma': 'past trauma',
-    'family-dynamics': 'family dynamics',
-    'parenting': 'parenting challenges',
-    'work-life': 'work-life balance',
-    'addiction': 'addiction recovery',
-    'anger': 'anger management',
-    'life-transitions': 'life transitions',
-    'other': 'personal concerns'
+    anxiety: "anxiety and worry",
+    depression: "feelings of depression",
+    relationships: "relationship challenges",
+    communication: "communication patterns",
+    conflict: "conflict resolution",
+    intimacy: "emotional and physical intimacy",
+    trust: "trust issues",
+    stress: "stress management",
+    "self-esteem": "self-esteem and confidence",
+    grief: "grief and loss",
+    trauma: "past trauma",
+    "family-dynamics": "family dynamics",
+    parenting: "parenting challenges",
+    "work-life": "work-life balance",
+    addiction: "addiction recovery",
+    anger: "anger management",
+    "life-transitions": "life transitions",
+    other: "personal concerns",
   };
 
   // Convert concerns to natural phrases
-  const naturalConcerns = concerns.map(c => concernsMap[c] || c);
+  const naturalConcerns = concerns.map((c) => concernsMap[c] || c);
 
   // Group related concerns for more natural expression
-  const relationshipConcerns = naturalConcerns.filter(c => 
-    ['relationship challenges', 'communication patterns', 'conflict resolution', 'emotional and physical intimacy', 'trust issues'].includes(c)
+  const relationshipConcerns = naturalConcerns.filter((c) =>
+    [
+      "relationship challenges",
+      "communication patterns",
+      "conflict resolution",
+      "emotional and physical intimacy",
+      "trust issues",
+    ].includes(c)
   );
-  const emotionalConcerns = naturalConcerns.filter(c => 
-    ['anxiety and worry', 'feelings of depression', 'stress management', 'self-esteem and confidence', 'anger management'].includes(c)
+  const emotionalConcerns = naturalConcerns.filter((c) =>
+    [
+      "anxiety and worry",
+      "feelings of depression",
+      "stress management",
+      "self-esteem and confidence",
+      "anger management",
+    ].includes(c)
   );
-  const lifeConcerns = naturalConcerns.filter(c => 
-    ['grief and loss', 'past trauma', 'life transitions', 'work-life balance', 'addiction recovery'].includes(c)
+  const lifeConcerns = naturalConcerns.filter((c) =>
+    [
+      "grief and loss",
+      "past trauma",
+      "life transitions",
+      "work-life balance",
+      "addiction recovery",
+    ].includes(c)
   );
-  const familyConcerns = naturalConcerns.filter(c => 
-    ['family dynamics', 'parenting challenges'].includes(c)
+  const familyConcerns = naturalConcerns.filter((c) =>
+    ["family dynamics", "parenting challenges"].includes(c)
   );
 
   // Format based on context and therapy type
-  if (context === 'system') {
+  if (context === "system") {
     // For system prompt - concise listing
-    return naturalConcerns.join(', ');
+    return naturalConcerns.join(", ");
   }
 
-  if (context === 'greeting') {
+  if (context === "greeting") {
     // For first message - warm and welcoming
-    if (therapyType === 'couple') {
+    if (therapyType === "couple") {
       if (relationshipConcerns.length > 0) {
         const primary = relationshipConcerns[0];
-        const others = [...relationshipConcerns.slice(1), ...emotionalConcerns, ...lifeConcerns].filter(Boolean);
+        const others = [
+          ...relationshipConcerns.slice(1),
+          ...emotionalConcerns,
+          ...lifeConcerns,
+        ].filter(Boolean);
         if (others.length > 0) {
-          return `I understand you're here to work on ${primary}, and also explore ${others.slice(0, 2).join(' and ')}${others.length > 2 ? ', among other things' : ''}.`;
+          return `I understand you're here to work on ${primary}, and also explore ${others.slice(0, 2).join(" and ")}${others.length > 2 ? ", among other things" : ""}.`;
         }
         return `I see you're both here to work on your relationship, especially when it comes to ${primary}.`;
       } else if (emotionalConcerns.length > 0 || lifeConcerns.length > 0) {
@@ -413,7 +467,7 @@ const formatConcernsNaturallyLegacy = (
           return `I understand you're dealing with ${allPersonal[0]} and exploring ${allPersonal[1]}.`;
         }
       }
-    } else if (therapyType === 'solo' || therapyType === 'individual') {
+    } else if (therapyType === "solo" || therapyType === "individual") {
       if (emotionalConcerns.length > 0 || lifeConcerns.length > 0) {
         const allPersonal = [...emotionalConcerns, ...lifeConcerns];
         if (allPersonal.length === 1) {
@@ -425,18 +479,18 @@ const formatConcernsNaturallyLegacy = (
         }
       } else if (relationshipConcerns.length > 0) {
         // Individual therapy but with relationship concerns
-        return `I see you're seeking support with ${relationshipConcerns[0]}${relationshipConcerns.length > 1 ? ` and ${relationshipConcerns[1]}` : ''}.`;
+        return `I see you're seeking support with ${relationshipConcerns[0]}${relationshipConcerns.length > 1 ? ` and ${relationshipConcerns[1]}` : ""}.`;
       }
-    } else if (therapyType === 'family') {
+    } else if (therapyType === "family") {
       if (familyConcerns.length > 0 || relationshipConcerns.length > 0) {
         const allFamily = [...familyConcerns, ...relationshipConcerns];
-        return `I understand your family is working through ${allFamily[0]}${allFamily.length > 1 ? ` and ${allFamily[1]}` : ''}.`;
+        return `I understand your family is working through ${allFamily[0]}${allFamily.length > 1 ? ` and ${allFamily[1]}` : ""}.`;
       } else if (emotionalConcerns.length > 0) {
         // Family therapy with emotional concerns
-        return `I see your family is navigating ${emotionalConcerns[0]}${emotionalConcerns.length > 1 ? ` and ${emotionalConcerns[1]}` : ''}.`;
+        return `I see your family is navigating ${emotionalConcerns[0]}${emotionalConcerns.length > 1 ? ` and ${emotionalConcerns[1]}` : ""}.`;
       }
     }
-    
+
     // Fallback for greeting context - use first few concerns naturally
     if (naturalConcerns.length === 1) {
       return `I understand you're here to work on ${naturalConcerns[0]}.`;
@@ -455,7 +509,7 @@ const formatConcernsNaturallyLegacy = (
   } else {
     const last = naturalConcerns[naturalConcerns.length - 1];
     const rest = naturalConcerns.slice(0, -1);
-    return `${rest.join(', ')}, and ${last}`;
+    return `${rest.join(", ")}, and ${last}`;
   }
 };
 
@@ -527,9 +581,10 @@ export const getPersonalizedSystemPrompt = (
   }
 
   // Format current concerns naturally
-  const concernsList = Array.isArray(currentConcerns) && currentConcerns.length > 0
-    ? formatConcernsNaturally(currentConcerns, 'couple', 'system')
-    : "";
+  const concernsList =
+    Array.isArray(currentConcerns) && currentConcerns.length > 0
+      ? formatConcernsNaturally(currentConcerns, "couple", "system")
+      : "";
 
   // Check if user has previous sessions (don't include full history in prompt)
   const hasPreviousSessions =
@@ -721,7 +776,11 @@ export const getPersonalizedFirstMessage = (
   // Check if we have specific concerns to acknowledge
   let concernsIntro = "";
   if (currentConcerns && currentConcerns.length > 0) {
-    const formattedConcerns = formatConcernsNaturally(currentConcerns, therapyType, 'greeting');
+    const formattedConcerns = formatConcernsNaturally(
+      currentConcerns,
+      therapyType,
+      "greeting"
+    );
     if (formattedConcerns) {
       concernsIntro = ` ${formattedConcerns}`;
     }
@@ -797,10 +856,10 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Maya Thompson",
   type: "couple",
   model: {
-    provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
+    provider: "OpenAI",
+    model: "gpt-5-mini",
     temperature: 1.0,
-    maxTokens: 750,
+    maxTokens: 250,
     messages: [
       {
         role: "system",
@@ -911,10 +970,10 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Elliot Mackaphy",
   type: "solo",
   model: {
-    provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
+    provider: "OpenAI",
+    model: "gpt-5-mini",
     temperature: 1.0,
-    maxTokens: 750,
+    maxTokens: 250,
     messages: [
       {
         role: "system",
@@ -1035,10 +1094,10 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Jada Pearson",
   type: "family",
   model: {
-    provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
+    provider: "OpenAI",
+    model: "gpt-5-mini",
     temperature: 1.0,
-    maxTokens: 750,
+    maxTokens: 250,
     messages: [
       {
         role: "system",
@@ -1268,9 +1327,10 @@ IMPORTANT - AVOIDING STUCK STATES:
     }
 
     // Format current concerns naturally
-    const concernsList = Array.isArray(currentConcerns) && currentConcerns.length > 0
-      ? formatConcernsNaturally(currentConcerns, 'solo', 'system')
-      : "";
+    const concernsList =
+      Array.isArray(currentConcerns) && currentConcerns.length > 0
+        ? formatConcernsNaturally(currentConcerns, "solo", "system")
+        : "";
 
     // Check for previous sessions
     const hasPreviousSessions =
@@ -1395,10 +1455,13 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     let familyMembers = [];
 
     // Check if selected family members are provided for this specific session
-    if (userProfile?.selectedFamilyMembers && userProfile.selectedFamilyMembers.length > 0) {
+    if (
+      userProfile?.selectedFamilyMembers &&
+      userProfile.selectedFamilyMembers.length > 0
+    ) {
       // Use only the selected family members for this session
       familyMembers = userProfile.selectedFamilyMembers;
-      console.log('Using selected family members for session:', familyMembers);
+      console.log("Using selected family members for session:", familyMembers);
     } else {
       // Fall back to all available family members from profile
       // Include partner information in family therapy when present
@@ -1494,9 +1557,10 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     }
 
     // Format current concerns naturally
-    const concernsList = Array.isArray(currentConcerns) && currentConcerns.length > 0
-      ? formatConcernsNaturally(currentConcerns, 'family', 'system')
-      : "";
+    const concernsList =
+      Array.isArray(currentConcerns) && currentConcerns.length > 0
+        ? formatConcernsNaturally(currentConcerns, "family", "system")
+        : "";
 
     // Check for previous sessions
     const hasPreviousSessions =
@@ -1558,9 +1622,11 @@ REMEMBER: Your goal is natural, therapeutic conversation - not mechanical data r
         : "";
 
     // Session-specific member acknowledgment
-    const sessionMemberNote = userProfile?.selectedFamilyMembers && userProfile.selectedFamilyMembers.length > 0
-      ? `\n• SESSION ATTENDEES: Acknowledge early in the session that you see today we have ${familyNames.join(" and ")} joining us\n• Example: "I see today we have ${familyNames.join(" and ")} here with us for our family session"\n• Tailor the session specifically to the dynamics and needs of these present members`
-      : "";
+    const sessionMemberNote =
+      userProfile?.selectedFamilyMembers &&
+      userProfile.selectedFamilyMembers.length > 0
+        ? `\n• SESSION ATTENDEES: Acknowledge early in the session that you see today we have ${familyNames.join(" and ")} joining us\n• Example: "I see today we have ${familyNames.join(" and ")} here with us for our family session"\n• Tailor the session specifically to the dynamics and needs of these present members`
+        : "";
 
     return `You are Dr. Jada Pearson, family therapist specializing in Structural Family Therapy and systems approaches.
 
@@ -1689,7 +1755,11 @@ export const getPersonalizedFirstMessageForType = (
     // Concerns acknowledgment
     let concernsIntro = "";
     if (currentConcerns && currentConcerns.length > 0) {
-      const formattedConcerns = formatConcernsNaturally(currentConcerns, 'family', 'greeting');
+      const formattedConcerns = formatConcernsNaturally(
+        currentConcerns,
+        "family",
+        "greeting"
+      );
       if (formattedConcerns) {
         concernsIntro = ` ${formattedConcerns} I'm here to support you in that journey.`;
       }
@@ -1761,7 +1831,11 @@ export const getPersonalizedFirstMessageForType = (
     // Concerns acknowledgment for family
     let concernsIntro = "";
     if (currentConcerns && currentConcerns.length > 0) {
-      const formattedConcerns = formatConcernsNaturally(currentConcerns, 'family', 'greeting');
+      const formattedConcerns = formatConcernsNaturally(
+        currentConcerns,
+        "family",
+        "greeting"
+      );
       if (formattedConcerns) {
         concernsIntro = ` ${formattedConcerns} I'm here to support all of you in that journey.`;
       }
@@ -1964,13 +2038,15 @@ export const getPersonalizedAssistantConfig = (
           type: "function",
           function: {
             name: "end_therapy_session",
-            description: "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
+            description:
+              "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
             parameters: {
               type: "object",
               properties: {
                 reason: {
                   type: "string",
-                  description: "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
+                  description:
+                    "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
                 },
                 goodbye_message: {
                   type: "string",
@@ -1986,39 +2062,39 @@ export const getPersonalizedAssistantConfig = (
     voice: baseConfig.voice,
     transcriber: baseConfig.transcriber,
     firstMessage: getPersonalizedFirstMessageForType(therapyType, userProfile),
-    
+
     // Session timing configuration - only include valid VAPI fields
     maxDurationSeconds: sessionDurationSeconds,
     silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 120,
     backgroundSound: "off",
-    
+
     // Client messages configuration (important for transcript capture)
     clientMessages: baseConfig.clientMessages || [
       "transcript",
-      "model-output", 
+      "model-output",
       "hang",
       "function-call-result",
       "tool-calls",
       "tool-calls-result",
       "speech-update",
       "conversation-update",
-      "voice-input"
+      "voice-input",
     ],
-    
+
     // Variable values for personalization (NOTE: May not be valid for inline config)
     variableValues: variableValues,
-    
+
     // Function calling for user-initiated session ending
     // NOTE: functions field is moved to model.tools in the API route for inline config
-    
+
     // Metadata for debugging and client use
     metadata: {
       therapyType,
       hasUserProfile: !!userProfile,
       userId: userProfile?.id,
       sessionDuration: sessionDurationMinutes,
-      generatedAt: new Date().toISOString()
-    }
+      generatedAt: new Date().toISOString(),
+    },
   };
 
   return finalConfig;

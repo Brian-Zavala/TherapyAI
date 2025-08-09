@@ -72,9 +72,16 @@ export function TimeSlotPicker({
         const conflictSet = new Set<string>()
         
         try {
+          // Generate time slots for conflict checking
+          const slots = getAvailableTimeSlots(selectedDate, timezone, {
+            startHour: 9,
+            endHour: 21,
+            interval: 30
+          })
+          
           // Check existing sessions locally (no API call needed)
           if (existingSessions && existingSessions.length > 0) {
-            timeSlots.forEach(slot => {
+            slots.forEach(slot => {
               const slotEnd = new Date(slot.time.getTime() + duration * 60 * 1000)
               
               existingSessions.forEach(session => {
@@ -93,14 +100,14 @@ export function TimeSlotPicker({
           }
           
           // Check calendar integrations - only if we have both integrations and time slots
-          if (calendarIntegrations && calendarIntegrations.length > 0 && timeSlots.length > 0) {
+          if (calendarIntegrations && calendarIntegrations.length > 0 && slots.length > 0) {
             const response = await fetch('/api/calendar/conflicts', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 date: selectedDate.toISOString(),
                 duration,
-                timeSlots: timeSlots.map(slot => slot.time.toISOString())
+                timeSlots: slots.map(slot => slot.time.toISOString())
               }),
               signal: abortController.signal // Add abort signal to request
             })

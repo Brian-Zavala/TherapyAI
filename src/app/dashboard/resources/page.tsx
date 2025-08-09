@@ -39,36 +39,16 @@ type Category = {
   color: string;
 };
 
-// Intersection Observer hook for lazy animations
-const useIntersectionAnimation = (threshold = 0.1) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold }
-    );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return { ref, isVisible };
+// Simple visibility hook - removed IntersectionObserver for performance
+const useSimpleVisibility = () => {
+  const [isVisible, setIsVisible] = useState(true); // Always visible, no complex observation
+  return { isVisible };
 };
 
-// Ultra-optimized ResourceCard with Intersection Observer
+// Ultra-optimized ResourceCard with simplified animations
 const ResourceCard = memo(
   ({ resource, index }: { resource: Resource; index: number }) => {
-    const { ref, isVisible } = useIntersectionAnimation(0.1);
+    const { isVisible } = useSimpleVisibility();
 
     const getTypeIcon = useCallback((type: Resource["type"]) => {
       const icons: Record<Resource["type"], string> = {
@@ -97,10 +77,9 @@ const ResourceCard = memo(
 
     return (
       <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 20 }}
-        animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        transition={{ duration: 0.3, delay: isVisible ? index * 0.03 : 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.3) }}
         className="group relative h-full resource-card cursor-pointer"
         style={{
           contain: "layout style paint",
@@ -108,9 +87,9 @@ const ResourceCard = memo(
           willChange: "auto",
         }}
       >
-        {/* Simple highlight effect on hover - no heavy animations */}
+        {/* Removed blur effect for performance */}
         <div
-          className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-75 transition-opacity duration-200 bg-gradient-to-r ${tagColorClass} blur-sm`}
+          className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-150 bg-gradient-to-r ${tagColorClass}`}
         />
 
         {/* Card container with fixed height */}
@@ -212,16 +191,12 @@ const CategoryButton = memo(
     onClick: () => void;
     index: number;
   }) => {
-    const { ref, isVisible } = useIntersectionAnimation(0.5);
 
     return (
       <motion.button
-        ref={ref}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={
-          isVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }
-        }
-        transition={{ delay: index * 0.03, duration: 0.3 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: Math.min(index * 0.02, 0.2), duration: 0.15 }}
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
         className={`relative px-4 sm:px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 overflow-hidden group cursor-pointer ${
@@ -269,39 +244,23 @@ const CategoryButton = memo(
 
 CategoryButton.displayName = "CategoryButton";
 
-// CSS @layer styles
-const layerStyles = `
-@layer components {
-  .resource-card {
-    contain-intrinsic-size: auto 300px;
-  }
-  
-  .emergency-icon-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: .5;
-    }
-  }
-}
-`;
+// Removed CSS layer styles - moved to external CSS file for better performance
 
 export default function ResourcesOptimized() {
   // State for active category filter
   const [activeCategory, setActiveCategory] = useState<string>("all");
   // State for search query
   const [searchQuery, setSearchQuery] = useState<string>("");
+  // Debounced search query for performance
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
   // State for emergency support visibility
   const [showEmergencySupport, setShowEmergencySupport] =
     useState<boolean>(false);
   // State for mobile tab management
   const [activeTab, setActiveTab] = useState<"search" | "results">("search");
   const [isMobile, setIsMobile] = useState(false);
+  // Auto-load video section
+  const [showVideo, setShowVideo] = useState(true);
 
   // Categories for relationship resources - memoized
   const categories = useMemo<Category[]>(
@@ -551,7 +510,7 @@ export default function ResourcesOptimized() {
     []
   );
 
-  // Memoized filter function
+  // Memoized filter function with debounced search
   const filteredResources = useMemo(() => {
     return resources.filter((resource) => {
       // Filter by category
@@ -559,9 +518,10 @@ export default function ResourcesOptimized() {
         activeCategory === "all" ||
         (resource.tags && resource.tags.includes(activeCategory));
 
-      // Filter by search query
-      const searchLower = searchQuery.toLowerCase();
+      // Filter by search query (using debounced value)
+      const searchLower = debouncedSearchQuery.toLowerCase();
       const matchesSearch =
+        !searchLower ||
         resource.title.toLowerCase().includes(searchLower) ||
         resource.description.toLowerCase().includes(searchLower) ||
         (resource.source &&
@@ -569,7 +529,7 @@ export default function ResourcesOptimized() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [resources, activeCategory, searchQuery]);
+  }, [resources, activeCategory, debouncedSearchQuery]);
 
   // Callbacks
   const handleCategoryChange = useCallback((categoryId: string) => {
@@ -616,17 +576,59 @@ export default function ResourcesOptimized() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Inject CSS @layer styles
+  // Debounce search input for better performance
   useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = layerStyles;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   return (
+    <>
+      {/* Inline CSS for animations */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Performance optimizations */
+        .resource-card {
+          contain-intrinsic-size: auto 300px;
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+          .animate-fadeIn,
+          .animate-pulse {
+            animation: none !important;
+            opacity: 1 !important;
+          }
+        }
+      `}</style>
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black">
       {/* Therapeutic Background - static, no parallax */}
       <Suspense fallback={<div className="absolute inset-0 bg-slate-900" />}>
@@ -757,7 +759,7 @@ export default function ResourcesOptimized() {
               >
                 <span className="relative flex items-center">
                   <svg
-                    className="h-5 w-5 mr-3 emergency-icon-pulse"
+                    className="h-5 w-5 mr-3 animate-pulse"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -791,7 +793,7 @@ export default function ResourcesOptimized() {
                   <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl p-6 sm:p-8">
                     <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center justify-center sm:justify-start">
                       <svg
-                        className="h-8 w-8 text-red-500 mr-3 emergency-icon-pulse"
+                        className="h-8 w-8 text-red-500 mr-3 animate-pulse"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -892,7 +894,7 @@ export default function ResourcesOptimized() {
           </AnimatePresence>
         </div>
 
-        {/* Featured Video Section - With Intersection Observer */}
+        {/* Featured Video Section - Auto-loaded */}
         <VideoSection />
 
         <div className="max-w-7xl mx-auto">
@@ -1102,19 +1104,19 @@ export default function ResourcesOptimized() {
         <NewsletterSignup />
       </div>
     </div>
+    </>
   );
 }
 
 // Memoized Video Section Component
 const VideoSection = memo(() => {
-  const { ref, isVisible } = useIntersectionAnimation(0.2);
 
   return (
-    <div ref={ref} className="max-w-6xl mx-auto mb-16">
+    <div className="max-w-6xl mx-auto mb-16">
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
         className="relative group"
       >
         {/* Glass card container */}
@@ -1153,12 +1155,12 @@ const VideoSection = memo(() => {
             <div className="relative rounded-xl overflow-hidden shadow-2xl">
               <div className="relative aspect-video">
                 <iframe
-                  src="https://www.youtube.com/embed/uPh4-DU6MDU"
+                  src="https://www.youtube.com/embed/uPh4-DU6MDU?rel=0&modestbranding=1&preload=1"
                   title="Transformative Relationship Insights"
                   className="absolute inset-0 w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  loading="lazy"
+                  loading="eager"
                 />
               </div>
             </div>
@@ -1213,23 +1215,21 @@ VideoSection.displayName = "VideoSection";
 
 // Memoized Support Message Component
 const SupportMessage = memo(() => {
-  const { ref, isVisible } = useIntersectionAnimation(0.3);
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
       className="max-w-4xl mx-auto mt-16 mb-16"
     >
       <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-1 border border-white/20 shadow-2xl overflow-hidden">
         <div className="relative bg-slate-900/80 backdrop-blur-md rounded-2xl p-6 sm:p-8">
           <div className="text-center">
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ delay: 0.2 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
               className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-3 flex items-center justify-center"
             >
               <svg
@@ -1248,9 +1248,9 @@ const SupportMessage = memo(() => {
               Need Personalized Support?
             </motion.h2>
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ delay: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15 }}
               className="text-white/80 mb-6 text-xs sm:text-sm md:text-base lg:text-lg"
             >
               While these resources are helpful, sometimes you need professional
@@ -1258,9 +1258,9 @@ const SupportMessage = memo(() => {
               are ready to support you and your partner.
             </motion.p>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ delay: 0.4 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
               className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4"
             >
               <motion.div
@@ -1325,7 +1325,6 @@ SupportMessage.displayName = "SupportMessage";
 
 // Memoized Community Wisdom Component
 const CommunityWisdom = memo(() => {
-  const { ref, isVisible } = useIntersectionAnimation(0.2);
 
   const wisdomItems = useMemo(
     () => [
@@ -1359,15 +1358,14 @@ const CommunityWisdom = memo(() => {
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
       className="max-w-5xl mx-auto mt-16 mb-16"
     >
       <motion.h2
-        initial={{ opacity: 0, y: 20 }}
-        animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-center text-white mb-6 sm:mb-8 flex items-center justify-center"
       >
         <svg
@@ -1387,15 +1385,15 @@ const CommunityWisdom = memo(() => {
       </motion.h2>
       <motion.div
         initial="hidden"
-        animate={isVisible ? "visible" : "hidden"}
+        animate="visible"
         className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6"
       >
         {wisdomItems.map((item, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ delay: index * 0.1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: Math.min(index * 0.05, 0.2) }}
             className="relative bg-white/10 backdrop-blur-xl p-5 rounded-2xl border border-white/20 hover:border-white/30 transition-colors duration-200 group cursor-pointer"
           >
             <div className="relative">
@@ -1425,25 +1423,21 @@ CommunityWisdom.displayName = "CommunityWisdom";
 
 // Memoized Newsletter Signup Component
 const NewsletterSignup = memo(() => {
-  const { ref, isVisible } = useIntersectionAnimation(0.3);
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
       className="max-w-4xl mx-auto mt-16 mb-16"
     >
       <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-1 border border-white/20 shadow-2xl overflow-hidden">
         <div className="relative bg-slate-900/80 backdrop-blur-md rounded-2xl px-5 py-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-center justify-between">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={
-                isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }
-              }
-              transition={{ delay: 0.2 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
               className="sm:w-7/12 mb-5 sm:mb-0 text-center sm:text-left"
             >
               <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-white mb-2">
@@ -1454,9 +1448,9 @@ const NewsletterSignup = memo(() => {
               </p>
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
-              transition={{ delay: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15 }}
               className="sm:w-5/12 w-full"
             >
               <div className="flex flex-col sm:flex-row gap-2">
