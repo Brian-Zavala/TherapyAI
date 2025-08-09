@@ -68,7 +68,7 @@ export async function createCheckoutSession({
   const urls = getStripeUrls(origin);
   
   const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-    payment_method_types: ['card'],
+    // payment_method_types is optional in latest API - Stripe auto-detects based on account
     line_items: [
       {
         price: priceId,
@@ -83,9 +83,22 @@ export async function createCheckoutSession({
     automatic_tax: {
       enabled: true,
     },
+    // Customer creation behavior (2022-08-01 change: default is now 'if_required')
+    customer_creation: customerId ? undefined : 'if_required',
     customer_update: customerId ? {
       address: 'auto',
     } : undefined,
+    // Enhanced subscription data for better tracking
+    subscription_data: {
+      metadata: {
+        ...metadata,
+        source: 'web_checkout',
+      },
+    },
+    // Phone number collection (new in Acacia)
+    phone_number_collection: {
+      enabled: false, // Set to true if you want to collect phone numbers
+    },
     metadata,
   };
 
@@ -128,8 +141,20 @@ export async function createCustomer({
   return customer;
 }
 
-export async function cancelSubscription(subscriptionId: string) {
-  const subscription = await stripe.subscriptions.cancel(subscriptionId);
+export async function cancelSubscription(subscriptionId: string, immediately = false) {
+  // Best practice: Allow for immediate cancellation or at period end
+  const subscription = await stripe.subscriptions.update(subscriptionId, {
+    cancel_at_period_end: !immediately,
+    cancellation_details: {
+      comment: 'Customer requested cancellation',
+    },
+  });
+  
+  // If immediate cancellation is requested
+  if (immediately) {
+    return await stripe.subscriptions.cancel(subscriptionId);
+  }
+  
   return subscription;
 }
 
@@ -160,4 +185,69 @@ export async function constructWebhookEvent(
   secret: string
 ) {
   return stripe.webhooks.constructEvent(payload, signature, secret);
+}
+
+// Modern helper for handling Stripe errors
+export function handleStripeError(error: any) {
+  if (error.type === 'StripeCardError') {
+    // Card errors are expected, return user-friendly message
+    return { 
+      error: error.message,
+      code: error.code,
+      decline_code: error.decline_code,
+    };
+  } else if (error.type === 'StripeRateLimitError') {
+    // Too many requests made to the API too quickly
+    console.error('Stripe rate limit error:', error);
+    return { error: 'Too many requests. Please try again later.' };
+  } else if (error.type === 'StripeInvalidRequestError') {
+    // Invalid parameters were supplied to Stripe's API
+    console.error('Invalid Stripe request:', error);
+    return { error: 'Invalid request. Please check your information.' };
+  } else if (error.type === 'StripeAPIError') {
+    // An error occurred internally with Stripe's API
+    console.error('Stripe API error:', error);
+    return { error: 'Payment service error. Please try again.' };
+  } else if (error.type === 'StripeConnectionError') {
+    // Network communication with Stripe failed
+    console.error('Stripe connection error:', error);
+    return { error: 'Network error. Please check your connection.' };
+  } else if (error.type === 'StripeAuthenticationError') {
+    // Authentication with Stripe's API failed
+    console.error('Stripe authentication error:', error);
+    return { error: 'Authentication error. Please contact support.' };
+  } else {
+    // Handle any other errors
+    console.error('Unknown Stripe error:', error);
+    return { error: 'An unexpected error occurred.' };
+  }
+}
+
+// Helper to retrieve or create a customer with better error handling
+export async function getOrCreateCustomer({
+  email,
+  name,
+  metadata = {},
+}: {
+  email: string;
+  name?: string;
+  metadata?: Record<string, string>;
+}) {
+  try {
+    // First try to find existing customer
+    const existingCustomer = await getCustomerByEmail(email);
+    if (existingCustomer) {
+      // Update metadata if customer exists
+      return await stripe.customers.update(existingCustomer.id, {
+        name: name || existingCustomer.name || undefined,
+        metadata: { ...existingCustomer.metadata, ...metadata },
+      });
+    }
+    
+    // Create new customer if not found
+    return await createCustomer({ email, name, metadata });
+  } catch (error) {
+    console.error('Error in getOrCreateCustomer:', error);
+    throw error;
+  }
 }

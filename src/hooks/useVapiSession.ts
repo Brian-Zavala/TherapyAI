@@ -435,17 +435,44 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       
       // Navigate to dashboard when session completes naturally
       // Check if this is a natural completion (not user-initiated)
-      const isNaturalCompletion = reason && 
-        (reason.includes('max-duration') || 
-         reason.includes('silence-timeout') || 
-         reason.includes('assistant-request') ||
-         reason.includes('completed'))
+      const reasonLower = reason?.toLowerCase() || ''
+      const isNaturalCompletion = reasonLower && 
+        (reasonLower.includes('max-duration') || 
+         reasonLower.includes('max_duration') ||
+         reasonLower.includes('silence-timeout') || 
+         reasonLower.includes('silence_timeout') ||
+         reasonLower.includes('assistant-request') ||
+         reasonLower.includes('assistant_request') ||
+         reasonLower.includes('completed') ||
+         reasonLower.includes('finish') ||
+         reasonLower.includes('timeout'))
       
-      if (isNaturalCompletion) {
-        console.log('🚀 Natural session completion detected, navigating to dashboard')
-        setTimeout(() => {
-          window.location.href = '/dashboard'
-        }, 1000) // Delay to show completion message if any
+      // Also check if it's NOT a user-initiated end or error
+      const isUserInitiated = reasonLower.includes('user') || 
+                             reasonLower.includes('manual') || 
+                             reasonLower.includes('hangup') ||
+                             reasonLower.includes('error') ||
+                             reasonLower.includes('failed')
+      
+      if (isNaturalCompletion && !isUserInitiated && typeof window !== 'undefined') {
+        console.log('🚀 Natural session completion detected, navigating to dashboard', { reason })
+        
+        // Use a flag to prevent multiple redirects
+        const redirectKey = 'vapi-redirect-in-progress'
+        if (!window.sessionStorage.getItem(redirectKey)) {
+          window.sessionStorage.setItem(redirectKey, 'true')
+          
+          setTimeout(() => {
+            try {
+              window.location.href = '/dashboard'
+            } catch (error) {
+              console.error('Failed to navigate to dashboard:', error)
+            } finally {
+              // Clean up the flag after redirect attempt
+              window.sessionStorage.removeItem(redirectKey)
+            }
+          }, 1000) // Delay to show completion message if any
+        }
       }
       
       // Notify parent

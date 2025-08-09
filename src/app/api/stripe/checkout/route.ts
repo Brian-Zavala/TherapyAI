@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createCheckoutSession, getCustomerByEmail, createCustomer, STRIPE_PRICES } from '@/lib/stripe';
+import { createCheckoutSession, getOrCreateCustomer, STRIPE_PRICES, handleStripeError } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 
 export async function POST(request: NextRequest) {
@@ -66,19 +66,15 @@ export async function POST(request: NextRequest) {
       if (user?.stripeCustomerId) {
         customerId = user.stripeCustomerId;
       } else {
-        // Check if customer exists in Stripe
-        let customer = await getCustomerByEmail(customerEmail);
-        
-        // Create customer if doesn't exist
-        if (!customer) {
-          customer = await createCustomer({
-            email: customerEmail,
-            name: session.user.name || undefined,
-            metadata: {
-              userId: userId,
-            },
-          });
-        }
+        // Get or create customer using modern helper
+        const customer = await getOrCreateCustomer({
+          email: customerEmail,
+          name: session.user.name || undefined,
+          metadata: {
+            userId: userId,
+            source: 'checkout_page',
+          },
+        });
         
         customerId = customer.id;
         
@@ -115,12 +111,16 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
     
+    // Use modern error handler for Stripe errors
+    const errorResponse = handleStripeError(error);
+    
     return NextResponse.json(
       { 
-        error: 'Failed to create checkout session',
+        error: errorResponse.error || 'Failed to create checkout session',
         message: error.message || 'Unknown error occurred',
+        code: errorResponse.code,
       },
-      { status: 500 }
+      { status: error.statusCode || 500 }
     );
   }
 }

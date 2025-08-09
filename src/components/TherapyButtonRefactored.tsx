@@ -1443,8 +1443,20 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [therapyType, session, vapi, selectedFamilyMembers, user?.id, isAuthLoading, authError, setSessionActive])
   
+  // Track if redirect is in progress to prevent duplicates
+  const redirectInProgressRef = useRef(false)
+  const endSessionInProgressRef = useRef(false)
+  
   // Handle end session
   const handleEndSession = useCallback(async () => {
+    // Prevent multiple simultaneous end session calls
+    if (endSessionInProgressRef.current) {
+      console.log('⚠️ End session already in progress, ignoring duplicate call')
+      return
+    }
+    
+    endSessionInProgressRef.current = true
+    
     try {
       // CRITICAL: Force hide phone UI immediately to prevent any visual glitches
       setForceHidePhoneUI(true)
@@ -1502,10 +1514,23 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       window.dispatchEvent(new Event('sessionEnded'))
       
       // Navigate to dashboard after session ends successfully
-      console.log('🚀 Navigating to dashboard after session end')
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 500) // Small delay to ensure all cleanup is complete
+      // Check if redirect hasn't already been triggered
+      if (!redirectInProgressRef.current && router) {
+        redirectInProgressRef.current = true
+        console.log('🚀 Navigating to dashboard after session end')
+        
+        setTimeout(() => {
+          try {
+            router.push('/dashboard')
+          } catch (navError) {
+            console.error('Failed to navigate to dashboard:', navError)
+            // Fallback to window.location if router fails
+            if (typeof window !== 'undefined') {
+              window.location.href = '/dashboard'
+            }
+          }
+        }, 500) // Small delay to ensure all cleanup is complete
+      }
       
     } catch (error) {
       console.error('[TherapyButton] Failed to end session:', error)
@@ -1513,8 +1538,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // Still reset UI on error - no loading state to clear anymore
       setForceHidePhoneUI(false)
       setSessionActive(false)
+    } finally {
+      // Reset the flag after a delay to allow for potential retries
+      setTimeout(() => {
+        endSessionInProgressRef.current = false
+      }, 2000)
     }
-  }, [vapi, session, sessionState, setSessionActive])
+  }, [vapi, session, sessionState, setSessionActive, router])
 
   // Handle pause/resume with proper VAPI stop/restart to prevent billing
   const handlePauseResume = useCallback(async () => {
