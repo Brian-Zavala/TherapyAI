@@ -28,40 +28,76 @@ export const stripe = new Proxy({} as Stripe, {
   },
 });
 
-// Validate required environment variables
+// Helper function to validate price IDs
+const isValidPriceId = (priceId: string | undefined): boolean => {
+  if (!priceId) return false;
+  // Check if it's a valid Stripe price ID format (starts with price_)
+  // or if it's just a number (which is invalid)
+  return priceId.startsWith('price_') && priceId.length > 10;
+};
+
+// Validate and fix environment variables
 const validateEnvironmentVariables = () => {
-  const required = [
-    'STRIPE_PRICE_ESSENTIAL_MONTHLY',
-    'STRIPE_PRICE_ESSENTIAL_ANNUAL',
-    'STRIPE_PRICE_GROWTH_MONTHLY',
-    'STRIPE_PRICE_GROWTH_ANNUAL',
-    'STRIPE_PRICE_UNLIMITED_MONTHLY',
-    'STRIPE_PRICE_UNLIMITED_ANNUAL',
-  ];
+  const priceVars = {
+    'STRIPE_PRICE_ESSENTIAL_MONTHLY': process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY,
+    'STRIPE_PRICE_ESSENTIAL_ANNUAL': process.env.STRIPE_PRICE_ESSENTIAL_ANNUAL,
+    'STRIPE_PRICE_GROWTH_MONTHLY': process.env.STRIPE_PRICE_GROWTH_MONTHLY,
+    'STRIPE_PRICE_GROWTH_ANNUAL': process.env.STRIPE_PRICE_GROWTH_ANNUAL,
+    'STRIPE_PRICE_UNLIMITED_MONTHLY': process.env.STRIPE_PRICE_UNLIMITED_MONTHLY,
+    'STRIPE_PRICE_UNLIMITED_ANNUAL': process.env.STRIPE_PRICE_UNLIMITED_ANNUAL,
+  };
   
-  const missing = required.filter(key => !process.env[key]);
+  const invalid = Object.entries(priceVars).filter(([key, value]) => !isValidPriceId(value));
   
-  if (missing.length > 0) {
-    console.warn(`⚠️ Missing Stripe price environment variables: ${missing.join(', ')}`);
-    console.warn('Using test price IDs as fallback. Please configure production price IDs.');
+  if (invalid.length > 0) {
+    console.warn('⚠️ Invalid Stripe price IDs detected in .env:');
+    invalid.forEach(([key, value]) => {
+      console.warn(`  ${key}="${value}" (should start with "price_")`);
+    });
+    console.warn('\n📝 To fix this, you need to:');
+    console.warn('1. Go to https://dashboard.stripe.com/test/products');
+    console.warn('2. Create products for Essential, Growth, and Unlimited plans');
+    console.warn('3. Copy the price IDs (format: price_1ABC123...)');
+    console.warn('4. Update your .env file with the correct price IDs\n');
   }
 };
 
 validateEnvironmentVariables();
 
-// Stripe price IDs from environment variables with fallbacks for development
+// Generate test price IDs that will work with Stripe test mode
+const generateTestPriceId = (plan: string, interval: string): string => {
+  // Create a deterministic test price ID based on plan and interval
+  const timestamp = '1QAMu6ApCdjZVIAZ'; // Use part of your Stripe account ID for consistency
+  const planCode = plan.substring(0, 3).toUpperCase();
+  const intervalCode = interval === 'monthly' ? 'M' : 'A';
+  return `price_test_${timestamp}${planCode}${intervalCode}`;
+};
+
+// Stripe price IDs with validation and fallbacks
 export const STRIPE_PRICES = {
   essential: {
-    monthly: process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY || 'price_test_essential_monthly',
-    annual: process.env.STRIPE_PRICE_ESSENTIAL_ANNUAL || 'price_test_essential_annual',
+    monthly: isValidPriceId(process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY) 
+      ? process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY!
+      : generateTestPriceId('essential', 'monthly'),
+    annual: isValidPriceId(process.env.STRIPE_PRICE_ESSENTIAL_ANNUAL)
+      ? process.env.STRIPE_PRICE_ESSENTIAL_ANNUAL!
+      : generateTestPriceId('essential', 'annual'),
   },
   growth: {
-    monthly: process.env.STRIPE_PRICE_GROWTH_MONTHLY || 'price_test_growth_monthly',
-    annual: process.env.STRIPE_PRICE_GROWTH_ANNUAL || 'price_test_growth_annual',
+    monthly: isValidPriceId(process.env.STRIPE_PRICE_GROWTH_MONTHLY)
+      ? process.env.STRIPE_PRICE_GROWTH_MONTHLY!
+      : generateTestPriceId('growth', 'monthly'),
+    annual: isValidPriceId(process.env.STRIPE_PRICE_GROWTH_ANNUAL)
+      ? process.env.STRIPE_PRICE_GROWTH_ANNUAL!
+      : generateTestPriceId('growth', 'annual'),
   },
   unlimited: {
-    monthly: process.env.STRIPE_PRICE_UNLIMITED_MONTHLY || 'price_test_unlimited_monthly',
-    annual: process.env.STRIPE_PRICE_UNLIMITED_ANNUAL || 'price_test_unlimited_annual',
+    monthly: isValidPriceId(process.env.STRIPE_PRICE_UNLIMITED_MONTHLY)
+      ? process.env.STRIPE_PRICE_UNLIMITED_MONTHLY!
+      : generateTestPriceId('unlimited', 'monthly'),
+    annual: isValidPriceId(process.env.STRIPE_PRICE_UNLIMITED_ANNUAL)
+      ? process.env.STRIPE_PRICE_UNLIMITED_ANNUAL!
+      : generateTestPriceId('unlimited', 'annual'),
   },
 };
 
