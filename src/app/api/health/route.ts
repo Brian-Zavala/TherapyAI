@@ -49,10 +49,8 @@ export async function GET() {
       headers: { configured: true },
     },
     deployment: {
-      vercelUrl: process.env.VERCEL_URL,
       railwayStaticUrl: process.env.RAILWAY_STATIC_URL,
-      renderServiceName: process.env.RENDER_SERVICE_NAME,
-      flyAppName: process.env.FLY_APP_NAME,
+      railwayEnvironment: process.env.RAILWAY_ENVIRONMENT,
       port: process.env.PORT || '3000',
     },
     recommendations: [] as string[],

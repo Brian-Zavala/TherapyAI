@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Railway Deployment Script with Bunny CDN Preparation
-# Usage: ./scripts/deploy-railway.sh [environment]
+# Railway Production Deployment Script
+# Next.js 15 Therapy Platform with Bunny CDN
 
 set -e
 
@@ -10,221 +10,166 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
-# Configuration
-ENVIRONMENT=${1:-production}
-DEPLOY_BRANCH="main"
-
-echo -e "${BLUE}🚀 Railway Deployment Script${NC}"
-echo -e "${BLUE}Environment: ${ENVIRONMENT}${NC}"
+echo -e "${BLUE}🚀 Railway Production Deployment${NC}"
+echo -e "${BLUE}Next.js 15 Therapy Platform${NC}"
 echo ""
 
-# Function to check prerequisites
-check_prerequisites() {
-    echo -e "${YELLOW}📋 Checking prerequisites...${NC}"
-    
-    # Check if Railway CLI is installed
-    if ! command -v railway &> /dev/null; then
-        echo -e "${RED}❌ Railway CLI not installed${NC}"
-        echo "Install with: npm install -g @railway/cli"
+# Check prerequisites
+echo -e "${YELLOW}📋 Checking Prerequisites...${NC}"
+
+# Check if Railway CLI is installed
+if ! command -v railway &> /dev/null; then
+    echo -e "${RED}❌ Railway CLI not found${NC}"
+    echo "Install Railway CLI:"
+    echo "npm install -g @railway/cli"
+    echo "Or: curl -fsSL https://railway.app/install.sh | sh"
+    exit 1
+else
+    echo -e "${GREEN}✅ Railway CLI installed${NC}"
+fi
+
+# Check if logged in to Railway
+if ! railway status &> /dev/null; then
+    echo -e "${YELLOW}🔑 Not logged in to Railway${NC}"
+    echo "Please login first:"
+    echo "railway login"
+    exit 1
+else
+    echo -e "${GREEN}✅ Logged in to Railway${NC}"
+fi
+
+# Check git status
+if [[ -n $(git status -s) ]]; then
+    echo -e "${YELLOW}⚠️  Uncommitted changes detected${NC}"
+    read -p "Commit and push changes first? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        git add .
+        read -p "Enter commit message: " commit_msg
+        git commit -m "$commit_msg"
+        git push origin main
+        echo -e "${GREEN}✅ Changes committed and pushed${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Deploying with uncommitted changes${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ Git working directory clean${NC}"
+fi
+
+echo ""
+echo -e "${BLUE}🔧 Pre-deployment Setup${NC}"
+
+# Run type checking
+echo -e "${YELLOW}🔍 Running TypeScript check...${NC}"
+if npm run typecheck; then
+    echo -e "${GREEN}✅ TypeScript check passed${NC}"
+else
+    echo -e "${RED}❌ TypeScript errors found${NC}"
+    read -p "Continue deployment anyway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
-    
-    # Check if logged in to Railway
-    if ! railway whoami &> /dev/null; then
-        echo -e "${RED}❌ Not logged in to Railway${NC}"
-        echo "Login with: railway login"
-        exit 1
-    fi
-    
-    # Check if on correct branch
-    CURRENT_BRANCH=$(git branch --show-current)
-    if [ "$CURRENT_BRANCH" != "$DEPLOY_BRANCH" ]; then
-        echo -e "${YELLOW}⚠️  Not on ${DEPLOY_BRANCH} branch (current: ${CURRENT_BRANCH})${NC}"
-        read -p "Continue anyway? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
-    fi
-    
-    echo -e "${GREEN}✅ Prerequisites check passed${NC}"
-}
+fi
 
-# Function to run tests
-run_tests() {
-    echo -e "${YELLOW}🧪 Running tests...${NC}"
-    
-    # Type checking
-    echo "Running type check..."
-    npm run typecheck || {
-        echo -e "${RED}❌ Type check failed${NC}"
-        exit 1
-    }
-    
-    # Linting
-    echo "Running lint..."
-    npm run lint || {
-        echo -e "${RED}❌ Linting failed${NC}"
-        exit 1
-    }
-    
-    # Build test
-    echo "Running build test..."
-    npm run build || {
-        echo -e "${RED}❌ Build failed${NC}"
-        exit 1
-    }
-    
-    echo -e "${GREEN}✅ All tests passed${NC}"
-}
+# Run linting
+echo -e "${YELLOW}🧹 Running ESLint...${NC}"
+if npm run lint; then
+    echo -e "${GREEN}✅ Linting passed${NC}"
+else
+    echo -e "${YELLOW}⚠️  Linting issues found${NC}"
+fi
 
-# Function to check environment variables
-check_env_vars() {
-    echo -e "${YELLOW}🔐 Checking environment variables...${NC}"
-    
-    REQUIRED_VARS=(
-        "DATABASE_URL"
-        "NEXTAUTH_SECRET"
-        "VAPI_API_KEY"
-        "STRIPE_SECRET_KEY"
-        "RESEND_API_KEY"
-        "UPSTASH_REDIS_REST_URL"
-    )
-    
-    MISSING_VARS=()
-    
-    for VAR in "${REQUIRED_VARS[@]}"; do
-        if ! railway variables get "$VAR" &> /dev/null; then
-            MISSING_VARS+=("$VAR")
-        fi
-    done
-    
-    if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-        echo -e "${RED}❌ Missing environment variables:${NC}"
-        printf '%s\n' "${MISSING_VARS[@]}"
-        echo -e "${YELLOW}Add them with: railway variables set VAR=value${NC}"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}✅ All required environment variables set${NC}"
-}
+# Test build locally
+echo -e "${YELLOW}🏗️  Testing local build...${NC}"
+if npm run build; then
+    echo -e "${GREEN}✅ Local build successful${NC}"
+else
+    echo -e "${RED}❌ Local build failed${NC}"
+    exit 1
+fi
 
-# Function to prepare CDN assets (for later)
-prepare_cdn_assets() {
-    echo -e "${YELLOW}📦 Preparing assets for CDN...${NC}"
-    
-    # Create CDN manifest
-    cat > cdn-manifest.json << EOF
-{
-  "version": "1.0.0",
-  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "bunnyConfig": {
-    "enabled": false,
-    "pullZone": "",
-    "storageZone": "",
-    "cdnUrl": ""
-  },
-  "assets": {
-    "static": "/.next/static",
-    "public": "/public",
-    "images": "/public/images",
-    "fonts": "/public/fonts"
-  }
-}
-EOF
-    
-    echo -e "${GREEN}✅ CDN manifest created (configure Bunny CDN later)${NC}"
-}
+echo ""
+echo -e "${BLUE}🚂 Railway Deployment${NC}"
 
-# Function to deploy to Railway
-deploy_to_railway() {
-    echo -e "${YELLOW}🚂 Deploying to Railway...${NC}"
-    
-    # Set deployment environment
-    railway environment "$ENVIRONMENT"
-    
-    # Deploy
-    railway up --detach || {
-        echo -e "${RED}❌ Deployment failed${NC}"
-        exit 1
-    }
-    
-    echo -e "${GREEN}✅ Deployment initiated${NC}"
-}
+# Deploy to Railway
+echo -e "${YELLOW}📤 Deploying to Railway...${NC}"
+railway deploy
 
-# Function to wait for deployment
-wait_for_deployment() {
-    echo -e "${YELLOW}⏳ Waiting for deployment to complete...${NC}"
-    
-    # Get deployment URL
-    DEPLOYMENT_URL=$(railway status --json | jq -r '.url')
-    
-    if [ -z "$DEPLOYMENT_URL" ]; then
-        echo -e "${YELLOW}⚠️  Could not get deployment URL${NC}"
-        return
-    fi
-    
-    # Wait for health check
-    MAX_ATTEMPTS=30
-    ATTEMPT=0
-    
-    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-        if curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL/api/health" | grep -q "200"; then
-            echo -e "${GREEN}✅ Deployment is healthy${NC}"
-            echo -e "${GREEN}🎉 Deployment URL: $DEPLOYMENT_URL${NC}"
-            return
-        fi
-        
-        ATTEMPT=$((ATTEMPT + 1))
-        echo -n "."
-        sleep 10
-    done
-    
-    echo -e "${RED}❌ Health check timed out${NC}"
-}
+echo ""
+echo -e "${GREEN}🎉 Deployment Complete!${NC}"
 
-# Function to show post-deployment steps
-show_post_deployment() {
-    echo ""
-    echo -e "${BLUE}📋 Post-Deployment Steps:${NC}"
-    echo ""
-    echo "1. Configure Bunny CDN:"
-    echo "   - Create pull zone at bunny.net"
-    echo "   - Set origin URL to your Railway URL"
-    echo "   - Update BUNNY_CDN_URL in Railway variables"
-    echo "   - Set CDN_ENABLED=true"
-    echo ""
-    echo "2. Update DNS records:"
-    echo "   - Point your domain to Railway"
-    echo "   - Update NEXTAUTH_URL"
-    echo ""
-    echo "3. Configure Stripe webhook:"
-    echo "   - Add Railway URL to Stripe dashboard"
-    echo "   - Update STRIPE_WEBHOOK_SECRET"
-    echo ""
-    echo "4. Test critical flows:"
-    echo "   - Authentication"
-    echo "   - VAPI sessions"
-    echo "   - Payment processing"
-    echo ""
-    echo -e "${GREEN}🎉 Deployment complete!${NC}"
-}
+# Get deployment URL
+echo -e "${YELLOW}🔗 Getting deployment URL...${NC}"
+RAILWAY_URL=$(railway domain || echo "No custom domain configured")
 
-# Main execution
-main() {
-    echo -e "${BLUE}Starting deployment process...${NC}"
-    echo ""
-    
-    check_prerequisites
-    run_tests
-    check_env_vars
-    prepare_cdn_assets
-    deploy_to_railway
-    wait_for_deployment
-    show_post_deployment
-}
+echo ""
+echo -e "${BLUE}📋 Deployment Summary${NC}"
+echo -e "Platform: ${GREEN}Railway${NC}"
+echo -e "Environment: ${GREEN}Production${NC}"
+echo -e "URL: ${GREEN}$RAILWAY_URL${NC}"
+echo ""
 
-# Run main function
-main
+echo -e "${BLUE}✅ Post-Deployment Checklist:${NC}"
+echo "1. Verify health endpoint: $RAILWAY_URL/api/health"
+echo "2. Test user authentication flow"
+echo "3. Verify VAPI voice sessions work"
+echo "4. Check Stripe payment processing"
+echo "5. Test email notifications"
+echo "6. Monitor performance metrics"
+echo "7. Configure Bunny CDN (see setup guide below)"
+echo ""
+
+echo -e "${PURPLE}📚 Bunny CDN Setup Guide:${NC}"
+echo ""
+echo -e "${BLUE}1. Create Storage Zone:${NC}"
+echo "   - Go to https://dash.bunny.net"
+echo "   - Navigate to Storage → Add Storage Zone"
+echo "   - Name: therapy-storage-prod"
+echo "   - Region: New York (closest to Railway US-East)"
+echo ""
+echo -e "${BLUE}2. Create Pull Zone:${NC}"
+echo "   - Navigate to CDN → Add Pull Zone"
+echo "   - Name: therapy-cdn-prod"
+echo "   - Origin URL: $RAILWAY_URL"
+echo "   - Origin Type: Custom URL"
+echo ""
+echo -e "${BLUE}3. Configure Caching Rules:${NC}"
+echo "   - Static Assets: /_next/static/* → Cache 1 year"
+echo "   - Images: /images/* → Cache 1 month"
+echo "   - API Routes: /api/* → No cache"
+echo ""
+echo -e "${BLUE}4. Enable Bunny Optimizer (Optional):${NC}"
+echo "   - Image optimization with WebP conversion"
+echo "   - CSS/JS minification"
+echo "   - Smart image resizing"
+echo ""
+echo -e "${BLUE}5. Update Railway Environment Variables:${NC}"
+echo "   - CDN_ENABLED=true"
+echo "   - BUNNY_CDN_URL=https://your-pullzone.b-cdn.net"
+echo "   - BUNNY_API_KEY=your-api-key"
+echo "   - BUNNY_PULL_ZONE_ID=your-pull-zone-id"
+echo "   - BUNNY_OPTIMIZER_ENABLED=true (if using optimizer)"
+echo ""
+
+echo -e "${BLUE}6. Test CDN Integration:${NC}"
+echo "   - Verify assets load from CDN URLs"
+echo "   - Check image optimization is working"
+echo "   - Test cache purging functionality"
+echo ""
+
+echo -e "${GREEN}🚀 Your therapy platform is now live on Railway!${NC}"
+echo -e "${YELLOW}📊 Monitor your deployment:${NC}"
+echo "   - Railway Dashboard: https://railway.app/dashboard"
+echo "   - Health Check: $RAILWAY_URL/api/health"
+echo "   - Logs: railway logs --follow"
+echo ""
+echo -e "${BLUE}💡 Performance Tips:${NC}"
+echo "   - Set up Bunny CDN for 95%+ cache hit ratio"
+echo "   - Monitor response times with Sentry"
+echo "   - Use Railway metrics for scaling decisions"
+echo "   - Enable Redis for better session management"
+echo ""

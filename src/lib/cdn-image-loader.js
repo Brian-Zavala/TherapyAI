@@ -1,6 +1,6 @@
 /**
  * CDN Image Loader for Next.js
- * Supports both Bunny CDN (production) and default loading (development/Render)
+ * Optimized for Railway deployment with Bunny CDN
  */
 
 const bunnyConfig = require('../../config/bunny-cdn.config');
@@ -8,12 +8,7 @@ const bunnyConfig = require('../../config/bunny-cdn.config');
 export default function cdnImageLoader({ src, width, quality }) {
   // If CDN is not enabled, return the original source
   if (!bunnyConfig.enabled || !bunnyConfig.cdnUrl) {
-    // For Render deployment or local development
-    if (process.env.RENDER_EXTERNAL_URL) {
-      // Render deployment - use Render's URL
-      return `${src}${width ? `?w=${width}` : ''}${quality ? `&q=${quality}` : ''}`;
-    }
-    // Local development or no CDN
+    // For development or fallback
     return src;
   }
   

@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 import Stripe from 'stripe';
+import { isEventProcessed, markEventProcessed } from '@/lib/webhook-event-store';
+import { enqueueWebhookEvent } from '@/lib/webhook-processor';
 
 // Stripe requires the raw body to verify webhook signatures.
 // We need to export config to tell Next.js not to parse the body
@@ -45,6 +47,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Check for duplicate events (Best Practice #1)
+  const objectId = event.data.object?.id;
+  const isDuplicate = await isEventProcessed(event.id, objectId);
+  
+  if (isDuplicate) {
+    console.log(`♻️ Duplicate event detected: ${event.type} (${event.id})`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+  
+  // Mark as processed to prevent duplicates
+  await markEventProcessed(event.id, event.type, objectId);
+  
+  // For critical events, process immediately; for others, queue
+  const criticalEvents = ['checkout.session.completed'];
+  const shouldProcessImmediately = criticalEvents.includes(event.type);
+  
   // Handle the event
   try {
     console.log(`📨 Processing webhook event: ${event.type}`);
@@ -266,7 +284,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error('Error processing webhook:', error);
-    // Return success to avoid Stripe retrying
-    return NextResponse.json({ received: true, error: error.message });
+    
+    // For non-critical events, queue for retry
+    if (!shouldProcessImmediately) {
+      enqueueWebhookEvent(event);
+      return NextResponse.json({ received: true, queued: true });
+    }
+    
+    // For critical events, return error to trigger Stripe retry
+    return NextResponse.json(
+      { error: 'Failed to process critical event', details: error.message },
+      { status: 500 }
+    );
   }
 }
