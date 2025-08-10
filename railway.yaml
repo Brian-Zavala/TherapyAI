@@ -1,0 +1,217 @@
+# Railway Deployment Configuration
+# Production-ready setup for Next.js 15 Therapy Platform
+
+# Service Configuration
+services:
+  # Main Web Application
+  - type: web
+    name: couple-therapy-app
+    
+    # Build Configuration
+    buildCommand: |
+      echo "🚀 Starting production build..."
+      npm ci --only=production
+      npm run prisma:generate
+      npm run build
+      echo "✅ Build complete!"
+    
+    # Start Configuration
+    startCommand: |
+      echo "🔄 Starting production server..."
+      npm run start
+    
+    # Health Check Configuration
+    healthcheckPath: /api/health
+    healthcheckTimeout: 300
+    restartPolicyType: ON_FAILURE
+    restartPolicyMaxRetries: 3
+    
+    # Resource Configuration
+    plan: starter # Options: starter ($5), pro ($20)
+    region: us-west1 # Closest to your users
+    
+    # Scaling Configuration
+    numReplicas: 1
+    autoscaling:
+      enabled: false # Enable for production
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUPercent: 70
+      targetMemoryPercent: 80
+    
+    # Network Configuration
+    domains:
+      - ${{RAILWAY_STATIC_URL}}
+      # Add custom domain later:
+      # - therapyai.us
+      # - www.therapyai.us
+    
+    # Environment Variables (Template)
+    envVars:
+      # Core Configuration
+      - key: NODE_ENV
+        value: production
+      
+      - key: PORT
+        value: "3000"
+      
+      - key: NEXTAUTH_URL
+        value: https://${{RAILWAY_STATIC_URL}}
+      
+      # Database (from .env)
+      - key: DATABASE_URL
+        value: ${{DATABASE_URL}}
+      
+      - key: DIRECT_URL
+        value: ${{DIRECT_URL}}
+      
+      # Secrets (Set in Railway Dashboard)
+      - key: NEXTAUTH_SECRET
+        sync: false
+      
+      - key: PHI_MASTER_KEY
+        sync: false
+      
+      # VAPI Configuration
+      - key: VAPI_API_KEY
+        sync: false
+      
+      - key: VAPI_PRIVATE_KEY
+        sync: false
+      
+      - key: VAPI_ORG_ID
+        sync: false
+      
+      # Stripe Configuration
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      
+      # Supabase Configuration
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://pjmdlinrffawvhoktopd.supabase.co
+      
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      
+      # Redis Configuration
+      - key: UPSTASH_REDIS_REST_URL
+        value: https://sharing-phoenix-13155.upstash.io
+      
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      
+      # Email Configuration
+      - key: RESEND_API_KEY
+        sync: false
+      
+      - key: EMAIL_FROM
+        value: support@therapyai.us
+      
+      # SMS Configuration
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      
+      - key: TWILIO_PHONE_NUMBER
+        value: "+18772839213"
+      
+      # Analytics
+      - key: NEXT_PUBLIC_POSTHOG_KEY
+        sync: false
+      
+      - key: NEXT_PUBLIC_POSTHOG_HOST
+        value: https://app.posthog.com
+      
+      # Sentry
+      - key: SENTRY_DSN
+        sync: false
+      
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+      
+      # Security Configuration
+      - key: SECURE_COOKIES
+        value: "true"
+      
+      - key: FORCE_HTTPS
+        value: "true"
+      
+      - key: CSP_ENABLED
+        value: "true"
+      
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      
+      # Bunny CDN Configuration (For Later)
+      - key: BUNNY_CDN_URL
+        value: "" # Will be: https://yourapp.b-cdn.net
+      
+      - key: BUNNY_API_KEY
+        sync: false # Add when ready
+      
+      - key: BUNNY_PULL_ZONE_ID
+        sync: false # Add when ready
+      
+      - key: CDN_ENABLED
+        value: "false" # Set to true when Bunny is configured
+
+# Deployment Configuration
+deploy:
+  # Build Settings
+  buildCache: true
+  dockerIgnoreFile: .dockerignore
+  
+  # Deployment Strategy
+  strategy: rolling
+  maxUnavailableReplicas: 0
+  
+  # Resource Limits
+  cpu: 1
+  memory: 1024
+  
+  # Storage (if needed)
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+      size: 10Gi
+
+# Cron Jobs (if needed)
+crons:
+  - name: cleanup-sessions
+    schedule: "0 2 * * *" # 2 AM daily
+    command: npm run cleanup:sessions
+    
+  - name: backup-analytics
+    schedule: "0 3 * * 0" # 3 AM Sunday
+    command: npm run backup:analytics
+
+# Private Network Configuration
+privateNetwork:
+  enabled: true
+  name: therapy-network
+
+# Monitoring & Alerts
+monitoring:
+  enabled: true
+  alerts:
+    - type: deployment_failed
+      channel: email
+    - type: health_check_failed
+      channel: email
+    - type: high_memory_usage
+      threshold: 90
+      channel: email
+    - type: high_cpu_usage
+      threshold: 80
+      channel: email

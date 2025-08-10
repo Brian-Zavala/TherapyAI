@@ -1,11 +1,18 @@
 /** @type {import('next').NextConfig} */
 // Note: Custom webpack config is used for fs fallbacks and aliases.
 // To use Turbopack, remove the webpack function and update fallback handling.
+
+// Import Bunny CDN configuration
+const bunnyConfig = require('./config/bunny-cdn.config');
+
 const nextConfig = {
   reactStrictMode: true,
   
   // Railway-specific optimizations
   output: 'standalone',
+  
+  // CDN Configuration (Bunny CDN)
+  assetPrefix: bunnyConfig.getAssetPrefix(),
   
   // Enable experimental features
   experimental: {
@@ -33,8 +40,13 @@ const nextConfig = {
       'pjmdlinrffawvhoktopd.supabase.co',
       'images.unsplash.com',
       'api.dicebear.com',
+      // Add Bunny CDN domain when configured
+      ...(bunnyConfig.cdnUrl ? [new URL(bunnyConfig.cdnUrl).hostname] : []),
     ],
-    unoptimized: process.env.NODE_ENV === 'development',
+    // Use custom loader for CDN
+    loader: bunnyConfig.enabled ? 'custom' : 'default',
+    loaderFile: bunnyConfig.enabled ? './src/lib/cdn-image-loader.js' : undefined,
+    unoptimized: process.env.NODE_ENV === 'development' && !bunnyConfig.enabled,
   },
 
   // Headers for security and performance
