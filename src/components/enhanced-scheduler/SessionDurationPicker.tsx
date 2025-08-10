@@ -25,6 +25,14 @@ interface DurationOption {
 
 const durationOptions: DurationOption[] = [
   {
+    minutes: 15,
+    label: '15 minutes',
+    description: 'Brief touchpoint for immediate support',
+    icon: Zap,
+    bestFor: ['Crisis moments', 'Quick emotional support', 'Maintenance'],
+    priceMultiplier: 0.25
+  },
+  {
     minutes: 30,
     label: '30 minutes',
     description: 'Quick check-in or focused topic',

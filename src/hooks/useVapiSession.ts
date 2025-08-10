@@ -434,25 +434,41 @@ export function useVapiSession(options: UseVapiSessionOptions = {}): UseVapiSess
       window.dispatchEvent(new Event('sessionStateChanged'))
       
       // Navigate to dashboard when session completes naturally
-      // Check if this is a natural completion (not user-initiated)
+      // Based on VAPI documentation, these are the actual end reasons
       const reasonLower = reason?.toLowerCase() || ''
-      const isNaturalCompletion = reasonLower && 
-        (reasonLower.includes('max-duration') || 
-         reasonLower.includes('max_duration') ||
-         reasonLower.includes('silence-timeout') || 
-         reasonLower.includes('silence_timeout') ||
-         reasonLower.includes('assistant-request') ||
-         reasonLower.includes('assistant_request') ||
-         reasonLower.includes('completed') ||
-         reasonLower.includes('finish') ||
-         reasonLower.includes('timeout'))
       
-      // Also check if it's NOT a user-initiated end or error
-      const isUserInitiated = reasonLower.includes('user') || 
-                             reasonLower.includes('manual') || 
-                             reasonLower.includes('hangup') ||
-                             reasonLower.includes('error') ||
-                             reasonLower.includes('failed')
+      // Natural completion reasons from VAPI docs
+      const isNaturalCompletion = reasonLower && (
+        // Duration/timeout completions
+        reasonLower === 'exceeded-max-duration' ||
+        reasonLower === 'silence-timed-out' ||
+        reasonLower.includes('max-duration') ||
+        reasonLower.includes('exceeded-max') ||
+        reasonLower.includes('silence-timed') ||
+        reasonLower.includes('timeout') ||
+        
+        // Assistant-initiated completions
+        reasonLower === 'assistant-ended-call' ||
+        reasonLower === 'assistant-ended-call-after-message-spoken' ||
+        reasonLower === 'assistant-said-end-call-phrase' ||
+        reasonLower.includes('assistant-ended') ||
+        reasonLower.includes('assistant-request') ||
+        
+        // Natural completions
+        reasonLower.includes('completed') ||
+        reasonLower.includes('finished')
+      )
+      
+      // User-initiated or error reasons that should NOT trigger auto-redirect
+      const isUserInitiated = 
+        reasonLower === 'customer-ended-call' ||
+        reasonLower === 'manually-canceled' ||
+        reasonLower.includes('customer-ended') ||
+        reasonLower.includes('user') ||
+        reasonLower.includes('manual') ||
+        reasonLower.includes('hangup') ||
+        reasonLower.includes('error') ||
+        reasonLower.includes('failed')
       
       if (isNaturalCompletion && !isUserInitiated && typeof window !== 'undefined') {
         console.log('🚀 Natural session completion detected, navigating to dashboard', { reason })

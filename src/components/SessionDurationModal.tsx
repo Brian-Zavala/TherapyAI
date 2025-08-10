@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 interface SessionDurationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectDuration: (duration: 30 | 60) => void;
+  onSelectDuration: (duration: 15 | 30 | 60) => void;
   therapyType?: string;
   isLoading?: boolean;
 }
@@ -20,7 +20,7 @@ export default function SessionDurationModal({
   therapyType = "couple",
   isLoading = false,
 }: SessionDurationModalProps) {
-  const [selectedDuration, setSelectedDuration] = useState<30 | 60>(60);
+  const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(30);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -32,13 +32,26 @@ export default function SessionDurationModal({
   };
 
   const durationOptions: Array<{
-    duration: 30 | 60;
+    duration: 15 | 30 | 60;
     title: string;
     description: string;
     features: string[];
     recommended: boolean;
     futurePrice: string;
   }> = [
+    {
+      duration: 15,
+      title: "Quick Check-In",
+      description: "Brief touchpoint for immediate support",
+      features: [
+        "Perfect for crisis moments",
+        "Quick emotional support",
+        "Brief progress check",
+        "Maintenance sessions",
+      ],
+      recommended: false,
+      futurePrice: "0.5 Token",
+    },
     {
       duration: 30,
       title: "Focused Session",
@@ -49,7 +62,7 @@ export default function SessionDurationModal({
         "Quick progress updates",
         "Scheduling flexibility",
       ],
-      recommended: false,
+      recommended: true,
       futurePrice: "1 Token",
     },
     {
@@ -62,7 +75,7 @@ export default function SessionDurationModal({
         "In-depth processing time",
         "Complete session closure",
       ],
-      recommended: true,
+      recommended: false,
       futurePrice: "2 Tokens",
     },
   ];

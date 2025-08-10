@@ -1917,12 +1917,16 @@ export const getPersonalizedAssistantConfig = (
 
   const baseConfig = getAssistantConfigByType(therapyType);
 
-  // Session duration handling - default to 60 minutes if not specified
-  const sessionDurationMinutes = sessionOptions?.duration || 60;
+  // Session duration handling - default to 30 minutes if not specified
+  const sessionDurationMinutes = sessionOptions?.duration || 30;
   const sessionDurationSeconds = sessionDurationMinutes * 60;
 
-  // Calculate session timing thresholds
-  const warningTimeSeconds = sessionDurationSeconds - 5 * 60; // 5 minutes before end
+  // Calculate session timing thresholds - adjusted for shorter sessions
+  // For 15-minute sessions: warn at 3 minutes before end
+  // For 30-minute sessions: warn at 5 minutes before end  
+  // For 60-minute sessions: warn at 5 minutes before end
+  const warningTimeMinutes = sessionDurationMinutes <= 15 ? 3 : 5;
+  const warningTimeSeconds = sessionDurationSeconds - (warningTimeMinutes * 60);
 
   // Build comprehensive variable values from user profile
   const variableValues: Record<string, any> = {

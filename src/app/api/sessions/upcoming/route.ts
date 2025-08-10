@@ -58,7 +58,14 @@ export async function GET() {
 
     console.log(`Found ${upcomingSessions.length} upcoming sessions`);
 
-    return NextResponse.json(upcomingSessions);
+    // Return in expected format with sessions array
+    return NextResponse.json({ 
+      sessions: upcomingSessions.map(session => ({
+        ...session,
+        startTime: session.date, // Map date to startTime for compatibility
+        therapyType: session.theme || 'individual' // Ensure therapyType exists
+      }))
+    });
   } catch (error) {
     console.error('Error fetching upcoming sessions:', error);
     return NextResponse.json(

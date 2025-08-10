@@ -3,8 +3,7 @@ import { headers } from 'next/headers';
 import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 import Stripe from 'stripe';
-import { isEventProcessed, markEventProcessed } from '@/lib/webhook-event-store';
-import { enqueueWebhookEvent } from '@/lib/webhook-processor';
+import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
 
 // Stripe requires the raw body to verify webhook signatures.
 // We need to export config to tell Next.js not to parse the body
@@ -14,6 +13,7 @@ export const runtime = 'nodejs';
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
+  try {
   // Validate webhook secret is configured
   if (!webhookSecret) {
     console.error('❌ STRIPE_WEBHOOK_SECRET not configured');
@@ -47,17 +47,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check for duplicate events (Best Practice #1)
+  // Atomic deduplication check (Best Practice #1)
   const objectId = event.data.object?.id;
-  const isDuplicate = await isEventProcessed(event.id, objectId);
+  const isNewEvent = await deduplicateWebhookEvent(event.id, event.type, objectId);
   
-  if (isDuplicate) {
+  if (!isNewEvent) {
     console.log(`♻️ Duplicate event detected: ${event.type} (${event.id})`);
     return NextResponse.json({ received: true, duplicate: true });
   }
-  
-  // Mark as processed to prevent duplicates
-  await markEventProcessed(event.id, event.type, objectId);
   
   // For critical events, process immediately; for others, queue
   const criticalEvents = ['checkout.session.completed'];
@@ -285,15 +282,23 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error processing webhook:', error);
     
-    // For non-critical events, queue for retry
+    // For non-critical events, we could queue for retry
+    // For now, just log the error
     if (!shouldProcessImmediately) {
-      enqueueWebhookEvent(event);
-      return NextResponse.json({ received: true, queued: true });
+      console.log('Non-critical event failed, would queue for retry');
+      return NextResponse.json({ received: true });
     }
     
     // For critical events, return error to trigger Stripe retry
     return NextResponse.json(
       { error: 'Failed to process critical event', details: error.message },
+      { status: 500 }
+    );
+  }
+  } catch (globalError: any) {
+    console.error('Global webhook error:', globalError);
+    return NextResponse.json(
+      { error: 'Internal server error', message: globalError.message },
       { status: 500 }
     );
   }

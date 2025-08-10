@@ -4,15 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma-optimized';
-import { Redis } from '@upstash/redis';
-
-// Initialize Redis client for fast event deduplication
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null;
+import { redis } from '@/lib/cache/redis-client';
 
 // In-memory fallback for development
 const memoryStore = new Map<string, number>();
@@ -37,12 +29,13 @@ export async function isEventProcessed(
 ): Promise<boolean> {
   const key = objectId ? `webhook:${eventId}:${objectId}` : `webhook:${eventId}`;
   
-  if (redis) {
-    // Redis check (production)
+  try {
+    // Try Redis first (production)
     const exists = await redis.exists(key);
     return exists === 1;
-  } else {
-    // In-memory check (development)
+  } catch (error) {
+    // Fallback to in-memory check (development or Redis unavailable)
+    console.warn('[WebhookEventStore] Redis not available, using memory store');
     return memoryStore.has(key);
   }
 }
@@ -59,17 +52,21 @@ export async function markEventProcessed(
   const key = objectId ? `webhook:${eventId}:${objectId}` : `webhook:${eventId}`;
   const ttl = 30 * 24 * 60 * 60; // 30 days in seconds
   
-  if (redis) {
-    // Store in Redis with TTL
-    await redis.setex(key, ttl, JSON.stringify({
+  try {
+    // Store in Redis with TTL using Upstash SDK syntax
+    const value = JSON.stringify({
       eventId,
       eventType,
       objectId,
       processedAt: new Date().toISOString(),
       status: 'completed'
-    }));
-  } else {
-    // Store in memory (development)
+    });
+    
+    // Use the set method with ex option for TTL
+    await redis.set(key, value, 'EX', ttl);
+  } catch (error) {
+    // Fallback to memory store (development or Redis unavailable)
+    console.warn('[WebhookEventStore] Redis not available, using memory store');
     memoryStore.set(key, Date.now());
     
     // Clean up old entries in memory (simple TTL simulation)
@@ -103,15 +100,20 @@ export async function markEventFailed(
   const key = objectId ? `webhook:${eventId}:${objectId}:failed` : `webhook:${eventId}:failed`;
   const ttl = 7 * 24 * 60 * 60; // 7 days for failed events
   
-  if (redis) {
-    await redis.setex(key, ttl, JSON.stringify({
+  try {
+    const value = JSON.stringify({
       eventId,
       eventType,
       objectId,
       failedAt: new Date().toISOString(),
       error,
       status: 'failed'
-    }));
+    });
+    
+    // Use the set method with ex option for TTL
+    await redis.set(key, value, 'EX', ttl);
+  } catch (err) {
+    console.warn('[WebhookEventStore] Failed to mark event as failed in Redis', err);
   }
 }
 
@@ -150,24 +152,20 @@ async function logEventToDatabase(
  * Run periodically to prevent unbounded growth
  */
 export async function cleanupOldEvents(daysToKeep = 30): Promise<number> {
-  if (!redis) {
-    // Clean memory store
-    const now = Date.now();
-    const oldestAllowed = now - (daysToKeep * 24 * 60 * 60 * 1000);
-    let cleaned = 0;
-    
-    for (const [key, timestamp] of memoryStore.entries()) {
-      if (timestamp < oldestAllowed) {
-        memoryStore.delete(key);
-        cleaned++;
-      }
+  // Clean memory store
+  const now = Date.now();
+  const oldestAllowed = now - (daysToKeep * 24 * 60 * 60 * 1000);
+  let cleaned = 0;
+  
+  for (const [key, timestamp] of memoryStore.entries()) {
+    if (timestamp < oldestAllowed) {
+      memoryStore.delete(key);
+      cleaned++;
     }
-    
-    return cleaned;
   }
   
   // For Redis, TTL handles cleanup automatically
-  return 0;
+  return cleaned;
 }
 
 /**
@@ -181,7 +179,7 @@ export async function getEventStatus(
   const key = objectId ? `webhook:${eventId}:${objectId}` : `webhook:${eventId}`;
   const failedKey = `${key}:failed`;
   
-  if (redis) {
+  try {
     const [exists, failed] = await Promise.all([
       redis.exists(key),
       redis.exists(failedKey)
@@ -190,7 +188,8 @@ export async function getEventStatus(
     if (failed === 1) return 'failed';
     if (exists === 1) return 'completed';
     return 'unprocessed';
-  } else {
+  } catch (error) {
+    // Fallback to memory store
     if (memoryStore.has(failedKey)) return 'failed';
     if (memoryStore.has(key)) return 'completed';
     return 'unprocessed';

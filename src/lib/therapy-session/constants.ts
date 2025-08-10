@@ -1,7 +1,7 @@
 // Session timing constants
 export const TRANSCRIPT_DEBOUNCE_MS = 250; // Reduced from 1.5s to 250ms for better UX
-export const DEFAULT_SESSION_DURATION = 60; // Default session duration in minutes
-export const SESSION_DURATION_OPTIONS = [30, 60] as const;
+export const DEFAULT_SESSION_DURATION = 30; // Default session duration in minutes (changed to 30 as it's now recommended)
+export const SESSION_DURATION_OPTIONS = [15, 30, 60] as const;
 export type SessionDuration = typeof SESSION_DURATION_OPTIONS[number];
 
 // Therapy types
@@ -119,8 +119,9 @@ export const VAPI_CONFIG = {
   USE_CUSTOM_TRANSCRIBER: false,
   RECONNECT_ENABLED: true,
   MAX_DURATION_SECONDS: {
-    30: 1800,
-    60: 3600
+    15: 900,   // 15 minutes = 900 seconds
+    30: 1800,  // 30 minutes = 1800 seconds
+    60: 3600   // 60 minutes = 3600 seconds
   },
   ICE_SERVERS: [
     { urls: "stun:stun.l.google.com:19302" },
