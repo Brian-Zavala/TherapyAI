@@ -18,12 +18,13 @@ const PricingPage = () => {
     try {
       setLoadingPlan(planType);
       
-      // For production, you'll need to set up the actual price IDs in your environment variables
-      // For now, we'll use placeholder IDs
-      const actualPriceId = priceId || `price_test_${planType}_${isAnnual ? 'annual' : 'monthly'}`;
+      // Validate price ID is provided
+      if (!priceId) {
+        throw new Error('Price ID not configured for this plan');
+      }
       
       await createCheckoutSession({
-        priceId: actualPriceId,
+        priceId,
         planType,
         isAnnual,
       });
@@ -117,8 +118,8 @@ const PricingPage = () => {
       icon: <StarIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 12.99,
       annualPrice: 129,
-      monthlyPriceId: process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY || '',
-      annualPriceId: process.env.STRIPE_PRICE_ESSENTIAL_ANNUAL || '',
+      monthlyPriceId: 'price_1RuRWNAc4d9YDJXZlgZSzXuY',
+      annualPriceId: 'price_1RuRWNAc4d9YDJXZhJM2bxvp',
       tagline: 'Perfect for regular use',
       highlight: false,
       gradient: 'from-blue-600 to-cyan-600',
@@ -143,8 +144,8 @@ const PricingPage = () => {
       icon: <ChartBarIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 24.99,
       annualPrice: 249,
-      monthlyPriceId: process.env.STRIPE_PRICE_GROWTH_MONTHLY || '',
-      annualPriceId: process.env.STRIPE_PRICE_GROWTH_ANNUAL || '',
+      monthlyPriceId: 'price_1RuRWOAc4d9YDJXZQC1MCmFW',
+      annualPriceId: 'price_1RuRWOAc4d9YDJXZLzS6ggkT',
       tagline: 'Most popular choice',
       highlight: true,
       gradient: 'from-green-600 to-emerald-600',
@@ -169,8 +170,8 @@ const PricingPage = () => {
       icon: <BoltIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
       monthlyPrice: 44.99,
       annualPrice: 449,
-      monthlyPriceId: process.env.STRIPE_PRICE_UNLIMITED_MONTHLY || '',
-      annualPriceId: process.env.STRIPE_PRICE_UNLIMITED_ANNUAL || '',
+      monthlyPriceId: 'price_1RuRWPAc4d9YDJXZxJ1MlNmb',
+      annualPriceId: 'price_1RuRWPAc4d9YDJXZXQAmj46j',
       tagline: 'Maximum flexibility',
       highlight: false,
       gradient: 'from-indigo-700 to-blue-800',
