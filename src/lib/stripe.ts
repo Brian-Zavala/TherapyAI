@@ -1,12 +1,31 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
-}
+// Using lazy initialization pattern as recommended in Stripe docs for build-time issues
+let stripeInstance: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-01-27.acacia',
-  typescript: true,
+const getStripeInstance = (): Stripe => {
+  if (!stripeInstance) {
+    // Use placeholder during build if env var is not available
+    const secretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
+    
+    if (!process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV === 'production') {
+      throw new Error('Missing STRIPE_SECRET_KEY environment variable in production');
+    }
+    
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
+      typescript: true,
+    });
+  }
+  return stripeInstance;
+};
+
+// Export a proxy that lazily initializes Stripe
+export const stripe = new Proxy({} as Stripe, {
+  get(target, prop, receiver) {
+    const instance = getStripeInstance();
+    return Reflect.get(instance, prop, instance);
+  },
 });
 
 // Validate required environment variables
@@ -66,6 +85,7 @@ export async function createCheckoutSession({
   metadata?: Record<string, string>;
 }) {
   const urls = getStripeUrls(origin);
+  const stripeClient = getStripeInstance();
   
   const sessionConfig: Stripe.Checkout.SessionCreateParams = {
     // payment_method_types is optional in latest API - Stripe auto-detects based on account
@@ -109,13 +129,14 @@ export async function createCheckoutSession({
     sessionConfig.customer_email = customerEmail;
   }
 
-  const session = await stripe.checkout.sessions.create(sessionConfig);
+  const session = await stripeClient.checkout.sessions.create(sessionConfig);
   
   return session;
 }
 
 export async function getCustomerByEmail(email: string) {
-  const customers = await stripe.customers.list({
+  const stripeClient = getStripeInstance();
+  const customers = await stripeClient.customers.list({
     email,
     limit: 1,
   });
@@ -132,7 +153,8 @@ export async function createCustomer({
   name?: string;
   metadata?: Record<string, string>;
 }) {
-  const customer = await stripe.customers.create({
+  const stripeClient = getStripeInstance();
+  const customer = await stripeClient.customers.create({
     email,
     name,
     metadata,
@@ -142,8 +164,9 @@ export async function createCustomer({
 }
 
 export async function cancelSubscription(subscriptionId: string, immediately = false) {
+  const stripeClient = getStripeInstance();
   // Best practice: Allow for immediate cancellation or at period end
-  const subscription = await stripe.subscriptions.update(subscriptionId, {
+  const subscription = await stripeClient.subscriptions.update(subscriptionId, {
     cancel_at_period_end: !immediately,
     cancellation_details: {
       comment: 'Customer requested cancellation',
@@ -152,14 +175,15 @@ export async function cancelSubscription(subscriptionId: string, immediately = f
   
   // If immediate cancellation is requested
   if (immediately) {
-    return await stripe.subscriptions.cancel(subscriptionId);
+    return await stripeClient.subscriptions.cancel(subscriptionId);
   }
   
   return subscription;
 }
 
 export async function getSubscription(subscriptionId: string) {
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const stripeClient = getStripeInstance();
+  const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
   return subscription;
 }
 
@@ -167,7 +191,8 @@ export async function updateSubscription(
   subscriptionId: string,
   params: Stripe.SubscriptionUpdateParams
 ) {
-  const subscription = await stripe.subscriptions.update(subscriptionId, params);
+  const stripeClient = getStripeInstance();
+  const subscription = await stripeClient.subscriptions.update(subscriptionId, params);
   return subscription;
 }
 
@@ -184,7 +209,8 @@ export async function constructWebhookEvent(
   signature: string,
   secret: string
 ) {
-  return stripe.webhooks.constructEvent(payload, signature, secret);
+  const stripeClient = getStripeInstance();
+  return stripeClient.webhooks.constructEvent(payload, signature, secret);
 }
 
 // Modern helper for handling Stripe errors
@@ -238,7 +264,8 @@ export async function getOrCreateCustomer({
     const existingCustomer = await getCustomerByEmail(email);
     if (existingCustomer) {
       // Update metadata if customer exists
-      return await stripe.customers.update(existingCustomer.id, {
+      const stripeClient = getStripeInstance();
+      return await stripeClient.customers.update(existingCustomer.id, {
         name: name || existingCustomer.name || undefined,
         metadata: { ...existingCustomer.metadata, ...metadata },
       });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { constructWebhookEvent, stripe } from '@/lib/stripe';
+import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 import Stripe from 'stripe';
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Get the subscription and customer info
-        const subscription = await stripe.subscriptions.retrieve(
+        const subscription = await getSubscription(
           session.subscription as string
         );
         
