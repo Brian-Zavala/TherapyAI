@@ -72,11 +72,7 @@ async function checkSubscriptionStatus() {
         id: true,
         status: true,
         createdAt: true,
-        user: {
-          select: {
-            email: true
-          }
-        }
+        userId: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -87,7 +83,7 @@ async function checkSubscriptionStatus() {
     if (recentSessions.length > 0) {
       console.log(`Found ${recentSessions.length} recent session(s):`);
       recentSessions.forEach(session => {
-        console.log(`  Session ${session.id}: ${session.status} - ${session.user.email} - ${session.createdAt.toISOString()}`);
+        console.log(`  Session ${session.id}: ${session.status} - User ${session.userId} - ${session.createdAt.toISOString()}`);
       });
     } else {
       console.log('No recent therapy sessions found');

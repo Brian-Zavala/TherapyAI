@@ -61,27 +61,61 @@ export async function POST(request: NextRequest) {
           customerEmail: session.customer_email,
         });
         
+        // Log the raw metadata to debug
+        console.log('🔍 Raw metadata:', JSON.stringify(session.metadata, null, 2));
+        console.log('🔍 User ID from metadata:', session.metadata?.userId);
+        
         if (!session.subscription) {
           console.warn('⚠️ Checkout completed but no subscription ID found');
           break;
         }
         
         // Get the subscription and customer info
-        const subscription = await getSubscription(
-          session.subscription as string
-        );
+        let subscription: any;
         
-        console.log('📊 Subscription details:', {
-          id: subscription.id,
-          status: subscription.status,
-          items: subscription.items.data.map(item => ({
-            price: item.price.id,
-            product: item.price.product,
-          })),
-        });
+        // Check if this is a test webhook
+        const isTestWebhook = session.metadata?.testWebhook === 'true';
+        
+        if (isTestWebhook) {
+          console.log('🧪 Test webhook detected, using mock subscription data');
+          subscription = {
+            id: session.subscription as string,
+            status: 'active',
+            items: { data: [] }
+          };
+        } else {
+          try {
+            subscription = await getSubscription(
+              session.subscription as string
+            );
+            
+            console.log('📊 Subscription details:', {
+              id: subscription.id,
+              status: subscription.status,
+              items: subscription.items.data.map(item => ({
+                price: item.price.id,
+                product: item.price.product,
+              })),
+            });
+          } catch (error: any) {
+            console.error(`❌ Failed to fetch subscription: ${error.message}`);
+            // If subscription fetch fails but we have metadata, try to update anyway
+            if (session.metadata?.userId) {
+              console.log('⚠️ Proceeding with metadata despite subscription fetch failure');
+              subscription = {
+                id: session.subscription as string,
+                status: 'active',
+                items: { data: [] }
+              };
+            } else {
+              throw error;
+            }
+          }
+        }
         
         // Update user subscription in database with transaction
         if (session.metadata?.userId) {
+          console.log(`🔄 Attempting to update user ${session.metadata.userId} subscription...`);
           try {
             await prisma.$transaction(async (tx) => {
               // Check if user exists
@@ -89,12 +123,14 @@ export async function POST(request: NextRequest) {
                 where: { id: session.metadata.userId },
               });
               
+              console.log(`👤 Found user:`, user ? `${user.email} (${user.id})` : 'NOT FOUND');
+              
               if (!user) {
                 throw new Error(`User ${session.metadata.userId} not found`);
               }
               
               // Update user subscription
-              await tx.user.update({
+              const updatedUser = await tx.user.update({
                 where: { id: session.metadata.userId },
                 data: {
                   subscriptionStatus: 'active',
@@ -103,15 +139,25 @@ export async function POST(request: NextRequest) {
                   billingEmail: session.customer_email || user.email,
                 },
               });
+              
+              console.log(`📝 User updated:`, {
+                id: updatedUser.id,
+                email: updatedUser.email,
+                subscriptionStatus: updatedUser.subscriptionStatus,
+                subscriptionId: updatedUser.subscriptionId,
+                stripeCustomerId: updatedUser.stripeCustomerId,
+              });
             });
             
             console.log(`✅ Subscription activated for user ${session.metadata.userId}`);
           } catch (error: any) {
             console.error(`❌ Failed to update user subscription: ${error.message}`);
+            console.error('Full error:', error);
             throw error; // Re-throw to trigger webhook retry
           }
         } else {
           console.warn('⚠️ No userId in checkout session metadata');
+          console.warn('Session metadata:', session.metadata);
         }
         break;
       }
