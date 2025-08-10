@@ -24,6 +24,7 @@ export default function CheckoutSuccessPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
   const [countdown, setCountdown] = useState(10);
+  const [shouldRedirect, setShouldRedirect] = useState(true);
 
   useEffect(() => {
     // Trigger confetti animation
@@ -102,11 +103,20 @@ export default function CheckoutSuccessPage() {
       fetchSubscriptionDetails();
     }, 1000);
 
-    // Auto-redirect countdown
+  }, []);
+
+  // Separate effect for countdown to avoid setState during render
+  useEffect(() => {
+    if (!shouldRedirect) return;
+    
     const countdownInterval = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          router.push('/dashboard');
+          clearInterval(countdownInterval);
+          // Use setTimeout to avoid setState during render
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 0);
           return 0;
         }
         return prev - 1;
@@ -114,7 +124,7 @@ export default function CheckoutSuccessPage() {
     }, 1000);
 
     return () => clearInterval(countdownInterval);
-  }, [router]);
+  }, [router, shouldRedirect]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -338,7 +348,7 @@ export default function CheckoutSuccessPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => setCountdown(999)}
+                      onClick={() => setShouldRedirect(false)}
                       className="text-white/50 hover:text-white text-xs sm:text-sm underline transition-colors"
                     >
                       Cancel

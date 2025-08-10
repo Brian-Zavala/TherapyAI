@@ -47,9 +47,19 @@ export async function POST(request: NextRequest) {
 
   // Handle the event
   try {
+    console.log(`📨 Processing webhook event: ${event.type}`);
+    
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        
+        console.log('📋 Checkout session completed:', {
+          sessionId: session.id,
+          customer: session.customer,
+          subscription: session.subscription,
+          metadata: session.metadata,
+          customerEmail: session.customer_email,
+        });
         
         if (!session.subscription) {
           console.warn('⚠️ Checkout completed but no subscription ID found');
@@ -60,6 +70,15 @@ export async function POST(request: NextRequest) {
         const subscription = await getSubscription(
           session.subscription as string
         );
+        
+        console.log('📊 Subscription details:', {
+          id: subscription.id,
+          status: subscription.status,
+          items: subscription.items.data.map(item => ({
+            price: item.price.id,
+            product: item.price.product,
+          })),
+        });
         
         // Update user subscription in database with transaction
         if (session.metadata?.userId) {
