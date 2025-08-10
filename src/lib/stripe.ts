@@ -136,8 +136,10 @@ export async function createCheckoutSession({
     cancel_url: urls.cancel,
     allow_promotion_codes: true,
     billing_address_collection: 'auto',
+    // Automatic tax requires origin address configuration in Stripe dashboard
+    // Disable for test mode or configure at: https://dashboard.stripe.com/test/settings/tax
     automatic_tax: {
-      enabled: true,
+      enabled: false,
     },
     // Customer creation behavior (2022-08-01 change: default is now 'if_required')
     customer_creation: customerId ? undefined : 'if_required',
