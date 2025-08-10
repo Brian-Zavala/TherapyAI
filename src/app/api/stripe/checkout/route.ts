@@ -64,8 +64,20 @@ export async function POST(request: NextRequest) {
       });
       
       if (user?.stripeCustomerId) {
-        customerId = user.stripeCustomerId;
-      } else {
+        // Verify the customer still exists in Stripe
+        try {
+          const { stripe } = require('@/lib/stripe');
+          await stripe.customers.retrieve(user.stripeCustomerId);
+          customerId = user.stripeCustomerId;
+        } catch (error: any) {
+          // Customer doesn't exist in Stripe, create a new one
+          console.warn(`Customer ${user.stripeCustomerId} not found in Stripe, creating new customer`);
+          customerId = null; // Will create new customer below
+        }
+      }
+      
+      // If no valid customer ID, create a new customer
+      if (!customerId) {
         // Get or create customer using modern helper
         const customer = await getOrCreateCustomer({
           email: customerEmail,
