@@ -195,6 +195,7 @@ export function formatSessionTime(
 /**
  * Get available time slots for scheduling
  * Returns slots in user's timezone
+ * Interval should match session duration for proper scheduling
  */
 export function getAvailableTimeSlots(
   date: Date,
@@ -203,9 +204,21 @@ export function getAvailableTimeSlots(
     startHour?: number;
     endHour?: number;
     interval?: number;
+    duration?: number; // Session duration in minutes - used to determine interval if not specified
   } = {}
 ): Array<{ time: Date; display: string }> {
-  const { startHour = 9, endHour = 17, interval = 30 } = options;
+  const { startHour = 9, endHour = 21 } = options;
+  
+  // Use duration to determine interval if not explicitly provided
+  // This ensures proper spacing between available slots based on session length
+  let { interval = 30 } = options;
+  if (options.duration && !options.interval) {
+    // For 15-minute sessions, show slots every 15 minutes
+    // For 30-minute sessions, show slots every 30 minutes
+    // For 60-minute sessions, show slots every 30 minutes (more flexibility)
+    interval = options.duration === 60 ? 30 : options.duration;
+  }
+  
   const slots: Array<{ time: Date; display: string }> = [];
   
   // Create date in user's timezone
@@ -215,6 +228,15 @@ export function getAvailableTimeSlots(
     for (let minute = 0; minute < 60; minute += interval) {
       const slotTime = new Date(dateInTz);
       slotTime.setHours(hour, minute, 0, 0);
+      
+      // Don't add slots that would extend past end hour with the session duration
+      if (options.duration) {
+        const slotEndTime = new Date(slotTime);
+        slotEndTime.setMinutes(slotEndTime.getMinutes() + options.duration);
+        if (slotEndTime.getHours() > endHour || (slotEndTime.getHours() === endHour && slotEndTime.getMinutes() > 0)) {
+          continue;
+        }
+      }
       
       // Convert back to UTC for storage
       const utcTime = toUTC(slotTime, timezone);

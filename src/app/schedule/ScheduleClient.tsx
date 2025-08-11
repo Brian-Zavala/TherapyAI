@@ -151,7 +151,7 @@ export default function ScheduleClient() {
         therapyType:
           sessionData.sessionType || sessionData.theme || "individual",
         notes: sessionData.notes,
-        duration: sessionData.duration || 60,
+        duration: sessionData.duration || 30,
       };
 
       setSessionToEdit(formattedSession);
@@ -382,7 +382,7 @@ export default function ScheduleClient() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     date: sessionData.date || new Date().toISOString(),
-                    duration: sessionData.duration || 60,
+                    duration: sessionData.duration || 30,
                     therapyType: profile?.therapyType || "INDIVIDUAL",
                     notes: sessionData.notes || "",
                   }),

@@ -37,9 +37,9 @@ export function TimeSlotPicker({
     return getAvailableTimeSlots(selectedDate, timezone, {
       startHour: 9,
       endHour: 21, // Extended hours to 9 PM
-      interval: 30
+      duration: duration // Pass duration to determine appropriate interval
     })
-  }, [selectedDate, timezone])
+  }, [selectedDate, timezone, duration])
   
   // Check for conflicts with existing sessions and calendar integrations
   useEffect(() => {
@@ -70,7 +70,7 @@ export function TimeSlotPicker({
         const slots = getAvailableTimeSlots(selectedDate, timezone, {
           startHour: 9,
           endHour: 21,
-          interval: 30
+          duration: duration // Use duration for consistent slot generation
         })
         
         if (slots.length === 0) {

@@ -29,9 +29,9 @@ interface SchedulerStep {
 
 const steps: SchedulerStep[] = [
   { id: 'date', label: 'Date', icon: Calendar },
-  { id: 'time', label: 'Time', icon: Clock },
   { id: 'type', label: 'Type', icon: Users },
   { id: 'duration', label: 'Duration', icon: Clock },
+  { id: 'time', label: 'Time', icon: Clock },
   { id: 'notes', label: 'Details', icon: FileText }
 ]
 
@@ -51,7 +51,7 @@ export function EnhancedSchedulerModal({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTime, setSelectedTime] = useState<Date | null>(null)
   const [therapyType, setTherapyType] = useState<TherapyType>('INDIVIDUAL')
-  const [duration, setDuration] = useState(60)
+  const [duration, setDuration] = useState(30)
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly')
   const [recurringEndDate, setRecurringEndDate] = useState<Date | null>(null)
@@ -89,9 +89,9 @@ export function EnhancedSchedulerModal({
   const canProceed = () => {
     switch (currentStep) {
       case 0: return selectedDate !== null
-      case 1: return selectedTime !== null
-      case 2: return therapyType !== null
-      case 3: return duration > 0
+      case 1: return therapyType !== null
+      case 2: return duration > 0
+      case 3: return selectedTime !== null
       case 4: return true // Notes are optional
       default: return false
     }
@@ -155,16 +155,6 @@ export function EnhancedSchedulerModal({
         )
       case 1:
         return (
-          <TimeSlotPicker
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            onTimeSelect={setSelectedTime}
-            timezone={timezone}
-            duration={duration}
-          />
-        )
-      case 2:
-        return (
           <TherapyTypeSelector
             selectedType={therapyType}
             onTypeSelect={setTherapyType}
@@ -172,7 +162,7 @@ export function EnhancedSchedulerModal({
             familyMembersCount={profile?.familyMembers?.length || 0}
           />
         )
-      case 3:
+      case 2:
         return (
           <div className="space-y-6">
             <SessionDurationPicker
@@ -193,6 +183,16 @@ export function EnhancedSchedulerModal({
               selectedTime={selectedTime}
             />
           </div>
+        )
+      case 3:
+        return (
+          <TimeSlotPicker
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            onTimeSelect={setSelectedTime}
+            timezone={timezone}
+            duration={duration}
+          />
         )
       case 4:
         return (
