@@ -13,8 +13,11 @@ interface SessionTimerV2Props {
   isPaused: boolean // Whether session is paused
   onTimeUpdate?: (remainingTimeMinutes: number, remainingTimeSeconds: number) => void
   onExpire?: () => void
+  onWrapUpWarning?: () => void // Called at 90% duration
+  onFinalWarning?: () => void // Called at 95% duration
   className?: string
   showRecoveredIndicator?: boolean
+  enableHardStop?: boolean // Enable automatic session termination at 100%
 }
 
 export default function SessionTimerV2({ 
@@ -25,10 +28,14 @@ export default function SessionTimerV2({
   isPaused,
   onTimeUpdate,
   onExpire,
+  onWrapUpWarning,
+  onFinalWarning,
   className = "",
-  showRecoveredIndicator = false
+  showRecoveredIndicator = false,
+  enableHardStop = true
 }: SessionTimerV2Props) {
   const [isClient, setIsClient] = useState(false)
+  const [warningsIssued, setWarningsIssued] = useState<Set<string>>(new Set())
   
   // Calculate expiry timestamp based on remaining time
   const calculateExpiryTimestamp = useCallback(() => {
@@ -131,6 +138,39 @@ export default function SessionTimerV2({
     }
   }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, sessionId]) // Remove restart and calculateExpiryTimestamp to prevent infinite loops
   
+  // Calculate percentage used for warnings
+  const percentageUsed = useMemo(() => {
+    const totalSessionSeconds = durationMinutes * 60
+    const usedSeconds = totalSessionSeconds - totalSeconds
+    return Math.min(100, (usedSeconds / totalSessionSeconds) * 100)
+  }, [totalSeconds, durationMinutes])
+  
+  // Handle duration warnings
+  useEffect(() => {
+    if (!isClient || !isConversationActive) return
+    
+    // 90% warning - trigger wrap-up
+    if (percentageUsed >= 90 && !warningsIssued.has('90')) {
+      console.log('🚨 90% duration reached - triggering wrap-up sequence')
+      setWarningsIssued(prev => new Set([...prev, '90']))
+      onWrapUpWarning?.()
+    }
+    
+    // 95% warning - final warning
+    if (percentageUsed >= 95 && !warningsIssued.has('95')) {
+      console.log('⚠️ 95% duration reached - final warning')
+      setWarningsIssued(prev => new Set([...prev, '95']))
+      onFinalWarning?.()
+    }
+    
+    // 100% - hard stop if enabled
+    if (percentageUsed >= 100 && enableHardStop && !warningsIssued.has('100')) {
+      console.log('⏹️ 100% duration reached - hard stop')
+      setWarningsIssued(prev => new Set([...prev, '100']))
+      onExpireRef.current?.()
+    }
+  }, [percentageUsed, isClient, isConversationActive, enableHardStop, onWrapUpWarning, onFinalWarning])
+  
   // Notify parent of time updates
   useEffect(() => {
     if (onTimeUpdate && isClient) {
@@ -141,10 +181,10 @@ export default function SessionTimerV2({
       // Log at key moments
       if (totalSeconds === 300 || totalSeconds === 60 || totalSeconds === 30 || totalSeconds === 10) {
         const usedSeconds = durationMinutes * 60 - totalSeconds
-        console.log(`⏱️ TIMER: ${Math.floor(usedSeconds / 60)}:${(usedSeconds % 60).toString().padStart(2, '0')} used, ${Math.floor(totalSeconds / 60)}:${(totalSeconds % 60).toString().padStart(2, '0')} remaining`)
+        console.log(`⏱️ TIMER: ${Math.floor(usedSeconds / 60)}:${(usedSeconds % 60).toString().padStart(2, '0')} used, ${Math.floor(totalSeconds / 60)}:${(totalSeconds % 60).toString().padStart(2, '0')} remaining (${percentageUsed.toFixed(1)}%)`)
       }
     }
-  }, [totalSeconds, onTimeUpdate, durationMinutes, isClient])
+  }, [totalSeconds, onTimeUpdate, durationMinutes, percentageUsed, isClient])
   
   // Format time display
   const formatTime = (): string => {
@@ -154,18 +194,20 @@ export default function SessionTimerV2({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
   
-  // Determine color based on remaining time
+  // Determine color based on percentage used (inverse of remaining)
   const getTimerColor = (): string => {
-    const percentage = (totalSeconds / (durationMinutes * 60)) * 100
-    
     if (totalSeconds === 0) {
       return 'text-red-400'
-    } else if (percentage <= 10) {
-      return 'text-red-400'
-    } else if (percentage <= 25) {
-      return 'text-yellow-400'
+    } else if (percentageUsed >= 95) {
+      return 'text-red-500 font-bold' // Critical - ending imminently
+    } else if (percentageUsed >= 90) {
+      return 'text-orange-400' // Wrap-up phase
+    } else if (percentageUsed >= 75) {
+      return 'text-yellow-400' // Warning zone
+    } else if (percentageUsed >= 50) {
+      return 'text-blue-400' // Mid-session
     } else {
-      return 'text-green-400'
+      return 'text-green-400' // Plenty of time
     }
   }
   
@@ -217,8 +259,30 @@ export default function SessionTimerV2({
               Session Restored
             </div>
           )}
-          {/* Time warning indicators */}
-          {totalSeconds > 0 && totalSeconds <= 600 && totalSeconds > 300 && (
+          {/* Duration phase indicators */}
+          {percentageUsed >= 90 && percentageUsed < 95 && totalSeconds > 0 && (
+            <motion.div 
+              className="text-xs text-orange-400 mt-1 font-semibold"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              🎯 Wrap-up Phase ({Math.floor(totalSeconds / 60)} min left)
+            </motion.div>
+          )}
+          {percentageUsed >= 95 && totalSeconds > 0 && (
+            <motion.div 
+              className="text-xs text-red-500 mt-1 font-bold animate-pulse"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, repeat: Infinity, repeatType: "reverse" }}
+            >
+              ⚠️ FINAL MINUTES - Session Ending
+            </motion.div>
+          )}
+          
+          {/* Time-based warnings for clarity */}
+          {totalSeconds > 0 && totalSeconds <= 600 && totalSeconds > 300 && percentageUsed < 90 && (
             <motion.div 
               className="text-xs text-blue-400 mt-1"
               initial={{ opacity: 0, y: -5 }}
@@ -228,14 +292,14 @@ export default function SessionTimerV2({
               💭 10 minutes remaining
             </motion.div>
           )}
-          {totalSeconds > 0 && totalSeconds <= 300 && totalSeconds > 60 && (
+          {totalSeconds > 0 && totalSeconds <= 300 && totalSeconds > 60 && percentageUsed < 90 && (
             <motion.div 
               className="text-xs text-yellow-400 mt-1"
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              ⚠️ 5 minutes remaining
+              ⏱️ 5 minutes remaining
             </motion.div>
           )}
           {totalSeconds > 0 && totalSeconds <= 60 && totalSeconds > 30 && (
@@ -255,7 +319,7 @@ export default function SessionTimerV2({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              🚨 Session ending soon!
+              🚨 Session ending now!
             </motion.div>
           )}
         </div>

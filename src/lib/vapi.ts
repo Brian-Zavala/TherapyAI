@@ -4,6 +4,7 @@ import {
   formatConcernsForVAPI,
   migrateLegacyConcerns,
 } from "./concerns-formatter";
+import { getDurationTools, getDurationAwareSystemPrompt } from "./vapi-duration-tools";
 
 // 2025 Standard: Type definitions
 export interface VapiInitOptions {
@@ -663,8 +664,14 @@ AGE INTEGRATION INSTRUCTIONS:
 • NEVER use age variables directly after names in conversation`
       : "";
 
+  // Use duration-aware system prompt with enhanced time management
+  const durationMinutes = sessionOptions?.duration || 30;
+  const basePrompt = getDurationAwareSystemPrompt(durationMinutes, "couple");
+  
   // Personalized system prompt with names and relationship status
-  const systemPrompt = `You are Dr. Maya Thompson, couple therapist specializing in Gottman Method and EFT.
+  const systemPrompt = `${basePrompt}
+
+You are Dr. Maya Thompson, couple therapist specializing in Gottman Method and EFT.
 
 CLIENT INFO:
 ${userName}${pronouns ? ` (${pronouns})` : ""} ${userAge} and partner ${partnerName} ${partnerAge}
@@ -2036,7 +2043,7 @@ export const getPersonalizedAssistantConfig = (
           content: systemPromptContent,
         },
       ],
-      // Function calling for user-initiated session ending
+      // Function calling for session management and duration tracking
       tools: [
         {
           type: "function",
@@ -2061,6 +2068,15 @@ export const getPersonalizedAssistantConfig = (
             },
           },
         },
+        // Add duration tracking tools for real-time session management
+        ...getDurationTools().map(tool => ({
+          ...tool,
+          // Ensure proper structure for VAPI
+          function: {
+            ...tool.function,
+            // Note: VAPI will provide session context when calling these functions
+          }
+        }))
       ],
     },
     voice: baseConfig.voice,
