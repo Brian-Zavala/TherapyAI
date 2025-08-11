@@ -50,22 +50,31 @@ class RedisClient {
 
     try {
       // Add timeout to prevent hanging requests
-      const timeoutPromise = new Promise<string>((_, reject) => 
+      const timeoutPromise = new Promise<string | null>((_, reject) => 
         setTimeout(() => reject(new Error('Redis SET timeout')), 3000)
       );
       
       let operation: Promise<string | null>;
       
-      // Handle different set signatures
+      // Handle different set signatures for Upstash Redis
       // set(key, value, 'EX', seconds, 'NX')
       if (args.length >= 2 && args[0] === 'EX') {
-        const options: any = { ex: args[1] };
-        if (args[2] === 'NX') {
-          options.nx = true;
+        const ttl = args[1];
+        const hasNX = args[2] === 'NX';
+        
+        if (hasNX) {
+          // Use set with both TTL and NX options
+          operation = this.client.set(key, value, { ex: ttl, nx: true }) as Promise<string | null>;
+        } else {
+          // Use set with just TTL
+          operation = this.client.set(key, value, { ex: ttl }) as Promise<string | null>;
         }
-        operation = this.client.set(key, value, options) as Promise<string>;
+      } else if (args.length === 1 && args[0] === 'NX') {
+        // Just NX without TTL
+        operation = this.client.set(key, value, { nx: true }) as Promise<string | null>;
       } else {
-        operation = this.client.set(key, value) as Promise<string>;
+        // Simple set without options
+        operation = this.client.set(key, value) as Promise<string | null>;
       }
       
       const result = await Promise.race([operation, timeoutPromise]);

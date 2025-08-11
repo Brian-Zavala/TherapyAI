@@ -156,31 +156,99 @@ git commit -m "docs: update profile system architecture"
 
 ../../../../../../mnt/c/Users/Quadf/OneDrive/Pictures/Screenshots/
 
-## 🚀 Deployment
+## 🚀 Railway Deployment Guide
 
-**Infrastructure**: Railway + Supabase + Bunny CDN + VAPI  
-**Cost**: ~$55-95/month (10K users) | **Voice**: ~$0.13/min  
-**Performance**: <100ms response times, 95%+ cache hit ratio, global CDN
+**Infrastructure**: Railway + Supabase + VAPI  
+**Cost**: ~$25-50/month (10K users) | **Voice**: ~$0.13/min  
+**Performance**: <200ms response times, 99.9% uptime, global edge
 
-### Environment Variables
+### 1. Railway CLI Installation & Authentication
+
+#### Install Railway CLI
+
+**Option 1: Homebrew (macOS)**
+```bash
+brew install railway
+```
+
+**Option 2: npm (Cross-platform)**
+```bash
+npm i -g @railway/cli
+```
+*Requires Node.js >=16*
+
+**Option 3: Shell Script (macOS/Linux/WSL)**
+```bash
+bash <(curl -fsSL cli.new)
+```
+
+**Option 4: Scoop (Windows)**
+```powershell
+scoop install railway
+```
+
+#### Authenticate with Railway
+
+**Interactive Login (Recommended)**
+```bash
+railway login
+```
+*Opens browser for OAuth authentication*
+
+**Manual Login (CI/CD/SSH)**
+```bash
+railway login --browserless
+```
+*Provides pairing code for manual authentication*
+
+**Token Authentication (CI/CD)**
+```bash
+# Project Token (project-level actions only)
+export RAILWAY_TOKEN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+railway up
+
+# Account Token (all actions)
+export RAILWAY_API_TOKEN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+railway whoami
+```
+
+### 2. Project Creation & Configuration
+
+#### Create New Railway Project
+```bash
+# Initialize new project
+railway init
+
+# Link to existing project
+railway link
+
+# Select specific service
+railway service
+```
+
+#### Environment Setup
+```bash
+# Set environment (production is default)
+railway environment
+
+# View current environment
+railway status
+```
+
+### 3. Environment Variables Configuration
+
+Set these in Railway Dashboard → Project → Variables or via CLI:
 
 ```env
-# Core Configuration
+# Core Configuration (use .env NOT .env.local)
 DATABASE_URL="postgresql://...?pgbouncer=true&connection_limit=1"
 NEXTAUTH_URL=https://your-app.railway.app
 NEXTAUTH_SECRET=min-32-chars-secure-key
 
-# Railway-specific
+# Railway-specific (auto-injected)
 RAILWAY_ENVIRONMENT=production
 PORT=3000
 HOSTNAME=0.0.0.0
-
-# Bunny CDN (Production Performance)
-CDN_ENABLED=true
-BUNNY_CDN_URL=https://your-pullzone.b-cdn.net
-BUNNY_API_KEY=your-bunny-api-key
-BUNNY_PULL_ZONE_ID=your-pull-zone-id
-BUNNY_OPTIMIZER_ENABLED=true
 
 # Services
 RESEND_API_KEY=re_your_api_key
@@ -190,38 +258,348 @@ NEXT_PUBLIC_SUPABASE_URL=https://project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-key
 
-# Analytics & Monitoring
+# Analytics (PostHog replaces Vercel Analytics)
 NEXT_PUBLIC_POSTHOG_KEY=phc_your_key
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
-SENTRY_DSN=https://your-dsn@sentry.io/project
-NEXT_PUBLIC_SENTRY_DSN=https://your-dsn@sentry.io/project
 
-# Redis (Upstash for Railway)
+# Redis (Upstash)
 UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-token
 ```
 
-### Key Configs
+**Set via CLI:**
+```bash
+railway variables set DATABASE_URL="postgresql://..."
+railway variables set NEXTAUTH_SECRET="your-32-char-secret"
+```
 
-- **Next.js**: `output: 'standalone'` + Bunny CDN asset prefix
-- **Database**: Supavisor pooling (max: 1 per container)
-- **Docker**: 119MB optimized image with health checks
-- **CDN**: Bunny CDN with image optimization + WebP conversion
-- **Security**: CSP headers + rate limiting + DDoS protection
-- **Performance**: <100ms response times, 95%+ cache hit ratio
+### 4. Dockerfile Optimization for Railway
 
-### Railway + Bunny CDN Architecture
+**Create optimized Dockerfile:**
+```dockerfile
+# Use official Node.js runtime as base image
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Install dependencies based on the preferred package manager
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build application
+RUN npm run build
+
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+CMD ["node", "server.js"]
+```
+
+**Update next.config.js:**
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  experimental: {
+    outputFileTracingRoot: __dirname,
+  },
+  // Railway-specific optimizations
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
+}
+
+module.exports = nextConfig
+```
+
+### 5. Health Check Configuration
+
+**Create health check endpoint:**
+```typescript
+// src/app/api/health/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Add any health checks here (database, external services)
+    return NextResponse.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.RAILWAY_ENVIRONMENT || 'development'
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { status: 'unhealthy', error: 'Health check failed' }, 
+      { status: 503 }
+    );
+  }
+}
+```
+
+**Configure in Railway Dashboard:**
+1. Go to Service Settings → Deployments
+2. Set Health Check Path: `/api/health`
+3. Set Health Check Timeout: `300` seconds (5 minutes)
+4. Railway will wait for 200 status before routing traffic
+
+**Health Check Requirements:**
+- Must return HTTP 200 when healthy
+- Railway uses hostname `healthcheck.railway.app`
+- Add to allowed hosts if using host restrictions
+- Timeout: 300 seconds default (configurable via `RAILWAY_HEALTHCHECK_TIMEOUT_SEC`)
+
+### 6. Domain Setup & SSL Certificates
+
+#### Railway-Provided Domain
+```bash
+# Generate automatic domain
+railway domain
+```
+Or in Dashboard: Service Settings → Networking → Generate Domain
+
+#### Custom Domain Setup
+
+**1. Add Custom Domain in Railway:**
+- Dashboard → Service Settings → Networking → + Custom Domain
+- Enter your domain (e.g., `yourdomain.com`)
+- Copy provided CNAME (e.g., `g05ns7.up.railway.app`)
+
+**2. Configure DNS Records:**
+
+**Cloudflare (Recommended):**
+```
+Type: CNAME
+Name: @ (or yourdomain.com)
+Target: g05ns7.up.railway.app
+Proxy: ON (orange cloud)
+```
+
+**Other Providers:**
+```
+Type: CNAME (or ALIAS/ANAME)
+Name: @ 
+Target: g05ns7.up.railway.app
+```
+
+**3. SSL Configuration:**
+- Railway auto-generates Let's Encrypt certificates
+- No manual SSL configuration needed
+- HTTPS automatically available once domain verified
+
+**4. Cloudflare-Specific Settings:**
+- Set SSL/TLS to **Full** (NOT Full Strict)
+- Enable Universal SSL
+- Create www → root redirect if needed
+
+**Wildcard Domains:**
+```
+Type: CNAME
+Name: *
+Target: g05ns7.up.railway.app
+
+Type: CNAME  
+Name: _acme-challenge
+Target: authorize.railwaydns.net
+Proxy: OFF (grey cloud)
+```
+
+### 7. Deployment Process
+
+#### Deploy via CLI
+```bash
+# Deploy current directory
+railway up
+
+# Deploy with build logs
+railway up --verbose
+
+# Deploy in background
+railway up --detach
+```
+
+#### Deploy via GitHub (Recommended)
+1. Connect GitHub repo in Railway Dashboard
+2. Enable auto-deploys on push to main
+3. Configure build settings if needed
+4. Deployments trigger automatically
+
+#### Pre-deploy Commands
+```bash
+# Set in Railway Dashboard or railway.toml
+railway config set build.command "npm run build"
+railway config set build.watchPatterns "src/**"
+```
+
+### 8. Monitoring & Logging Setup
+
+#### Built-in Monitoring
+```bash
+# View logs
+railway logs
+
+# Follow logs in real-time
+railway logs --tail
+
+# View specific service logs
+railway logs --service web
+```
+
+#### Railway Dashboard Monitoring:
+- CPU/Memory usage graphs
+- Request metrics
+- Build/deployment history
+- Error tracking
+- Performance insights
+
+#### External Monitoring Setup:
+
+**PostHog Analytics:**
+```typescript
+// Already configured in the project
+// Set NEXT_PUBLIC_POSTHOG_KEY in Railway variables
+```
+
+**Uptime Monitoring:**
+```bash
+# Add Uptime Kuma service
+railway add
+# Select "Uptime Kuma" template
+```
+
+### 9. Common Deployment Issues & Troubleshooting
+
+#### Build Failures
+```bash
+# Clear build cache
+railway service delete-cache
+
+# Check build logs
+railway logs --deployment <deployment-id>
+
+# Verify environment variables
+railway variables
+```
+
+#### Port Issues
+```bash
+# Ensure app listens on Railway's PORT
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0');
+```
+
+#### Database Connection Issues
+```bash
+# Verify connection string
+railway variables get DATABASE_URL
+
+# Test connection locally
+railway run npm run db:test
+```
+
+#### Domain/SSL Issues
+- Verify DNS propagation: `nslookup yourdomain.com`
+- Check Cloudflare proxy settings (Full SSL, not Strict)
+- Wait up to 72 hours for DNS propagation
+- Ensure ACME challenge isn't proxied
+
+#### Memory/Performance Issues
+```bash
+# Check resource usage
+railway service metrics
+
+# Scale service (Pro plan)
+railway service scale --replicas 2
+```
+
+### 10. Production Readiness Checklist
+
+**Before Going Live:**
+- [ ] Environment variables properly set
+- [ ] Database connection tested
+- [ ] Health check endpoint returning 200
+- [ ] Custom domain configured and verified
+- [ ] SSL certificate issued and working
+- [ ] Error monitoring enabled (Sentry)
+- [ ] Analytics tracking configured (PostHog)
+- [ ] Redis cache properly connected
+- [ ] VAPI integration tested
+- [ ] Backup strategy in place
+
+**Security:**
+- [ ] NEXTAUTH_SECRET is 32+ characters
+- [ ] Database URL uses connection pooling
+- [ ] API rate limiting enabled
+- [ ] CORS properly configured
+- [ ] Security headers implemented
+
+**Performance:**
+- [ ] Build optimization enabled
+- [ ] Image optimization configured
+- [ ] Database queries optimized
+- [ ] Caching strategy implemented
+- [ ] Health checks configured
+
+### Railway Architecture
 
 ```
-User Request → Railway Edge → Bunny CDN → Railway Container
+GitHub Push → Railway Build → Health Check → Live Deployment
+     ↓              ↓              ↓              ↓
+Auto-deploy → Docker Build → /api/health → Traffic Switch
+```
+
+**Traffic Flow:**
+```
+User Request → Railway Edge (Global) → Your Container (US-East)
                 ↓
-Static Assets (cached 1 year) → Bunny Edge (global)
-API Requests (no cache) → Railway US-East (low latency)
-Images (optimized) → Bunny Optimizer → WebP/AVIF
+Static Assets → CDN Cache → Direct Serve
+API Requests → Load Balancer → App Instance
 ```
 
-⚠️ **CRITICAL**: Address CVE-2025-29927 (Next.js auth bypass)
-
+⚠️ **CRITICAL**: Address CVE-2025-29927 (Next.js auth bypass) before production deployment
 
 ## 🚨 VAPI Session Critical Fixes (Updated Jan 2025)
 

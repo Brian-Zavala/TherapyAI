@@ -26,7 +26,7 @@ export async function deduplicateWebhookEvent(
   
   try {
     // Atomic operation: SET if Not eXists with TTL
-    // Returns "OK" if key was set (new event)
+    // Returns "OK" or value if key was set (new event)
     // Returns null if key already exists (duplicate)
     const result = await redis.set(
       key,
@@ -42,9 +42,9 @@ export async function deduplicateWebhookEvent(
       'NX'  // Only set if not exists
     );
     
-    // If result is "OK", it was a new event
+    // If result is truthy (not null), it was a new event
     // If result is null, it was a duplicate
-    return result === 'OK';
+    return result !== null;
   } catch (error) {
     console.warn('[WebhookDeduplication] Redis not available, using memory store', error);
     
