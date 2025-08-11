@@ -4,6 +4,7 @@ import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 import Stripe from 'stripe';
 import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
+import { creditManager } from '@/lib/services/credit-manager.service';
 
 // Stripe requires the raw body to verify webhook signatures.
 // We need to export config to tell Next.js not to parse the body
@@ -11,6 +12,27 @@ export const runtime = 'nodejs';
 
 // Webhook secret from environment
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// Helper function to determine plan type from subscription
+function getPlanTypeFromSubscription(subscription: any): 'free' | 'essential' | 'growth' | 'unlimited' {
+  if (!subscription || !subscription.items?.data?.length) {
+    return 'free';
+  }
+  
+  const priceId = subscription.items.data[0].price?.id;
+  if (!priceId) return 'free';
+  
+  // Check price ID or metadata to determine plan
+  if (priceId.includes('unlimited') || subscription.metadata?.plan === 'unlimited') {
+    return 'unlimited';
+  } else if (priceId.includes('growth') || subscription.metadata?.plan === 'growth') {
+    return 'growth';
+  } else if (priceId.includes('essential') || subscription.metadata?.plan === 'essential') {
+    return 'essential';
+  }
+  
+  return 'essential'; // Default to essential for paid plans
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -167,6 +189,27 @@ export async function POST(request: NextRequest) {
             });
             
             console.log(`✅ Subscription activated for user ${session.metadata.userId}`);
+            
+            // Initialize credits for the new subscription
+            try {
+              const planType = getPlanTypeFromSubscription(subscription);
+              const billingStart = new Date();
+              const billingEnd = new Date();
+              billingEnd.setMonth(billingEnd.getMonth() + 1);
+              
+              await creditManager.initializeBillingPeriod(
+                session.metadata.userId,
+                planType,
+                billingStart,
+                billingEnd,
+                subscription.id
+              );
+              
+              console.log(`💳 Credits initialized for user ${session.metadata.userId} (${planType} plan)`);
+            } catch (creditError: any) {
+              console.error(`⚠️ Failed to initialize credits: ${creditError.message}`);
+              // Don't throw - subscription is active even if credit init fails
+            }
           } catch (error: any) {
             console.error(`❌ Failed to update user subscription: ${error.message}`);
             console.error('Full error:', error);
@@ -196,12 +239,28 @@ export async function POST(request: NextRequest) {
               subscriptionId: subscription.id,
             },
           });
+          
+          // Initialize credits for new subscription
+          const planType = getPlanTypeFromSubscription(subscription);
+          const billingStart = new Date(subscription.current_period_start * 1000);
+          const billingEnd = new Date(subscription.current_period_end * 1000);
+          
+          await creditManager.initializeBillingPeriod(
+            customer.metadata.userId,
+            planType,
+            billingStart,
+            billingEnd,
+            subscription.id
+          );
+          
+          console.log(`💳 Credits initialized for subscription.created: ${customer.metadata.userId} (${planType})`);
         }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
+        const previousAttributes = (event.data as any).previous_attributes;
         
         // Get the customer
         const customer = await stripe.customers.retrieve(
@@ -217,6 +276,23 @@ export async function POST(request: NextRequest) {
               subscriptionId: subscription.id,
             },
           });
+          
+          // Check if plan changed (price ID changed)
+          if (previousAttributes?.items) {
+            const planType = getPlanTypeFromSubscription(subscription);
+            const billingStart = new Date(subscription.current_period_start * 1000);
+            const billingEnd = new Date(subscription.current_period_end * 1000);
+            
+            await creditManager.initializeBillingPeriod(
+              customer.metadata.userId,
+              planType,
+              billingStart,
+              billingEnd,
+              subscription.id
+            );
+            
+            console.log(`💳 Credits updated for plan change: ${customer.metadata.userId} (${planType})`);
+          }
           
           console.log(`📝 Subscription updated for user ${customer.metadata.userId}: ${subscription.status}`);
         }
@@ -241,7 +317,10 @@ export async function POST(request: NextRequest) {
             },
           });
           
-          console.log(`❌ Subscription canceled for user ${customer.metadata.userId}`);
+          // Downgrade to free tier
+          await creditManager.downgradeToFree(customer.metadata.userId);
+          
+          console.log(`❌ Subscription canceled for user ${customer.metadata.userId}, downgraded to free tier`);
         }
         break;
       }
@@ -249,7 +328,30 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         console.log(`💰 Payment succeeded for invoice ${invoice.id}`);
-        // You can add logic here to send a receipt email
+        
+        // Reset credits for new billing period
+        if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
+          const customer = await stripe.customers.retrieve(
+            invoice.customer as string
+          ) as Stripe.Customer;
+          
+          if (customer.metadata?.userId) {
+            const subscription = await getSubscription(invoice.subscription as string);
+            const planType = getPlanTypeFromSubscription(subscription);
+            const billingStart = new Date(subscription.current_period_start * 1000);
+            const billingEnd = new Date(subscription.current_period_end * 1000);
+            
+            await creditManager.resetBillingPeriod(
+              customer.metadata.userId,
+              planType,
+              billingStart,
+              billingEnd,
+              subscription.id
+            );
+            
+            console.log(`🔄 Credits reset for new billing period: ${customer.metadata.userId} (${planType})`);
+          }
+        }
         break;
       }
 
