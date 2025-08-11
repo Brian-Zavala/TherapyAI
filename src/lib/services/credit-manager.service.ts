@@ -14,12 +14,13 @@ export interface CreditManagerConfig {
   alertThresholds: number[];
 }
 
+// Pricing tiers based on PRICING-STRATEGY-ANALYSIS.md
 const config: CreditManagerConfig = {
   plans: {
-    free: { credits: 10, maxSessionDuration: 5, concurrent: 1 },
-    essential: { credits: 160, maxSessionDuration: 20, concurrent: 1 },
-    growth: { credits: 480, maxSessionDuration: 30, concurrent: 2 },
-    unlimited: { credits: -1, maxSessionDuration: 60, concurrent: 3 },
+    free: { credits: 45, maxSessionDuration: 15, concurrent: 1 }, // 3 sessions × 15 minutes
+    essential: { credits: 160, maxSessionDuration: 20, concurrent: 1 }, // 8 sessions × 20 minutes
+    growth: { credits: 400, maxSessionDuration: 25, concurrent: 2 }, // 16 sessions × 25 minutes
+    unlimited: { credits: 1200, maxSessionDuration: 30, concurrent: 3 }, // Soft cap at 1200 minutes
   },
   overageRate: 0.15, // $0.15 per minute
   alertThresholds: [80, 90, 100], // percentage thresholds

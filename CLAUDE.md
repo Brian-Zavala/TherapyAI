@@ -33,6 +33,7 @@ This ensures consistency and builds accumulated project knowledge.
 **IMPORTANT**: Multiple CLAUDE.md files exist for different purposes. Update the CORRECT file:
 
 - **`/CLAUDE.md`** (ROOT - THIS FILE): Main project documentation, config, workflows
+- **`/PRICING-STRATEGY-ANALYSIS.md`**: 💰 CRITICAL - Pricing tiers, credits, costs (MUST READ for pricing/billing features)
 - **`/VAPI-COMPLETE-GUIDE.md`**: 🚨 CRITICAL - Comprehensive VAPI documentation (MUST READ for ANY VAPI work)
 - **`/src/components/CLAUDE.md`**: React component patterns, UI guidelines
 - **`/src/app/api/CLAUDE.md`**: API route documentation, patterns
@@ -157,10 +158,29 @@ git commit -m "docs: update profile system architecture"
 
 ../../../../../../mnt/c/Users/Quadf/OneDrive/Pictures/Screenshots/
 
+## 💰 Pricing & Credit System
+
+**ALWAYS refer to [PRICING-STRATEGY-ANALYSIS.md](./PRICING-STRATEGY-ANALYSIS.md) for pricing details!**
+
+### Subscription Tiers (Per PRICING-STRATEGY-ANALYSIS.md)
+| Tier | Price | Sessions | Minutes/Session | Total Minutes | Concurrent |
+|------|-------|----------|-----------------|---------------|------------|
+| **Free** | $0 | 3/month | 15 min | 45 min | 1 |
+| **Essential** | $12.99 | 8/month | 20 min | 160 min | 1 |
+| **Growth** | $24.99 | 16/month | 25 min | 400 min | 2 |
+| **Unlimited** | $44.99 | 40/month | 30 min | 1200 min* | 3 |
+
+*Soft cap to prevent abuse
+
+### VAPI Costs
+- **Confirmed Rate**: $0.0203/minute (from actual dashboard data)
+- **Overage Charge**: $0.15/minute for Essential/Growth tiers
+- **Margins**: 60-70% gross margin across all tiers
+
 ## 🚀 Railway Deployment Guide
 
 **Infrastructure**: Railway + Supabase + VAPI  
-**Cost**: ~$25-50/month (10K users) | **Voice**: ~$0.13/min  
+**Fixed Costs**: ~$70/month | **VAPI**: $0.0203/min  
 **Performance**: <200ms response times, 99.9% uptime, global edge
 
 ### 1. Railway CLI Installation & Authentication
