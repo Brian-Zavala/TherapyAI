@@ -33,6 +33,7 @@ This ensures consistency and builds accumulated project knowledge.
 **IMPORTANT**: Multiple CLAUDE.md files exist for different purposes. Update the CORRECT file:
 
 - **`/CLAUDE.md`** (ROOT - THIS FILE): Main project documentation, config, workflows
+- **`/VAPI-COMPLETE-GUIDE.md`**: 🚨 CRITICAL - Comprehensive VAPI documentation (MUST READ for ANY VAPI work)
 - **`/src/components/CLAUDE.md`**: React component patterns, UI guidelines
 - **`/src/app/api/CLAUDE.md`**: API route documentation, patterns
 - **`/src/app/dashboard/CLAUDE.md`**: Dashboard-specific features
@@ -601,6 +602,26 @@ API Requests → Load Balancer → App Instance
 
 ⚠️ **CRITICAL**: Address CVE-2025-29927 (Next.js auth bypass) before production deployment
 
+## 🚨 CRITICAL: VAPI Documentation Reference Requirement 🚨
+
+**MANDATORY FOR ALL VAPI-RELATED CHANGES:**
+- **ALWAYS** consult `/VAPI-COMPLETE-GUIDE.md` BEFORE implementing ANY VAPI, session, or assistant features
+- **NEVER** modify VAPI code without checking the comprehensive documentation first
+- **MUST** follow the documented patterns for JWT tokens, session management, and API calls
+- **KEY REFERENCE**: 2,464-line guide with complete TypeScript patterns and optimizations
+- **Failure to reference VAPI docs = BROKEN VOICE FEATURES**
+
+The VAPI documentation contains:
+- Every available API call and method
+- Correct configuration patterns (hipaaEnabled: false, recordingEnabled: true)
+- Session management best practices
+- WebSocket optimization techniques
+- Transcript storage configuration
+- Performance optimization strategies (<500-700ms latency targets)
+- Provider selection guidance
+- Tool/function calling patterns
+- Event handling and webhook implementations
+
 ## 🚨 VAPI Session Critical Fixes (Updated Jan 2025)
 
 1. **JWT Expiration**: Must be < 3600 seconds (use 3599) - Fixed in `vapi-jwt-redis.service.ts`
@@ -731,8 +752,9 @@ export async function POST(request: NextRequest) {
 
 ```
 Profile: /api/user/profile → cache/profile-cache → queue/background-jobs
-Session: /api/sessions → session-cache → prisma-optimized → hooks
+Session: /api/sessions → session-cache → prisma-optimized → hooks → VAPI-COMPLETE-GUIDE.md
 Auth: lib/auth → middleware → all API routes
+VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 ```
 
 ### Common Issues & Migrations
@@ -774,9 +796,10 @@ Auth: lib/auth → middleware → all API routes
 ## Development Workflow
 
 1. **Task Management**: Break down → Prioritize → Track with TodoWrite tool
-2. **Code Changes**: Search MCP → Make changes → Update MCP memory
-3. **Testing**: Isolate tests → Integration checks → Validate flow
-4. **Documentation**: Update MCP entities → Document fixes → Update CLAUDE.md
+2. **VAPI Changes**: 🚨 READ `/VAPI-COMPLETE-GUIDE.md` FIRST → Implement → Test
+3. **Code Changes**: Search MCP → Make changes → Update MCP memory
+4. **Testing**: Isolate tests → Integration checks → Validate flow
+5. **Documentation**: Update MCP entities → Document fixes → Update CLAUDE.md
 
 ## 🏗️ Build Error Resolution Strategy
 
