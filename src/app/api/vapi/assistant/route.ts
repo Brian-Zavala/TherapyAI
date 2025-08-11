@@ -154,7 +154,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
     selectedFamilyMembers: selectedFamilyMembers.length > 0 ? selectedFamilyMembers : undefined
   };
 
-  const sessionDuration = searchParams.get('duration') ? parseInt(searchParams.get('duration')!) : 60;
+  const sessionDuration = searchParams.get('duration') ? parseInt(searchParams.get('duration')!) : 30;
   const sessionStartTime = searchParams.get('startTime') || new Date().toISOString();
 
   const sessionOptions = {

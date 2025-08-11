@@ -195,7 +195,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         console.warn('Failed to fetch user profile:', error)
       }
       
-      // Create session with API
+      // Create session with API - payload must match validation schema in /api/sessions/route.ts
       const sessionData = {
         date: new Date().toISOString(),
         duration,
@@ -203,12 +203,15 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         status: 'active',
         forceNew: forceNew,
         linkedSessionId: linkedSessionId, // Link to scheduled session if provided
-        // These fields are not in the API validation schema but kept for backward compatibility
-        familyMembers: familyMembers || [],
-        therapyType,
-        userName: userProfile?.name || 'Guest',
-        partnerName: userProfile?.partnerName,
-        familyMemberCount: familyMembers?.length || 0
+        // CRITICAL FIX: Map therapyType to sessionType for API validation schema
+        sessionType: therapyType, // API expects sessionType field, not therapyType
+        notes: '' // Default empty notes
+        // Removed fields not in API validation schema:
+        // - familyMembers (not in schema)
+        // - therapyType (API uses sessionType instead)
+        // - userName (not in schema)
+        // - partnerName (not in schema) 
+        // - familyMemberCount (not in schema)
       }
       
       const response = await fetch(API_ENDPOINTS.SESSIONS, {

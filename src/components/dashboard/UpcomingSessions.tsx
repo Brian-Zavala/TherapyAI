@@ -64,7 +64,7 @@ export default function UpcomingSessions() {
       }
       
       const data = await response.json();
-      setSessions(data);
+      setSessions(data.sessions || data || []);
     } catch (err) {
       console.error('Error fetching sessions:', err);
       const error = err as Error;
