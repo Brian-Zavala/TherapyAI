@@ -20,7 +20,7 @@ import { safeSessionStorage } from '@/lib/safe-session-storage'
 // Hook configuration interface
 interface UseSessionManagementV2Options {
   userId: string
-  therapyType: string
+  therapyType: string  // TODO: Consider renaming to sessionType for consistency with API
   onSessionCreated?: (sessionId: string) => void
   onSessionRecovered?: (data: SessionRecoveryData) => void
   onSessionCompleted?: (data: SessionCompletionData) => void
