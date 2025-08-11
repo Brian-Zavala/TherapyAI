@@ -34,6 +34,7 @@ This ensures consistency and builds accumulated project knowledge.
 
 - **`/CLAUDE.md`** (ROOT - THIS FILE): Main project documentation, config, workflows
 - **`/PRICING-STRATEGY-ANALYSIS.md`**: 💰 CRITICAL - Pricing tiers, credits, costs (MUST READ for pricing/billing features)
+- **`/docs/CREDIT-SYSTEM-INTEGRATION-PLAN.md`**: 🎯 CRITICAL - Credit/session integration architecture (MUST READ for session features)
 - **`/VAPI-COMPLETE-GUIDE.md`**: 🚨 CRITICAL - Comprehensive VAPI documentation (MUST READ for ANY VAPI work)
 - **`/src/components/CLAUDE.md`**: React component patterns, UI guidelines
 - **`/src/app/api/CLAUDE.md`**: API route documentation, patterns
@@ -176,6 +177,22 @@ git commit -m "docs: update profile system architecture"
 - **Confirmed Rate**: $0.0203/minute (from actual dashboard data)
 - **Overage Charge**: $0.15/minute for Essential/Growth tiers
 - **Margins**: 60-70% gross margin across all tiers
+
+### Credit System Implementation
+
+**MUST READ [/docs/CREDIT-SYSTEM-INTEGRATION-PLAN.md](./docs/CREDIT-SYSTEM-INTEGRATION-PLAN.md) for implementation details!**
+
+#### Key Components
+- **CreditManager**: `src/lib/services/credit-manager.service.ts` - Core credit operations
+- **VapiSessionManager**: `src/lib/services/vapi-session-manager.ts` - Session limits enforcement
+- **Integration Hook**: `src/hooks/useSessionWithCredits.ts` - UI credit integration
+- **Webhook Handler**: `/api/vapi/webhook-credit` - Real-time tracking
+
+#### Critical Edge Cases (See Integration Plan)
+- **Connection Loss**: 5-minute grace period for recovery without charge
+- **Page Refresh**: Auto-recovery with credit preservation
+- **Pause/Resume**: Credit checkpoint system with 24-hour expiry
+- **Multi-tab**: Synchronized credit updates via Supabase
 
 ## 🚀 Railway Deployment Guide
 
