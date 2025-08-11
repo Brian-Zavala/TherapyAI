@@ -191,7 +191,6 @@ const CategoryButton = memo(
     onClick: () => void;
     index: number;
   }) => {
-
     return (
       <motion.button
         initial={{ opacity: 0 }}
@@ -598,29 +597,30 @@ export default function ResourcesOptimized() {
             transform: translateY(0);
           }
         }
-        
+
         @keyframes pulse {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 1;
           }
           50% {
             opacity: 0.5;
           }
         }
-        
+
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out forwards;
         }
-        
+
         .animate-pulse {
           animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        
+
         /* Performance optimizations */
         .resource-card {
           contain-intrinsic-size: auto 300px;
         }
-        
+
         @media (prefers-reduced-motion: reduce) {
           .animate-fadeIn,
           .animate-pulse {
@@ -629,329 +629,39 @@ export default function ResourcesOptimized() {
           }
         }
       `}</style>
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black">
-      {/* Therapeutic Background - static, no parallax */}
-      <Suspense fallback={<div className="absolute inset-0 bg-slate-900" />}>
-        <div className="absolute inset-0">
-          <TherapeuticBokehBackground />
-        </div>
-      </Suspense>
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+        {/* Therapeutic Background - static, no parallax */}
+        <Suspense fallback={<div className="absolute inset-0 bg-slate-900" />}>
+          <div className="absolute inset-0">
+            <TherapeuticBokehBackground />
+          </div>
+        </Suspense>
 
-      {/* Static gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-pink-900/20" />
+        {/* Static gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-pink-900/20" />
 
-      {/* Main overlay for content readability */}
-      <div className="relative z-10 min-h-screen backdrop-blur-lg bg-gradient-to-b from-slate-900/60 via-slate-900/70 to-slate-900/80 py-12 px-4 sm:px-6 lg:px-8">
-        {/* Mobile tabs */}
-        {isMobile && (
-          <motion.div
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="sticky top-0 z-20 bg-black/30 backdrop-blur-xl border-b border-white/20 mb-6 -mx-4 px-4 py-3 rounded-b-xl"
-          >
-            <div className="flex rounded-lg bg-black/40 backdrop-blur-md p-1 shadow-xl border border-white/20">
-              <button
-                onClick={() => setActiveTab("search")}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                  activeTab === "search"
-                    ? "bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  Search
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab("results")}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                  activeTab === "results"
-                    ? "bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                  Resources{" "}
-                  {filteredResources.length > 0 &&
-                    `(${filteredResources.length})`}
-                </span>
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Header with supportive message */}
-        <div
-          className={`max-w-7xl mx-auto text-center mb-16 ${isMobile && activeTab === "results" ? "hidden" : ""}`}
-        >
-          <motion.div initial="hidden" animate="visible" className="relative">
-            {/* Simple background blur effect */}
+        {/* Main overlay for content readability */}
+        <div className="relative z-10 min-h-screen backdrop-blur-lg bg-gradient-to-b from-slate-900/60 via-slate-900/70 to-slate-900/80 py-12 px-4 sm:px-6 lg:px-8">
+          {/* Mobile tabs */}
+          {isMobile && (
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 0.3 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute inset-0 -top-20 -bottom-20 bg-blue-500 blur-3xl"
-            />
-
-            <div className="relative">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold mb-6 sm:mb-8 lg:mb-10"
-              >
-                <span className="text-white block lg:inline">Therapy</span>
-                <span className="text-white block lg:inline lg:ml-4">Resources</span>
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-white/90 max-w-3xl lg:max-w-4xl mx-auto mb-6 sm:mb-8 lg:mb-10 leading-relaxed font-light px-4 sm:px-6 lg:px-0"
-              >
-                Every relationship faces challenges. You're not alone, and
-                reaching out for support is a{" "}
-                <span className="text-white font-semibold">
-                  sign of strength
-                </span>{" "}
-                and courage.
-              </motion.p>
-            </div>
-
-            {/* Emergency Support Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-8 inline-block"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="sticky top-0 z-20 bg-black/30 backdrop-blur-xl border-b border-white/20 mb-6 -mx-4 px-4 py-3 rounded-b-xl"
             >
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleEmergencySupportToggle}
-                className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 text-base font-semibold rounded-full text-white overflow-hidden transition-colors duration-200 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg hover:shadow-xl cursor-pointer"
-              >
-                <span className="relative flex items-center">
-                  <svg
-                    className="h-5 w-5 mr-3 animate-pulse"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  {showEmergencySupport
-                    ? "Hide Emergency Help"
-                    : "Need Immediate Help?"}
-                </span>
-              </motion.button>
-            </motion.div>
-          </motion.div>
-
-          {/* Emergency Support Panel */}
-          <AnimatePresence>
-            {showEmergencySupport && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="mt-8 max-w-5xl mx-auto overflow-hidden"
-              >
-                <div className="relative bg-gradient-to-r from-red-500/20 to-pink-500/20 backdrop-blur-xl rounded-3xl p-1 border border-red-400/30">
-                  <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl p-6 sm:p-8">
-                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center justify-center sm:justify-start">
-                      <svg
-                        className="h-8 w-8 text-red-500 mr-3 animate-pulse"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"
-                        />
-                      </svg>
-                      Immediate Support Resources
-                    </h2>
-                    <p className="text-red-200 mb-6 sm:mb-8 text-sm sm:text-base md:text-lg lg:text-xl">
-                      If you're in danger or experiencing a crisis, please use
-                      these resources for immediate help:
-                    </p>
-
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {emergencyResources.map((resource, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1, duration: 0.3 }}
-                          className="relative bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20 hover:border-red-400/50 transition-all duration-200"
-                        >
-                          <h3 className="font-bold text-base sm:text-lg lg:text-xl text-white mb-2">
-                            {resource.title}
-                          </h3>
-                          <p className="font-mono text-red-300 text-sm sm:text-base lg:text-lg my-2 sm:my-3">
-                            {resource.phone}
-                          </p>
-                          <a
-                            href={resource.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-sm sm:text-base text-blue-300 hover:text-blue-200 font-medium mb-3 transition-colors cursor-pointer"
-                          >
-                            Visit Website
-                            <svg
-                              className="ml-1 h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </a>
-                          <p className="text-xs sm:text-sm lg:text-base text-white/70">
-                            {resource.description}
-                          </p>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      className="mt-8 p-5 bg-red-500/20 backdrop-blur-sm rounded-xl border border-red-400/30"
-                    >
-                      <p className="text-white flex items-start">
-                        <svg
-                          className="h-6 w-6 mr-3 text-red-400 flex-shrink-0 mt-0.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <span>
-                          <strong className="text-red-300">
-                            In case of immediate danger:
-                          </strong>
-                          <span className="text-white/90">
-                            {" "}
-                            Call emergency services (911 in the US) if you or
-                            someone you know is in immediate danger.
-                          </span>
-                        </span>
-                      </p>
-                    </motion.div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Featured Video Section - Auto-loaded */}
-        <VideoSection />
-
-        <div className="max-w-7xl mx-auto">
-          <div
-            className={`${isMobile ? (activeTab === "search" ? "block" : "hidden") : "block"}`}
-          >
-            {/* Category navigation */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="mb-12"
-            >
-              <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-white mb-4 sm:mb-6 pl-1">
-                Filter by category:
-              </h2>
-              <div className="flex flex-wrap gap-3 sm:gap-4">
-                {categories.map((category, index) => (
-                  <CategoryButton
-                    key={category.id}
-                    category={category}
-                    isActive={activeCategory === category.id}
-                    onClick={() => handleCategoryChange(category.id)}
-                    index={index}
-                  />
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Search bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-              className="mb-8"
-            >
-              <div className="relative group">
-                <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-1 border border-white/20">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder="Search resources by keyword, topic, or source..."
-                    className="w-full px-6 py-4 bg-slate-900/60 backdrop-blur-md rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                  />
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200"
-                    onClick={() => {
-                      if (isMobile && filteredResources.length > 0) {
-                        setActiveTab("results");
-                      }
-                    }}
-                  >
+              <div className="flex rounded-lg bg-black/40 backdrop-blur-md p-1 shadow-xl border border-white/20">
+                <button
+                  onClick={() => setActiveTab("search")}
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                    activeTab === "search"
+                      ? "bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  <span className="flex items-center justify-center">
                     <svg
-                      className="h-6 w-6"
+                      className="h-4 w-4 mr-1"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -963,24 +673,20 @@ export default function ResourcesOptimized() {
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
-                  </button>
-                </div>
-              </div>
-              {filteredResources.length > 0 && isMobile && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-3"
+                    Search
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("results")}
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                    activeTab === "results"
+                      ? "bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                  }`}
                 >
-                  <motion.button
-                    onClick={() => setActiveTab("results")}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center shadow-lg transition-all duration-200"
-                  >
-                    <span>View {filteredResources.length} results</span>
+                  <span className="flex items-center justify-center">
                     <svg
-                      className="ml-1 h-4 w-4"
+                      className="h-4 w-4 mr-1"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -989,128 +695,423 @@ export default function ResourcesOptimized() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                       />
                     </svg>
+                    Resources{" "}
+                    {filteredResources.length > 0 &&
+                      `(${filteredResources.length})`}
+                  </span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Header with supportive message */}
+          <div
+            className={`max-w-7xl mx-auto text-center mb-16 ${isMobile && activeTab === "results" ? "hidden" : ""}`}
+          >
+            <motion.div initial="hidden" animate="visible" className="relative">
+              {/* Simple background blur effect */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.3 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="absolute inset-0 -top-20 -bottom-20 bg-blue-500 blur-3xl"
+              />
+
+              <div className="relative">
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold mb-6 sm:mb-8 lg:mb-10"
+                >
+                  <span className="text-white block lg:inline">Therapy</span>
+                  <span className="text-white block lg:inline lg:ml-4">
+                    Resources
+                  </span>
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-white/90 max-w-3xl lg:max-w-4xl mx-auto mb-6 sm:mb-8 lg:mb-10 leading-relaxed font-light px-4 sm:px-6 lg:px-0"
+                >
+                  Everyone faces challenges. You're not alone, and reaching out
+                  for support is a{" "}
+                  <span className="text-white font-semibold">
+                    sign of strength
+                  </span>{" "}
+                  and courage.
+                </motion.p>
+              </div>
+
+              {/* Emergency Support Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-8 inline-block"
+              >
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleEmergencySupportToggle}
+                  className="group relative inline-flex items-center px-8 py-4 sm:px-10 sm:py-5 text-base font-semibold rounded-full text-white overflow-hidden transition-colors duration-200 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg hover:shadow-xl cursor-pointer"
+                >
+                  <span className="relative flex items-center">
+                    <svg
+                      className="h-5 w-5 mr-3 animate-pulse"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    {showEmergencySupport
+                      ? "Hide Emergency Help"
+                      : "Need Immediate Help?"}
+                  </span>
+                </motion.button>
+              </motion.div>
+            </motion.div>
+
+            {/* Emergency Support Panel */}
+            <AnimatePresence>
+              {showEmergencySupport && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="mt-8 max-w-5xl mx-auto overflow-hidden"
+                >
+                  <div className="relative bg-gradient-to-r from-red-500/20 to-pink-500/20 backdrop-blur-xl rounded-3xl p-1 border border-red-400/30">
+                    <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl p-6 sm:p-8">
+                      <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center justify-center sm:justify-start">
+                        <svg
+                          className="h-8 w-8 text-red-500 mr-3 animate-pulse"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"
+                          />
+                        </svg>
+                        Immediate Support Resources
+                      </h2>
+                      <p className="text-red-200 mb-6 sm:mb-8 text-sm sm:text-base md:text-lg lg:text-xl">
+                        If you're in danger or experiencing a crisis, please use
+                        these resources for immediate help:
+                      </p>
+
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {emergencyResources.map((resource, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1, duration: 0.3 }}
+                            className="relative bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20 hover:border-red-400/50 transition-all duration-200"
+                          >
+                            <h3 className="font-bold text-base sm:text-lg lg:text-xl text-white mb-2">
+                              {resource.title}
+                            </h3>
+                            <p className="font-mono text-red-300 text-sm sm:text-base lg:text-lg my-2 sm:my-3">
+                              {resource.phone}
+                            </p>
+                            <a
+                              href={resource.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-sm sm:text-base text-blue-300 hover:text-blue-200 font-medium mb-3 transition-colors cursor-pointer"
+                            >
+                              Visit Website
+                              <svg
+                                className="ml-1 h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            </a>
+                            <p className="text-xs sm:text-sm lg:text-base text-white/70">
+                              {resource.description}
+                            </p>
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="mt-8 p-5 bg-red-500/20 backdrop-blur-sm rounded-xl border border-red-400/30"
+                      >
+                        <p className="text-white flex items-start">
+                          <svg
+                            className="h-6 w-6 mr-3 text-red-400 flex-shrink-0 mt-0.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
+                          </svg>
+                          <span>
+                            <strong className="text-red-300">
+                              In case of immediate danger:
+                            </strong>
+                            <span className="text-white/90">
+                              {" "}
+                              Call emergency services (911 in the US) if you or
+                              someone you know is in immediate danger.
+                            </span>
+                          </span>
+                        </p>
+                      </motion.div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Featured Video Section - Auto-loaded */}
+          <VideoSection />
+
+          <div className="max-w-7xl mx-auto">
+            <div
+              className={`${isMobile ? (activeTab === "search" ? "block" : "hidden") : "block"}`}
+            >
+              {/* Category navigation */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="mb-12"
+              >
+                <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-white mb-4 sm:mb-6 pl-1">
+                  Filter by category:
+                </h2>
+                <div className="flex flex-wrap gap-3 sm:gap-4">
+                  {categories.map((category, index) => (
+                    <CategoryButton
+                      key={category.id}
+                      category={category}
+                      isActive={activeCategory === category.id}
+                      onClick={() => handleCategoryChange(category.id)}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Search bar */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+                className="mb-8"
+              >
+                <div className="relative group">
+                  <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-1 border border-white/20">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      placeholder="Search resources by keyword, topic, or source..."
+                      className="w-full px-6 py-4 bg-slate-900/60 backdrop-blur-md rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                    />
+                    <button
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200"
+                      onClick={() => {
+                        if (isMobile && filteredResources.length > 0) {
+                          setActiveTab("results");
+                        }
+                      }}
+                    >
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                {filteredResources.length > 0 && isMobile && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3"
+                  >
+                    <motion.button
+                      onClick={() => setActiveTab("results")}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center shadow-lg transition-all duration-200"
+                    >
+                      <span>View {filteredResources.length} results</span>
+                      <svg
+                        className="ml-1 h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                      </svg>
+                    </motion.button>
+                  </motion.div>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Resource grid with content-visibility */}
+            <div
+              className={`${isMobile ? (activeTab === "results" ? "block" : "hidden") : "block"}`}
+            >
+              {isMobile && activeTab === "results" && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 flex items-center justify-between bg-white/10 backdrop-blur-xl rounded-xl p-3 border border-white/20"
+                >
+                  <motion.button
+                    onClick={() => setActiveTab("search")}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-flex items-center text-blue-300 hover:text-white transition-colors"
+                  >
+                    <svg
+                      className="mr-1 h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
+                    </svg>
+                    Back to Search
+                  </motion.button>
+                  <span className="text-sm text-white/70">
+                    {filteredResources.length}{" "}
+                    {filteredResources.length === 1 ? "result" : "results"}
+                  </span>
+                </motion.div>
+              )}
+
+              {filteredResources.length > 0 ? (
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+                  style={{ contain: "layout", willChange: "contents" }}
+                >
+                  {filteredResources.map((resource, index) => (
+                    <ResourceCard
+                      key={resource.id}
+                      resource={resource}
+                      index={index}
+                    />
+                  ))}
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="text-center py-12 bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 relative overflow-hidden"
+                >
+                  <div className="relative text-5xl mb-6">
+                    <span className="relative z-10">🔍</span>
+                  </div>
+                  <div className="relative z-10">
+                    <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-white mb-3">
+                      No resources found
+                    </h3>
+                    <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/70 mb-6">
+                      Try adjusting your search or category filter to find what
+                      you're looking for.
+                    </p>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleResetSearch}
+                    className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-colors duration-200 cursor-pointer"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Reset Search
                   </motion.button>
                 </motion.div>
               )}
-            </motion.div>
+            </div>
           </div>
 
-          {/* Resource grid with content-visibility */}
-          <div
-            className={`${isMobile ? (activeTab === "results" ? "block" : "hidden") : "block"}`}
-          >
-            {isMobile && activeTab === "results" && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 flex items-center justify-between bg-white/10 backdrop-blur-xl rounded-xl p-3 border border-white/20"
-              >
-                <motion.button
-                  onClick={() => setActiveTab("search")}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-flex items-center text-blue-300 hover:text-white transition-colors"
-                >
-                  <svg
-                    className="mr-1 h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                    />
-                  </svg>
-                  Back to Search
-                </motion.button>
-                <span className="text-sm text-white/70">
-                  {filteredResources.length}{" "}
-                  {filteredResources.length === 1 ? "result" : "results"}
-                </span>
-              </motion.div>
-            )}
+          {/* Support message */}
+          <SupportMessage />
 
-            {filteredResources.length > 0 ? (
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-                style={{ contain: "layout", willChange: "contents" }}
-              >
-                {filteredResources.map((resource, index) => (
-                  <ResourceCard
-                    key={resource.id}
-                    resource={resource}
-                    index={index}
-                  />
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="text-center py-12 bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 relative overflow-hidden"
-              >
-                <div className="relative text-5xl mb-6">
-                  <span className="relative z-10">🔍</span>
-                </div>
-                <div className="relative z-10">
-                  <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-white mb-3">
-                    No resources found
-                  </h3>
-                  <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/70 mb-6">
-                    Try adjusting your search or category filter to find what
-                    you're looking for.
-                  </p>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleResetSearch}
-                  className="inline-flex items-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-colors duration-200 cursor-pointer"
-                >
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  Reset Search
-                </motion.button>
-              </motion.div>
-            )}
-          </div>
+          {/* Community wisdom section */}
+          <CommunityWisdom />
+
+          {/* Newsletter signup */}
+          <NewsletterSignup />
         </div>
-
-        {/* Support message */}
-        <SupportMessage />
-
-        {/* Community wisdom section */}
-        <CommunityWisdom />
-
-        {/* Newsletter signup */}
-        <NewsletterSignup />
       </div>
-    </div>
     </>
   );
 }
 
 // Memoized Video Section Component
 const VideoSection = memo(() => {
-
   return (
     <div className="max-w-6xl mx-auto mb-16">
       <motion.div
@@ -1140,14 +1141,14 @@ const VideoSection = memo(() => {
                     Featured Resource
                   </h2>
                   <p className="text-sm sm:text-base lg:text-lg text-blue-200/80">
-                    Essential viewing for couples
+                    Essential viewing for you{" "}
                   </p>
                 </div>
               </div>
               <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 leading-relaxed">
-                Discover powerful insights on building lasting relationships
+                Discover powerful insights on mental health symptoms and causes
                 through this transformative talk that has helped millions of
-                couples worldwide.
+                people like you worldwide.
               </p>
             </div>
 
@@ -1171,16 +1172,16 @@ const VideoSection = memo(() => {
                 <h3 className="font-semibold text-blue-300 mb-1">Key Topics</h3>
                 <ul className="text-sm text-white/70 space-y-1">
                   <li className="flex items-center">
-                    <span className="text-green-400 mr-2">✓</span>Communication
-                    strategies
+                    <span className="text-green-400 mr-2">✓</span> Mental health
+                    explained
                   </li>
                   <li className="flex items-center">
-                    <span className="text-green-400 mr-2">✓</span>Building trust
-                    & intimacy
+                    <span className="text-green-400 mr-2">✓</span>Building
+                    confidence and self-esteem
                   </li>
                   <li className="flex items-center">
-                    <span className="text-green-400 mr-2">✓</span>Conflict
-                    resolution
+                    <span className="text-green-400 mr-2">✓</span>Gained
+                    knowledge
                   </li>
                 </ul>
               </div>
@@ -1190,12 +1191,12 @@ const VideoSection = memo(() => {
                 </h3>
                 <ul className="text-sm text-white/70 space-y-1">
                   <li className="flex items-center">
-                    <span className="text-blue-400 mr-2">•</span>Couples at any
+                    <span className="text-blue-400 mr-2">•</span>Anyone at any
                     stage
                   </li>
                   <li className="flex items-center">
-                    <span className="text-blue-400 mr-2">•</span>Relationship
-                    counselors
+                    <span className="text-blue-400 mr-2">•</span>
+                    experienced or new to therapy
                   </li>
                   <li className="flex items-center">
                     <span className="text-blue-400 mr-2">•</span>Anyone seeking
@@ -1215,7 +1216,6 @@ VideoSection.displayName = "VideoSection";
 
 // Memoized Support Message Component
 const SupportMessage = memo(() => {
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1263,9 +1263,7 @@ const SupportMessage = memo(() => {
               transition={{ delay: 0.2 }}
               className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4"
             >
-              <motion.div
-                whileTap={{ scale: 0.98 }}
-              >
+              <motion.div whileTap={{ scale: 0.98 }}>
                 <Link
                   href="/schedule"
                   className="group relative inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200 shadow-lg hover:shadow-blue-500/25 cursor-pointer"
@@ -1288,9 +1286,7 @@ const SupportMessage = memo(() => {
                   </span>
                 </Link>
               </motion.div>
-              <motion.div
-                whileTap={{ scale: 0.98 }}
-              >
+              <motion.div whileTap={{ scale: 0.98 }}>
                 <Link
                   href="/dashboard/therapy"
                   className="group relative inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl text-white border border-white/30 backdrop-blur-sm hover:bg-white/10 transition-colors duration-200 cursor-pointer"
@@ -1325,7 +1321,6 @@ SupportMessage.displayName = "SupportMessage";
 
 // Memoized Community Wisdom Component
 const CommunityWisdom = memo(() => {
-
   const wisdomItems = useMemo(
     () => [
       {
@@ -1403,7 +1398,9 @@ const CommunityWisdom = memo(() => {
                 >
                   {item.icon}
                 </div>
-                <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-white">{item.title}</h3>
+                <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-white">
+                  {item.title}
+                </h3>
               </div>
               <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed">
                 &ldquo;{item.quote}&rdquo;
@@ -1423,7 +1420,6 @@ CommunityWisdom.displayName = "CommunityWisdom";
 
 // Memoized Newsletter Signup Component
 const NewsletterSignup = memo(() => {
-
   return (
     <motion.div
       initial={{ opacity: 0 }}

@@ -93,7 +93,7 @@ const createSessionSchema = z.object({
   // These are converted to uppercase for Prisma's SessionStatus enum
   status: z.enum(['scheduled', 'active', 'completed', 'cancelled']).default('scheduled'),
   forceNew: z.boolean().optional().default(false),
-  duration: z.number().min(15).max(240).default(60),
+  duration: z.number().min(15).max(60).default(30),
   notes: z.string().max(500).default(''),
   assistantId: z.string().optional(),
   isRecurring: z.boolean().default(false),

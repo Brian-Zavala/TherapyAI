@@ -113,7 +113,7 @@ model Session {
   startTime               DateTime?
   endTime                 DateTime?
   completedAt             DateTime?
-  duration                Int                   @default(60)
+  duration                Int                   @default(30)
   theme                   String                @default("AI Therapy Session")
   notes                   String?               @default("")
   status                  SessionStatus         @default(SCHEDULED)

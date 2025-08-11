@@ -36,44 +36,28 @@ const durationOptions: DurationOption[] = [
     minutes: 30,
     label: '30 minutes',
     description: 'Quick check-in or focused topic',
-    icon: Zap,
+    icon: Clock,
+    popular: true,
     bestFor: ['Progress updates', 'Single issue focus', 'Busy schedules'],
     priceMultiplier: 0.5
-  },
-  {
-    minutes: 45,
-    label: '45 minutes',
-    description: 'Standard individual session',
-    icon: Clock,
-    bestFor: ['Individual therapy', 'Regular sessions', 'Moderate depth'],
-    priceMultiplier: 0.75
   },
   {
     minutes: 60,
     label: '60 minutes',
     description: 'Full session with comprehensive coverage',
     icon: Target,
-    popular: true,
     bestFor: ['Couples therapy', 'Complex topics', 'First sessions'],
     priceMultiplier: 1.0
-  },
-  {
-    minutes: 90,
-    label: '90 minutes',
-    description: 'Extended session for deep work',
-    icon: Calendar,
-    bestFor: ['Family therapy', 'Intensive work', 'Multiple topics'],
-    priceMultiplier: 1.5
   }
 ]
 
 const therapyTypeRecommendations: Record<string, number> = {
-  INDIVIDUAL: 45,
+  INDIVIDUAL: 30,
   COUPLES: 60,
-  FAMILY: 90,
+  FAMILY: 60,
   GROUP: 60,
   CLINICAL: 60,
-  WELLNESS: 45
+  WELLNESS: 30
 }
 
 export function SessionDurationPicker({
@@ -81,8 +65,8 @@ export function SessionDurationPicker({
   onDurationSelect,
   therapyType,
   recommendedDuration,
-  minDuration = 30,
-  maxDuration = 90
+  minDuration = 15,
+  maxDuration = 60
 }: SessionDurationPickerProps) {
   // Get recommended duration based on therapy type or prop
   const getRecommendedDuration = () => {
@@ -90,7 +74,7 @@ export function SessionDurationPicker({
     if (therapyType && therapyTypeRecommendations[therapyType]) {
       return therapyTypeRecommendations[therapyType]
     }
-    return 60 // Default recommendation
+    return 30 // Default recommendation is 30 minutes
   }
   
   const recommended = getRecommendedDuration()
