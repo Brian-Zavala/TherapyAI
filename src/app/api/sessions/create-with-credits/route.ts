@@ -107,18 +107,41 @@ export async function POST(request: NextRequest) {
           throw new Error(`CONCURRENT_LIMIT_EXCEEDED:You have reached your limit of ${concurrentLimit} concurrent session(s). Please end an existing session first.`);
         }
 
-        // 4. Get current credits
+        // 4. Check for payment grace period
+        const graceData = await redis.get(`payment:grace:${session.user.id}`);
+        let inGracePeriod = false;
+        
+        if (graceData) {
+          const grace = JSON.parse(graceData);
+          const gracePeriodEnd = new Date(grace.gracePeriodEnd);
+          
+          if (gracePeriodEnd > new Date()) {
+            inGracePeriod = true;
+            console.log(`User ${session.user.id} in grace period until ${gracePeriodEnd.toISOString()}`);
+            
+            // Check if this is an existing active session continuation
+            const isExistingSession = grace.activeSessions?.includes(validatedData.metadata?.continuationOf);
+            
+            if (!isExistingSession) {
+              throw new Error('GRACE_PERIOD:Cannot start new sessions during payment grace period. Please update your payment method.');
+            }
+          }
+        }
+
+        // 5. Get current credits
         const currentCredits = await creditManager.getCurrentCredits(session.user.id);
         
-        if (!currentCredits) {
+        if (!currentCredits && !inGracePeriod) {
           throw new Error('NO_CREDITS:No active credit balance found. Please upgrade your subscription.');
         }
 
-        // 5. Check if user has enough credits
+        // 6. Check if user has enough credits
         const isUnlimited = planType === 'unlimited';
-        const availableCredits = currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits;
+        const availableCredits = currentCredits 
+          ? currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits 
+          : 0;
         
-        if (!isUnlimited && availableCredits < validatedData.duration) {
+        if (!isUnlimited && !inGracePeriod && availableCredits < validatedData.duration) {
           throw new Error(`INSUFFICIENT_CREDITS:You need ${validatedData.duration} minutes but only have ${availableCredits} available.`);
         }
 
@@ -226,6 +249,7 @@ export async function POST(request: NextRequest) {
         code === 'CONCURRENT_LIMIT_EXCEEDED' ? 409 :
         code === 'INSUFFICIENT_CREDITS' ? 402 :
         code === 'NO_CREDITS' ? 402 :
+        code === 'GRACE_PERIOD' ? 402 :
         500;
 
       return NextResponse.json({

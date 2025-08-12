@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
+import { redis } from '@/lib/redis';
 import Stripe from 'stripe';
 import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
 import { creditManager } from '@/lib/services/credit-manager.service';
@@ -390,17 +391,65 @@ export async function POST(request: NextRequest) {
           invoice.customer as string
         ) as Stripe.Customer;
         
-        // Update subscription status to past_due
+        // Handle payment failure with grace period for active sessions
         if (customer.metadata?.userId) {
+          const userId = customer.metadata.userId;
+          
+          // Check for active sessions
+          const activeSessions = await prisma.therapySession.findMany({
+            where: {
+              userId,
+              status: {
+                in: ['ACTIVE', 'PAUSED']
+              }
+            },
+            select: {
+              id: true,
+              status: true,
+              sessionLength: true,
+              startedAt: true
+            }
+          });
+          
+          // Set grace period based on active sessions
+          const gracePeriodHours = activeSessions.length > 0 ? 24 : 0; // 24 hours if active sessions
+          const gracePeriodEnd = new Date(Date.now() + gracePeriodHours * 60 * 60 * 1000);
+          
+          // Update user with grace period
           await prisma.user.update({
-            where: { id: customer.metadata.userId },
+            where: { id: userId },
             data: {
               subscriptionStatus: 'past_due',
+              metadata: {
+                paymentGracePeriod: gracePeriodEnd.toISOString(),
+                activeSessionsOnFailure: activeSessions.length,
+                paymentFailedAt: new Date().toISOString()
+              }
             },
           });
           
-          console.log(`⚠️ Payment failed for user ${customer.metadata.userId}`);
-          // You can add logic here to send a payment failed email
+          // Store grace period in Redis for quick access
+          if (activeSessions.length > 0) {
+            await redis.set(
+              `payment:grace:${userId}`,
+              JSON.stringify({
+                gracePeriodEnd: gracePeriodEnd.toISOString(),
+                activeSessions: activeSessions.map(s => s.id),
+                originalPlan: customer.metadata.planType || 'free'
+              }),
+              'EX',
+              gracePeriodHours * 60 * 60 // Expire after grace period
+            );
+            
+            console.log(`⚠️ Payment failed for user ${userId} - ${gracePeriodHours}h grace period granted (${activeSessions.length} active sessions)`);
+          } else {
+            console.log(`⚠️ Payment failed for user ${userId} - No active sessions, immediate downgrade`);
+            
+            // Immediately downgrade to free tier if no active sessions
+            await creditManager.downgradeToFree(userId);
+          }
+          
+          // TODO: Send payment failed email with grace period info
         }
         break;
       }
