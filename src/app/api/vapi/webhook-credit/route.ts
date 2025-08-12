@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { vapiSessionManager } from '@/lib/services/vapi-session-manager';
 import { creditManager } from '@/lib/services/credit-manager.service';
+import { timingReconciliation } from '@/lib/services/credit-timing-reconciliation';
 import { redis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-client';
 import { SessionStatus } from '@prisma/client';
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
     
     switch (type) {
       case 'call-start':
+        // Start timing reconciliation
+        await timingReconciliation.startSessionTiming(sessionId);
+        
         // Verify credits are still available
         if (config) {
           const creditCheck = await creditManager.checkCredits(config.userId);
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Update session status to active with idempotency
-        const updateResult = await prisma.therapySession.updateMany({
+        const updateResult = await prisma.session.updateMany({
           where: { 
             id: sessionId,
             status: { not: SessionStatus.ACTIVE }, // Only update if not already active
@@ -97,6 +101,11 @@ export async function POST(request: NextRequest) {
       
       case 'transcript':
       case 'speech-update':
+        // Update VAPI timing from webhook
+        if (elapsedSeconds > 0) {
+          await timingReconciliation.updateVapiTiming(sessionId, elapsedSeconds);
+        }
+        
         // Real-time credit monitoring
         if (config && config.maxMinutes) {
           const remainingMinutes = config.maxMinutes - elapsedMinutes;
@@ -171,20 +180,36 @@ export async function POST(request: NextRequest) {
         
         if (sessionId && vapiCallId) {
           try {
+            // Reconcile timing before completing session
+            const reconciliationResult = await timingReconciliation.completeSessionTiming(sessionId);
+            console.log('[VAPI-Credit-Webhook] Timing reconciliation:', {
+              actualMinutes: reconciliationResult.actualMinutes,
+              source: reconciliationResult.source,
+              confidence: reconciliationResult.confidence,
+              discrepancy: reconciliationResult.discrepancy,
+            });
+            
             // Use a separate idempotency key for session completion
             const completionKey = `completion:${sessionId}:${vapiCallId}`;
             const alreadyCompleted = await redis.get(completionKey);
             
             if (!alreadyCompleted) {
+              // Use reconciled timing for accurate billing
+              const actualSeconds = reconciliationResult.actualMinutes * 60;
               await vapiSessionManager.completeSession(
                 sessionId,
                 vapiCallId,
-                elapsedSeconds
+                actualSeconds
               );
               
               // Mark completion as processed
               await redis.set(completionKey, '1', 'EX', 86400); // 24 hours
-              console.log('[VAPI-Credit-Webhook] Session completed, credits deducted');
+              console.log('[VAPI-Credit-Webhook] Session completed with reconciled timing, credits deducted');
+              
+              // Log warnings if any
+              if (reconciliationResult.warnings.length > 0) {
+                console.warn('[VAPI-Credit-Webhook] Timing warnings:', reconciliationResult.warnings);
+              }
             } else {
               console.log('[VAPI-Credit-Webhook] Session already completed');
             }
