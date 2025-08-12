@@ -4,8 +4,9 @@ import { creditManager } from '@/lib/services/credit-manager.service';
 import { redis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-client';
 import { SessionStatus } from '@prisma/client';
+import crypto from 'crypto';
 
-// Credit-aware VAPI webhook handler
+// Credit-aware VAPI webhook handler with idempotency protection
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   
@@ -16,6 +17,17 @@ export async function POST(request: NextRequest) {
     // Extract session ID from call metadata or custom data
     const sessionId = call?.metadata?.sessionId || call?.customData?.sessionId;
     const vapiCallId = call?.id;
+    
+    // Generate idempotency key for webhook processing
+    const webhookId = body.id || crypto.randomUUID();
+    const idempotencyKey = `webhook:${vapiCallId}:${type}:${webhookId}`;
+    
+    // Check if webhook already processed
+    const alreadyProcessed = await redis.get(`processed:${idempotencyKey}`);
+    if (alreadyProcessed) {
+      console.log(`[VAPI-Credit-Webhook] Duplicate webhook ignored: ${type} for ${sessionId}`);
+      return NextResponse.json({ success: true, message: 'Already processed' });
+    }
     
     if (!sessionId) {
       console.log('[VAPI-Credit-Webhook] No session ID found in webhook');
@@ -51,6 +63,10 @@ export async function POST(request: NextRequest) {
           
           if (!creditCheck.hasCredits) {
             console.log('[VAPI-Credit-Webhook] No credits available at call start');
+            
+            // Mark webhook as processed even for rejected calls
+            await redis.set(`processed:${idempotencyKey}`, '1', 'EX', 300);
+            
             return NextResponse.json({
               action: 'end-call',
               reason: 'insufficient_credits',
@@ -59,9 +75,12 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Update session status to active
-        await prisma.therapySession.update({
-          where: { id: sessionId },
+        // Update session status to active with idempotency
+        const updateResult = await prisma.therapySession.updateMany({
+          where: { 
+            id: sessionId,
+            status: { not: SessionStatus.ACTIVE }, // Only update if not already active
+          },
           data: {
             status: SessionStatus.ACTIVE,
             vapiCallId,
@@ -69,7 +88,11 @@ export async function POST(request: NextRequest) {
           },
         });
         
-        console.log('[VAPI-Credit-Webhook] Session started successfully');
+        if (updateResult.count > 0) {
+          console.log('[VAPI-Credit-Webhook] Session started successfully');
+        } else {
+          console.log('[VAPI-Credit-Webhook] Session already active');
+        }
         break;
       
       case 'transcript':
@@ -143,27 +166,43 @@ export async function POST(request: NextRequest) {
       
       case 'call-end':
       case 'end-of-call-report':
-        // Complete session and deduct credits
+        // Complete session and deduct credits with proper error handling
         console.log('[VAPI-Credit-Webhook] Processing call end');
         
         if (sessionId && vapiCallId) {
           try {
-            await vapiSessionManager.completeSession(
-              sessionId,
-              vapiCallId,
-              elapsedSeconds
-            );
-            console.log('[VAPI-Credit-Webhook] Session completed, credits deducted');
+            // Use a separate idempotency key for session completion
+            const completionKey = `completion:${sessionId}:${vapiCallId}`;
+            const alreadyCompleted = await redis.get(completionKey);
+            
+            if (!alreadyCompleted) {
+              await vapiSessionManager.completeSession(
+                sessionId,
+                vapiCallId,
+                elapsedSeconds
+              );
+              
+              // Mark completion as processed
+              await redis.set(completionKey, '1', 'EX', 86400); // 24 hours
+              console.log('[VAPI-Credit-Webhook] Session completed, credits deducted');
+            } else {
+              console.log('[VAPI-Credit-Webhook] Session already completed');
+            }
           } catch (error) {
             console.error('[VAPI-Credit-Webhook] Error completing session:', error);
+            // Don't mark as processed if there was an error - allow retry
           }
         }
         
-        // Clean up Redis
+        // Clean up Redis (fire and forget)
         if (config) {
-          await redis.del(configKey);
-          const usageKey = `usage:realtime:${vapiCallId}`;
-          await redis.del(usageKey);
+          Promise.all([
+            redis.del(configKey),
+            redis.del(`usage:realtime:${vapiCallId}`),
+            creditManager.releaseReservation(sessionId),
+          ]).catch(error => {
+            console.error('[VAPI-Credit-Webhook] Cleanup error:', error);
+          });
         }
         break;
       
@@ -193,6 +232,9 @@ export async function POST(request: NextRequest) {
         console.log(`[VAPI-Credit-Webhook] Unhandled event type: ${type}`);
     }
     
+    // Mark webhook as processed (except for errors)
+    await redis.set(`processed:${idempotencyKey}`, '1', 'EX', 300); // 5 minutes
+    
     // Always return success to VAPI within 5 seconds
     const processingTime = Date.now() - startTime;
     if (processingTime > 4000) {
@@ -203,7 +245,14 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('[VAPI-Credit-Webhook] Error:', error);
-    // Always return 200 to prevent VAPI retries
+    
+    // Don't mark as processed on error to allow retry
+    // Only for critical errors - timeout and network issues should retry
+    if (!error.message?.includes('timeout') && !error.message?.includes('network')) {
+      await redis.set(`processed:${idempotencyKey}`, 'error', 'EX', 60); // 1 minute for errors
+    }
+    
+    // Always return 200 to prevent VAPI infinite retries
     return NextResponse.json({ 
       success: true,
       message: 'Webhook received (error logged)',

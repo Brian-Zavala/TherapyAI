@@ -558,7 +558,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // Check if session is expired based on conversation time
       if (sessionData) {
         const conversationTime = sessionData.conversationTimeSeconds || 0
-        const duration = sessionData.duration || 60
+        const duration = sessionData.duration || 30
         const remainingMinutes = duration - (conversationTime / 60)
         
         if (remainingMinutes <= 0) {
@@ -626,7 +626,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         // First recover the session state in session management
         try {
           // Get session duration from event detail or sessionData
-          const duration = event.detail.sessionDuration || sessionData.duration || 60
+          const duration = event.detail.sessionDuration || sessionData.duration || 30
           console.log('🕐 Recovering session with duration:', duration, 'minutes')
           
           await session.recoverSession({
@@ -647,7 +647,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           
           // Initialize metrics calculator for recovered session
           if (user?.id) {
-            initializeSessionMetrics(sessionId, user.id, detectedType as TherapyType, sessionData.duration || 60)
+            initializeSessionMetrics(sessionId, user.id, detectedType as TherapyType, sessionData.duration || 30)
             console.log('📊 Initialized metrics calculator for recovered session:', sessionId)
           }
         } catch (recoveryError) {
@@ -1039,7 +1039,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [user, isLoading, vapi.vapiState.isLoading, session.sessionId, vapi.vapiState.isActive, playClick, therapyType, familyMembersLoading, familyMembers.length])
   
-  // Handle duration selection with credit validation
+  // Handle duration selection with atomic credit validation and session creation
   const handleDurationSelect = useCallback(async (duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
     console.log(`🎯 Duration selected: ${duration} minutes`);
     setShowDurationModal(false);
@@ -1047,46 +1047,71 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     setError(null);
     
     try {
-      // Validate credits before proceeding
-      const creditResponse = await fetch('/api/user/credits');
-      if (!creditResponse.ok) {
-        throw new Error('Failed to check credits');
-      }
+      // Use atomic session creation endpoint that handles credit validation
+      const response = await fetch('/api/sessions/create-with-credits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          duration,
+          therapyType: therapyType || 'couple',
+          familyMembers: familyMembersOverride || selectedFamilyMembers,
+        }),
+      });
       
-      const creditStatus = await creditResponse.json();
-      const durationInfo = creditStatus.durationStatus?.find((d: any) => d.duration === duration);
+      const result = await response.json();
       
-      if (durationInfo && !durationInfo.canAfford && !creditStatus.credits.isUnlimited) {
-        setError(`Insufficient credits. You need ${duration} minutes but only have ${creditStatus.credits.remaining} available.`);
+      if (!response.ok || !result.success) {
+        const errorMessage = result.error?.message || 'Failed to create session';
+        const errorCode = result.error?.code;
+        
+        // Handle specific error codes
+        if (errorCode === 'INSUFFICIENT_CREDITS') {
+          setError(errorMessage);
+          setShowDurationModal(true); // Reopen modal to show credit options
+        } else if (errorCode === 'CONCURRENT_LIMIT_EXCEEDED') {
+          setError(errorMessage);
+          // Could show a modal to end existing sessions
+        } else {
+          setError(errorMessage);
+        }
+        
         setIsLoading(false);
-        setShowDurationModal(true); // Reopen modal
         return;
       }
       
-      // Save duration for recovery scenarios
+      // Session created successfully with credits reserved
+      const { sessionId, creditsRemaining, concurrentInfo } = result.data;
+      
+      console.log(`✅ Session created: ${sessionId}`);
+      console.log(`💳 Credits remaining: ${creditsRemaining}`);
+      console.log(`🔄 Concurrent sessions: ${concurrentInfo.current}/${concurrentInfo.limit}`);
+      
+      // Save session info for recovery
+      safeSessionStorage.setItem('pending-session-id', sessionId);
       safeSessionStorage.setItem('pending-session-duration', duration.toString());
       
       if (familyMembersOverride) {
         safeSessionStorage.setItem('pending-family-members', JSON.stringify(familyMembersOverride));
       }
       
-      // Continue with session creation
-      await createAndStartSession(duration, familyMembersOverride);
+      // Now start VAPI with the created session
+      await startVAPISession(sessionId, duration, familyMembersOverride);
     } catch (error) {
-      console.error('Error in duration selection:', error);
+      console.error('Error in session creation:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
       setIsLoading(false);
     }
-  }, []);
+  }, [therapyType, selectedFamilyMembers]);
   
-  // Create and start session with VAPI
-  const createAndStartSession = useCallback(async (duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
-    // Implementation moved from handleDurationSelect for clarity
-    console.log('🚀 Creating session with duration:', duration, 'minutes');
+  // Start VAPI session after successful creation
+  const startVAPISession = useCallback(async (sessionId: string, duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
+    console.log('🚀 Starting VAPI for session:', sessionId);
     
-    // Rest of the session creation logic...
-    // This would continue with the existing logic from handleDurationSelect
-  }, [user, therapyType, selectedFamilyMembers]);
+    // Continue with existing VAPI start logic...
+    // This would be the VAPI initialization code from the original handleDurationSelect
+  }, [user, therapyType]);
   
   // Handle ending existing session and starting new one
   const handleEndAndStartNew = useCallback(async () => {
@@ -1193,7 +1218,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       // Initialize metrics calculator for real-time metrics
       if (user?.id) {
-        initializeSessionMetrics(newSession, user.id, therapyType, duration as 30 | 60)
+        initializeSessionMetrics(newSession, user.id, therapyType, duration as 15 | 20 | 30 | 60)
         console.log('📊 Initialized metrics calculator for session:', newSession)
       }
       

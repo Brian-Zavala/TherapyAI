@@ -1,180 +1,254 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-client';
 import { creditManager } from '@/lib/services/credit-manager.service';
-import { vapiSessionManager } from '@/lib/services/vapi-session-manager';
-import { redis } from '@/lib/cache/redis-client';
-import { SessionStatus } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
+import { SessionStatus, TherapyType } from '@prisma/client';
+import { z } from 'zod';
+
+// Validation schema for session creation with credits
+const createSessionSchema = z.object({
+  duration: z.number().min(5).max(180),
+  therapyType: z.enum(['individual', 'couple', 'family']),
+  familyMembers: z.array(z.object({
+    name: z.string(),
+    age: z.number(),
+    relation: z.string(),
+  })).optional(),
+  metadata: z.record(z.string()).optional(),
+});
+
+// Concurrent session limits by plan
+const CONCURRENT_LIMITS = {
+  free: 1,
+  essential: 1,
+  growth: 2,
+  unlimited: 3,
+} as const;
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+  
   try {
+    // Get user session
     const session = await getServerSession(authOptions);
-    
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Please sign in to create a session',
+          requestId,
+          timestamp: new Date().toISOString(),
+          retryable: false,
+        }
+      }, { status: 401 });
     }
-    
-    const { therapyType, requestedDuration } = await request.json();
-    
-    if (!therapyType) {
-      return NextResponse.json(
-        { error: 'Therapy type is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Check for existing active session
-    const existingSession = await prisma.therapySession.findFirst({
-      where: {
-        userId: session.user.id,
-        status: {
-          in: [SessionStatus.ACTIVE, SessionStatus.SCHEDULED, SessionStatus.PAUSED],
-        },
-        createdAt: {
-          gte: new Date(Date.now() - 2 * 60 * 60 * 1000), // Last 2 hours
-        },
-      },
-    });
-    
-    if (existingSession) {
-      return NextResponse.json(
-        { 
-          error: 'You already have an active session',
-          existingSessionId: existingSession.id,
-          status: existingSession.status,
-        },
-        { status: 409 } // Conflict
-      );
-    }
-    
-    // Use VAPI session manager which includes credit checks
-    const result = await vapiSessionManager.startSession(
-      session.user.id,
-      therapyType,
-      requestedDuration
-    );
-    
-    if (!result.canStart) {
-      // Return payment required status with details
-      return NextResponse.json(
-        {
-          error: result.error,
-          canStart: false,
-          creditsAvailable: result.creditsAvailable,
-          waitTime: result.waitTime,
-        },
-        { status: 402 } // Payment Required
-      );
-    }
-    
-    // Store session config for client
-    const clientConfig = {
-      sessionId: result.sessionConfig!.sessionId,
-      maxDuration: result.sessionConfig!.maxDurationSeconds / 60,
-      creditsReserved: result.sessionConfig!.maxDurationSeconds / 60,
-      creditsAvailable: result.creditsAvailable,
-      therapyType,
-      userId: session.user.id,
-    };
-    
-    // Store in Redis for quick access
-    await redis.set(
-      `session:client:${result.sessionConfig!.sessionId}`,
-      JSON.stringify(clientConfig),
-      'EX',
-      7200 // 2 hours
-    );
-    
-    return NextResponse.json({
-      success: true,
-      sessionId: result.sessionConfig!.sessionId,
-      creditsReserved: result.sessionConfig!.maxDurationSeconds / 60,
-      maxDuration: result.sessionConfig!.maxDurationSeconds / 60,
-      creditsAvailable: result.creditsAvailable,
-      vapiConfig: {
-        // Return sanitized VAPI config for client
-        maxDurationSeconds: result.sessionConfig!.maxDurationSeconds,
-        therapyType,
-      },
-    });
-  } catch (error) {
-    console.error('[Create Session with Credits] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create session' },
-      { status: 500 }
-    );
-  }
-}
 
-// GET endpoint to check if user can start a session
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
+    // Parse and validate request body
+    const body = await request.json();
+    const validatedData = createSessionSchema.parse(body);
+
+    // Atomic credit validation and session creation
+    const lockKey = `session:create:${session.user.id}`;
+    const lockValue = crypto.randomUUID();
     
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Acquire distributed lock to prevent race conditions
+    const lockAcquired = await redis.set(lockKey, lockValue, {
+      nx: true, // Only set if doesn't exist
+      ex: 10,   // 10 second expiry
+    });
+
+    if (!lockAcquired) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'CONCURRENT_REQUEST',
+          message: 'Another session creation is in progress. Please wait.',
+          requestId,
+          timestamp: new Date().toISOString(),
+          retryable: true,
+        }
+      }, { status: 429 });
     }
-    
-    const searchParams = request.nextUrl.searchParams;
-    const therapyType = searchParams.get('therapyType') || 'individual';
-    const requestedDuration = searchParams.get('duration');
-    
-    // Check credits
-    const creditCheck = await creditManager.checkCredits(
-      session.user.id,
-      requestedDuration ? parseInt(requestedDuration) : undefined
-    );
-    
-    // Check for active sessions
-    const activeSessions = await prisma.therapySession.count({
-      where: {
-        userId: session.user.id,
-        status: {
-          in: [SessionStatus.ACTIVE, SessionStatus.SCHEDULED, SessionStatus.PAUSED],
+
+    try {
+      // Transaction for atomic session creation with credit validation
+      const result = await prisma.$transaction(async (tx) => {
+        // 1. Get user with subscription info
+        const user = await tx.user.findUnique({
+          where: { id: session.user.id },
+          include: {
+            subscription: true,
+          },
+        });
+
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        // 2. Determine plan type
+        const planType = user.subscription?.planType || 'free';
+
+        // 3. Check concurrent session limits
+        const activeSessions = await tx.therapySession.count({
+          where: {
+            userId: session.user.id,
+            status: {
+              in: [SessionStatus.ACTIVE, SessionStatus.PAUSED],
+            },
+          },
+        });
+
+        const concurrentLimit = CONCURRENT_LIMITS[planType as keyof typeof CONCURRENT_LIMITS] || 1;
+        
+        if (activeSessions >= concurrentLimit) {
+          throw new Error(`CONCURRENT_LIMIT_EXCEEDED:You have reached your limit of ${concurrentLimit} concurrent session(s). Please end an existing session first.`);
+        }
+
+        // 4. Get current credits
+        const currentCredits = await creditManager.getCurrentCredits(session.user.id);
+        
+        if (!currentCredits) {
+          throw new Error('NO_CREDITS:No active credit balance found. Please upgrade your subscription.');
+        }
+
+        // 5. Check if user has enough credits
+        const isUnlimited = planType === 'unlimited';
+        const availableCredits = currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits;
+        
+        if (!isUnlimited && availableCredits < validatedData.duration) {
+          throw new Error(`INSUFFICIENT_CREDITS:You need ${validatedData.duration} minutes but only have ${availableCredits} available.`);
+        }
+
+        // 6. Create the session
+        const newSession = await tx.therapySession.create({
+          data: {
+            userId: session.user.id,
+            therapyType: validatedData.therapyType.toUpperCase() as TherapyType,
+            status: SessionStatus.SCHEDULED,
+            scheduledFor: new Date(),
+            sessionLength: validatedData.duration,
+            metadata: validatedData.metadata || {},
+          },
+        });
+
+        // 7. Reserve credits for the session
+        if (!isUnlimited) {
+          await creditManager.reserveCredits(
+            session.user.id,
+            newSession.id,
+            validatedData.duration
+          );
+        }
+
+        // 8. Store family members if provided
+        if (validatedData.therapyType === 'family' && validatedData.familyMembers?.length) {
+          await tx.familyMember.createMany({
+            data: validatedData.familyMembers.map(member => ({
+              userId: session.user.id,
+              sessionId: newSession.id,
+              name: member.name,
+              age: member.age,
+              relation: member.relation,
+            })),
+          });
+        }
+
+        return {
+          session: newSession,
+          creditsReserved: !isUnlimited ? validatedData.duration : 0,
+          creditsRemaining: !isUnlimited ? availableCredits - validatedData.duration : -1,
+          planType,
+          concurrentSessions: activeSessions + 1,
+          concurrentLimit,
+        };
+      });
+
+      // 9. Invalidate relevant caches
+      await Promise.all([
+        redis.del(`credits:${session.user.id}:current`),
+        redis.del(`sessions:active:${session.user.id}`),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          sessionId: result.session.id,
+          status: result.session.status,
+          duration: result.session.sessionLength,
+          creditsReserved: result.creditsReserved,
+          creditsRemaining: result.creditsRemaining,
+          planType: result.planType,
+          concurrentInfo: {
+            current: result.concurrentSessions,
+            limit: result.concurrentLimit,
+          },
         },
-        createdAt: {
-          gte: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        },
-      },
-    });
-    
-    // Determine default duration based on therapy type and plan
-    const defaultDurations: Record<string, number> = {
-      individual: Math.min(20, creditCheck.maxSessionDuration),
-      couples: Math.min(25, creditCheck.maxSessionDuration),
-      family: Math.min(30, creditCheck.maxSessionDuration),
-    };
-    
-    const suggestedDuration = Math.min(
-      requestedDuration ? parseInt(requestedDuration) : defaultDurations[therapyType] || 15,
-      creditCheck.availableMinutes,
-      creditCheck.maxSessionDuration
-    );
-    
-    return NextResponse.json({
-      canStart: creditCheck.hasCredits && activeSessions === 0,
-      credits: {
-        available: creditCheck.availableMinutes,
-        isUnlimited: creditCheck.isUnlimited,
-        planType: creditCheck.planType,
-        maxSessionDuration: creditCheck.maxSessionDuration,
-      },
-      suggestedDuration,
-      hasActiveSession: activeSessions > 0,
-      minimumDuration: 5, // Minimum session length
-    });
+        requestId,
+        timestamp: new Date().toISOString(),
+      });
+
+    } finally {
+      // Always release the lock
+      const currentLock = await redis.get(lockKey);
+      if (currentLock === lockValue) {
+        await redis.del(lockKey);
+      }
+    }
+
   } catch (error) {
-    console.error('[Check Session Availability] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to check session availability' },
-      { status: 500 }
-    );
+    console.error(`[${requestId}] Session creation error:`, error);
+
+    // Parse error messages
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request data',
+          details: error.errors,
+          requestId,
+          timestamp: new Date().toISOString(),
+          retryable: false,
+        }
+      }, { status: 400 });
+    }
+
+    if (error instanceof Error) {
+      // Parse custom error codes
+      const [code, message] = error.message.includes(':') 
+        ? error.message.split(':', 2) 
+        : ['INTERNAL_ERROR', error.message];
+
+      const statusCode = 
+        code === 'CONCURRENT_LIMIT_EXCEEDED' ? 409 :
+        code === 'INSUFFICIENT_CREDITS' ? 402 :
+        code === 'NO_CREDITS' ? 402 :
+        500;
+
+      return NextResponse.json({
+        success: false,
+        error: {
+          code,
+          message: message || 'Failed to create session',
+          requestId,
+          timestamp: new Date().toISOString(),
+          retryable: code === 'CONCURRENT_REQUEST',
+        }
+      }, { status: statusCode });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred',
+        requestId,
+        timestamp: new Date().toISOString(),
+        retryable: true,
+      }
+    }, { status: 500 });
   }
 }

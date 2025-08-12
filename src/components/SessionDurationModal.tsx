@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 interface SessionDurationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectDuration: (duration: 15 | 20 | 30 | 60) => void;
+  onSelectDuration: (duration: 15 | 20 | 25 | 30 | 60) => void;
   therapyType?: string;
   isLoading?: boolean;
 }
@@ -22,7 +22,7 @@ export default function SessionDurationModal({
   therapyType = "couple",
   isLoading = false,
 }: SessionDurationModalProps) {
-  const [selectedDuration, setSelectedDuration] = useState<15 | 20 | 30 | 60 | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<15 | 20 | 25 | 30 | 60 | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   
@@ -102,7 +102,7 @@ export default function SessionDurationModal({
   }, [creditStatus, selectedDuration]);
 
   const durationOptions: Array<{
-    duration: 15 | 20 | 30 | 60;
+    duration: 15 | 20 | 25 | 30 | 60;
     title: string;
     description: string;
     features: string[];
