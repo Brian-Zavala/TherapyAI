@@ -136,6 +136,19 @@ export default function SessionDurationModal({
       futurePrice: "0.7 Token",
     },
     {
+      duration: 25,
+      title: "Growth Session",
+      description: "Extended session for deeper exploration",
+      features: [
+        "Perfect for Growth tier subscribers",
+        "Extra time for complex topics",
+        "Balanced depth and efficiency",
+        "Optimal therapeutic progress",
+      ],
+      recommended: false,
+      futurePrice: "0.85 Token",
+    },
+    {
       duration: 30,
       title: "Focused Session",
       description: "Extended time for targeted work",

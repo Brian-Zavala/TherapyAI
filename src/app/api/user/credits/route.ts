@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const currentCredits = await creditManager.getCurrentCredits(session.user.id);
     
     // Calculate credits for each duration
-    const durations = [15, 20, 30, 60];
+    const durations = [15, 20, 25, 30, 60];
     const durationStatus = durations.map(duration => {
       const hasCredits = creditStatus.remainingCredits >= duration || creditStatus.isUnlimited;
       return {

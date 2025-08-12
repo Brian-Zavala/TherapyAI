@@ -402,29 +402,60 @@ export class CreditManager {
           return { success: true, reservationId: sessionId };
         }
 
-        return await prisma.$transaction(async (tx) => {
-          const credits = await tx.usageCredits.findFirst({
-            where: {
-              userId,
-              billingPeriodStart: { lte: new Date() },
-              billingPeriodEnd: { gte: new Date() },
-            },
-            orderBy: { createdAt: 'desc' },
-          });
+        return await prisma.$transaction(
+          async (tx) => {
+            const credits = await tx.usageCredits.findFirst({
+              where: {
+                userId,
+                billingPeriodStart: { lte: new Date() },
+                billingPeriodEnd: { gte: new Date() },
+              },
+              orderBy: { createdAt: 'desc' },
+            });
 
-          if (!credits) {
-            return { success: false, error: 'No active credits found' };
-          }
+            if (!credits) {
+              return { success: false, error: 'No active credits found' };
+            }
 
-          const planType = credits.planType as keyof typeof config.plans;
-          if (planType === 'unlimited') {
-            // Still create reservation for tracking
+            const planType = credits.planType as keyof typeof config.plans;
+            if (planType === 'unlimited') {
+              // Still create reservation for tracking
+              const reservationData = {
+                userId,
+                sessionId,
+                minutes,
+                creditId: credits.id,
+                isUnlimited: true,
+                timestamp: Date.now(),
+              };
+
+              await redis.set(
+                `credits:reserved:${sessionId}`,
+                JSON.stringify(reservationData),
+                'EX',
+                this.RESERVATION_TIMEOUT_SECONDS
+              );
+
+              return { success: true, reservationId: sessionId };
+            }
+
+            const totalAvailable = credits.totalCredits + credits.bonusCredits;
+            const remaining = totalAvailable - credits.usedCredits;
+
+            if (remaining < minutes) {
+              return { 
+                success: false, 
+                error: `Insufficient credits: ${remaining} available, ${minutes} requested` 
+              };
+            }
+
+            // Create reservation record
             const reservationData = {
               userId,
               sessionId,
               minutes,
               creditId: credits.id,
-              isUnlimited: true,
+              isUnlimited: false,
               timestamp: Date.now(),
             };
 
@@ -435,41 +466,17 @@ export class CreditManager {
               this.RESERVATION_TIMEOUT_SECONDS
             );
 
+            // Track reservation count for monitoring
+            await redis.incr(`credits:reservations:${userId}:${new Date().toISOString().split('T')[0]}`);
+
             return { success: true, reservationId: sessionId };
+          },
+          {
+            maxWait: 5000, // 5 seconds max wait time
+            timeout: 10000, // 10 seconds timeout for the transaction
+            isolationLevel: 'Serializable', // Highest isolation level for credit operations
           }
-
-          const totalAvailable = credits.totalCredits + credits.bonusCredits;
-          const remaining = totalAvailable - credits.usedCredits;
-
-          if (remaining < minutes) {
-            return { 
-              success: false, 
-              error: `Insufficient credits: ${remaining} available, ${minutes} requested` 
-            };
-          }
-
-          // Create reservation record
-          const reservationData = {
-            userId,
-            sessionId,
-            minutes,
-            creditId: credits.id,
-            isUnlimited: false,
-            timestamp: Date.now(),
-          };
-
-          await redis.set(
-            `credits:reserved:${sessionId}`,
-            JSON.stringify(reservationData),
-            'EX',
-            this.RESERVATION_TIMEOUT_SECONDS
-          );
-
-          // Track reservation count for monitoring
-          await redis.incr(`credits:reservations:${userId}:${new Date().toISOString().split('T')[0]}`);
-
-          return { success: true, reservationId: sessionId };
-        });
+        );
       } finally {
         await this.releaseLock(lockKey, lockValue);
       }
