@@ -44,6 +44,11 @@ model User {
   therapyInsights      TherapyInsight[]
   profile              UserProfile?
   notificationTracking NotificationTracking[]
+  maxSessionDuration   Int?                  @default(30)
+  concurrentSessions   Int?                  @default(1)
+  usageCredits         UsageCredits[]
+  usageTransactions    UsageTransaction[]
+  usageAlerts          UsageAlert[]
 
   @@index([email])
   @@index([createdAt])
@@ -140,6 +145,8 @@ model Session {
   notificationTokenExpiry DateTime?
   startedViaNotification  Boolean               @default(false)
   notificationStartedAt   DateTime?
+  creditsAllocated        Int?                  @default(0)
+  creditsUsed             Int?                  @default(0)
   communicationMetrics    CommunicationMetric[]
   progressTracking        ProgressTracking[]
   user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -149,6 +156,7 @@ model Session {
   transcriptEntries       TranscriptEntry[]
   conversationState       ConversationState?
   notificationTracking    NotificationTracking[]
+  usageTransactions       UsageTransaction[]
 
   @@index([userId, status])
   @@index([userId, startTime])
@@ -582,4 +590,83 @@ model NotificationTracking {
   @@index([sessionId])
   @@index([userId])
   @@index([token])
+}
+
+// ========================================
+// CREDIT & USAGE TRACKING
+// ========================================
+
+model UsageCredits {
+  id                   String   @id @default(cuid())
+  userId               String
+  totalCredits         Int      @default(0)
+  usedCredits          Int      @default(0)
+  bonusCredits         Int      @default(0)
+  billingPeriodStart   DateTime
+  billingPeriodEnd     DateTime
+  planType             String   // 'free', 'essential', 'growth', 'unlimited'
+  subscriptionId       String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  // Relations
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         UsageTransaction[]
+  
+  @@index([userId, billingPeriodStart, billingPeriodEnd])
+  @@index([userId, createdAt])
+  @@index([planType])
+}
+
+model UsageTransaction {
+  id          String          @id @default(cuid())
+  userId      String
+  creditId    String
+  type        TransactionType
+  amount      Int             // Minutes used/added/refunded
+  balance     Int             // Remaining balance after transaction (-1 for unlimited)
+  sessionId   String?
+  vapiCallId  String?
+  description String
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  
+  // Relations
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credit      UsageCredits    @relation(fields: [creditId], references: [id], onDelete: Cascade)
+  session     Session?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  @@index([userId, createdAt])
+  @@index([sessionId])
+  @@index([vapiCallId])
+  @@index([creditId, type])
+}
+
+model UsageAlert {
+  id           String    @id @default(cuid())
+  userId       String
+  alertType    AlertType
+  threshold    Int       // Percentage threshold (80, 90, 100)
+  message      String
+  acknowledged Boolean   @default(false)
+  sentAt       DateTime  @default(now())
+  
+  // Relations
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, acknowledged])
+  @@index([sentAt])
+  @@index([alertType, threshold])
+}
+
+enum TransactionType {
+  DEBIT    // Credits used for sessions
+  BONUS    // Bonus credits added
+  REFUND   // Credits refunded for technical issues
+}
+
+enum AlertType {
+  LOW_CREDITS        // Warning when credits are low
+  CREDITS_EXHAUSTED  // Alert when credits are fully used
+  BILLING_REMINDER   // General billing reminders
 }
