@@ -82,6 +82,46 @@ export class CreditManager {
   }
 
   /**
+   * Handle subscription upgrade - preserves existing credits and adds new tier credits
+   */
+  async handleSubscriptionUpgrade(
+    userId: string,
+    newPlanType: keyof typeof config.plans,
+    oldPlanType: keyof typeof config.plans,
+    billingStart: Date,
+    billingEnd: Date,
+    subscriptionId?: string
+  ): Promise<UsageCredits> {
+    const newPlanCredits = this.config.plans[newPlanType].credits;
+    const oldPlanCredits = this.config.plans[oldPlanType].credits;
+    
+    // Calculate additional credits from upgrade
+    const additionalCredits = Math.max(0, newPlanCredits - oldPlanCredits);
+    
+    // Get current credits
+    const currentCredits = await this.getCurrentCredits(userId);
+    
+    if (currentCredits) {
+      // Calculate remaining credits
+      const remainingCredits = currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits;
+      
+      // Update with new plan and add upgrade bonus
+      return await prisma.usageCredits.update({
+        where: { id: currentCredits.id },
+        data: {
+          totalCredits: newPlanCredits,
+          bonusCredits: currentCredits.bonusCredits + additionalCredits, // Add upgrade bonus to existing bonus
+          planType: newPlanType,
+          subscriptionId,
+        },
+      });
+    }
+    
+    // If no current credits, initialize with new plan
+    return this.initializeBillingPeriod(userId, newPlanType, billingStart, billingEnd, subscriptionId);
+  }
+
+  /**
    * Get current active credits for a user
    */
   async getCurrentCredits(userId: string): Promise<UsageCredits | null> {

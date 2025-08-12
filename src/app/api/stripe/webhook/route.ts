@@ -279,19 +279,46 @@ export async function POST(request: NextRequest) {
           
           // Check if plan changed (price ID changed)
           if (previousAttributes?.items) {
-            const planType = getPlanTypeFromSubscription(subscription);
+            const newPlanType = getPlanTypeFromSubscription(subscription);
+            
+            // Determine old plan type from previous attributes
+            const oldPriceId = previousAttributes.items?.data?.[0]?.price?.id;
+            let oldPlanType: 'free' | 'essential' | 'growth' | 'unlimited' = 'free';
+            
+            if (oldPriceId) {
+              if (oldPriceId.includes('unlimited')) oldPlanType = 'unlimited';
+              else if (oldPriceId.includes('growth')) oldPlanType = 'growth';
+              else if (oldPriceId.includes('essential')) oldPlanType = 'essential';
+            }
+            
             const billingStart = new Date(subscription.current_period_start * 1000);
             const billingEnd = new Date(subscription.current_period_end * 1000);
             
-            await creditManager.initializeBillingPeriod(
-              customer.metadata.userId,
-              planType,
-              billingStart,
-              billingEnd,
-              subscription.id
-            );
+            // Use upgrade handler if moving to higher tier
+            const planHierarchy = { free: 0, essential: 1, growth: 2, unlimited: 3 };
             
-            console.log(`💳 Credits updated for plan change: ${customer.metadata.userId} (${planType})`);
+            if (planHierarchy[newPlanType] > planHierarchy[oldPlanType]) {
+              // Upgrade - preserve existing credits and add new tier credits
+              await creditManager.handleSubscriptionUpgrade(
+                customer.metadata.userId,
+                newPlanType,
+                oldPlanType,
+                billingStart,
+                billingEnd,
+                subscription.id
+              );
+              console.log(`⬆️ Credits upgraded: ${customer.metadata.userId} (${oldPlanType} → ${newPlanType})`);
+            } else {
+              // Downgrade or same tier - reset to new plan credits
+              await creditManager.initializeBillingPeriod(
+                customer.metadata.userId,
+                newPlanType,
+                billingStart,
+                billingEnd,
+                subscription.id
+              );
+              console.log(`💳 Credits reset for plan change: ${customer.metadata.userId} (${oldPlanType} → ${newPlanType})`);
+            }
           }
           
           console.log(`📝 Subscription updated for user ${customer.metadata.userId}: ${subscription.status}`);
