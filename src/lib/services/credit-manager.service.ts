@@ -509,9 +509,10 @@ export class CreditManager {
       }
 
       try {
-        return await prisma.$transaction(async (tx) => {
-          // Get current credits within transaction
-          const credits = await tx.usageCredits.findFirst({
+        return await prisma.$transaction(
+          async (tx) => {
+            // Get current credits within transaction
+            const credits = await tx.usageCredits.findFirst({
             where: {
               userId,
               billingPeriodStart: { lte: new Date() },
@@ -589,7 +590,13 @@ export class CreditManager {
 
           // Store for post-transaction cleanup
           return { transaction, updatedCredits, newBalance };
-        }).then(async (result) => {
+        },
+        {
+          maxWait: 5000, // 5 seconds max wait time
+          timeout: 10000, // 10 seconds timeout for the transaction
+          isolationLevel: 'Serializable', // Highest isolation level for credit operations
+        }
+      ).then(async (result) => {
           if ('transaction' in result) {
             // Post-transaction cleanup
             const { transaction, updatedCredits, newBalance } = result;
@@ -611,6 +618,24 @@ export class CreditManager {
           }
           
           return result; // Return existing transaction
+        }).catch(async (error) => {
+          // Transaction rolled back automatically
+          console.error(`Credit deduction failed for session ${sessionId}:`, error);
+          
+          // Attempt to clear any partial state
+          try {
+            const reservationKey = `credits:reserved:${sessionId}`;
+            const reservation = await redis.get(reservationKey);
+            
+            if (reservation) {
+              // Extend reservation timeout to allow retry
+              await redis.expire(reservationKey, 300); // 5 more minutes
+            }
+          } catch (cleanupError) {
+            console.error('Failed to extend reservation on error:', cleanupError);
+          }
+          
+          throw error; // Re-throw for caller to handle
         });
       } finally {
         await this.releaseLock(lockKey, lockValue);

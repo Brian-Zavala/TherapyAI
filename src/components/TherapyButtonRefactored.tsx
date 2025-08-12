@@ -1218,7 +1218,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       // Initialize metrics calculator for real-time metrics
       if (user?.id) {
-        initializeSessionMetrics(newSession, user.id, therapyType, duration as 15 | 20 | 30 | 60)
+        initializeSessionMetrics(newSession, user.id, therapyType, duration as 15 | 20 | 25 | 30 | 60)
         console.log('📊 Initialized metrics calculator for session:', newSession)
       }
       
