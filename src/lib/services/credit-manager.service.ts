@@ -3,6 +3,12 @@ import { UsageCredits, UsageTransaction, TransactionType, AlertType } from '@pri
 import { sendEmail } from '@/lib/email';
 import { redis } from '@/lib/cache/redis-client';
 import crypto from 'crypto';
+import { 
+  toUTCMidnight, 
+  getBillingPeriodStart, 
+  getBillingPeriodEnd,
+  isWithinBillingPeriod 
+} from '@/lib/utils/date-utils';
 
 export interface CreditManagerConfig {
   plans: {
@@ -224,12 +230,13 @@ export class CreditManager {
         const additionalCredits = Math.max(0, newPlanCredits - oldPlanCredits);
 
         return await prisma.$transaction(async (tx) => {
-          // Get current credits within transaction
+          // Get current credits within transaction (using UTC)
+          const now = new Date();
           const currentCredits = await tx.usageCredits.findFirst({
             where: {
               userId,
-              billingPeriodStart: { lte: new Date() },
-              billingPeriodEnd: { gte: new Date() },
+              billingPeriodStart: { lte: now },
+              billingPeriodEnd: { gte: now },
             },
             orderBy: { createdAt: 'desc' },
           });

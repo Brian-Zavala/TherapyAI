@@ -30,35 +30,46 @@ export default function SessionDurationModal({
   const { data: creditStatus, isLoading: creditsLoading, error: creditsError } = useQuery({
     queryKey: ['userCredits'],
     queryFn: async () => {
-      const response = await fetch('/api/user/credits');
-      if (!response.ok) {
-        // If API doesn't exist or fails, return mock data for now
-        console.warn('Credit API not available, using fallback');
-        return {
-          credits: {
-            total: 1200,
-            used: 0,
-            remaining: 1200,
-            bonus: 0,
-            isUnlimited: false,
-            planType: 'growth',
-            maxSessionDuration: 30,
-          },
-          durationStatus: [
-            { duration: 15, canAfford: true, creditsRequired: 15, creditsAfterSession: 1185 },
-            { duration: 20, canAfford: true, creditsRequired: 20, creditsAfterSession: 1180 },
-            { duration: 30, canAfford: true, creditsRequired: 30, creditsAfterSession: 1170 },
-            { duration: 60, canAfford: true, creditsRequired: 60, creditsAfterSession: 1140 },
-          ],
-          displayText: '1200 minutes remaining',
-          lowCreditWarning: false,
-          noCreditWarning: false,
-        };
+      try {
+        const response = await fetch('/api/user/credits', {
+          signal: AbortSignal.timeout(5000), // 5 second timeout
+        });
+        
+        if (!response.ok) {
+          // Check specific error codes
+          if (response.status === 401) {
+            throw new Error('Please sign in to view your credits');
+          } else if (response.status === 503) {
+            throw new Error('Credit service temporarily unavailable');
+          }
+          
+          // For other errors, try to parse error message
+          try {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'Failed to load credits');
+          } catch {
+            throw new Error('Failed to load credits');
+          }
+        }
+        
+        return response.json();
+      } catch (error) {
+        // Handle network errors
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            console.error('Credit API request timed out');
+            throw new Error('Request timed out. Please check your connection.');
+          }
+          throw error;
+        }
+        throw new Error('Network error. Please check your connection.');
       }
-      return response.json();
     },
     enabled: isOpen,
     refetchInterval: 30000, // Refresh every 30 seconds while modal is open
+    retry: 3, // Retry up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 
   useEffect(() => {
@@ -250,6 +261,21 @@ export default function SessionDurationModal({
                     <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5">
                       <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
                       <span className="text-sm text-gray-400">Loading credits...</span>
+                    </div>
+                  )}
+                  
+                  {creditsError && (
+                    <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/20 rounded-full border border-red-400/30">
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                      <span className="text-sm text-red-300">
+                        {creditsError instanceof Error ? creditsError.message : 'Failed to load credits'}
+                      </span>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="ml-2 text-xs text-red-400 hover:text-red-300 underline"
+                      >
+                        Retry
+                      </button>
                     </div>
                   )}
                   

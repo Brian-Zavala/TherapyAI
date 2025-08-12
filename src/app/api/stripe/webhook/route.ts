@@ -6,6 +6,7 @@ import { redis } from '@/lib/redis';
 import Stripe from 'stripe';
 import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
 import { creditManager } from '@/lib/services/credit-manager.service';
+import { parseStripeTimestamp, toUTCMidnight } from '@/lib/utils/date-utils';
 
 // Stripe requires the raw body to verify webhook signatures.
 // We need to export config to tell Next.js not to parse the body
@@ -194,15 +195,15 @@ export async function POST(request: NextRequest) {
             // Initialize credits for the new subscription
             try {
               const planType = getPlanTypeFromSubscription(subscription);
-              const billingStart = new Date();
-              const billingEnd = new Date();
-              billingEnd.setMonth(billingEnd.getMonth() + 1);
+              // Use UTC dates from Stripe subscription for consistent billing
+              const billingStart = parseStripeTimestamp(subscription.current_period_start);
+              const billingEnd = parseStripeTimestamp(subscription.current_period_end);
               
               await creditManager.initializeBillingPeriod(
                 session.metadata.userId,
                 planType,
-                billingStart,
-                billingEnd,
+                toUTCMidnight(billingStart),
+                toUTCMidnight(billingEnd),
                 subscription.id
               );
               
@@ -292,8 +293,8 @@ export async function POST(request: NextRequest) {
               else if (oldPriceId.includes('essential')) oldPlanType = 'essential';
             }
             
-            const billingStart = new Date(subscription.current_period_start * 1000);
-            const billingEnd = new Date(subscription.current_period_end * 1000);
+            const billingStart = parseStripeTimestamp(subscription.current_period_start);
+            const billingEnd = parseStripeTimestamp(subscription.current_period_end);
             
             // Use upgrade handler if moving to higher tier
             const planHierarchy = { free: 0, essential: 1, growth: 2, unlimited: 3 };
@@ -366,8 +367,8 @@ export async function POST(request: NextRequest) {
           if (customer.metadata?.userId) {
             const subscription = await getSubscription(invoice.subscription as string);
             const planType = getPlanTypeFromSubscription(subscription);
-            const billingStart = new Date(subscription.current_period_start * 1000);
-            const billingEnd = new Date(subscription.current_period_end * 1000);
+            const billingStart = parseStripeTimestamp(subscription.current_period_start);
+            const billingEnd = parseStripeTimestamp(subscription.current_period_end);
             
             await creditManager.resetBillingPeriod(
               customer.metadata.userId,
