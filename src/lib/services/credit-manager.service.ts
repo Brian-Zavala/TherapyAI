@@ -9,6 +9,12 @@ import {
   getBillingPeriodEnd,
   isWithinBillingPeriod 
 } from '@/lib/utils/date-utils';
+import {
+  calculateAvailableCredits,
+  validateCreditAmount,
+  safeSubtractCredits,
+  MAX_CREDITS,
+} from '@/lib/validation/credit-validation';
 
 export interface CreditManagerConfig {
   plans: {
@@ -566,15 +572,35 @@ export class CreditManager {
             });
           }
 
-          // Update credits atomically
-          const updatedCredits = await tx.usageCredits.update({
+          // SECURITY FIX: Atomic check-and-update to prevent race conditions
+          // This ensures credits are checked and deducted in a single atomic operation
+          const result = await tx.$executeRaw`
+            UPDATE "UsageCredits" 
+            SET "usedCredits" = "usedCredits" + ${actualMinutes},
+                "updatedAt" = NOW()
+            WHERE "id" = ${credits.id}
+              AND ("totalCredits" + "bonusCredits" - "usedCredits") >= ${actualMinutes}
+            RETURNING "id"
+          `;
+
+          if (result === 0) {
+            // No rows updated means insufficient credits
+            const currentAvailable = calculateAvailableCredits(
+              credits.totalCredits,
+              credits.bonusCredits,
+              credits.usedCredits
+            );
+            throw new Error(`Insufficient credits: ${currentAvailable} available, ${actualMinutes} requested`);
+          }
+
+          // Fetch the updated credits
+          const updatedCredits = await tx.usageCredits.findUnique({
             where: { id: credits.id },
-            data: {
-              usedCredits: {
-                increment: actualMinutes,
-              },
-            },
           });
+
+          if (!updatedCredits) {
+            throw new Error('Failed to fetch updated credits after deduction');
+          }
 
           // Calculate new balance
           const totalAvailable = updatedCredits.totalCredits + updatedCredits.bonusCredits;

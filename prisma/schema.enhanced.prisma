@@ -118,7 +118,7 @@ model Session {
   startTime              DateTime?
   endTime                DateTime?
   completedAt            DateTime?
-  duration               Int                   @default(60) // Expected duration in minutes
+  duration               Int                   @default(30) // Expected duration in minutes - standardized to 30
   theme                  String                @default("AI Therapy Session")
   notes                  String?               @default("")
   

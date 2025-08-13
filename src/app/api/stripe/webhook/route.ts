@@ -4,6 +4,7 @@ import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 import { redis } from '@/lib/redis';
 import Stripe from 'stripe';
+import Redlock from 'redlock';
 import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { parseStripeTimestamp, toUTCMidnight } from '@/lib/utils/date-utils';
@@ -14,6 +15,18 @@ export const runtime = 'nodejs';
 
 // Webhook secret from environment
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// Initialize distributed lock for grace period operations
+const redlock = new Redlock(
+  [redis],
+  {
+    driftFactor: 0.01, // time in ms
+    retryCount: 10,
+    retryDelay: 200, // time in ms
+    retryJitter: 200, // time in ms
+    automaticExtensionThreshold: 500, // time in ms
+  }
+);
 
 // Helper function to determine plan type from subscription
 function getPlanTypeFromSubscription(subscription: any): 'free' | 'essential' | 'growth' | 'unlimited' {
@@ -376,27 +389,65 @@ export async function POST(request: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         console.log(`💰 Payment succeeded for invoice ${invoice.id}`);
         
-        // Reset credits for new billing period
-        if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
-          const customer = await stripe.customers.retrieve(
-            invoice.customer as string
-          ) as Stripe.Customer;
+        // Get customer info
+        const customer = await stripe.customers.retrieve(
+          invoice.customer as string
+        ) as Stripe.Customer;
+        
+        if (customer.metadata?.userId) {
+          const userId = customer.metadata.userId;
           
-          if (customer.metadata?.userId) {
-            const subscription = await getSubscription(invoice.subscription as string);
-            const planType = getPlanTypeFromSubscription(subscription);
-            const billingStart = parseStripeTimestamp(subscription.current_period_start);
-            const billingEnd = parseStripeTimestamp(subscription.current_period_end);
+          // Use distributed lock for clearing grace period
+          const lockKey = `locks:grace:${userId}`;
+          const lock = await redlock.acquire([lockKey], 5000);
+          
+          try {
+            // Get grace period data before clearing to reconcile credits
+            const graceData = await redis.get(`payment:grace:${userId}`);
+            if (graceData) {
+              const grace = JSON.parse(graceData);
+              // Log grace period credit usage for audit
+              console.log(`Grace period ended for user ${userId}:`, {
+                creditsUsedDuringGrace: grace.gracePeriodCreditsUsed,
+                creditsAllocated: grace.gracePeriodCreditsAllocated
+              });
+              
+              // Clear grace period from Redis
+              await redis.del(`payment:grace:${userId}`);
+            }
             
-            await creditManager.resetBillingPeriod(
-              customer.metadata.userId,
-              planType,
-              billingStart,
-              billingEnd,
-              subscription.id
-            );
+            // Clear from database backup as well
+            await prisma.user.update({
+              where: { id: userId },
+              data: {
+                subscriptionStatus: 'active',
+                metadata: {
+                  paymentGracePeriod: null,
+                  gracePeriodData: null,
+                  paymentFailedAt: null
+                }
+              }
+            });
             
-            console.log(`🔄 Credits reset for new billing period: ${customer.metadata.userId} (${planType})`);
+            // Reset credits for new billing period
+            if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
+              const subscription = await getSubscription(invoice.subscription as string);
+              const planType = getPlanTypeFromSubscription(subscription);
+              const billingStart = parseStripeTimestamp(subscription.current_period_start);
+              const billingEnd = parseStripeTimestamp(subscription.current_period_end);
+              
+              await creditManager.resetBillingPeriod(
+                userId,
+                planType,
+                billingStart,
+                billingEnd,
+                subscription.id
+              );
+              
+              console.log(`🔄 Credits reset for new billing period: ${userId} (${planType})`);
+            }
+          } finally {
+            await lock.release();
           }
         }
         break;
@@ -414,61 +465,97 @@ export async function POST(request: NextRequest) {
         if (customer.metadata?.userId) {
           const userId = customer.metadata.userId;
           
-          // Check for active sessions
-          const activeSessions = await prisma.therapySession.findMany({
-            where: {
-              userId,
-              status: {
-                in: ['ACTIVE', 'PAUSED']
+          // Use distributed lock to prevent race conditions
+          const lockKey = `locks:grace:${userId}`;
+          const lock = await redlock.acquire([lockKey], 5000); // 5 second lock
+          
+          try {
+            // Check for active sessions
+            const activeSessions = await prisma.therapySession.findMany({
+              where: {
+                userId,
+                status: {
+                  in: ['ACTIVE', 'PAUSED']
+                }
+              },
+              select: {
+                id: true,
+                status: true,
+                sessionLength: true,
+                startedAt: true,
+                creditsUsed: true
               }
-            },
-            select: {
-              id: true,
-              status: true,
-              sessionLength: true,
-              startedAt: true
-            }
-          });
-          
-          // Set grace period based on active sessions
-          const gracePeriodHours = activeSessions.length > 0 ? 24 : 0; // 24 hours if active sessions
-          const gracePeriodEnd = new Date(Date.now() + gracePeriodHours * 60 * 60 * 1000);
-          
-          // Update user with grace period
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              subscriptionStatus: 'past_due',
-              metadata: {
-                paymentGracePeriod: gracePeriodEnd.toISOString(),
-                activeSessionsOnFailure: activeSessions.length,
-                paymentFailedAt: new Date().toISOString()
-              }
-            },
-          });
-          
-          // Store grace period in Redis for quick access
-          if (activeSessions.length > 0) {
-            await redis.set(
-              `payment:grace:${userId}`,
-              JSON.stringify({
-                gracePeriodEnd: gracePeriodEnd.toISOString(),
-                activeSessions: activeSessions.map(s => s.id),
+            });
+            
+            // Set grace period based on active sessions
+            const gracePeriodHours = activeSessions.length > 0 ? 24 : 0; // 24 hours if active sessions
+            const gracePeriodEnd = new Date(Date.now() + gracePeriodHours * 60 * 60 * 1000);
+            
+            if (activeSessions.length > 0) {
+              // Get current credit balance for snapshot
+              const currentCredits = await creditManager.getUserCredit(userId);
+              
+              // Create grace period data with credit tracking
+              const gracePeriodData = {
+                startTime: new Date().toISOString(),
+                endTime: gracePeriodEnd.toISOString(),
+                reason: 'payment_failed',
+                allowedSessions: activeSessions.map(s => s.id),
+                gracePeriodCreditsAllocated: 0, // No new credits during grace
+                gracePeriodCreditsUsed: 0, // Track usage during grace period
+                originalCreditsSnapshot: currentCredits, // Snapshot current balance
                 originalPlan: customer.metadata.planType || 'free'
-              }),
-              'EX',
-              gracePeriodHours * 60 * 60 // Expire after grace period
-            );
+              };
+              
+              // Store grace period in Redis for quick access
+              await redis.set(
+                `payment:grace:${userId}`,
+                JSON.stringify(gracePeriodData),
+                'EX',
+                gracePeriodHours * 60 * 60 // Expire after grace period
+              );
+              
+              // Update user with grace period in database as backup
+              await prisma.user.update({
+                where: { id: userId },
+                data: {
+                  subscriptionStatus: 'past_due',
+                  metadata: {
+                    paymentGracePeriod: gracePeriodEnd.toISOString(),
+                    activeSessionsOnFailure: activeSessions.length,
+                    paymentFailedAt: new Date().toISOString(),
+                    gracePeriodData
+                  }
+                },
+              });
+              
+              console.log(`⚠️ Payment failed for user ${userId} - ${gracePeriodHours}h grace period granted (${activeSessions.length} active sessions)`);
+            } else {
+              // No active sessions - clear any existing grace period and downgrade
+              await redis.del(`payment:grace:${userId}`);
+              
+              await prisma.user.update({
+                where: { id: userId },
+                data: {
+                  subscriptionStatus: 'past_due',
+                  metadata: {
+                    paymentGracePeriod: null,
+                    paymentFailedAt: new Date().toISOString(),
+                    gracePeriodData: null
+                  }
+                },
+              });
+              
+              console.log(`⚠️ Payment failed for user ${userId} - No active sessions, immediate downgrade`);
+              
+              // Immediately downgrade to free tier if no active sessions
+              await creditManager.downgradeToFree(userId);
+            }
             
-            console.log(`⚠️ Payment failed for user ${userId} - ${gracePeriodHours}h grace period granted (${activeSessions.length} active sessions)`);
-          } else {
-            console.log(`⚠️ Payment failed for user ${userId} - No active sessions, immediate downgrade`);
-            
-            // Immediately downgrade to free tier if no active sessions
-            await creditManager.downgradeToFree(userId);
+            // TODO: Send payment failed email with grace period info
+          } finally {
+            await lock.release();
           }
-          
-          // TODO: Send payment failed email with grace period info
         }
         break;
       }

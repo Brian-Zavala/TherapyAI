@@ -109,9 +109,33 @@ export async function POST(request: NextRequest) {
           throw new Error(`CONCURRENT_LIMIT_EXCEEDED:You have reached your limit of ${concurrentLimit} concurrent session(s). Please end an existing session first.`);
         }
 
-        // 4. Check for payment grace period
-        const graceData = await redis.get(`payment:grace:${session.user.id}`);
+        // 4. Check for payment grace period with Redis fallback
+        let graceData: string | null = null;
         let inGracePeriod = false;
+        
+        // Try Redis first, fallback to database if Redis is unavailable
+        try {
+          graceData = await redis.get(`payment:grace:${session.user.id}`);
+        } catch (redisError) {
+          console.warn(`Redis unavailable for grace period check: ${redisError}`);
+          // Fallback to database metadata
+          const userWithMetadata = await tx.user.findUnique({
+            where: { id: session.user.id },
+            select: { metadata: true }
+          });
+          
+          if (userWithMetadata?.metadata && typeof userWithMetadata.metadata === 'object' && 
+              'paymentGracePeriod' in userWithMetadata.metadata) {
+            const gracePeriodEnd = new Date(userWithMetadata.metadata.paymentGracePeriod as string);
+            if (gracePeriodEnd > new Date()) {
+              inGracePeriod = true;
+              console.log(`User ${session.user.id} in grace period from DB until ${gracePeriodEnd.toISOString()}`);
+              
+              // For database fallback, we can't check specific sessions, so deny all new sessions
+              throw new Error('GRACE_PERIOD:Cannot start new sessions during payment grace period. Please update your payment method.');
+            }
+          }
+        }
         
         if (graceData) {
           let grace: any;
@@ -120,7 +144,11 @@ export async function POST(request: NextRequest) {
           } catch (parseError) {
             console.error(`Malformed grace period data for user ${session.user.id}:`, parseError);
             // Clear malformed data and continue without grace period
-            await redis.del(`payment:grace:${session.user.id}`);
+            try {
+              await redis.del(`payment:grace:${session.user.id}`);
+            } catch (redisDelError) {
+              console.error(`Failed to delete malformed grace data: ${redisDelError}`);
+            }
             grace = null;
           }
           

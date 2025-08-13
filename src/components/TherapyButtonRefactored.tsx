@@ -1218,8 +1218,21 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       // Initialize metrics calculator for real-time metrics
       if (user?.id) {
-        initializeSessionMetrics(newSession, user.id, therapyType, duration as 15 | 20 | 25 | 30 | 60)
-        console.log('📊 Initialized metrics calculator for session:', newSession)
+        // Runtime validation for type safety
+        const validDurations = [15, 20, 25, 30, 60] as const
+        type ValidDuration = typeof validDurations[number]
+        
+        const isValidDuration = (d: number): d is ValidDuration => {
+          return validDurations.includes(d as ValidDuration)
+        }
+        
+        if (isValidDuration(duration)) {
+          initializeSessionMetrics(newSession, user.id, therapyType, duration)
+          console.log('📊 Initialized metrics calculator for session:', newSession)
+        } else {
+          console.error(`Invalid duration ${duration}, defaulting to 30 minutes`)
+          initializeSessionMetrics(newSession, user.id, therapyType, 30)
+        }
       }
       
       // session-active class was already added in handleTherapyClick for immediate UI feedback
