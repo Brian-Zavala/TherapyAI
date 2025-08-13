@@ -1,8 +1,11 @@
 /**
  * Credit validation utilities with overflow protection and security checks
+ * Includes grace period support for payment failures
  */
 
 import { z } from 'zod';
+import { redis } from '@/lib/redis';
+import { prisma } from '@/lib/prisma-optimized';
 
 // PostgreSQL INTEGER max value for overflow protection
 export const MAX_CREDITS = 2147483647;
@@ -175,3 +178,190 @@ export function validateRequestSize(data: unknown): boolean {
 
 export type CreditOperation = z.infer<typeof creditOperationSchema>;
 export type DurationValidation = z.infer<typeof durationValidationSchema>;
+
+// Grace period types and validation
+export interface GracePeriodData {
+  startTime: string;
+  endTime: string;
+  reason: string;
+  allowedSessions: string[];
+  gracePeriodCreditsAllocated: number;
+  gracePeriodCreditsUsed: number;
+  originalCreditsSnapshot: number | null;
+  originalPlan: string;
+}
+
+/**
+ * Validates if a user can use credits during grace period
+ * Tracks grace period credit usage separately from regular credits
+ */
+export async function validateGracePeriodCredits(
+  userId: string,
+  sessionId: string,
+  creditsToUse: number
+): Promise<{ canUse: boolean; reason?: string }> {
+  try {
+    // Get grace period data from Redis with fallback to database
+    let graceData: string | null = null;
+    
+    try {
+      graceData = await redis.get(`payment:grace:${userId}`);
+    } catch (redisError) {
+      console.warn(`Redis unavailable for grace period check: ${redisError}`);
+      
+      // Fallback to database
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { metadata: true }
+      });
+      
+      if (user?.metadata && typeof user.metadata === 'object' && 
+          'gracePeriodData' in user.metadata) {
+        graceData = JSON.stringify(user.metadata.gracePeriodData);
+      }
+    }
+    
+    if (!graceData) {
+      return { canUse: true }; // No grace period, normal credit usage
+    }
+    
+    const grace: GracePeriodData = JSON.parse(graceData);
+    
+    // Check if grace period has expired
+    if (new Date(grace.endTime) < new Date()) {
+      // Grace period expired, clear it
+      try {
+        await redis.del(`payment:grace:${userId}`);
+      } catch (e) {
+        console.error('Failed to clear expired grace period:', e);
+      }
+      return { canUse: false, reason: 'Grace period has expired' };
+    }
+    
+    // Check if session is allowed during grace period
+    if (!grace.allowedSessions.includes(sessionId)) {
+      return { 
+        canUse: false, 
+        reason: 'New sessions cannot be started during payment grace period' 
+      };
+    }
+    
+    // Track grace period credit usage
+    const newUsage = grace.gracePeriodCreditsUsed + creditsToUse;
+    grace.gracePeriodCreditsUsed = newUsage;
+    
+    // Update grace period data with new usage
+    try {
+      await redis.set(
+        `payment:grace:${userId}`,
+        JSON.stringify(grace),
+        'KEEPTTL' // Keep existing TTL
+      );
+    } catch (e) {
+      console.error('Failed to update grace period credit usage:', e);
+    }
+    
+    console.log(`Grace period credit usage for user ${userId}:`, {
+      sessionId,
+      creditsUsed: creditsToUse,
+      totalGraceCreditsUsed: newUsage
+    });
+    
+    return { canUse: true };
+  } catch (error) {
+    console.error('Error validating grace period credits:', error);
+    // On error, deny credit usage for safety
+    return { 
+      canUse: false, 
+      reason: 'Failed to validate grace period status' 
+    };
+  }
+}
+
+/**
+ * Reconciles credits after grace period ends
+ * Called when payment succeeds after a grace period
+ */
+export async function reconcileGracePeriodCredits(
+  userId: string,
+  gracePeriodData: GracePeriodData
+): Promise<void> {
+  try {
+    // Log the reconciliation for audit
+    console.log(`Reconciling grace period credits for user ${userId}:`, {
+      originalCredits: gracePeriodData.originalCreditsSnapshot,
+      creditsUsedDuringGrace: gracePeriodData.gracePeriodCreditsUsed,
+      gracePeriodDuration: new Date(gracePeriodData.endTime).getTime() - new Date(gracePeriodData.startTime).getTime()
+    });
+    
+    // Update user credit history with grace period usage
+    await prisma.userCredit.update({
+      where: { userId },
+      data: {
+        metadata: {
+          lastGracePeriod: {
+            startTime: gracePeriodData.startTime,
+            endTime: gracePeriodData.endTime,
+            creditsUsed: gracePeriodData.gracePeriodCreditsUsed,
+            reconciledAt: new Date().toISOString()
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error reconciling grace period credits:', error);
+  }
+}
+
+/**
+ * Checks if a session can continue during grace period
+ * Returns detailed validation result
+ */
+export async function canSessionContinueDuringGrace(
+  userId: string,
+  sessionId: string
+): Promise<{ 
+  canContinue: boolean; 
+  reason?: string;
+  gracePeriodEnd?: Date;
+}> {
+  try {
+    // Get grace period data
+    const graceData = await redis.get(`payment:grace:${userId}`);
+    if (!graceData) {
+      return { canContinue: true }; // No grace period
+    }
+    
+    const grace: GracePeriodData = JSON.parse(graceData);
+    const gracePeriodEnd = new Date(grace.endTime);
+    
+    // Check if grace period is still active
+    if (gracePeriodEnd < new Date()) {
+      return { 
+        canContinue: false, 
+        reason: 'Grace period has expired',
+        gracePeriodEnd
+      };
+    }
+    
+    // Check if this specific session is allowed
+    if (!grace.allowedSessions.includes(sessionId)) {
+      return { 
+        canContinue: false, 
+        reason: 'This session is not allowed during the grace period',
+        gracePeriodEnd
+      };
+    }
+    
+    return { 
+      canContinue: true,
+      gracePeriodEnd
+    };
+  } catch (error) {
+    console.error('Error checking session grace period:', error);
+    return { 
+      canContinue: false, 
+      reason: 'Failed to verify grace period status' 
+    };
+  }
+}

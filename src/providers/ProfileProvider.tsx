@@ -28,6 +28,7 @@ interface UserProfile {
   onboardingCompleted?: boolean
   onboardingData?: any
   hasSeenIntro?: boolean
+  timezone?: string
   // Family members
   familyMember1?: string
   familyMember2?: string

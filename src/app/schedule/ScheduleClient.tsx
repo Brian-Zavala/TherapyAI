@@ -51,8 +51,8 @@ export default function ScheduleClient() {
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [, setShowRecurringOptions] = useState(false);
-  const [, setRecurringFrequency] = useState("weekly");
+  const [showRecurringOptions, setShowRecurringOptions] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState("weekly");
   const [isLoadingRescheduleSession, setIsLoadingRescheduleSession] =
     useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -89,11 +89,27 @@ export default function ScheduleClient() {
   // Set user preferences from profile
   useEffect(() => {
     if (profile && !profileLoading) {
-      const prefs: Partial<UserPreferences> = {
+      // Create minimal valid UserPreferences object
+      const prefs: UserPreferences = {
+        id: profile.id || 'temp-id',
+        userId: profile.id || 'temp-user-id',
         preferredDays: profile.preferredDays ? (Array.isArray(profile.preferredDays) ? profile.preferredDays : [profile.preferredDays]) : [],
-        timezone: "UTC", // TODO: Add timezone to profile
+        preferredTimes: {
+          start: '09:00',
+          end: '17:00'
+        },
+        timezone: profile.timezone || getUserTimezone(),
+        reminderSettings: {
+          email: profile.notificationPrefs?.includes?.('email') ?? true,
+          sms: profile.notificationPrefs?.includes?.('sms') ?? false,
+          minutesBefore: profile.reminderTiming ? parseInt(profile.reminderTiming) : 60
+        },
+        autoSchedule: false,
+        bufferTime: 15,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
-      setUserPreferences(prefs as UserPreferences);
+      setUserPreferences(prefs);
 
       // Set recurring options based on user preference
       if (profile.recurringSession === "yes") {
@@ -264,7 +280,7 @@ export default function ScheduleClient() {
                     {formatInUserTimezone(
                       upcomingSessions[0].startTime,
                       "MMM d, yyyy h:mm a",
-                      getUserTimezone("UTC")
+                      getUserTimezone(profile?.timezone)
                     )}
                   </p>
                 ) : (
@@ -325,7 +341,7 @@ export default function ScheduleClient() {
                             {formatInUserTimezone(
                               session.startTime,
                               "MMM d, yyyy h:mm a",
-                              getUserTimezone("UTC")
+                              getUserTimezone(profile?.timezone)
                             )}
                           </p>
                           <p className="text-sm text-gray-400 mt-1">
@@ -372,7 +388,7 @@ export default function ScheduleClient() {
                   body: JSON.stringify({
                     date: sessionData.date || new Date().toISOString(),
                     duration: sessionData.duration || 30,
-                    therapyType: "INDIVIDUAL",
+                    therapyType: profile?.sessionPreference === 'couple' ? 'COUPLE' : profile?.sessionPreference === 'family' ? 'FAMILY' : 'SOLO',
                     notes: sessionData.notes || "",
                   }),
                 });
