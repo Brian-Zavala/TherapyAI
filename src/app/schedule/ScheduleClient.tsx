@@ -51,8 +51,11 @@ export default function ScheduleClient() {
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [showRecurringOptions, setShowRecurringOptions] = useState(false);
-  const [recurringFrequency, setRecurringFrequency] = useState("weekly");
+  // These are set based on profile but will be used in future recurring session feature
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_showRecurringOptions, setShowRecurringOptions] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_recurringFrequency, setRecurringFrequency] = useState("weekly");
   const [isLoadingRescheduleSession, setIsLoadingRescheduleSession] =
     useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -63,6 +66,46 @@ export default function ScheduleClient() {
     hasEmailPermission,
     hasSmsPermission,
   } = useNotificationPermissions();
+
+  // Define handleRescheduleSession before it's used
+  const handleRescheduleSession = useCallback(async (sessionId: string) => {
+    try {
+      setIsLoadingRescheduleSession(true);
+      const response = await fetch(`/api/sessions/${sessionId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch session for rescheduling");
+      }
+
+      const sessionData = await response.json();
+
+      // Convert the session data to match the expected format
+      const formattedSession: Session = {
+        id: sessionData.id,
+        userId: sessionData.userId,
+        partnerId: sessionData.partnerId,
+        partnerName: sessionData.partnerName,
+        familyMembers: sessionData.familyMembers || [],
+        startTime: sessionData.date,
+        endTime: sessionData.endTime,
+        status: sessionData.status,
+        therapyType:
+          sessionData.sessionType || sessionData.theme || "individual",
+        notes: sessionData.notes,
+        duration: sessionData.duration || 30,
+      };
+
+      setSessionToEdit(formattedSession);
+      setShowScheduler(true);
+
+      // Clear the query parameter to avoid re-triggering
+      router.replace("/schedule");
+    } catch (error) {
+      console.error("Error loading session for rescheduling:", error);
+      alert("Unable to load session for rescheduling. Please try again.");
+    } finally {
+      setIsLoadingRescheduleSession(false);
+    }
+  }, [router]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -132,45 +175,6 @@ export default function ScheduleClient() {
       setIsLoading(false);
     }
   };
-
-  const handleRescheduleSession = useCallback(async (sessionId: string) => {
-    try {
-      setIsLoadingRescheduleSession(true);
-      const response = await fetch(`/api/sessions/${sessionId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch session for rescheduling");
-      }
-
-      const sessionData = await response.json();
-
-      // Convert the session data to match the expected format
-      const formattedSession: Session = {
-        id: sessionData.id,
-        userId: sessionData.userId,
-        partnerId: sessionData.partnerId,
-        partnerName: sessionData.partnerName,
-        familyMembers: sessionData.familyMembers || [],
-        startTime: sessionData.date,
-        endTime: sessionData.endTime,
-        status: sessionData.status,
-        therapyType:
-          sessionData.sessionType || sessionData.theme || "individual",
-        notes: sessionData.notes,
-        duration: sessionData.duration || 30,
-      };
-
-      setSessionToEdit(formattedSession);
-      setShowScheduler(true);
-
-      // Clear the query parameter to avoid re-triggering
-      router.replace("/schedule");
-    } catch (error) {
-      console.error("Error loading session for rescheduling:", error);
-      alert("Unable to load session for rescheduling. Please try again.");
-    } finally {
-      setIsLoadingRescheduleSession(false);
-    }
-  }, [router]);
 
   const handleScheduleSession = () => {
     // Check if user has notification permissions
