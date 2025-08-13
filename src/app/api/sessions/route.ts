@@ -9,6 +9,7 @@ import { sendSessionConfirmation } from '@/lib/sms-service';
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
 import { validateEmailEnvironment } from '@/lib/env-validation';
 import { z } from 'zod';
+import { strictDurationSchema } from '@/lib/validation/duration-validation';
 import type { Session, User } from '@prisma/client';
 
 // Utility to convert frontend sessionType to Prisma enum
@@ -93,7 +94,7 @@ const createSessionSchema = z.object({
   // These are converted to uppercase for Prisma's SessionStatus enum
   status: z.enum(['scheduled', 'active', 'completed', 'cancelled']).default('scheduled'),
   forceNew: z.boolean().optional().default(false),
-  duration: z.number().min(15).max(60).default(30),
+  duration: strictDurationSchema.default(30),
   notes: z.string().max(500).default(''),
   assistantId: z.string().optional(),
   isRecurring: z.boolean().default(false),

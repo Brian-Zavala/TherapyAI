@@ -1,368 +1,352 @@
-// Performance monitoring for production
-import { profileCache } from '@/lib/cache/profile-cache'
+import { redis } from '@/lib/cache/redis-client';
+import { prisma } from '@/lib/prisma-optimized';
 
-interface PerformanceMetrics {
-  pageLoad: {
-    ttfb: number
-    fcp: number
-    lcp: number
-    fid: number
-    cls: number
-  }
-  api: {
-    [endpoint: string]: {
-      count: number
-      totalDuration: number
-      avgDuration: number
-      minDuration: number
-      maxDuration: number
-      errors: number
-      lastError?: string
-      lastMeasured: number
-    }
-  }
-  database: {
-    queryCount: number
-    slowQueries: number
-    avgQueryTime: number
-    connectionPoolUsage: number
-  }
-  cache: {
-    hits: number
-    misses: number
-    hitRate: number
-    redisAvailable: boolean
-  }
+interface PerformanceMetric {
+  endpoint: string;
+  method: string;
+  duration: number;
+  statusCode: number;
+  sessionModel?: 'Session' | 'TherapySession';
+  userId?: string;
+  timestamp: Date;
+  memory?: {
+    used: number;
+    heapUsed: number;
+    heapTotal: number;
+  };
+  database?: {
+    queryCount: number;
+    slowQueries: number;
+    connectionTime: number;
+  };
+}
+
+interface DatabaseMetrics {
+  queryDuration: number;
+  model: string;
+  operation: string;
+  recordCount?: number;
+  isSlowQuery: boolean;
 }
 
 class PerformanceMonitor {
-  private metrics: PerformanceMetrics = {
-    pageLoad: {
-      ttfb: 0,
-      fcp: 0,
-      lcp: 0,
-      fid: 0,
-      cls: 0
-    },
-    api: {},
-    database: {
-      queryCount: 0,
-      slowQueries: 0,
-      avgQueryTime: 0,
-      connectionPoolUsage: 0
-    },
-    cache: {
-      hits: 0,
-      misses: 0,
-      hitRate: 0,
-      redisAvailable: true
+  private metrics: PerformanceMetric[] = [];
+  private dbMetrics: DatabaseMetrics[] = [];
+  private readonly SLOW_QUERY_THRESHOLD = 1000; // 1 second
+  private readonly SLOW_API_THRESHOLD = 2000; // 2 seconds
+  private readonly MAX_METRICS_IN_MEMORY = 1000;
+
+  // Track API endpoint performance
+  async trackApiPerformance(
+    endpoint: string,
+    method: string,
+    duration: number,
+    statusCode: number,
+    metadata?: {
+      sessionModel?: 'Session' | 'TherapySession';
+      userId?: string;
+      queryCount?: number;
+      slowQueries?: number;
     }
-  }
-
-  private readonly SLOW_API_THRESHOLD = 1000 // 1 second
-  private readonly SLOW_QUERY_THRESHOLD = 100 // 100ms
-  private readonly METRICS_CACHE_KEY = 'performance:metrics'
-  private readonly METRICS_TTL = 60 * 60 * 1000 // 1 hour
-
-  constructor() {
-    // Load persisted metrics on startup
-    this.loadPersistedMetrics()
-    
-    // Persist metrics periodically
-    if (typeof window === 'undefined') { // Server-side only
-      setInterval(() => {
-        this.persistMetrics()
-      }, 5 * 60 * 1000) // Every 5 minutes
-    }
-  }
-
-  // Track API performance
-  async trackApiCall(endpoint: string, duration: number, error?: Error) {
-    if (!this.metrics.api[endpoint]) {
-      this.metrics.api[endpoint] = {
-        count: 0,
-        totalDuration: 0,
-        avgDuration: 0,
-        minDuration: Infinity,
-        maxDuration: 0,
-        errors: 0,
-        lastMeasured: Date.now()
+  ): Promise<void> {
+    const metric: PerformanceMetric = {
+      endpoint,
+      method,
+      duration,
+      statusCode,
+      sessionModel: metadata?.sessionModel,
+      userId: metadata?.userId,
+      timestamp: new Date(),
+      memory: this.getMemoryUsage(),
+      database: {
+        queryCount: metadata?.queryCount || 0,
+        slowQueries: metadata?.slowQueries || 0,
+        connectionTime: 0 // Will be populated by database monitor
       }
-    }
+    };
 
-    const metric = this.metrics.api[endpoint]
-    metric.count++
-    metric.totalDuration += duration
-    metric.avgDuration = metric.totalDuration / metric.count
-    metric.minDuration = Math.min(metric.minDuration, duration)
-    metric.maxDuration = Math.max(metric.maxDuration, duration)
-    metric.lastMeasured = Date.now()
+    // Store in memory
+    this.metrics.push(metric);
+    this.trimMetrics();
 
-    if (error) {
-      metric.errors++
-      metric.lastError = error.message
-    }
-
-    // Alert if API is slow
+    // Store slow APIs in Redis for monitoring
     if (duration > this.SLOW_API_THRESHOLD) {
-      console.warn(`[Performance] Slow API call to ${endpoint}: ${duration}ms`)
-      this.sendAlert('slow_api', {
+      await this.recordSlowApi(metric);
+    }
+
+    // Log critical performance issues
+    if (duration > this.SLOW_API_THRESHOLD * 2) { // 4+ seconds
+      console.error('[PerformanceMonitor] Critical slow API:', {
         endpoint,
+        method,
         duration,
-        threshold: this.SLOW_API_THRESHOLD
-      })
-    }
-
-    // Alert if error rate is high
-    const errorRate = metric.errors / metric.count
-    if (errorRate > 0.1 && metric.count > 10) { // 10% error rate
-      this.sendAlert('high_error_rate', {
-        endpoint,
-        errorRate,
-        errors: metric.errors,
-        total: metric.count
-      })
+        statusCode,
+        sessionModel: metadata?.sessionModel,
+        userId: metadata?.userId
+      });
     }
   }
 
-  // Track database performance
-  trackDatabaseQuery(duration: number, queryType?: string) {
-    this.metrics.database.queryCount++
+  // Track database query performance
+  trackDatabaseQuery(
+    model: string,
+    operation: string,
+    duration: number,
+    recordCount?: number
+  ): void {
+    const isSlowQuery = duration > this.SLOW_QUERY_THRESHOLD;
     
-    if (duration > this.SLOW_QUERY_THRESHOLD) {
-      this.metrics.database.slowQueries++
-    }
+    const metric: DatabaseMetrics = {
+      queryDuration: duration,
+      model,
+      operation,
+      recordCount,
+      isSlowQuery
+    };
 
-    // Update average query time
-    const totalTime = this.metrics.database.avgQueryTime * (this.metrics.database.queryCount - 1) + duration
-    this.metrics.database.avgQueryTime = totalTime / this.metrics.database.queryCount
+    this.dbMetrics.push(metric);
+    this.trimDbMetrics();
 
-    // Alert if too many slow queries
-    const slowQueryRate = this.metrics.database.slowQueries / this.metrics.database.queryCount
-    if (slowQueryRate > 0.2 && this.metrics.database.queryCount > 50) { // 20% slow queries
-      this.sendAlert('high_slow_query_rate', {
-        slowQueries: this.metrics.database.slowQueries,
-        totalQueries: this.metrics.database.queryCount,
-        rate: slowQueryRate
-      })
+    // Log slow queries
+    if (isSlowQuery) {
+      console.warn('[PerformanceMonitor] Slow query detected:', {
+        model,
+        operation,
+        duration,
+        recordCount
+      });
     }
   }
 
-  // Track cache performance
-  trackCacheAccess(hit: boolean) {
-    if (hit) {
-      this.metrics.cache.hits++
-    } else {
-      this.metrics.cache.misses++
-    }
+  // Get performance summary for monitoring dashboard
+  getPerformanceSummary() {
+    const now = Date.now();
+    const oneHourAgo = now - (60 * 60 * 1000);
     
-    const total = this.metrics.cache.hits + this.metrics.cache.misses
-    this.metrics.cache.hitRate = total > 0 ? this.metrics.cache.hits / total : 0
+    const recentMetrics = this.metrics.filter(
+      m => m.timestamp.getTime() > oneHourAgo
+    );
 
-    // Alert if cache hit rate is low
-    if (this.metrics.cache.hitRate < 0.5 && total > 100) { // Less than 50% hit rate
-      this.sendAlert('low_cache_hit_rate', {
-        hitRate: this.metrics.cache.hitRate,
-        hits: this.metrics.cache.hits,
-        misses: this.metrics.cache.misses
-      })
-    }
-  }
-
-  // Track page load metrics (client-side)
-  trackWebVitals(metrics: Partial<PerformanceMetrics['pageLoad']>) {
-    Object.assign(this.metrics.pageLoad, metrics)
-
-    // Alert if core web vitals are poor
-    if (metrics.lcp && metrics.lcp > 2500) { // LCP > 2.5s
-      this.sendAlert('poor_lcp', { lcp: metrics.lcp })
-    }
-    
-    if (metrics.fid && metrics.fid > 100) { // FID > 100ms
-      this.sendAlert('poor_fid', { fid: metrics.fid })
-    }
-    
-    if (metrics.cls && metrics.cls > 0.1) { // CLS > 0.1
-      this.sendAlert('poor_cls', { cls: metrics.cls })
-    }
-  }
-
-  // Get current metrics
-  getMetrics(): PerformanceMetrics {
-    return JSON.parse(JSON.stringify(this.metrics)) // Deep clone
-  }
-
-  // Get health status
-  getHealthStatus() {
-    const apiHealth = this.calculateApiHealth()
-    const dbHealth = this.calculateDatabaseHealth()
-    const cacheHealth = this.calculateCacheHealth()
-    
-    const overallHealth = (apiHealth + dbHealth + cacheHealth) / 3
+    const recentDbMetrics = this.dbMetrics.filter(
+      m => Date.now() - 60 * 60 * 1000 < now // approximate for db metrics
+    );
 
     return {
-      status: overallHealth > 0.8 ? 'healthy' : overallHealth > 0.5 ? 'degraded' : 'unhealthy',
-      score: overallHealth,
-      components: {
-        api: { score: apiHealth, status: this.getStatusFromScore(apiHealth) },
-        database: { score: dbHealth, status: this.getStatusFromScore(dbHealth) },
-        cache: { score: cacheHealth, status: this.getStatusFromScore(cacheHealth) }
+      api: {
+        totalRequests: recentMetrics.length,
+        averageResponseTime: this.calculateAverage(recentMetrics.map(m => m.duration)),
+        slowRequests: recentMetrics.filter(m => m.duration > this.SLOW_API_THRESHOLD).length,
+        errorRate: recentMetrics.filter(m => m.statusCode >= 400).length / recentMetrics.length,
+        sessionModelUsage: {
+          Session: recentMetrics.filter(m => m.sessionModel === 'Session').length,
+          TherapySession: recentMetrics.filter(m => m.sessionModel === 'TherapySession').length
+        }
       },
-      alerts: this.getActiveAlerts()
-    }
+      database: {
+        totalQueries: recentDbMetrics.length,
+        averageQueryTime: this.calculateAverage(recentDbMetrics.map(m => m.queryDuration)),
+        slowQueries: recentDbMetrics.filter(m => m.isSlowQuery).length,
+        modelUsage: this.getModelUsageStats(recentDbMetrics)
+      },
+      memory: this.getMemoryUsage(),
+      timestamp: new Date().toISOString()
+    };
   }
 
-  private calculateApiHealth(): number {
-    const endpoints = Object.values(this.metrics.api)
-    if (endpoints.length === 0) return 1
+  // Get session model comparison metrics
+  getSessionModelComparison() {
+    const sessionMetrics = this.metrics.filter(m => m.sessionModel === 'Session');
+    const therapySessionMetrics = this.metrics.filter(m => m.sessionModel === 'TherapySession');
 
-    let score = 1
-    
-    // Deduct for slow APIs
-    const avgResponseTime = endpoints.reduce((sum, e) => sum + e.avgDuration, 0) / endpoints.length
-    if (avgResponseTime > 500) score -= 0.2
-    if (avgResponseTime > 1000) score -= 0.3
-    
-    // Deduct for errors
-    const totalErrors = endpoints.reduce((sum, e) => sum + e.errors, 0)
-    const totalCalls = endpoints.reduce((sum, e) => sum + e.count, 0)
-    const errorRate = totalCalls > 0 ? totalErrors / totalCalls : 0
-    score -= errorRate * 0.5
-
-    return Math.max(0, score)
-  }
-
-  private calculateDatabaseHealth(): number {
-    let score = 1
-    
-    // Deduct for slow queries
-    const slowQueryRate = this.metrics.database.queryCount > 0 
-      ? this.metrics.database.slowQueries / this.metrics.database.queryCount 
-      : 0
-    score -= slowQueryRate * 0.5
-    
-    // Deduct for high average query time
-    if (this.metrics.database.avgQueryTime > 50) score -= 0.2
-    if (this.metrics.database.avgQueryTime > 100) score -= 0.3
-
-    return Math.max(0, score)
-  }
-
-  private calculateCacheHealth(): number {
-    let score = 1
-    
-    // Deduct for low hit rate
-    if (this.metrics.cache.hitRate < 0.8) score -= 0.2
-    if (this.metrics.cache.hitRate < 0.5) score -= 0.3
-    
-    // Deduct if Redis is unavailable
-    if (!this.metrics.cache.redisAvailable) score -= 0.3
-
-    return Math.max(0, score)
-  }
-
-  private getStatusFromScore(score: number): string {
-    if (score > 0.8) return 'healthy'
-    if (score > 0.5) return 'degraded'
-    return 'unhealthy'
-  }
-
-  private activeAlerts: Map<string, any> = new Map()
-
-  private sendAlert(type: string, data: any) {
-    const alert = {
-      type,
-      data,
-      timestamp: Date.now(),
-      id: `${type}_${Date.now()}`
-    }
-    
-    this.activeAlerts.set(alert.id, alert)
-    
-    // Remove old alerts
-    for (const [id, alert] of this.activeAlerts) {
-      if (Date.now() - alert.timestamp > 5 * 60 * 1000) { // 5 minutes
-        this.activeAlerts.delete(id)
+    return {
+      Session: {
+        count: sessionMetrics.length,
+        averageResponseTime: this.calculateAverage(sessionMetrics.map(m => m.duration)),
+        slowRequestCount: sessionMetrics.filter(m => m.duration > this.SLOW_API_THRESHOLD).length
+      },
+      TherapySession: {
+        count: therapySessionMetrics.length,
+        averageResponseTime: this.calculateAverage(therapySessionMetrics.map(m => m.duration)),
+        slowRequestCount: therapySessionMetrics.filter(m => m.duration > this.SLOW_API_THRESHOLD).length
+      },
+      performance_difference: {
+        response_time_ratio: sessionMetrics.length > 0 && therapySessionMetrics.length > 0
+          ? this.calculateAverage(sessionMetrics.map(m => m.duration)) / 
+            this.calculateAverage(therapySessionMetrics.map(m => m.duration))
+          : null
       }
+    };
+  }
+
+  // Record slow API in Redis for alerting
+  private async recordSlowApi(metric: PerformanceMetric): Promise<void> {
+    try {
+      const key = `slow-api:${Date.now()}`;
+      const data = {
+        endpoint: metric.endpoint,
+        method: metric.method,
+        duration: metric.duration,
+        statusCode: metric.statusCode,
+        sessionModel: metric.sessionModel,
+        userId: metric.userId,
+        timestamp: metric.timestamp.toISOString()
+      };
+
+      await redis.set(key, JSON.stringify(data), 'EX', 3600); // 1 hour expiry
+    } catch (error) {
+      console.error('[PerformanceMonitor] Failed to record slow API:', error);
+    }
+  }
+
+  // Get memory usage statistics
+  private getMemoryUsage() {
+    const memUsage = process.memoryUsage();
+    return {
+      used: Math.round(memUsage.rss / 1024 / 1024), // MB
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+    };
+  }
+
+  // Calculate average from array of numbers
+  private calculateAverage(numbers: number[]): number {
+    if (numbers.length === 0) return 0;
+    return Math.round(numbers.reduce((sum, num) => sum + num, 0) / numbers.length);
+  }
+
+  // Get model usage statistics
+  private getModelUsageStats(metrics: DatabaseMetrics[]) {
+    const usage: Record<string, number> = {};
+    metrics.forEach(m => {
+      usage[m.model] = (usage[m.model] || 0) + 1;
+    });
+    return usage;
+  }
+
+  // Trim metrics to prevent memory leaks
+  private trimMetrics(): void {
+    if (this.metrics.length > this.MAX_METRICS_IN_MEMORY) {
+      this.metrics = this.metrics.slice(-this.MAX_METRICS_IN_MEMORY);
+    }
+  }
+
+  // Trim database metrics to prevent memory leaks
+  private trimDbMetrics(): void {
+    if (this.dbMetrics.length > this.MAX_METRICS_IN_MEMORY) {
+      this.dbMetrics = this.dbMetrics.slice(-this.MAX_METRICS_IN_MEMORY);
+    }
+  }
+
+  // Check for performance anomalies
+  async checkPerformanceAnomalies(): Promise<{
+    hasAnomalies: boolean;
+    anomalies: Array<{
+      type: string;
+      message: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      data?: any;
+    }>;
+  }> {
+    const summary = this.getPerformanceSummary();
+    const anomalies = [];
+
+    // Check for high error rate
+    if (summary.api.errorRate > 0.1) { // 10% error rate
+      anomalies.push({
+        type: 'high_error_rate',
+        message: `High API error rate: ${(summary.api.errorRate * 100).toFixed(1)}%`,
+        severity: summary.api.errorRate > 0.25 ? 'critical' : 'high' as const,
+        data: { errorRate: summary.api.errorRate }
+      });
     }
 
-    // Log alert
-    console.error(`[Performance Alert] ${type}:`, data)
+    // Check for slow API responses
+    if (summary.api.averageResponseTime > this.SLOW_API_THRESHOLD) {
+      anomalies.push({
+        type: 'slow_api_responses',
+        message: `Slow average API response time: ${summary.api.averageResponseTime}ms`,
+        severity: summary.api.averageResponseTime > this.SLOW_API_THRESHOLD * 2 ? 'critical' : 'high' as const,
+        data: { averageResponseTime: summary.api.averageResponseTime }
+      });
+    }
+
+    // Check for excessive slow queries
+    const slowQueryRate = summary.database.totalQueries > 0 
+      ? summary.database.slowQueries / summary.database.totalQueries 
+      : 0;
     
-    // Send to monitoring service
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureMessage(`Performance Alert: ${type}`, {
-        level: 'warning',
-        extra: data
-      })
+    if (slowQueryRate > 0.1) { // 10% slow query rate
+      anomalies.push({
+        type: 'excessive_slow_queries',
+        message: `High slow query rate: ${(slowQueryRate * 100).toFixed(1)}%`,
+        severity: slowQueryRate > 0.25 ? 'critical' : 'medium' as const,
+        data: { slowQueryRate, totalQueries: summary.database.totalQueries }
+      });
     }
-  }
 
-  private getActiveAlerts() {
-    return Array.from(this.activeAlerts.values())
-      .filter(alert => Date.now() - alert.timestamp < 5 * 60 * 1000)
-  }
-
-  private async loadPersistedMetrics() {
-    try {
-      const cached = await profileCache.get(this.METRICS_CACHE_KEY)
-      if (cached) {
-        this.metrics = cached
-        console.log('[Performance] Loaded persisted metrics')
-      }
-    } catch (error) {
-      console.error('[Performance] Error loading persisted metrics:', error)
+    // Check memory usage
+    if (summary.memory.heapUsed > 512) { // 512MB heap usage
+      anomalies.push({
+        type: 'high_memory_usage',
+        message: `High memory usage: ${summary.memory.heapUsed}MB`,
+        severity: summary.memory.heapUsed > 1024 ? 'critical' : 'medium' as const,
+        data: summary.memory
+      });
     }
-  }
 
-  private async persistMetrics() {
-    try {
-      await profileCache.set(this.METRICS_CACHE_KEY, this.metrics, this.METRICS_TTL)
-      console.log('[Performance] Persisted metrics')
-    } catch (error) {
-      console.error('[Performance] Error persisting metrics:', error)
-    }
+    return {
+      hasAnomalies: anomalies.length > 0,
+      anomalies
+    };
   }
 }
 
-// Singleton instance
-export const performanceMonitor = new PerformanceMonitor()
+// Export singleton instance
+export const performanceMonitor = new PerformanceMonitor();
 
-// Helper functions for easy tracking
-export function trackApiPerformance(endpoint: string, fn: () => Promise<any>) {
-  return async () => {
-    const start = Date.now()
-    let error: Error | undefined
+// Export middleware for Next.js API routes
+export function withPerformanceTracking(
+  handler: (req: any, res: any) => Promise<any>,
+  options?: { sessionModel?: 'Session' | 'TherapySession' }
+) {
+  return async (req: any, res: any) => {
+    const startTime = Date.now();
+    const endpoint = req.url || 'unknown';
+    const method = req.method || 'GET';
     
-    try {
-      const result = await fn()
-      return result
-    } catch (e) {
-      error = e as Error
-      throw e
-    } finally {
-      const duration = Date.now() - start
-      performanceMonitor.trackApiCall(endpoint, duration, error)
-    }
-  }
-}
+    let statusCode = 200;
+    let userId: string | undefined;
 
-// Middleware for API routes
-export function withPerformanceTracking(handler: Function) {
-  return async (req: Request, ...args: any[]) => {
-    const start = Date.now()
-    const endpoint = new URL(req.url).pathname
-    let error: Error | undefined
-    
     try {
-      const result = await handler(req, ...args)
-      return result
-    } catch (e) {
-      error = e as Error
-      throw e
+      // Extract user ID if available
+      const session = req.session || req.user;
+      userId = session?.user?.id || session?.id;
+
+      const result = await handler(req, res);
+      
+      // Get status code from response
+      statusCode = res.statusCode || 200;
+      
+      return result;
+    } catch (error) {
+      statusCode = 500;
+      throw error;
     } finally {
-      const duration = Date.now() - start
-      performanceMonitor.trackApiCall(endpoint, duration, error)
+      const duration = Date.now() - startTime;
+      
+      // Track the performance asynchronously
+      performanceMonitor.trackApiPerformance(
+        endpoint,
+        method,
+        duration,
+        statusCode,
+        {
+          sessionModel: options?.sessionModel,
+          userId
+        }
+      ).catch(err => {
+        console.error('[PerformanceMonitor] Failed to track API performance:', err);
+      });
     }
-  }
+  };
 }

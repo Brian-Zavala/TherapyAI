@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
+import { strictDurationSchema } from '@/lib/validation/duration-validation';
 import { EnhancedReminderEngine } from '@/lib/enhanced-scheduler/reminder-engine';
 import { CalendarIntegrationService } from '@/lib/enhanced-scheduler/calendar-integration';
 import { Logger } from '@/lib/enhanced-scheduler/logging';
@@ -15,7 +16,7 @@ import { Logger } from '@/lib/enhanced-scheduler/logging';
 // Request validation schema
 const CreateSessionSchema = z.object({
   date: z.string().datetime(),
-  duration: z.number().min(15).max(180).default(60),
+  duration: strictDurationSchema.default(30),
   theme: z.string().min(1).max(255).default('AI Therapy Session'),
   notes: z.string().max(1000).optional(),
   notificationPrefs: z.string().default('email'),

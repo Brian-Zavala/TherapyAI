@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         if (session.metadata?.userId) {
           console.log(`🔄 Attempting to update user ${session.metadata.userId} subscription...`);
           try {
-            await prisma.$transaction(async (tx) => {
+            const transactionResult = await prisma.$transaction(async (tx) => {
               // Check if user exists
               const user = await tx.user.findUnique({
                 where: { id: session.metadata.userId },
@@ -167,7 +167,16 @@ export async function POST(request: NextRequest) {
               console.log(`👤 Found user:`, user ? `${user.email} (${user.id})` : 'NOT FOUND');
               
               if (!user) {
-                throw new Error(`User ${session.metadata.userId} not found`);
+                // SECURITY FIX: Don't throw error to prevent webhook retry attacks
+                console.error(`❌ Security Alert: Webhook attempted to update non-existent user ${session.metadata.userId}`);
+                // Return early from transaction - don't process further
+                return null;
+              }
+              
+              // Validate Stripe customer ID if user already has one
+              if (user.stripeCustomerId && user.stripeCustomerId !== session.customer) {
+                console.error(`❌ Security Alert: Customer ID mismatch for user ${user.id}. Expected: ${user.stripeCustomerId}, Got: ${session.customer}`);
+                // Continue anyway as user may have multiple Stripe accounts (edge case)
               }
               
               // Update user subscription
@@ -188,7 +197,16 @@ export async function POST(request: NextRequest) {
                 subscriptionId: updatedUser.subscriptionId,
                 stripeCustomerId: updatedUser.stripeCustomerId,
               });
+              
+              return updatedUser; // Return the updated user
             });
+            
+            // Check if transaction succeeded (user was found and updated)
+            if (!transactionResult) {
+              console.warn(`⚠️ User ${session.metadata.userId} not found, skipping credit initialization`);
+              // Return success to prevent webhook retry
+              break;
+            }
             
             console.log(`✅ Subscription activated for user ${session.metadata.userId}`);
             

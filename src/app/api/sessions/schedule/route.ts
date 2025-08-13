@@ -6,11 +6,12 @@ import { prisma } from '@/lib/prisma-optimized';
 import { logger } from '@/lib/logger';
 import { getPersonalizedAssistantConfig } from '@/lib/vapi';
 import { z } from 'zod';
+import { strictDurationSchema } from '@/lib/validation/duration-validation';
 
 // Validation schema for scheduling
 const ScheduleSessionSchema = z.object({
   sessionDate: z.string().datetime(),
-  duration: z.number().min(15).max(240).default(60),
+  duration: strictDurationSchema.default(30),
   notes: z.string().optional(),
   userId: z.string(),
   theme: z.string().optional(),
