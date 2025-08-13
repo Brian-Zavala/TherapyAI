@@ -33,31 +33,47 @@ const durationOptions: DurationOption[] = [
     priceMultiplier: 0.25
   },
   {
-    minutes: 30,
-    label: '30 minutes',
-    description: 'Quick check-in or focused topic',
+    minutes: 20,
+    label: '20 minutes',
+    description: 'Essential session for meaningful progress',
     icon: Clock,
     popular: true,
-    bestFor: ['Progress updates', 'Single issue focus', 'Busy schedules'],
+    bestFor: ['Regular therapy', 'Relationship work', 'Essential tier'],
+    priceMultiplier: 0.35
+  },
+  {
+    minutes: 25,
+    label: '25 minutes',
+    description: 'Extended session for deeper exploration',
+    icon: Calendar,
+    bestFor: ['Growth tier', 'Complex topics', 'Therapeutic progress'],
+    priceMultiplier: 0.42
+  },
+  {
+    minutes: 30,
+    label: '30 minutes',
+    description: 'Standard session with comprehensive coverage',
+    icon: Clock,
+    bestFor: ['Progress updates', 'Multiple topics', 'Unlimited tier'],
     priceMultiplier: 0.5
   },
   {
     minutes: 60,
     label: '60 minutes',
-    description: 'Full session with comprehensive coverage',
+    description: 'Full session with in-depth exploration',
     icon: Target,
-    bestFor: ['Couples therapy', 'Complex topics', 'First sessions'],
+    bestFor: ['Couples therapy', 'Complex issues', 'First sessions'],
     priceMultiplier: 1.0
   }
 ]
 
 const therapyTypeRecommendations: Record<string, number> = {
-  INDIVIDUAL: 30,
-  COUPLES: 60,
-  FAMILY: 60,
-  GROUP: 60,
+  INDIVIDUAL: 20,
+  COUPLES: 30,
+  FAMILY: 30,
+  GROUP: 30,
   CLINICAL: 60,
-  WELLNESS: 30
+  WELLNESS: 20
 }
 
 export function SessionDurationPicker({
