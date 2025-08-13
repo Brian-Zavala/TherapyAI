@@ -82,7 +82,16 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Determine plan type
-        const planType = user.subscription?.planType || 'free';
+        const planType = (user.subscription?.planType || 'free') as PlanType;
+
+        // 2a. Validate duration for user's plan
+        const durationValidation = validateAndSanitizeDuration(validatedData.duration, planType);
+        if (!durationValidation.isValid) {
+          throw new Error(`INVALID_DURATION:${durationValidation.error}`);
+        }
+        
+        // Use the validated duration (may have been sanitized)
+        const sessionDuration = durationValidation.duration;
 
         // 3. Check concurrent session limits
         const activeSessions = await tx.therapySession.count({
@@ -163,8 +172,8 @@ export async function POST(request: NextRequest) {
           ? currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits 
           : 0;
         
-        if (!isUnlimited && !inGracePeriod && availableCredits < validatedData.duration) {
-          throw new Error(`INSUFFICIENT_CREDITS:You need ${validatedData.duration} minutes but only have ${availableCredits} available.`);
+        if (!isUnlimited && !inGracePeriod && availableCredits < sessionDuration) {
+          throw new Error(`INSUFFICIENT_CREDITS:You need ${sessionDuration} minutes but only have ${availableCredits} available.`);
         }
 
         // 6. Create the session
@@ -174,7 +183,7 @@ export async function POST(request: NextRequest) {
             therapyType: validatedData.therapyType.toUpperCase() as TherapyType,
             status: SessionStatus.SCHEDULED,
             scheduledFor: new Date(),
-            sessionLength: validatedData.duration,
+            sessionLength: sessionDuration,
             metadata: validatedData.metadata || {},
           },
         });
@@ -184,7 +193,7 @@ export async function POST(request: NextRequest) {
           await creditManager.reserveCredits(
             session.user.id,
             newSession.id,
-            validatedData.duration
+            sessionDuration
           );
         }
 
@@ -203,8 +212,8 @@ export async function POST(request: NextRequest) {
 
         return {
           session: newSession,
-          creditsReserved: !isUnlimited ? validatedData.duration : 0,
-          creditsRemaining: !isUnlimited ? availableCredits - validatedData.duration : -1,
+          creditsReserved: !isUnlimited ? sessionDuration : 0,
+          creditsRemaining: !isUnlimited ? availableCredits - sessionDuration : -1,
           planType,
           concurrentSessions: activeSessions + 1,
           concurrentLimit,
@@ -272,6 +281,7 @@ export async function POST(request: NextRequest) {
         code === 'INSUFFICIENT_CREDITS' ? 402 :
         code === 'NO_CREDITS' ? 402 :
         code === 'GRACE_PERIOD' ? 402 :
+        code === 'INVALID_DURATION' ? 400 :
         500;
 
       return NextResponse.json({
