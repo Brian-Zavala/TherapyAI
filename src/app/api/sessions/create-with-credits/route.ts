@@ -3,21 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
+import { redis } from '@/lib/cache/redis-client';
 import { SessionStatus, TherapyType } from '@prisma/client';
 import { z } from 'zod';
-
-// Validation schema for session creation with credits
-const createSessionSchema = z.object({
-  duration: z.number().min(5).max(180),
-  therapyType: z.enum(['individual', 'couple', 'family']),
-  familyMembers: z.array(z.object({
-    name: z.string(),
-    age: z.number(),
-    relation: z.string(),
-  })).optional(),
-  metadata: z.record(z.string()).optional(),
-});
+import { 
+  sessionCreationSchema, 
+  validateAndSanitizeDuration,
+  type PlanType 
+} from '@/lib/validation/duration-validation';
 
 // Concurrent session limits by plan
 const CONCURRENT_LIMITS = {
@@ -48,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = createSessionSchema.parse(body);
+    const validatedData = sessionCreationSchema.parse(body);
 
     // Atomic credit validation and session creation
     const lockKey = `session:create:${session.user.id}`;
@@ -112,18 +105,47 @@ export async function POST(request: NextRequest) {
         let inGracePeriod = false;
         
         if (graceData) {
-          const grace = JSON.parse(graceData);
-          const gracePeriodEnd = new Date(grace.gracePeriodEnd);
+          let grace: any;
+          try {
+            grace = JSON.parse(graceData);
+          } catch (parseError) {
+            console.error(`Malformed grace period data for user ${session.user.id}:`, parseError);
+            // Clear malformed data and continue without grace period
+            await redis.del(`payment:grace:${session.user.id}`);
+            grace = null;
+          }
           
-          if (gracePeriodEnd > new Date()) {
-            inGracePeriod = true;
-            console.log(`User ${session.user.id} in grace period until ${gracePeriodEnd.toISOString()}`);
+          if (grace && grace.gracePeriodEnd) {
+            const gracePeriodEnd = new Date(grace.gracePeriodEnd);
             
-            // Check if this is an existing active session continuation
-            const isExistingSession = grace.activeSessions?.includes(validatedData.metadata?.continuationOf);
-            
-            if (!isExistingSession) {
-              throw new Error('GRACE_PERIOD:Cannot start new sessions during payment grace period. Please update your payment method.');
+            if (gracePeriodEnd > new Date()) {
+              inGracePeriod = true;
+              console.log(`User ${session.user.id} in grace period until ${gracePeriodEnd.toISOString()}`);
+              
+              // SECURITY FIX: Validate session ownership and active status
+              let isExistingSession = false;
+              if (validatedData.metadata?.continuationOf && grace.activeSessions?.includes(validatedData.metadata.continuationOf)) {
+                // Verify the session belongs to this user and is actually active
+                const existingSession = await tx.therapySession.findFirst({
+                  where: {
+                    id: validatedData.metadata.continuationOf,
+                    userId: session.user.id,
+                    status: {
+                      in: [SessionStatus.ACTIVE, SessionStatus.PAUSED]
+                    }
+                  }
+                });
+                
+                isExistingSession = !!existingSession;
+                
+                if (!isExistingSession) {
+                  console.warn(`Security Alert: User ${session.user.id} attempted to continue non-existent or unauthorized session ${validatedData.metadata.continuationOf}`);
+                }
+              }
+              
+              if (!isExistingSession) {
+                throw new Error('GRACE_PERIOD:Cannot start new sessions during payment grace period. Please update your payment method.');
+              }
             }
           }
         }
