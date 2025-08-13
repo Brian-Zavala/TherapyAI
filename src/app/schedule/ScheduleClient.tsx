@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Calendar,
   Clock,
-  CheckCircle,
-  XCircle,
   Loader,
-  AlertCircle,
-  Calendar as CalendarIcon,
   Users,
-  Repeat,
-  Settings,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { useSession } from "next-auth/react";
@@ -24,8 +18,6 @@ import { UserPreferences } from "@/lib/enhanced-scheduler/types";
 import {
   formatInUserTimezone,
   getUserTimezone,
-  formatSessionTime,
-  getSessionBadgeInfo,
 } from "@/lib/date-utils";
 import { useNotificationPermissions } from "@/hooks/useNotificationPermissions";
 import { NotificationPermissionModal } from "@/components/NotificationPermissionModal";
@@ -35,7 +27,11 @@ interface Session {
   userId: string;
   partnerId?: string;
   partnerName?: string;
-  familyMembers?: any[];
+  familyMembers?: Array<{
+    id: string;
+    name: string;
+    relation?: string;
+  }>;
   startTime: string;
   endTime?: string;
   status: string;
@@ -45,7 +41,7 @@ interface Session {
 }
 
 export default function ScheduleClient() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, isLoading: profileLoading } = useProfile();
@@ -55,16 +51,14 @@ export default function ScheduleClient() {
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [showRecurringOptions, setShowRecurringOptions] = useState(false);
-  const [recurringFrequency, setRecurringFrequency] = useState("weekly");
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [, setShowRecurringOptions] = useState(false);
+  const [, setRecurringFrequency] = useState("weekly");
   const [isLoadingRescheduleSession, setIsLoadingRescheduleSession] =
     useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   // Check notification permissions
   const {
-    hasAnyPermission,
     checkPermissions,
     hasEmailPermission,
     hasSmsPermission,
@@ -90,21 +84,16 @@ export default function ScheduleClient() {
     if (rescheduleId && authStatus === "authenticated") {
       handleRescheduleSession(rescheduleId);
     }
-  }, [searchParams, authStatus]);
+  }, [searchParams, authStatus, handleRescheduleSession]);
 
   // Set user preferences from profile
   useEffect(() => {
     if (profile && !profileLoading) {
-      const prefs: UserPreferences = {
-        sessionPreference: profile.sessionPreference,
-        preferredDays: profile.preferredDays,
-        sessionFrequency: profile.sessionFrequency,
-        recurringSession: profile.recurringSession,
-        reminderTiming: profile.reminderTiming,
-        timeZone: "UTC", // TODO: Add timezone to profile
-        communicationStyle: profile.communicationStyle,
+      const prefs: Partial<UserPreferences> = {
+        preferredDays: profile.preferredDays ? (Array.isArray(profile.preferredDays) ? profile.preferredDays : [profile.preferredDays]) : [],
+        timezone: "UTC", // TODO: Add timezone to profile
       };
-      setUserPreferences(prefs);
+      setUserPreferences(prefs as UserPreferences);
 
       // Set recurring options based on user preference
       if (profile.recurringSession === "yes") {
@@ -128,7 +117,7 @@ export default function ScheduleClient() {
     }
   };
 
-  const handleRescheduleSession = async (sessionId: string) => {
+  const handleRescheduleSession = useCallback(async (sessionId: string) => {
     try {
       setIsLoadingRescheduleSession(true);
       const response = await fetch(`/api/sessions/${sessionId}`);
@@ -165,7 +154,7 @@ export default function ScheduleClient() {
     } finally {
       setIsLoadingRescheduleSession(false);
     }
-  };
+  }, [router]);
 
   const handleScheduleSession = () => {
     // Check if user has notification permissions
@@ -275,7 +264,7 @@ export default function ScheduleClient() {
                     {formatInUserTimezone(
                       upcomingSessions[0].startTime,
                       "MMM d, yyyy h:mm a",
-                      getUserTimezone(profile?.timezone)
+                      getUserTimezone("UTC")
                     )}
                   </p>
                 ) : (
@@ -336,7 +325,7 @@ export default function ScheduleClient() {
                             {formatInUserTimezone(
                               session.startTime,
                               "MMM d, yyyy h:mm a",
-                              getUserTimezone(profile?.timezone)
+                              getUserTimezone("UTC")
                             )}
                           </p>
                           <p className="text-sm text-gray-400 mt-1">
@@ -383,7 +372,7 @@ export default function ScheduleClient() {
                   body: JSON.stringify({
                     date: sessionData.date || new Date().toISOString(),
                     duration: sessionData.duration || 30,
-                    therapyType: profile?.therapyType || "INDIVIDUAL",
+                    therapyType: "INDIVIDUAL",
                     notes: sessionData.notes || "",
                   }),
                 });
