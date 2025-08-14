@@ -124,15 +124,14 @@ export default function RecurringSessionSelector({
               }`}
             >
               {option.recommended && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="absolute -top-2 -right-2">
                   <motion.span 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", delay: 0.2 }}
-                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs sm:text-sm sm:text-base sm:text-lg font-bold bg-gradient-to-r ${colors.badge} text-white rounded-full shadow-lg`}
+                    className={`inline-flex items-center px-2 py-0.5 text-xs sm:text-sm font-bold bg-gradient-to-r ${colors.badge} text-white rounded-full shadow-lg`}
                   >
-                    <TrendingUp size={12} />
-                    Most Successful
+                    Recommended
                   </motion.span>
                 </div>
               )}

@@ -271,7 +271,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   })
   
   // Destructure authentication state from vapi
-  const { isAuthLoading, authError } = vapi
+  // Authentication state is tracked via isConnecting in the vapi hook
+  const authError: string | null = null // Track auth errors locally if needed
   
   // Update ref when vapi instance changes
   useEffect(() => {
@@ -370,11 +371,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   // Initialize VAPI instance as soon as token is ready
   useEffect(() => {
-    if (!vapi.isAuthLoading && !vapi.authError && !vapi.isInstanceReady()) {
-      console.log('🎙️ Token ready, creating VAPI instance...')
-      vapi.createVapiInstance(session.sessionId || undefined)
+    if (vapi.vapi && !vapi.isConnecting && !vapi.isConnected) {
+      console.log('🎙️ VAPI instance ready for connection')
+      // VAPI instance is created by the hook, no need to create it here
     }
-  }, [vapi.isAuthLoading, vapi.authError, session.sessionId, vapi])
+  }, [vapi.vapi, vapi.isConnecting, vapi.isConnected, session.sessionId])
   
   const handleTranscriptMetricsUpdate = useCallback(() => {
     // Metrics updates happen frequently, no need to log
@@ -658,8 +659,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         }
         
         // CRITICAL: Check VAPI readiness before attempting recovery
-        if (vapi.authError) {
-          console.error('❌ Cannot recover session: VAPI authentication error', vapi.authError)
+        if (!vapi.vapi && !vapi.isConnecting) {
+          console.error('❌ Cannot recover session: VAPI not initialized')
           
           // Clear recovery data to prevent repeated attempts
           safeSessionStorage.removeItem('session-recovery-pending')
@@ -677,17 +678,17 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         let vapiReadyAttempts = 0
         const maxVapiAttempts = RECOVERY_CONSTANTS.VAPI_READY_TIMEOUT_MS / RECOVERY_CONSTANTS.VAPI_READY_CHECK_INTERVAL_MS
         
-        while ((vapi.isAuthLoading || !vapi.isInstanceReady()) && vapiReadyAttempts < maxVapiAttempts) {
+        while ((vapi.isConnecting || !vapi.vapi) && vapiReadyAttempts < maxVapiAttempts) {
           console.log(`⏳ Waiting for VAPI to be ready... Attempt ${vapiReadyAttempts + 1}/${maxVapiAttempts}`)
-          console.log('Auth loading:', vapi.isAuthLoading)
-          console.log('Instance ready:', vapi.isInstanceReady())
+          console.log('Connecting:', vapi.isConnecting)
+          console.log('Instance exists:', !!vapi.vapi)
           
           await new Promise(resolve => setTimeout(resolve, RECOVERY_CONSTANTS.VAPI_READY_CHECK_INTERVAL_MS))
           vapiReadyAttempts++
         }
         
         // Final check after waiting
-        if (!vapi.isInstanceReady()) {
+        if (!vapi.vapi || vapi.isConnecting) {
           console.error(`❌ VAPI failed to initialize after ${RECOVERY_CONSTANTS.VAPI_READY_TIMEOUT_MS / 1000} seconds`)
           
           // Clear recovery data to prevent repeated attempts

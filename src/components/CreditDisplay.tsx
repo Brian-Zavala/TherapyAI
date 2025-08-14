@@ -40,6 +40,12 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [showTooltip, setShowTooltip] = useState(false);
   
+  // Debug logging
+  useEffect(() => {
+    console.log('[CreditDisplay] Component mounted');
+    console.log('[CreditDisplay] Auth state:', { isAuthenticated, authLoading });
+  }, [isAuthenticated, authLoading]);
+  
 
   // Query for credit status with proper authentication check
   const { data, isLoading, error, refetch } = useQuery({
