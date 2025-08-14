@@ -19,14 +19,18 @@ Production-ready Next.js 15 therapy platform with enterprise voice AI.
 
 See detailed patterns in `/src/components/CLAUDE.md` → "📱 Responsive Design Guidelines"
 
-## 🧠 MCP Memory Usage
+## 🧠 MCP Memory Usage & Learning from Mistakes
 
 **CRITICAL**: Memory management workflow:
 1. **BEFORE CHANGES**: Search MCP memory first with `mcp__memory__search_nodes` 
 2. **AFTER CHANGES**: Automatically append all code changes to MCP memory using `mcp__memory__add_observations`
 3. **KNOWLEDGE GRAPH**: Update entities and relations for significant architectural changes
+4. **DOCUMENT MISTAKES**: When Claude makes an error, ALWAYS document it as:
+   - **MISTAKE**: What Claude did wrong
+   - **FIX**: How the error was corrected
+   - **LESSON**: What to remember for next time
 
-This ensures consistency and builds accumulated project knowledge.
+This ensures consistency, builds accumulated project knowledge, and prevents repeating mistakes.
 
 ## 💳 Credit Display System (Jan 2025)
 
@@ -51,6 +55,24 @@ This ensures consistency and builds accumulated project knowledge.
 - No SSE/WebSocket - Upstash Redis doesn't support traditional pub/sub
 - Polling provides adequate real-time updates for credit changes
 - Error boundaries prevent UI crashes from API failures
+
+## 📚 Claude's Mistakes & Lessons Learned
+
+### Credit Display Implementation (Jan 2025)
+**MISTAKE**: Placed `useEffect` hook with `refetch` dependency before `useQuery` declaration
+- **Error**: `ReferenceError: Cannot access 'refetch' before initialization`
+- **FIX**: Moved event listener `useEffect` AFTER `useQuery` hook to ensure `refetch` is defined
+- **LESSON**: React hooks must be declared in proper order - always declare `useQuery` before any `useEffect` that uses its return values
+
+**MISTAKE**: Attempted to implement SSE with Upstash Redis using `duplicate()` and `subscribe()` methods
+- **Error**: `500 Internal Server Error` - methods don't exist on Upstash Redis client
+- **FIX**: Removed entire SSE implementation, relied on React Query polling + window events
+- **LESSON**: Always verify library capabilities before implementation - Upstash Redis ≠ traditional Redis
+
+**MISTAKE**: Didn't handle Redis returning different data types causing JSON parse errors
+- **Error**: `SyntaxError: "[object Object]" is not valid JSON`
+- **FIX**: Added try-catch in `getCurrentCredits()` to handle both string and object responses
+- **LESSON**: Always wrap `JSON.parse()` in try-catch and handle multiple data type scenarios
 
 ## 📁 CLAUDE.md File Structure
 
