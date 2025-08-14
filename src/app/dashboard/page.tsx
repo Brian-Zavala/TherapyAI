@@ -159,8 +159,10 @@ export default function Dashboard() {
         >
         <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] pt-8 sm:pt-10 md:pt-12" data-page="dashboard">
         
-        {/* Credit Display - positioned to avoid navigation coverage */}
-        <CreditDisplay />
+        {/* Credit Display - positioned to avoid navigation coverage with error boundary */}
+        <DashboardErrorWrapper componentName="CreditDisplay">
+          <CreditDisplay />
+        </DashboardErrorWrapper>
 
         {/* Error Alert */}
         {isError && (

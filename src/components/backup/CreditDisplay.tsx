@@ -40,6 +40,13 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [showTooltip, setShowTooltip] = useState(false);
   
+  // Debug logging to help identify rendering issues
+  console.log('CreditDisplay render state:', {
+    isAuthenticated,
+    authLoading,
+    position,
+    className
+  });
 
   // Query for credit status with proper authentication check
   const { data, isLoading, error, refetch } = useQuery({
@@ -58,7 +65,6 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
       return failureCount < 3;
     },
   });
-
 
   // Don't render until authentication is resolved, but show loading when authenticated
   if (authLoading) {
