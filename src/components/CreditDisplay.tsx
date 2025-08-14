@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { useCreditUpdates } from "@/hooks/useCreditUpdates";
 
 interface CreditData {
   credits: {
@@ -41,8 +40,8 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [showTooltip, setShowTooltip] = useState(false);
   
-  // Enable real-time credit updates
-  const { isConnected: creditUpdatesConnected } = useCreditUpdates();
+  // Note: Real-time updates handled via React Query polling
+  // SSE removed due to Upstash Redis limitations
   
   // Debug logging
   useEffect(() => {

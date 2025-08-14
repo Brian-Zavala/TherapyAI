@@ -28,6 +28,30 @@ See detailed patterns in `/src/components/CLAUDE.md` → "📱 Responsive Design
 
 This ensures consistency and builds accumulated project knowledge.
 
+## 💳 Credit Display System (Jan 2025)
+
+**Real-time credit display showing user's available therapy minutes**
+
+### Implementation
+- **Component**: `CreditDisplay.tsx` - Shows available/total/used credits with visual indicators
+- **Position**: Fixed top-right, responsive (top-20 mobile, top-24 tablet, top-4 desktop), z-[35] to avoid nav overlap
+- **Integration**: Dashboard, therapy, and sessions pages with error boundary wrapper
+- **Data Fetching**: React Query with 5-minute polling interval (SSE removed due to Upstash limitations)
+
+### Redis Caching Fix
+- **Problem**: JSON parse errors with "[object Object]" from Redis
+- **Solution**: Robust error handling in `credit-manager.service.ts`
+  - Try-catch blocks around all Redis operations
+  - Handle both string and object responses
+  - Auto-clear invalid cache entries
+  - Graceful fallback to database
+
+### Key Points
+- Free tier: 45 credits (45 minutes) per month
+- No SSE/WebSocket - Upstash Redis doesn't support traditional pub/sub
+- Polling provides adequate real-time updates for credit changes
+- Error boundaries prevent UI crashes from API failures
+
 ## 📁 CLAUDE.md File Structure
 
 **IMPORTANT**: Multiple CLAUDE.md files exist for different purposes. Update the CORRECT file:
