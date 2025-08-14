@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useFeatureFlags } from '@/lib/feature-flags'
 import { TherapyButtonRefactored } from './TherapyButtonRefactored' // Primary component
 import type { TherapyType } from '@/types/therapy-session'
 
@@ -21,22 +20,8 @@ interface TherapyButtonWrapperProps {
  */
 export function TherapyButtonWrapper(props: TherapyButtonWrapperProps) {
   const { user } = useAuth()
-  const flags = useFeatureFlags(user?.id)
-  const prevFlagRef = useRef<boolean | undefined>(undefined)
   
-  // Log which version is being used only when it changes (development only)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && prevFlagRef.current !== flags.useRefactoredTherapyButton) {
-      console.log(
-        `[TherapyButtonWrapper] Using ${
-          flags.useRefactoredTherapyButton ? 'refactored' : 'original'
-        } version for user ${user?.id || 'anonymous'}`
-      )
-      prevFlagRef.current = flags.useRefactoredTherapyButton
-    }
-  }, [flags.useRefactoredTherapyButton, user?.id])
-  
-  // Always use refactored version since original is no longer available
+  // Always use refactored version (original component has been removed)
   return (
     <TherapyButtonErrorBoundary
       fallback={<div className="text-red-500">Therapy button temporarily unavailable</div>}
@@ -101,8 +86,8 @@ class TherapyButtonErrorBoundary extends React.Component<
   
   render() {
     if (this.state.hasError) {
-      console.warn(
-        '[TherapyButton] Refactored version failed, falling back to original'
+      console.error(
+        '[TherapyButton] Component failed to render'
       )
       return this.props.fallback
     }

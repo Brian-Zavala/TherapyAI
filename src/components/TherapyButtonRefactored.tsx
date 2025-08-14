@@ -1346,7 +1346,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         }
         
         if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(refreshUI, { timeout: 1500 })
+          const windowWithIdleCallback = window as Window & { requestIdleCallback: (cb: () => void, options?: { timeout: number }) => void }
+          windowWithIdleCallback.requestIdleCallback(refreshUI, { timeout: 1500 })
         } else {
           setTimeout(refreshUI, 1000)
         }
@@ -1382,7 +1383,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         }
         
         if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(notifyPause, { timeout: 750 })
+          const windowWithIdleCallback = window as Window & { requestIdleCallback: (cb: () => void, options?: { timeout: number }) => void }
+          windowWithIdleCallback.requestIdleCallback(notifyPause, { timeout: 750 })
         } else {
           setTimeout(notifyPause, 500)
         }
@@ -1612,14 +1614,18 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Cleanup debounce timers on unmount
   useEffect(() => {
     return () => {
+      // Cleanup all timeout refs
       if (pauseResumeDebounceRef.current) {
         clearTimeout(pauseResumeDebounceRef.current)
+        pauseResumeDebounceRef.current = null
       }
       if (sessionActiveTimeoutRef.current) {
         clearTimeout(sessionActiveTimeoutRef.current)
+        sessionActiveTimeoutRef.current = null
       }
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current)
+        cleanupTimeoutRef.current = null
       }
     }
   }, [])

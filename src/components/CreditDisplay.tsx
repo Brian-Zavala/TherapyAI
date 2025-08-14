@@ -64,17 +64,31 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
       return failureCount < 3;
     },
   });
+  
+  // Debug data fetching
+  useEffect(() => {
+    console.log('[CreditDisplay] Query state:', { 
+      isLoading, 
+      error: error?.message, 
+      hasData: !!data,
+      data 
+    });
+  }, [isLoading, error, data]);
 
 
   // Don't render until authentication is resolved, but show loading when authenticated
   if (authLoading) {
+    console.log('[CreditDisplay] Returning null - auth still loading');
     return null; // Still loading authentication state
   }
   
   // Only render for authenticated users
   if (!isAuthenticated) {
+    console.log('[CreditDisplay] Returning null - not authenticated');
     return null;
   }
+  
+  console.log('[CreditDisplay] User is authenticated, proceeding with render');
 
   // Show loading state for authenticated users while data is loading
   if (isLoading) {
