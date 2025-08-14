@@ -12,6 +12,14 @@ import ProfileResetModal from "@/components/ProfileResetModal"
 import ProfileLoadingSpinner from "@/components/ProfileLoadingSpinner"
 import Navigation from "@/components/Navigation"
 import ConcernsSelector from "@/components/ConcernsSelector"
+import DaysSelector from "@/components/DaysSelector"
+import PhoneInputField from "@/components/PhoneInputField"
+import SessionDurationSelector from "@/components/SessionDurationSelector"
+import CommunicationStyleSelector from "@/components/CommunicationStyleSelector"
+import RecurringSessionSelector from "@/components/RecurringSessionSelector"
+import ReminderTimingSelector from "@/components/ReminderTimingSelector"
+import NotificationPreferencesSelector from "@/components/NotificationPreferencesSelector"
+import SessionFrequencySelector from "@/components/SessionFrequencySelector"
 import { suppressExtensionErrors } from "./suppress-extension-errors"
 
 // Suppress browser extension errors that are outside our control
@@ -515,29 +523,16 @@ export default function ProfileClient() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Phone
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
+                  <PhoneInputField
                     value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="+1 (555) 123-4567"
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, phone: value }));
+                    }}
+                    placeholder="(555) 123-4567"
+                    name="phone"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Emergency Contact
-                  </label>
-                  <input
-                    type="text"
-                    name="emergencyContact"
-                    value={formData.emergencyContact}
-                    onChange={handleInputChange}
-                    placeholder="Name - Phone"
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
-                  />
-                </div>
               </div>
             </div>
 
@@ -654,73 +649,52 @@ export default function ProfileClient() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Session Preference
+                    Session Duration Preference
                   </label>
-                  <select
-                    name="sessionPreference"
+                  <SessionDurationSelector
                     value={formData.sessionPreference}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
-                  >
-                    <option value="">Select preference</option>
-                    <option value="30">30 minutes</option>
-                    <option value="60">60 minutes</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Session Frequency
-                  </label>
-                  <select
-                    name="sessionFrequency"
-                    value={formData.sessionFrequency}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
-                  >
-                    <option value="">Select frequency</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="biweekly">Bi-weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="as-needed">As Needed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Communication Style
-                  </label>
-                  <select
-                    name="communicationStyle"
-                    value={formData.communicationStyle}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
-                  >
-                    <option value="">Select style</option>
-                    <option value="direct">Direct</option>
-                    <option value="gentle">Gentle</option>
-                    <option value="structured">Structured</option>
-                    <option value="exploratory">Exploratory</option>
-                  </select>
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, sessionPreference: value }));
+                    }}
+                  />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Session Frequency
+                  </label>
+                  <SessionFrequencySelector
+                    value={formData.sessionFrequency}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, sessionFrequency: value }));
+                    }}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Communication Style
+                  </label>
+                  <CommunicationStyleSelector
+                    value={formData.communicationStyle}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, communicationStyle: value }));
+                    }}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
                     Notification Preferences
                   </label>
-                  <select
-                    name="notificationPrefs"
+                  <NotificationPreferencesSelector
                     value={formData.notificationPrefs}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
-                  >
-                    <option value="email">Email Only</option>
-                    <option value="sms">SMS Only</option>
-                    <option value="both">Email & SMS</option>
-                    <option value="none">No Notifications</option>
-                  </select>
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, notificationPrefs: value }));
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -749,53 +723,40 @@ export default function ProfileClient() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Preferred Days
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Monday, Wednesday, Friday (comma-separated)"
-                    value={Array.isArray(formData.preferredDays) ? formData.preferredDays.join(', ') : ''}
-                    onChange={(e) => {
-                      const days = e.target.value.split(',').map(d => d.trim()).filter(d => d);
+                  <DaysSelector
+                    value={formData.preferredDays || []}
+                    onChange={(days) => {
                       setFormData(prev => ({ ...prev, preferredDays: days }));
                     }}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    placeholder="Click to select preferred days..."
+                    maxSelections={7}
+                    includeTimePreferences={true}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Days you prefer for sessions</p>
+                  <p className="text-xs text-gray-400 mt-1">Select the days and times you prefer for sessions</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
                     Recurring Sessions
                   </label>
-                  <select
-                    name="recurringSession"
+                  <RecurringSessionSelector
                     value={formData.recurringSession}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
-                  >
-                    <option value="">Select preference</option>
-                    <option value="yes">Yes, I want recurring sessions</option>
-                    <option value="no">No, I'll schedule individually</option>
-                    <option value="maybe">Not sure yet</option>
-                  </select>
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, recurringSession: value }));
+                    }}
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
                     Reminder Timing
                   </label>
-                  <select
-                    name="reminderTiming"
+                  <ReminderTimingSelector
                     value={formData.reminderTiming}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
-                  >
-                    <option value="">Select timing</option>
-                    <option value="15min">15 minutes before</option>
-                    <option value="30min">30 minutes before</option>
-                    <option value="1hour">1 hour before</option>
-                    <option value="2hours">2 hours before</option>
-                    <option value="1day">1 day before</option>
-                  </select>
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, reminderTiming: value }));
+                    }}
+                  />
                 </div>
               </div>
             </div>

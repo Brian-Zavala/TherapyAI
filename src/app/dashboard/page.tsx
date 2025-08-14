@@ -29,6 +29,7 @@ import { useSession } from "next-auth/react";
 import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
 import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
 import { DashboardPermissionPrompt } from "@/components/DashboardPermissionPrompt";
+import CreditDisplay from "@/components/CreditDisplay";
 import "@/styles/dashboard-scoped.css";
 import "@/styles/dashboard-viewport-fix.css";
 import "@/styles/dashboard-colors.css";

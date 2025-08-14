@@ -244,7 +244,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         if (vapiInstanceRef.current) {
           try {
             // Have VAPI say goodbye but DON'T end the call yet - let handleEndSession do it properly
-            vapiInstanceRef.current.say(goodbyeMessage, false);
+            if (vapiInstanceRef.current && typeof vapiInstanceRef.current.say === 'function') {
+              vapiInstanceRef.current.say(goodbyeMessage, false);
+            }
             console.log('📤 Sent graceful goodbye message via function call handler');
           } catch (error) {
             console.error('Failed to send goodbye message:', error);
@@ -273,8 +275,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   // Update ref when vapi instance changes
   useEffect(() => {
-    vapiInstanceRef.current = vapi.vapiManagerRef.current
-  }, [vapi.vapiManagerRef])
+    vapiInstanceRef.current = vapi.vapi
+  }, [vapi.vapi])
   
   // Memoize callbacks to prevent re-renders
   const handleSessionCreated = useCallback((sessionId: string) => {
@@ -307,7 +309,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // - 0 sec: AI delivers warm, contextual farewell
       
       // Send time warning to VAPI if connected
-      if (vapi.vapiManagerRef.current && vapi.vapiState.isActive) {
+      if (vapi.vapi && vapi.isConnected) {
         try {
           // Different messages based on remaining time and therapy type
           let systemMessage = '';
@@ -346,7 +348,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }
           
           if (systemMessage) {
-            vapi.vapiManagerRef.current.send({
+            vapi.sendMessage({
               type: 'add-message',
               message: {
                 role: 'system',
@@ -428,11 +430,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   useVapiMetricsBridge({
     sessionId: session.sessionId || '',
     userId: user?.id || '',
-    vapiState: vapi.vapiState,
+    vapiState: { isActive: vapi.isConnected, isLoading: vapi.isConnecting },
     transcriptChunks: transcript.transcriptChunks,
     therapyType: therapyType,
     sessionDuration: session.sessionDuration,
-    enabled: !!(session.sessionId && vapi.vapiState.isActive && !session.isSessionPaused)
+    enabled: !!(session.sessionId && vapi.isConnected && !session.isSessionPaused)
   })
   
   // Update session ref when session changes
@@ -495,7 +497,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   // Effect to cycle through loading messages
   useEffect(() => {
-    if (!isLoading && !vapi.vapiState.isLoading) {
+    if (!isLoading && !vapi.isConnecting) {
       setMessageIndex(0) // Reset when not loading
       return
     }
@@ -505,7 +507,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [isLoading, vapi.vapiState.isLoading])
+  }, [isLoading, vapi.isConnecting])
   
   // Cleanup function for expired sessions
   const cleanupExpiredSession = useCallback(async (sessionId: string, reason: string = 'expired') => {
@@ -568,13 +570,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         }
         
         // Check if VAPI is already active for this session
-        if (vapi.vapiState.isActive && session.sessionId === sessionId) {
+        if (vapi.isConnected && session.sessionId === sessionId) {
           console.log('✅ VAPI already active for this session, skipping recovery')
           return
         }
         
         // Check if another session is active
-        if (vapi.vapiState.isActive && session.sessionId !== sessionId) {
+        if (vapi.isConnected && session.sessionId !== sessionId) {
           console.log('⚠️ Another session is active, cannot recover', {
             activeSessionId: session.sessionId,
             recoverySessionId: sessionId
@@ -994,7 +996,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
     
     // Don't allow clicking if already loading or in session
-    if (isLoading || vapi.vapiState.isLoading || session.sessionId || vapi.vapiState.isActive) {
+    if (isLoading || vapi.isConnecting || session.sessionId || vapi.isConnected) {
       console.log('⚠️ Therapy button click ignored - already in session or loading')
       return
     }
@@ -1037,7 +1039,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     } else {
       setShowDurationModal(true)
     }
-  }, [user, isLoading, vapi.vapiState.isLoading, session.sessionId, vapi.vapiState.isActive, playClick, therapyType, familyMembersLoading, familyMembers.length])
+  }, [user, isLoading, vapi.isConnecting, session.sessionId, vapi.isConnected, playClick, therapyType, familyMembersLoading, familyMembers.length])
   
   // Handle duration selection with atomic credit validation and session creation
   const handleDurationSelect = useCallback(async (duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
@@ -1310,7 +1312,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         await new Promise(resolve => setTimeout(resolve, 2000))
         
         // Say personalized welcome back message after VAPI is connected and history is loaded
-        if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
+        if (vapi.vapi && typeof vapi.vapi.say === 'function') {
           try {
             const welcomeBackMessage = therapyType === 'couple' 
               ? "Welcome back. I can see our conversation history has been restored. Take a moment to settle back in, and when you're ready, we can continue from where we left off. How are you both feeling right now?"
@@ -1318,7 +1320,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
               ? "Welcome back, everyone. I've restored our conversation, and I'm ready to continue when you are. Let's take a collective breath and pick up our discussion. How is everyone doing?"
               : "Welcome back. Our conversation has been restored, and I'm here to continue supporting you. Take your time to get comfortable again. How are you feeling in this moment?"
             
-            vapi.vapiManagerRef.current.say(welcomeBackMessage, false)
+            vapi.vapi.say(welcomeBackMessage, false)
           } catch (error) {
             console.warn('Could not say welcome back message:', error)
           }
@@ -1358,8 +1360,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         setIsTransitioning(true)
         
         // Announce pause before stopping
-        if (vapi.vapiManagerRef.current && vapi.vapiManagerRef.current.say) {
-          vapi.vapiManagerRef.current.say("I'll pause our session. Your time won't be billed while paused. See you when you're ready.", false)
+        if (vapi.vapi && typeof vapi.vapi.say === 'function') {
+          vapi.vapi.say("I'll pause our session. Your time won't be billed while paused. See you when you're ready.", false)
           // Give time for message to be spoken
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
@@ -1437,7 +1439,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }
         }
         
-        vapi.vapiManagerRef.current.say(goodbyeMessage, true);
+        if (vapi.vapi && typeof vapi.vapi.say === 'function') {
+          vapi.vapi.say(goodbyeMessage, true);
+        }
         console.log('📤 Sent graceful goodbye message to VAPI');
         
         // Give VAPI time to say goodbye before ending the session
@@ -1512,11 +1516,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     setTherapyType(newTherapyType)
     
     // If session is active, show a message that they need to end current session first
-    if (session.sessionId || vapi.vapiState.isActive) {
+    if (session.sessionId || vapi.isConnected) {
       setError('Please end your current session before switching therapists')
       return
     }
-  }, [session.sessionId, vapi.vapiState.isActive])
+  }, [session.sessionId, vapi.isConnected])
 
   const handleRemoveFamilyMember = useCallback(async (index: number) => {
     // Find the family member by index
@@ -1548,7 +1552,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   // Monitor session state and ensure session-active class is in sync
   useEffect(() => {
-    const hasActiveSession = !!(session.sessionId || vapi.vapiState.isActive || isLoading || showDurationModal || showFamilySelectionModal)
+    const hasActiveSession = !!(session.sessionId || vapi.isConnected || isLoading || showDurationModal || showFamilySelectionModal)
     
     if (hasActiveSession && !sessionActiveManaged.current) {
       console.log('[Session Monitor] Detected active session, ensuring session-active class')
@@ -1557,17 +1561,17 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.log('[Session Monitor] No active session, ensuring session-active class removed')
       setSessionActive(false)
     }
-  }, [session.sessionId, vapi.vapiState.isActive, isLoading, showDurationModal, showFamilySelectionModal, forceHidePhoneUI, setSessionActive])
+  }, [session.sessionId, vapi.isConnected, isLoading, showDurationModal, showFamilySelectionModal, forceHidePhoneUI, setSessionActive])
   
   // Monitor VAPI state and ensure conversation timer is in sync
   useEffect(() => {
     // Only run if we have an active session
-    if (!session.sessionId || !vapi.vapiState.isActive) return
+    if (!session.sessionId || !vapi.isConnected) return
     
     // Check every 10 seconds if conversation timer needs to be restarted
     const syncInterval = setInterval(() => {
       // If VAPI is active but conversation timer is not, restart it
-      if (vapi.vapiState.isActive && !session.isSessionPaused && session.conversationStartTime === null) {
+      if (vapi.isConnected && !session.isSessionPaused && session.conversationStartTime === null) {
         console.log('⚠️ VAPI active but conversation timer not running, restarting...')
         session.startConversationTimer(session.sessionId || undefined)
       }
@@ -1575,7 +1579,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // Log sync status for monitoring
       if (process.env.NODE_ENV === 'development') {
         console.log('🔄 VAPI-Timer Sync Check:', {
-          vapiActive: vapi.vapiState.isActive,
+          vapiActive: vapi.isConnected,
           sessionPaused: session.isSessionPaused,
           conversationActive: session.conversationStartTime !== null,
           conversationTime: session.conversationTimeSeconds
@@ -1584,7 +1588,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }, 10000) // Check every 10 seconds
     
     return () => clearInterval(syncInterval)
-  }, [session.sessionId, vapi.vapiState.isActive, session.isSessionPaused, session.conversationStartTime, session.conversationTimeSeconds])
+  }, [session.sessionId, vapi.isConnected, session.isSessionPaused, session.conversationStartTime, session.conversationTimeSeconds])
   
   // Listen for explicit session end event to ensure proper cleanup
   useEffect(() => {
@@ -1624,8 +1628,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     const handleVapiReconnected = () => {
       console.log('🔄 VAPI reconnected, refreshing UI components')
       // Force a re-render of audio-dependent components
-      if (vapi.vapiManagerRef.current) {
-        const vapiInstance = (vapi.vapiManagerRef.current as any).vapi
+      if (vapi.vapi) {
+        const vapiInstance = vapi.vapi
         if (vapiInstance) {
           // Trigger audio level update
           vapiInstance.emit('volume-level', { volume: 0 })
@@ -1678,7 +1682,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }
   
   // Show authentication error if present and no active session
-  if (authError && !session.sessionId && !vapi.vapiState.isActive) {
+  if (authError && !session.sessionId && !vapi.isConnected) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -1698,7 +1702,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Show session UI if we have a session ID OR if VAPI reports as active OR if loading OR if recovered session OR if transitioning
   // This ensures the phone container appears immediately when starting a session
   // But also ensures it hides properly when session ends
-  const showPhoneUI = (session.sessionId || vapi.vapiState.isActive || vapi.vapiState.isLoading || isLoading || isRecoveredSession || isTransitioning || sessionState.isPaused) && !session.isEndingSession && !forceHidePhoneUI
+  const showPhoneUI = (session.sessionId || vapi.isConnected || vapi.isConnecting || isLoading || isRecoveredSession || isTransitioning || sessionState.isPaused) && !session.isEndingSession && !forceHidePhoneUI
   
   if (showPhoneUI || isLoading) {
 
@@ -1750,12 +1754,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           <CallHeader 
             therapistName={getTherapistName()}
             isPaused={sessionState.isPaused}
-            isVisible={!isLoading && !vapi.vapiState.isLoading}
+            isVisible={!isLoading && !vapi.isConnecting}
           />
           
           {/* Loading Animation - Show when loading but call not started */}
           {/* For recovered sessions, show UI immediately even if VAPI is still initializing */}
-          {(isLoading || vapi.vapiState.isLoading) && !isRecoveredSession ? (
+          {(isLoading || vapi.isConnecting) && !isRecoveredSession ? (
             <motion.div 
               className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-gradient-to-b from-black/90 via-black/95 to-black rounded-[28px] backdrop-blur-sm"
               initial={{ opacity: 0 }}
@@ -1975,7 +1979,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
                       sessionId={session.sessionId || ''}
                       durationMinutes={session.sessionDuration}
                       conversationTimeSeconds={session.conversationTimeSeconds}
-                      isConversationActive={vapi.vapiState.isActive && !sessionState.isPaused}
+                      isConversationActive={vapi.isConnected && !sessionState.isPaused}
                       isPaused={sessionState.isPaused || session.isSessionPaused}
                       className="text-white"
                       showRecoveredIndicator={session.sessionRecovered}
@@ -2001,7 +2005,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
                   isSessionPaused={sessionState.isPaused}
                   totalPausedTimeSeconds={session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0}
                   conversationTimeSeconds={session.conversationTimeSeconds}
-                  isLoading={vapi.vapiState.isLoading || isLoading}
+                  isLoading={vapi.isConnecting || isLoading}
                   onMuteToggle={toggleMute}
                   onEndCall={handleEndSession}
                   onPauseResume={handlePauseResume}
@@ -2018,14 +2022,14 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         </motion.div>
         
         {/* Session status message */}
-        {(vapi.vapiState.isActive || sessionState.isPaused) && (
+        {(vapi.isConnected || sessionState.isPaused) && (
           <p className={`mt-4 font-medium text-sm sm:text-base opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] text-center ${sessionState.isPaused ? 'text-orange-500' : 'text-green-600'}`}>
             {sessionState.isPaused ? 'Session paused - click Resume to continue' : 'Session active - speak with our AI therapist'}
           </p>
         )}
         
         {/* Live Transcript Button - Only show when session is active and on mobile */}
-        {!isLoading && !vapi.vapiState.isLoading && vapi.vapiState.isActive && (
+        {!isLoading && !vapi.isConnecting && vapi.isConnected && (
           <div className="mt-4 flex justify-center sm:hidden">
             <LiveTranscriptButton 
               onClick={handleOpenTranscriptOverlay}
@@ -2067,7 +2071,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       <div className="flex items-center justify-center w-full h-full min-h-[200px]">
         <motion.button
           onClick={handleTherapyClick}
-          disabled={disabled || vapi.vapiState.isLoading || session.isEndingSession || isLoading}
+          disabled={disabled || vapi.isConnecting || session.isEndingSession || isLoading}
           title={`Start a ${therapyType} therapy session`}
           className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center shadow-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 cursor-pointer"
           aria-label="Start therapy session"
@@ -2090,7 +2094,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             }
           }}
         >
-          {vapi.vapiState.isLoading || session.isEndingSession || isLoading ? (
+          {vapi.isConnecting || session.isEndingSession || isLoading ? (
             <svg className="animate-spin h-10 w-10 sm:h-12 sm:w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -2132,7 +2136,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
               relation: member.relation || ''
             }))}
             onRemoveMember={handleRemoveFamilyMember}
-            isLoading={vapi.vapiState.isLoading || familyMembersLoading}
+            isLoading={vapi.isConnecting || familyMembersLoading}
           />
         )}
         

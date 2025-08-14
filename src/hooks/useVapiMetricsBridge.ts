@@ -52,7 +52,7 @@ export function useVapiMetricsBridge({
 
   // Initialize metrics calculator when session becomes active
   useEffect(() => {
-    if (enabled && sessionId && vapiState.isActive && !metricsCalculatorRef.current) {
+    if (enabled && sessionId && vapiState?.isActive && !metricsCalculatorRef.current) {
       console.log('[VapiMetricsBridge] Initializing metrics calculator for session:', sessionId)
       metricsCalculatorRef.current = new RealTimeMetricsCalculator({
         sessionId,
@@ -63,7 +63,7 @@ export function useVapiMetricsBridge({
     }
 
     // Cleanup calculator when session ends
-    if (!vapiState.isActive && metricsCalculatorRef.current) {
+    if (!vapiState?.isActive && metricsCalculatorRef.current) {
       console.log('[VapiMetricsBridge] Cleaning up metrics calculator')
       metricsCalculatorRef.current.cleanupSession()
       metricsCalculatorRef.current = null
@@ -77,11 +77,11 @@ export function useVapiMetricsBridge({
       // Clear pending chunks
       pendingChunksRef.current = []
     }
-  }, [enabled, sessionId, vapiState.isActive, userId, therapyType, sessionDuration])
+  }, [enabled, sessionId, vapiState?.isActive, userId, therapyType, sessionDuration])
 
   // Process new transcript chunks with throttling
   useEffect(() => {
-    if (!enabled || !sessionId || !vapiState.isActive || !isConnected || !metricsCalculatorRef.current) {
+    if (!enabled || !sessionId || !vapiState?.isActive || !isConnected || !metricsCalculatorRef.current) {
       return
     }
 

@@ -5,6 +5,7 @@ import {
   migrateLegacyConcerns,
 } from "./concerns-formatter";
 import { getDurationTools, getDurationAwareSystemPrompt } from "./vapi-duration-tools";
+import { getCommunicationGuidance, buildCommunicationInstructions } from './vapi-communication-styles';
 
 // 2025 Standard: Type definitions
 export interface VapiInitOptions {
@@ -560,7 +561,7 @@ export const getPersonalizedSystemPrompt = (
   const relationshipStatus =
     userProfile?.relationshipStatus || "In a relationship";
   const pronouns = userProfile?.pronouns || null;
-  const communicationStyle = userProfile?.communicationStyle || "balanced";
+  const communicationStyle = (userProfile?.communicationStyle || "balanced").toLowerCase();
   const currentConcerns = userProfile?.currentConcerns || [];
   const additionalNotes = userProfile?.additionalNotes || "";
 
@@ -1248,7 +1249,7 @@ export const getPersonalizedSystemPromptForType = (
 
   // Extract user preferences
   const pronouns = userProfile?.pronouns || null;
-  const communicationStyle = userProfile?.communicationStyle || "balanced";
+  const communicationStyle = (userProfile?.communicationStyle || "balanced").toLowerCase();
   const currentConcerns = userProfile?.currentConcerns || [];
   // const sessionPreference = userProfile?.sessionPreference || "flexible";
   const additionalNotes = userProfile?.additionalNotes || "";
