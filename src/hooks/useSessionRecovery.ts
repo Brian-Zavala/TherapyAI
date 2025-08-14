@@ -178,7 +178,7 @@ export function useSessionRecovery(options: UseSessionRecoveryOptions = {}) {
       hasAttemptedRecoveryRef.current = false
       
       toast.info('Previous session dismissed', {
-        description: 'You can start a new session whenever you're ready.'
+        description: 'You can start a new session whenever you\'re ready.'
       })
     } catch (error) {
       console.error('[SessionRecovery] Failed to dismiss recovery:', error)
