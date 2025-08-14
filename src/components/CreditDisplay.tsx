@@ -49,6 +49,31 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     console.log('[CreditDisplay] Auth state:', { isAuthenticated, authLoading });
   }, [isAuthenticated, authLoading]);
   
+  // Listen for credit update events - Instant updates when credits change
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const handleCreditUpdate = () => {
+      console.log('[CreditDisplay] Credit update event received, refetching...');
+      refetch();
+    };
+    
+    // Listen for various events that should trigger credit updates
+    window.addEventListener('creditUpdate', handleCreditUpdate);
+    window.addEventListener('sessionEnd', handleCreditUpdate);
+    window.addEventListener('sessionStarted', handleCreditUpdate);
+    window.addEventListener('subscriptionChanged', handleCreditUpdate);
+    window.addEventListener('creditPurchase', handleCreditUpdate);
+    
+    return () => {
+      window.removeEventListener('creditUpdate', handleCreditUpdate);
+      window.removeEventListener('sessionEnd', handleCreditUpdate);
+      window.removeEventListener('sessionStarted', handleCreditUpdate);
+      window.removeEventListener('subscriptionChanged', handleCreditUpdate);
+      window.removeEventListener('creditPurchase', handleCreditUpdate);
+    };
+  }, [isAuthenticated, refetch]);
+  
 
   // Query for credit status with proper authentication check
   const { data, isLoading, error, refetch } = useQuery({

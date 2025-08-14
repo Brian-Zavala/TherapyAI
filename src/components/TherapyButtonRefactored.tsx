@@ -156,6 +156,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     console.log('[TherapyButton] VAPI call started - starting conversation timer')
     // Add session-active class to trigger background transition
     setSessionActive(true)
+    // Dispatch event to update credit display immediately
+    window.dispatchEvent(new Event('sessionStarted'))
+    window.dispatchEvent(new Event('creditUpdate'))
     // Trigger conversation start timing with current sessionId
     if (sessionRef.current) {
       sessionRef.current.startConversationTimer(sessionRef.current.sessionId || undefined)
@@ -1245,8 +1248,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       document.body.classList.remove('session-active')
       console.log('✅ Session ended, UI reset to inactive state')
       
-      // Dispatch event to notify UI components
+      // Dispatch events to notify UI components
       window.dispatchEvent(new Event('sessionEnded'))
+      window.dispatchEvent(new Event('creditUpdate')) // Trigger credit display update
       
       // Navigate to dashboard after session ends successfully
       // Check if redirect hasn't already been triggered
