@@ -569,18 +569,8 @@ export const getPersonalizedSystemPrompt = (
   const sessionCount = userProfile?.sessionsCompleted || 0;
   const lastSessionDate = userProfile?.lastSessionDate;
 
-  // Build communication style guidance
-  let communicationGuidance = "";
-  if (communicationStyle === "direct") {
-    communicationGuidance =
-      "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic to both partners.";
-  } else if (communicationStyle === "gentle") {
-    communicationGuidance =
-      "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for both partners to express themselves.";
-  } else {
-    communicationGuidance =
-      "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for both partners.";
-  }
+  // Build communication style guidance using enhanced styles
+  const communicationGuidance = getCommunicationGuidance(communicationStyle);
 
   // Format current concerns naturally
   const concernsList =
@@ -1321,18 +1311,8 @@ IMPORTANT - AVOIDING STUCK STATES:
     const userName = userProfile?.userName || "the client";
     const pronounStr = pronouns ? ` (${pronouns})` : "";
 
-    // Build communication style guidance
-    let communicationGuidance = "";
-    if (communicationStyle === "direct") {
-      communicationGuidance =
-        "Be direct and straightforward in your communication, getting to the point quickly and offering clear, practical advice.";
-    } else if (communicationStyle === "gentle") {
-      communicationGuidance =
-        "Use gentle, supportive language. Be particularly warm and nurturing, offering validation and encouragement throughout.";
-    } else {
-      communicationGuidance =
-        "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone.";
-    }
+    // Build communication style guidance using enhanced styles
+    const communicationGuidance = getCommunicationGuidance(communicationStyle);
 
     // Format current concerns naturally
     const concernsList =
@@ -1551,18 +1531,8 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
       familyMembersString = `${userProfile?.userName || "the client"}, ${otherNames.join(", ")}, and ${lastName}`;
     }
 
-    // Build communication style guidance
-    let communicationGuidance = "";
-    if (communicationStyle === "direct") {
-      communicationGuidance =
-        "Be direct and straightforward in your communication, addressing issues clearly while remaining empathetic to all family members.";
-    } else if (communicationStyle === "gentle") {
-      communicationGuidance =
-        "Use gentle, supportive language throughout. Be particularly warm and nurturing, creating a safe space for all family members to express themselves.";
-    } else {
-      communicationGuidance =
-        "Balance directness with warmth, offering clear insights while maintaining an empathetic, supportive tone for all family members.";
-    }
+    // Build communication style guidance using enhanced styles
+    const communicationGuidance = getCommunicationGuidance(communicationStyle);
 
     // Format current concerns naturally
     const concernsList =
