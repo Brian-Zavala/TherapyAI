@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma-optimized'
 import { rateLimitManager } from '@/lib/rate-limit-manager'
 import { upstashRedis } from '@/lib/upstash-redis.service'
+import { creditManager } from '@/lib/services/credit-manager.service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
     const saltRounds = 10
     const hashedPassword = await bcrypt.hash(password, saltRounds)
     
-    // Create new user
+    // Create new user and initialize free tier credits
     const user = await prisma.user.create({
       data: {
         name,
@@ -103,6 +104,20 @@ export async function POST(request: NextRequest) {
         password: hashedPassword
       }
     })
+    
+    // Initialize free tier credits for new user
+    const billingStart = new Date();
+    const billingEnd = new Date();
+    billingEnd.setMonth(billingEnd.getMonth() + 1);
+    
+    await creditManager.initializeBillingPeriod(
+      user.id,
+      'free',
+      billingStart,
+      billingEnd
+    );
+    
+    console.log(`✓ Initialized free tier (45 credits) for new user: ${user.email}`);
     
     // Return success response (excluding password)
     const { password: _, ...userWithoutPassword } = user

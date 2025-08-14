@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma-client';
+import { prisma } from '@/lib/prisma-optimized';
 import { UsageCredits, UsageTransaction, TransactionType, AlertType } from '@prisma/client';
 import { sendEmail } from '@/lib/email';
 import { redis } from '@/lib/cache/redis-client';
@@ -302,9 +302,26 @@ export class CreditManager {
     
     // Try to get from cache first
     const cacheKey = `credits:${userId}:current`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached) as UsageCredits;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        // Handle both string and object responses from Redis
+        if (typeof cached === 'string') {
+          try {
+            return JSON.parse(cached) as UsageCredits;
+          } catch (parseError) {
+            console.error('[CreditManager] Failed to parse cached credits:', parseError);
+            // Clear invalid cache entry
+            await redis.del(cacheKey);
+          }
+        } else if (typeof cached === 'object' && cached !== null) {
+          // If Redis returns an object directly, use it
+          return cached as UsageCredits;
+        }
+      }
+    } catch (error) {
+      console.error('[CreditManager] Redis cache error:', error);
+      // Continue to database query if cache fails
     }
 
     const credits = await prisma.usageCredits.findFirst({
@@ -318,7 +335,12 @@ export class CreditManager {
 
     if (credits) {
       // Cache for 5 minutes
-      await redis.set(cacheKey, JSON.stringify(credits), 'EX', 300);
+      try {
+        await redis.set(cacheKey, JSON.stringify(credits), 'EX', 300);
+      } catch (cacheError) {
+        console.error('[CreditManager] Failed to cache credits:', cacheError);
+        // Continue without caching
+      }
     }
 
     return credits;
@@ -1386,6 +1408,78 @@ export class CreditManager {
     } finally {
       await this.releaseLock(lockKey, lockValue);
     }
+  }
+
+  /**
+   * Broadcast credit update to real-time subscribers
+   */
+  private async broadcastCreditUpdate(
+    userId: string, 
+    updateType: 'subscription_change' | 'usage_update' | 'plan_upgrade' | 'plan_downgrade',
+    creditData: any
+  ): Promise<void> {
+    try {
+      const updateMessage = {
+        userId,
+        updateType,
+        credits: creditData,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Publish to Redis channel for real-time updates
+      await redis.publish(`credits:updates:${userId}`, JSON.stringify(updateMessage));
+      
+      console.log(`📡 Credit update broadcasted for user ${userId}: ${updateType}`);
+    } catch (error) {
+      console.error('Failed to broadcast credit update:', error);
+      // Don't throw - this is a best-effort notification
+    }
+  }
+
+  /**
+   * Enhanced initializeBillingPeriod with real-time updates
+   */
+  async initializeBillingPeriodWithNotification(
+    userId: string,
+    planType: keyof typeof config.plans,
+    billingStart: Date,
+    billingEnd: Date,
+    subscriptionId?: string
+  ): Promise<UsageCredits> {
+    const result = await this.initializeBillingPeriod(userId, planType, billingStart, billingEnd, subscriptionId);
+    
+    // Broadcast the update for real-time frontend sync
+    await this.broadcastCreditUpdate(userId, 'subscription_change', {
+      available: result.totalCredits + result.bonusCredits - result.usedCredits,
+      total: result.totalCredits,
+      used: result.usedCredits,
+      bonus: result.bonusCredits,
+      planType: result.planType,
+      billingPeriodStart: result.billingPeriodStart,
+      billingPeriodEnd: result.billingPeriodEnd,
+    });
+
+    return result;
+  }
+
+  /**
+   * Enhanced downgradeToFree with real-time updates
+   */
+  async downgradeToFreeWithNotification(userId: string): Promise<UsageCredits> {
+    const result = await this.downgradeToFree(userId);
+    
+    // Broadcast the downgrade for real-time frontend sync
+    await this.broadcastCreditUpdate(userId, 'plan_downgrade', {
+      available: result.totalCredits + result.bonusCredits - result.usedCredits,
+      total: result.totalCredits,
+      used: result.usedCredits,
+      bonus: result.bonusCredits,
+      planType: 'free',
+      billingPeriodStart: result.billingPeriodStart,
+      billingPeriodEnd: result.billingPeriodEnd,
+    });
+
+    return result;
   }
 }
 

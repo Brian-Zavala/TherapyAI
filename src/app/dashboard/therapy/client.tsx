@@ -19,6 +19,7 @@ import { useProfile } from "@/providers/ProfileProvider";
 import { isSessionActive as checkSessionActive } from "@/lib/utils/session-status";
 import { useFamilyMembersEnhanced } from "@/hooks/useFamilyMembersEnhanced";
 import { useSearchParams } from 'next/navigation';
+import CreditDisplay from "@/components/CreditDisplay";
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -767,6 +768,11 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Use React.createElement to avoid JSX parsing issues
   return React.createElement(React.Fragment, null, [
+    // Credit display - always visible
+    React.createElement(CreditDisplay, {
+      key: "credit-display",
+    }),
+    
     // Persistent blur background that stays throughout the meditation
     meditationStep !== "none" &&
       meditationStep !== "done" &&

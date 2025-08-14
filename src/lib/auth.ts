@@ -7,6 +7,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from '@/lib/prisma-optimized'
 import { compare } from "bcryptjs"
 import { z } from "zod"
+import { creditManager } from '@/lib/services/credit-manager.service'
 
 // 2025 Standard: Enhanced validation schemas
 const credentialsSchema = z.object({
@@ -248,6 +249,24 @@ callbacks: {
               })
 
               console.log("[Auth] Created new user:", newUser.id)
+
+              // Initialize free tier credits for new OAuth user
+              const billingStart = new Date();
+              const billingEnd = new Date();
+              billingEnd.setMonth(billingEnd.getMonth() + 1);
+              
+              try {
+                await creditManager.initializeBillingPeriod(
+                  newUser.id,
+                  'free',
+                  billingStart,
+                  billingEnd
+                );
+                console.log(`✓ Initialized free tier (45 credits) for OAuth user: ${newUser.email}`);
+              } catch (creditError) {
+                console.error(`Failed to initialize credits for OAuth user ${newUser.id}:`, creditError);
+                // Don't fail the sign-in process, credits can be initialized later
+              }
 
               // Create the OAuth account
               await tx.account.create({

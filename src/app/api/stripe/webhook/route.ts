@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
-import { redis } from '@/lib/redis';
+import { redis } from '@/lib/cache/redis-client';
 import Stripe from 'stripe';
 import Redlock from 'redlock';
 import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
               const billingStart = parseStripeTimestamp(subscription.current_period_start);
               const billingEnd = parseStripeTimestamp(subscription.current_period_end);
               
-              await creditManager.initializeBillingPeriod(
+              await creditManager.initializeBillingPeriodWithNotification(
                 session.metadata.userId,
                 planType,
                 toUTCMidnight(billingStart),
@@ -239,6 +239,14 @@ export async function POST(request: NextRequest) {
               );
               
               console.log(`💳 Credits initialized for user ${session.metadata.userId} (${planType} plan)`);
+            
+            // Invalidate credit cache for real-time frontend updates
+            try {
+              await redis.del(`credits:${session.metadata.userId}:current`);
+              console.log(`🔄 Credit cache invalidated for user ${session.metadata.userId}`);
+            } catch (cacheError: any) {
+              console.error(`⚠️ Failed to invalidate credit cache: ${cacheError.message}`);
+            }
             } catch (creditError: any) {
               console.error(`⚠️ Failed to initialize credits: ${creditError.message}`);
               // Don't throw - subscription is active even if credit init fails
@@ -352,6 +360,14 @@ export async function POST(request: NextRequest) {
               );
               console.log(`💳 Credits reset for plan change: ${customer.metadata.userId} (${oldPlanType} → ${newPlanType})`);
             }
+            
+            // Invalidate credit cache for real-time frontend updates
+            try {
+              await redis.del(`credits:${customer.metadata.userId}:current`);
+              console.log(`🔄 Credit cache invalidated for user ${customer.metadata.userId} (plan change)`);
+            } catch (cacheError: any) {
+              console.error(`⚠️ Failed to invalidate credit cache: ${cacheError.message}`);
+            }
           }
           
           console.log(`📝 Subscription updated for user ${customer.metadata.userId}: ${subscription.status}`);
@@ -378,7 +394,15 @@ export async function POST(request: NextRequest) {
           });
           
           // Downgrade to free tier
-          await creditManager.downgradeToFree(customer.metadata.userId);
+          await creditManager.downgradeToFreeWithNotification(customer.metadata.userId);
+          
+          // Invalidate credit cache for real-time frontend updates
+          try {
+            await redis.del(`credits:${customer.metadata.userId}:current`);
+            console.log(`🔄 Credit cache invalidated for user ${customer.metadata.userId} (downgraded to free)`);
+          } catch (cacheError: any) {
+            console.error(`⚠️ Failed to invalidate credit cache: ${cacheError.message}`);
+          }
           
           console.log(`❌ Subscription canceled for user ${customer.metadata.userId}, downgraded to free tier`);
         }
@@ -493,7 +517,7 @@ export async function POST(request: NextRequest) {
             
             if (activeSessions.length > 0) {
               // Get current credit balance for snapshot
-              const currentCredits = await creditManager.getUserCredit(userId);
+              const currentCredits = await creditManager.getCurrentCredits(userId);
               
               // Create grace period data with credit tracking
               const gracePeriodData = {

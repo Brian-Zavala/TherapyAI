@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { redis } from '@/lib/redis';
+import { redis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-optimized';
 
 // PostgreSQL INTEGER max value for overflow protection

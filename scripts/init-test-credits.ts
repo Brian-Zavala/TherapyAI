@@ -26,7 +26,7 @@ async function initTestCredits() {
         const billingEnd = new Date();
         billingEnd.setMonth(billingEnd.getMonth() + 1);
         
-        await creditManager.initializeCredits(
+        await creditManager.initializeBillingPeriod(
           user.id,
           'free',
           billingStart,

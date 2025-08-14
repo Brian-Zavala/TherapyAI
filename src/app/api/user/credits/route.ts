@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
+import { prisma } from '@/lib/prisma-optimized';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +16,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get current credit details first
+    let currentCredits = await creditManager.getCurrentCredits(session.user.id);
+    
+    // If user has no credits, initialize free tier (fallback safety net)
+    if (!currentCredits) {
+      console.log(`⚠️  User ${session.user.id} has no credits, initializing free tier as fallback`);
+      
+      // Check if user should have free tier
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { subscriptionStatus: true, email: true }
+      });
+      
+      if (!user?.subscriptionStatus || user.subscriptionStatus === 'free') {
+        const billingStart = new Date();
+        const billingEnd = new Date();
+        billingEnd.setMonth(billingEnd.getMonth() + 1);
+        
+        await creditManager.initializeBillingPeriod(
+          session.user.id,
+          'free',
+          billingStart,
+          billingEnd
+        );
+        
+        console.log(`✓ Emergency initialized free tier for user: ${user?.email}`);
+        
+        // Get the newly created credits
+        currentCredits = await creditManager.getCurrentCredits(session.user.id);
+      }
+    }
+    
     // Get credit status from credit manager
     const creditStatus = await creditManager.checkCredits(session.user.id);
-    
-    // Get current credit details
-    const currentCredits = await creditManager.getCurrentCredits(session.user.id);
     
     // Calculate credits for each duration
     const durations = [15, 20, 25, 30, 60];

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useCreditUpdates } from "@/hooks/useCreditUpdates";
 
 interface CreditData {
   credits: {
@@ -40,6 +41,9 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [showTooltip, setShowTooltip] = useState(false);
   
+  // Enable real-time credit updates
+  const { isConnected: creditUpdatesConnected } = useCreditUpdates();
+  
   // Debug logging
   useEffect(() => {
     console.log('[CreditDisplay] Component mounted');
@@ -51,8 +55,16 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["credits-display"],
     queryFn: fetchCredits,
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes (reduced from 30s)
-    staleTime: 2 * 60 * 1000, // Data considered fresh for 2 minutes
+    refetchInterval: (data) => {
+      // More frequent updates for low credits or during subscription changes
+      const credits = data?.credits;
+      if (!credits) return 5 * 60 * 1000; // 5 minutes default
+      
+      if (credits.percentageUsed > 90) return 30 * 1000; // 30 seconds if critical
+      if (credits.percentageUsed > 80) return 2 * 60 * 1000; // 2 minutes if low
+      return 5 * 60 * 1000; // 5 minutes normal
+    },
+    staleTime: 1 * 60 * 1000, // Data considered fresh for 1 minute (reduced for faster updates)
     enabled: isAuthenticated && !authLoading, // Only fetch when authenticated
     refetchOnWindowFocus: true, // Update when user returns to tab
     refetchOnMount: true,
@@ -164,22 +176,28 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
       >
         {/* Credit Icon */}
         <div className="flex items-center">
-          <svg
-            className={`w-4 h-4 sm:w-5 sm:h-5 ${
-              isOutOfCredits ? "text-red-400" : isLowCredits ? "text-yellow-400" : "text-green-400"
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <div className="relative">
+            <svg
+              className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                isOutOfCredits ? "text-red-400" : isLowCredits ? "text-yellow-400" : "text-green-400"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {creditUpdatesConnected && (
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" 
+                   title="Real-time updates connected" />
+            )}
+          </div>
         </div>
 
         {/* Credit Amount */}

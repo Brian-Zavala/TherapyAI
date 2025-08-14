@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma-client';
+import { prisma } from '@/lib/prisma-optimized';
 import { SessionStatus } from '@prisma/client';
 import { CreditManager, creditManager } from './credit-manager.service';
 import { redis } from '@/lib/cache/redis-client';

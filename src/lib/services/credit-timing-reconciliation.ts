@@ -10,7 +10,7 @@
  */
 
 import { redis } from '@/lib/cache/redis-client';
-import { prisma } from '@/lib/prisma-client';
+import { prisma } from '@/lib/prisma-optimized';
 
 export interface TimingData {
   sessionId: string;
