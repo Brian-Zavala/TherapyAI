@@ -186,7 +186,9 @@ export const durationValidationSchema = z.object({
 // Schema for session creation with duration validation
 export const sessionCreationSchema = z.object({
   duration: strictDurationSchema,
-  therapyType: z.enum(['individual', 'couple', 'family']),
+  therapyType: z.enum(['individual', 'couple', 'family', 'solo']).transform(val => 
+    val === 'solo' ? 'individual' : val
+  ),
   familyMembers: z.array(z.object({
     name: z.string(),
     age: z.number(),

@@ -28,8 +28,48 @@ const redlock = new Redlock(
   }
 );
 
+// Helper function to broadcast credit updates for real-time frontend sync
+async function broadcastCreditUpdate(userId: string, updateType: string): Promise<void> {
+  try {
+    // Publish to Redis pub/sub for any listening services
+    await redis.publish(`credits:updates:${userId}`, JSON.stringify({
+      type: updateType,
+      userId,
+      timestamp: new Date().toISOString()
+    }));
+    
+    // Also set a flag that can be polled if pub/sub is not available
+    await redis.set(`credits:updated:${userId}`, Date.now().toString(), 'EX', 60);
+    
+    console.log(`📢 Broadcasted credit update for user ${userId}: ${updateType}`);
+  } catch (error: any) {
+    console.error(`⚠️ Failed to broadcast credit update: ${error.message}`);
+  }
+}
+
+// Price ID to plan type mapping - Loaded from environment variables
+const PRICE_TO_PLAN_MAP: Record<string, 'essential' | 'growth' | 'unlimited'> = {};
+
+// Initialize price mapping from environment variables
+if (process.env.STRIPE_PRICE_ESSENTIAL) {
+  PRICE_TO_PLAN_MAP[process.env.STRIPE_PRICE_ESSENTIAL] = 'essential';
+}
+if (process.env.STRIPE_PRICE_GROWTH) {
+  PRICE_TO_PLAN_MAP[process.env.STRIPE_PRICE_GROWTH] = 'growth';
+}
+if (process.env.STRIPE_PRICE_UNLIMITED) {
+  PRICE_TO_PLAN_MAP[process.env.STRIPE_PRICE_UNLIMITED] = 'unlimited';
+}
+
+// Test price IDs for development
+if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
+  PRICE_TO_PLAN_MAP['price_test_essential'] = 'essential';
+  PRICE_TO_PLAN_MAP['price_test_growth'] = 'growth';
+  PRICE_TO_PLAN_MAP['price_test_unlimited'] = 'unlimited';
+}
+
 // Helper function to determine plan type from subscription
-function getPlanTypeFromSubscription(subscription: any): 'free' | 'essential' | 'growth' | 'unlimited' {
+async function getPlanTypeFromSubscription(subscription: any): Promise<'free' | 'essential' | 'growth' | 'unlimited'> {
   if (!subscription || !subscription.items?.data?.length) {
     return 'free';
   }
@@ -37,16 +77,53 @@ function getPlanTypeFromSubscription(subscription: any): 'free' | 'essential' | 
   const priceId = subscription.items.data[0].price?.id;
   if (!priceId) return 'free';
   
-  // Check price ID or metadata to determine plan
-  if (priceId.includes('unlimited') || subscription.metadata?.plan === 'unlimited') {
+  // 1. Check explicit mapping first
+  if (PRICE_TO_PLAN_MAP[priceId]) {
+    console.log(`✅ Plan type found in mapping: ${PRICE_TO_PLAN_MAP[priceId]} for price ${priceId}`);
+    return PRICE_TO_PLAN_MAP[priceId];
+  }
+  
+  // 2. Check subscription metadata
+  if (subscription.metadata?.plan) {
+    const plan = subscription.metadata.plan as 'essential' | 'growth' | 'unlimited';
+    console.log(`✅ Plan type found in metadata: ${plan}`);
+    return plan;
+  }
+  
+  // 3. Try to fetch product metadata from Stripe
+  try {
+    const price = await stripe.prices.retrieve(priceId, {
+      expand: ['product']
+    });
+    
+    if (price.product && typeof price.product === 'object' && 'metadata' in price.product) {
+      const planType = price.product.metadata?.planType as 'essential' | 'growth' | 'unlimited' | undefined;
+      if (planType) {
+        console.log(`✅ Plan type found in product metadata: ${planType}`);
+        // Cache this for future use
+        PRICE_TO_PLAN_MAP[priceId] = planType;
+        return planType;
+      }
+    }
+  } catch (error: any) {
+    console.error(`⚠️ Failed to fetch price details from Stripe: ${error.message}`);
+  }
+  
+  // 4. Fall back to string matching (less reliable)
+  if (priceId.includes('unlimited')) {
+    console.warn(`⚠️ Using fallback string matching for price ${priceId}: unlimited`);
     return 'unlimited';
-  } else if (priceId.includes('growth') || subscription.metadata?.plan === 'growth') {
+  } else if (priceId.includes('growth')) {
+    console.warn(`⚠️ Using fallback string matching for price ${priceId}: growth`);
     return 'growth';
-  } else if (priceId.includes('essential') || subscription.metadata?.plan === 'essential') {
+  } else if (priceId.includes('essential')) {
+    console.warn(`⚠️ Using fallback string matching for price ${priceId}: essential`);
     return 'essential';
   }
   
-  return 'essential'; // Default to essential for paid plans
+  // 5. Default to essential for unknown paid plans
+  console.warn(`⚠️ Unknown price ID ${priceId}, defaulting to essential plan`);
+  return 'essential';
 }
 
 export async function POST(request: NextRequest) {
@@ -225,7 +302,7 @@ export async function POST(request: NextRequest) {
             
             // Initialize credits for the new subscription
             try {
-              const planType = getPlanTypeFromSubscription(subscription);
+              const planType = await getPlanTypeFromSubscription(subscription);
               // Use UTC dates from Stripe subscription for consistent billing
               const billingStart = parseStripeTimestamp(subscription.current_period_start);
               const billingEnd = parseStripeTimestamp(subscription.current_period_end);
@@ -240,12 +317,14 @@ export async function POST(request: NextRequest) {
               
               console.log(`💳 Credits initialized for user ${session.metadata.userId} (${planType} plan)`);
             
-            // Invalidate credit cache for real-time frontend updates
+            // Broadcast update first, then invalidate cache for real-time frontend sync
             try {
+              await broadcastCreditUpdate(session.metadata.userId, 'subscription_activated');
               await redis.del(`credits:${session.metadata.userId}:current`);
               console.log(`🔄 Credit cache invalidated for user ${session.metadata.userId}`);
             } catch (cacheError: any) {
-              console.error(`⚠️ Failed to invalidate credit cache: ${cacheError.message}`);
+              console.error(`⚠️ Failed to handle credit updates: ${cacheError.message}`);
+              // Don't throw - subscription was successfully created
             }
             } catch (creditError: any) {
               console.error(`⚠️ Failed to initialize credits: ${creditError.message}`);
@@ -282,7 +361,7 @@ export async function POST(request: NextRequest) {
           });
           
           // Initialize credits for new subscription
-          const planType = getPlanTypeFromSubscription(subscription);
+          const planType = await getPlanTypeFromSubscription(subscription);
           const billingStart = new Date(subscription.current_period_start * 1000);
           const billingEnd = new Date(subscription.current_period_end * 1000);
           
@@ -320,7 +399,7 @@ export async function POST(request: NextRequest) {
           
           // Check if plan changed (price ID changed)
           if (previousAttributes?.items) {
-            const newPlanType = getPlanTypeFromSubscription(subscription);
+            const newPlanType = await getPlanTypeFromSubscription(subscription);
             
             // Determine old plan type from previous attributes
             const oldPriceId = previousAttributes.items?.data?.[0]?.price?.id;
@@ -361,12 +440,15 @@ export async function POST(request: NextRequest) {
               console.log(`💳 Credits reset for plan change: ${customer.metadata.userId} (${oldPlanType} → ${newPlanType})`);
             }
             
-            // Invalidate credit cache for real-time frontend updates
+            // Broadcast update first, then invalidate cache for real-time frontend sync
             try {
+              const updateType = planHierarchy[newPlanType] > planHierarchy[oldPlanType] ? 'plan_upgraded' : 'plan_changed';
+              await broadcastCreditUpdate(customer.metadata.userId, updateType);
               await redis.del(`credits:${customer.metadata.userId}:current`);
               console.log(`🔄 Credit cache invalidated for user ${customer.metadata.userId} (plan change)`);
             } catch (cacheError: any) {
-              console.error(`⚠️ Failed to invalidate credit cache: ${cacheError.message}`);
+              console.error(`⚠️ Failed to handle credit updates: ${cacheError.message}`);
+              // Don't throw - subscription was successfully updated
             }
           }
           
@@ -396,12 +478,14 @@ export async function POST(request: NextRequest) {
           // Downgrade to free tier
           await creditManager.downgradeToFreeWithNotification(customer.metadata.userId);
           
-          // Invalidate credit cache for real-time frontend updates
+          // Broadcast update first, then invalidate cache for real-time frontend sync
           try {
+            await broadcastCreditUpdate(customer.metadata.userId, 'subscription_cancelled');
             await redis.del(`credits:${customer.metadata.userId}:current`);
             console.log(`🔄 Credit cache invalidated for user ${customer.metadata.userId} (downgraded to free)`);
           } catch (cacheError: any) {
-            console.error(`⚠️ Failed to invalidate credit cache: ${cacheError.message}`);
+            console.error(`⚠️ Failed to handle credit updates: ${cacheError.message}`);
+            // Don't throw - subscription was successfully cancelled
           }
           
           console.log(`❌ Subscription canceled for user ${customer.metadata.userId}, downgraded to free tier`);
@@ -456,7 +540,7 @@ export async function POST(request: NextRequest) {
             // Reset credits for new billing period
             if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
               const subscription = await getSubscription(invoice.subscription as string);
-              const planType = getPlanTypeFromSubscription(subscription);
+              const planType = await getPlanTypeFromSubscription(subscription);
               const billingStart = parseStripeTimestamp(subscription.current_period_start);
               const billingEnd = parseStripeTimestamp(subscription.current_period_end);
               

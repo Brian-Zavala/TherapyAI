@@ -43,11 +43,6 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   // Note: Real-time updates handled via React Query polling
   // SSE removed due to Upstash Redis limitations
   
-  // Debug logging
-  useEffect(() => {
-    console.log('[CreditDisplay] Component mounted');
-    console.log('[CreditDisplay] Auth state:', { isAuthenticated, authLoading });
-  }, [isAuthenticated, authLoading]);
 
   // Query for credit status with proper authentication check
   const { data, isLoading, error, refetch } = useQuery({
@@ -80,7 +75,6 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     if (!isAuthenticated) return;
     
     const handleCreditUpdate = () => {
-      console.log('[CreditDisplay] Credit update event received, refetching...');
       refetch();
     };
     
@@ -100,30 +94,65 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     };
   }, [isAuthenticated, refetch]);
   
-  // Debug data fetching
+  // Poll for credit updates with exponential backoff after mount
   useEffect(() => {
-    console.log('[CreditDisplay] Query state:', { 
-      isLoading, 
-      error: error?.message, 
-      hasData: !!data,
-      data 
-    });
-  }, [isLoading, error, data]);
+    if (!isAuthenticated) return;
+    
+    const checkForUpdates = async () => {
+      try {
+        const response = await fetch('/api/credits/check-update');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.hasUpdate) {
+            refetch();
+            return true; // Update found, stop polling
+          }
+        }
+      } catch (error) {
+        // Log for debugging but don't expose to user
+        console.debug('[CreditDisplay] Update check failed:', error);
+      }
+      return false;
+    };
+    
+    // Use exponential backoff: 5s, 10s, 20s, then stop
+    const intervals = [5000, 10000, 20000];
+    let currentInterval = 0;
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    const scheduleNextCheck = () => {
+      if (currentInterval < intervals.length) {
+        timeoutId = setTimeout(async () => {
+          const updateFound = await checkForUpdates();
+          if (!updateFound) {
+            currentInterval++;
+            scheduleNextCheck();
+          }
+        }, intervals[currentInterval]);
+      }
+    };
+    
+    // Start the check sequence
+    scheduleNextCheck();
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isAuthenticated, refetch]);
+  
 
 
   // Don't render until authentication is resolved, but show loading when authenticated
   if (authLoading) {
-    console.log('[CreditDisplay] Returning null - auth still loading');
     return null; // Still loading authentication state
   }
   
   // Only render for authenticated users
   if (!isAuthenticated) {
-    console.log('[CreditDisplay] Returning null - not authenticated');
     return null;
   }
-  
-  console.log('[CreditDisplay] User is authenticated, proceeding with render');
 
   // Show loading state for authenticated users while data is loading
   if (isLoading) {
@@ -216,10 +245,6 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            {creditUpdatesConnected && (
-              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" 
-                   title="Real-time updates connected" />
-            )}
           </div>
         </div>
 
