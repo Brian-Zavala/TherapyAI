@@ -35,13 +35,12 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         status: true,
-        sessionLength: true,
-        creditsUsed: true,
-        maxDuration: true,
+        duration: true,
         createdAt: true,
-        scheduledFor: true,
-        therapyType: true,
-        metadata: true
+        sessionDate: true,
+        notes: true,
+        userId: true,
+        updatedAt: true
       }
     });
 
@@ -74,16 +73,15 @@ export async function GET(request: NextRequest) {
         
         if (reservation) {
           const reservationData = JSON.parse(reservation);
-          creditsRemaining = reservationData.creditsReserved - (activeSession.creditsUsed || 0);
+          creditsRemaining = reservationData.creditsReserved || 0;
           
           // If no credits remaining, can't recover
           if (creditsRemaining <= 0) {
             canRecover = false;
           }
         } else {
-          // No reservation found - check if session was unlimited
-          const sessionLength = activeSession.sessionLength || activeSession.maxDuration || 0;
-          creditsRemaining = sessionLength - (activeSession.creditsUsed || 0);
+          // No reservation found - use session duration
+          creditsRemaining = activeSession.duration || 0;
           
           if (creditsRemaining <= 0) {
             canRecover = false;
@@ -103,11 +101,7 @@ export async function GET(request: NextRequest) {
         await prisma.therapySession.update({
           where: { id: activeSession.id },
           data: {
-            metadata: {
-              ...((activeSession.metadata as any) || {}),
-              lastRecoveryCheck: new Date().toISOString(),
-              recoveryAttempts: ((activeSession.metadata as any)?.recoveryAttempts || 0) + 1
-            }
+            updatedAt: new Date()
           }
         });
       } catch (error) {
@@ -123,10 +117,9 @@ export async function GET(request: NextRequest) {
       creditsRemaining: Math.max(0, creditsRemaining),
       sessionInfo: {
         status: activeSession.status,
-        duration: activeSession.sessionLength || activeSession.maxDuration,
-        therapyType: activeSession.therapyType,
+        duration: activeSession.duration,
         createdAt: activeSession.createdAt,
-        scheduledFor: activeSession.scheduledFor
+        sessionDate: activeSession.sessionDate
       },
       requestId,
       timestamp: new Date().toISOString(),

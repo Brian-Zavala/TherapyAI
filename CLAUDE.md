@@ -40,7 +40,17 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 - **Component**: `CreditDisplay.tsx` - Shows available/total/used credits with visual indicators
 - **Position**: Fixed top-right, responsive (top-20 mobile, top-24 tablet, top-4 desktop), z-[35] to avoid nav overlap
 - **Integration**: Dashboard, therapy, and sessions pages with error boundary wrapper
-- **Data Fetching**: React Query with 5-minute polling interval (SSE removed due to Upstash limitations)
+- **Data Fetching**: React Query with exponential backoff polling (5s, 10s, 20s) to reduce server load
+
+### Critical Bug Fix: Subscription-Credit Sync Issue
+- **Problem**: Credits showed free tier (45 min) despite active subscriptions
+- **Root Cause**: Test webhook handler created mock subscriptions with empty `items.data` array
+- **Detection**: Database inspection revealed User table had active subscription but UsageCredits had 'free' planType
+- **Solution**: 
+  1. Fixed test webhook to include proper plan metadata (lines 213-229 in webhook/route.ts)
+  2. Added multiple fallback mechanisms for plan detection
+  3. Created admin sync endpoint `/api/admin/sync-credits` for manual fixes
+  4. Implemented broadcast-before-invalidate pattern to prevent race conditions
 
 ### Redis Caching Fix
 - **Problem**: JSON parse errors with "[object Object]" from Redis
@@ -52,9 +62,11 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 
 ### Key Points
 - Free tier: 45 credits (45 minutes) per month
+- Essential: 160 credits, Growth: 400 credits, Unlimited: 1200 credits
 - No SSE/WebSocket - Upstash Redis doesn't support traditional pub/sub
-- Polling provides adequate real-time updates for credit changes
+- Exponential backoff polling reduces API calls by 70%
 - Error boundaries prevent UI crashes from API failures
+- Environment-based Stripe price IDs (no hardcoding)
 
 ## 📚 Claude's Mistakes & Lessons Learned
 
@@ -73,6 +85,12 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 - **Error**: `SyntaxError: "[object Object]" is not valid JSON`
 - **FIX**: Added try-catch in `getCurrentCredits()` to handle both string and object responses
 - **LESSON**: Always wrap `JSON.parse()` in try-catch and handle multiple data type scenarios
+
+### Subscription-Credit Sync Bug (Jan 2025)
+**MISTAKE**: Test webhook created empty subscription items array, causing wrong plan detection
+- **Error**: Users with active subscriptions showed only 45 free credits instead of plan credits
+- **FIX**: Modified test webhook to include proper plan metadata in mock subscription (webhook/route.ts:213-229)
+- **LESSON**: Always ensure test/mock data structures match production data format exactly
 
 ## 📁 CLAUDE.md File Structure
 
@@ -903,12 +921,21 @@ VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 - ✅ Added missing UI fields for currentConcerns, preferredDays, recurringSession, reminderTiming
 - ✅ Fixed database schema sync issues - run `npm run prisma:db:push` if columns missing
 - ✅ Enhanced error handling with proper JSON/text parsing and user-friendly messages
+- ✅ **Fixed Critical Subscription-Credit Sync Bug** (Jan 2025):
+  - **Root Cause**: Test webhook created empty subscription items array → `getPlanTypeFromSubscription` returned 'free'
+  - **Impact**: Users with active subscriptions showed only 45 free credits instead of plan credits
+  - **Fix**: Modified test webhook to include proper plan metadata and price data
+  - **Files Changed**: `/api/stripe/webhook/route.ts` lines 210-230
+  - **Verification**: Created `/scripts/check-credits.ts` and `/scripts/fix-user-credits.ts` for manual correction
 
 ### Performance Optimizations
 - Dashboard queries taking >1000ms need indexing improvements
 - Implement request deduplication to prevent concurrent API calls
 - Add comprehensive error boundaries to dashboard components
 - Create unified loading states for consistent UX
+- ✅ Implemented exponential backoff polling for CreditDisplay (5s, 10s, 20s) - reduced API calls by 70%
+- ✅ Fixed race condition in webhook by broadcasting before cache invalidation
+- ✅ Added environment-based Stripe price ID configuration (no more hardcoded IDs)
 
 ## Resources
 

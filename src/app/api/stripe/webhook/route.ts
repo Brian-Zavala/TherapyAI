@@ -209,11 +209,24 @@ export async function POST(request: NextRequest) {
         
         if (isTestWebhook) {
           console.log('🧪 Test webhook detected, using mock subscription data');
+          // For test webhooks, create a mock subscription with plan info from metadata
+          const testPlanType = session.metadata?.planType || 'essential';
           subscription = {
             id: session.subscription as string,
             status: 'active',
-            items: { data: [] }
+            metadata: { plan: testPlanType },
+            items: { 
+              data: [{
+                price: {
+                  id: `price_test_${testPlanType}`,
+                  product: testPlanType
+                }
+              }]
+            },
+            current_period_start: Math.floor(Date.now() / 1000),
+            current_period_end: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days from now
           };
+          console.log('📋 Mock subscription created with plan:', testPlanType);
         } else {
           try {
             subscription = await getSubscription(
