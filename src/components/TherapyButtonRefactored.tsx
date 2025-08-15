@@ -76,7 +76,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   onSessionStarted,
   linkedSessionId = null
 }: TherapyButtonRefactoredProps) {
-  const { user } = useAuth()
+  const { user, isLoading: isAuthLoading } = useAuth()
   const router = useRouter()
   const playClick = useButtonSound()
   
@@ -273,9 +273,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     onMessage: handleVapiMessage
   })
   
-  // Destructure authentication state from vapi
-  // Authentication state is tracked via isConnecting in the vapi hook
-  const authError: string | null = null // Track auth errors locally if needed
   
   // Update ref when vapi instance changes
   useEffect(() => {
@@ -545,6 +542,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       reason: reason
     }))
   }, [])
+
+  // Track auth errors locally if needed
+  const authError: string | null = null
 
   // Listen for session recovery auto-start events
   useEffect(() => {
