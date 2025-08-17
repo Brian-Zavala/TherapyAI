@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/cache/redis-client';
-import { SessionStatus, TherapyType } from '@prisma/client';
+import { SessionStatus, SessionType } from '@prisma/client';
 import { z } from 'zod';
 import { 
   sessionCreationSchema, 
@@ -69,11 +69,18 @@ export async function POST(request: NextRequest) {
     try {
       // Transaction for atomic session creation with credit validation
       const result = await prisma.$transaction(async (tx) => {
-        // 1. Get user with subscription info
+        // 1. Get user with current credits to determine plan type
         const user = await tx.user.findUnique({
           where: { id: session.user.id },
           include: {
-            subscription: true,
+            usageCredits: {
+              where: {
+                billingPeriodStart: { lte: new Date() },
+                billingPeriodEnd: { gte: new Date() },
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
         });
 
@@ -81,8 +88,27 @@ export async function POST(request: NextRequest) {
           throw new Error('User not found');
         }
 
-        // 2. Determine plan type
-        const planType = (user.subscription?.planType || 'free') as PlanType;
+        // 2. Determine plan type from current credits or subscription status
+        let planType: PlanType = 'free';
+        
+        // First try to get from current credits
+        if (user.usageCredits && user.usageCredits.length > 0) {
+          planType = user.usageCredits[0].planType as PlanType;
+        } 
+        // Fallback to checking subscription status
+        else if (user.subscriptionStatus === 'active' && user.subscriptionId) {
+          // Parse plan type from subscription ID if needed
+          const subId = user.subscriptionId.toLowerCase();
+          if (subId.includes('unlimited')) {
+            planType = 'unlimited';
+          } else if (subId.includes('growth')) {
+            planType = 'growth';
+          } else if (subId.includes('essential')) {
+            planType = 'essential';
+          } else {
+            planType = 'essential'; // Default for active subscriptions
+          }
+        }
 
         // 2a. Validate duration for user's plan
         const durationValidation = validateAndSanitizeDuration(validatedData.duration, planType);
@@ -94,7 +120,7 @@ export async function POST(request: NextRequest) {
         const sessionDuration = durationValidation.duration;
 
         // 3. Check concurrent session limits
-        const activeSessions = await tx.therapySession.count({
+        const activeSessions = await tx.session.count({
           where: {
             userId: session.user.id,
             status: {
@@ -163,7 +189,7 @@ export async function POST(request: NextRequest) {
               let isExistingSession = false;
               if (validatedData.metadata?.continuationOf && grace.activeSessions?.includes(validatedData.metadata.continuationOf)) {
                 // Verify the session belongs to this user and is actually active
-                const existingSession = await tx.therapySession.findFirst({
+                const existingSession = await tx.session.findFirst({
                   where: {
                     id: validatedData.metadata.continuationOf,
                     userId: session.user.id,
@@ -205,14 +231,23 @@ export async function POST(request: NextRequest) {
         }
 
         // 6. Create the session
-        const newSession = await tx.therapySession.create({
+        // Map therapyType to sessionType enum
+        let sessionType: 'SOLO' | 'COUPLE' | 'FAMILY' = 'SOLO';
+        if (validatedData.therapyType === 'couple') {
+          sessionType = 'COUPLE';
+        } else if (validatedData.therapyType === 'family') {
+          sessionType = 'FAMILY';
+        }
+        
+        const newSession = await tx.session.create({
           data: {
             userId: session.user.id,
-            therapyType: validatedData.therapyType.toUpperCase() as TherapyType,
+            sessionType: sessionType,
             status: SessionStatus.SCHEDULED,
-            scheduledFor: new Date(),
-            sessionLength: sessionDuration,
-            metadata: validatedData.metadata || {},
+            date: new Date(),
+            duration: sessionDuration,
+            assistantId: validatedData.metadata?.assistantId || null,
+            theme: validatedData.metadata?.theme || 'AI Therapy Session',
           },
         });
 

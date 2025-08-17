@@ -9,28 +9,28 @@ datasource db {
 }
 
 model User {
-  id                   String                @id @default(cuid())
-  email                String                @unique
+  id                   String                 @id @default(cuid())
+  email                String                 @unique
   name                 String?
   password             String?
   image                String?
   emailVerified        DateTime?
-  onboardingCompleted  Boolean               @default(false)
+  onboardingCompleted  Boolean                @default(false)
   onboardingData       Json?
-  hasSeenIntro         Boolean               @default(false)
-  welcomeMessageSent   Boolean               @default(false)
+  hasSeenIntro         Boolean                @default(false)
+  welcomeMessageSent   Boolean                @default(false)
   welcomeMessageSentAt DateTime?
-  isDeleted            Boolean               @default(false)
+  isDeleted            Boolean                @default(false)
   deletedAt            DateTime?
   deletionReason       String?
   dataRetentionUntil   DateTime?
-  canRecover           Boolean               @default(true)
-  subscriptionStatus   String?               @default("free")
+  canRecover           Boolean                @default(true)
+  subscriptionStatus   String?                @default("free")
   subscriptionId       String?
   billingEmail         String?
   stripeCustomerId     String?
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
   accounts             Account[]
   auditLogs            AuditLog[]
   authSessions         AuthSession[]
@@ -44,11 +44,12 @@ model User {
   therapyInsights      TherapyInsight[]
   profile              UserProfile?
   notificationTracking NotificationTracking[]
-  maxSessionDuration   Int?                  @default(30)
-  concurrentSessions   Int?                  @default(1)
+  maxSessionDuration   Int?                   @default(30)
+  concurrentSessions   Int?                   @default(1)
   usageCredits         UsageCredits[]
   usageTransactions    UsageTransaction[]
   usageAlerts          UsageAlert[]
+  creditReservations   CreditReservation[]
 
   @@index([email])
   @@index([createdAt])
@@ -111,45 +112,45 @@ model FamilyMember {
 }
 
 model Session {
-  id                      String                @id @default(uuid())
+  id                      String                 @id @default(uuid())
   userId                  String
   assistantId             String?
   date                    DateTime
   startTime               DateTime?
   endTime                 DateTime?
   completedAt             DateTime?
-  duration                Int                   @default(30)
-  theme                   String                @default("AI Therapy Session")
-  notes                   String?               @default("")
-  status                  SessionStatus         @default(SCHEDULED)
+  duration                Int                    @default(30)
+  theme                   String                 @default("AI Therapy Session")
+  notes                   String?                @default("")
+  status                  SessionStatus          @default(SCHEDULED)
   terminationReason       String?
-  conversationTimeSeconds Int                   @default(0)
+  conversationTimeSeconds Int                    @default(0)
   lastConversationStart   DateTime?
-  isPaused                Boolean               @default(false)
+  isPaused                Boolean                @default(false)
   pausedAt                DateTime?
   resumedAt               DateTime?
-  totalPausedTimeSeconds  Int                   @default(0)
+  totalPausedTimeSeconds  Int                    @default(0)
   pauseStartTime          DateTime?
   vapiCallId              String?
   vapiCallCost            Float?
   vapiRecordingUrl        String?
-  reminderSent            Boolean               @default(false)
-  smsReminderSent         Boolean?              @default(false)
-  emailReminderSent       Boolean?              @default(false)
-  oneHourReminderSent     Boolean?              @default(false)
-  version                 Int                   @default(0)
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  sessionType             SessionType           @default(SOLO)
+  reminderSent            Boolean                @default(false)
+  smsReminderSent         Boolean?               @default(false)
+  emailReminderSent       Boolean?               @default(false)
+  oneHourReminderSent     Boolean?               @default(false)
+  version                 Int                    @default(0)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  sessionType             SessionType            @default(SOLO)
   notificationToken       String?
   notificationTokenExpiry DateTime?
-  startedViaNotification  Boolean               @default(false)
+  startedViaNotification  Boolean                @default(false)
   notificationStartedAt   DateTime?
-  creditsAllocated        Int?                  @default(0)
-  creditsUsed             Int?                  @default(0)
+  creditsAllocated        Int?                   @default(0)
+  creditsUsed             Int?                   @default(0)
   communicationMetrics    CommunicationMetric[]
   progressTracking        ProgressTracking[]
-  user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionFamilyMembers    SessionFamilyMember[]
   sessionMetrics          SessionMetrics?
   therapyInsights         TherapyInsight[]
@@ -579,8 +580,8 @@ model NotificationTracking {
   id        String   @id @default(cuid())
   sessionId String
   userId    String
-  type      String   // 'email' or 'sms'
-  action    String   // 'sent', 'clicked', 'started', 'completed'
+  type      String // 'email' or 'sms'
+  action    String // 'sent', 'clicked', 'started', 'completed'
   token     String?
   metadata  Json?
   createdAt DateTime @default(now())
@@ -597,22 +598,24 @@ model NotificationTracking {
 // ========================================
 
 model UsageCredits {
-  id                   String   @id @default(cuid())
-  userId               String
-  totalCredits         Int      @default(0)
-  usedCredits          Int      @default(0)
-  bonusCredits         Int      @default(0)
-  billingPeriodStart   DateTime
-  billingPeriodEnd     DateTime
-  planType             String   // 'free', 'essential', 'growth', 'unlimited'
-  subscriptionId       String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  
+  id                 String   @id @default(cuid())
+  userId             String
+  totalCredits       Int      @default(0)
+  usedCredits        Int      @default(0)
+  bonusCredits       Int      @default(0)
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  planType           String // 'free', 'essential', 'growth', 'unlimited'
+  subscriptionId     String?
+  version            Int      @default(0) // For optimistic locking
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
   // Relations
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions         UsageTransaction[]
-  
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions UsageTransaction[]
+  reservations CreditReservation[]
+
   @@index([userId, billingPeriodStart, billingPeriodEnd])
   @@index([userId, createdAt])
   @@index([planType])
@@ -623,19 +626,19 @@ model UsageTransaction {
   userId      String
   creditId    String
   type        TransactionType
-  amount      Int             // Minutes used/added/refunded
-  balance     Int             // Remaining balance after transaction (-1 for unlimited)
+  amount      Int // Minutes used/added/refunded
+  balance     Int // Remaining balance after transaction (-1 for unlimited)
   sessionId   String?
   vapiCallId  String?
   description String
   metadata    Json?
   createdAt   DateTime        @default(now())
-  
+
   // Relations
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credit      UsageCredits    @relation(fields: [creditId], references: [id], onDelete: Cascade)
-  session     Session?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credit  UsageCredits @relation(fields: [creditId], references: [id], onDelete: Cascade)
+  session Session?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
   @@index([userId, createdAt])
   @@index([sessionId])
   @@index([vapiCallId])
@@ -646,27 +649,55 @@ model UsageAlert {
   id           String    @id @default(cuid())
   userId       String
   alertType    AlertType
-  threshold    Int       // Percentage threshold (80, 90, 100)
+  threshold    Int // Percentage threshold (80, 90, 100)
   message      String
   acknowledged Boolean   @default(false)
   sentAt       DateTime  @default(now())
-  
+
   // Relations
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, acknowledged])
   @@index([sentAt])
   @@index([alertType, threshold])
 }
 
 enum TransactionType {
-  DEBIT    // Credits used for sessions
-  BONUS    // Bonus credits added
-  REFUND   // Credits refunded for technical issues
+  DEBIT // Credits used for sessions
+  BONUS // Bonus credits added
+  REFUND // Credits refunded for technical issues
 }
 
 enum AlertType {
-  LOW_CREDITS        // Warning when credits are low
-  CREDITS_EXHAUSTED  // Alert when credits are fully used
-  BILLING_REMINDER   // General billing reminders
+  LOW_CREDITS // Warning when credits are low
+  CREDITS_EXHAUSTED // Alert when credits are fully used
+  BILLING_REMINDER // General billing reminders
+}
+
+model CreditReservation {
+  id        String            @id @default(cuid())
+  userId    String
+  sessionId String            @unique
+  minutes   Int
+  creditId  String
+  expiresAt DateTime
+  status    ReservationStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  // Relations
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credit UsageCredits @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([creditId])
+}
+
+enum ReservationStatus {
+  ACTIVE
+  EXPIRED
+  CONSUMED
+  RELEASED
 }

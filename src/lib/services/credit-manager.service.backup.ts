@@ -11,16 +11,10 @@ import {
 } from '@/lib/utils/date-utils';
 import {
   calculateAvailableCredits,
+  validateCreditAmount,
   safeSubtractCredits,
   MAX_CREDITS,
 } from '@/lib/validation/credit-validation';
-import {
-  convertToBillableMinutes,
-  calculateReservationExpiry,
-  isReservationExpired,
-  generateCreditIdempotencyKey,
-} from '@/lib/utils/billing-utils';
-import { creditReservationManager } from './credit-reservation-manager';
 
 export interface CreditManagerConfig {
   plans: {
@@ -422,71 +416,43 @@ export class CreditManager {
     sessionId: string,
     minutes: number
   ): Promise<{ success: boolean; reservationId?: string; error?: string }> {
-    const idempotencyKey = generateCreditIdempotencyKey('reserveCredits', [
+    const idempotencyKey = this.generateIdempotencyKey('reserveCredits', [
       userId,
       sessionId,
       minutes.toString(),
     ]);
 
     return await this.withIdempotency(idempotencyKey, async () => {
-      // Use database-backed reservation manager for ACID guarantees
-      const result = await creditReservationManager.createReservation(
-        userId,
-        sessionId,
-        minutes
-      );
+      const lockKey = `credits:reserve:${userId}`;
+      const lockValue = await this.acquireLock(lockKey);
       
-      if (result.success) {
-        return { success: true, reservationId: sessionId };
-      } else {
-        return { success: false, error: result.error };
-      }
-    });
-  }
-
-  /**
-   * Legacy reservation method - kept for reference but not used
-   * @deprecated Use creditReservationManager.createReservation instead
-   */
-  private async legacyReserveCreditsImplementation(
-    userId: string,
-    sessionId: string,
-    minutes: number
-  ): Promise<{ success: boolean; reservationId?: string; error?: string }> {
-    const lockKey = `credits:reserve:${userId}`;
-    const lockValue = await this.acquireLock(lockKey);
-    
-    if (!lockValue) {
-      return { success: false, error: 'Unable to acquire reservation lock' };
-    }
-
-    try {
-      // Check if already reserved
-      const existingReservation = await redis.get(`credits:reserved:${sessionId}`);
-      if (existingReservation) {
-        return { success: true, reservationId: sessionId };
+      if (!lockValue) {
+        return { success: false, error: 'Unable to acquire reservation lock' };
       }
 
-      return await prisma.$transaction(
-        async (tx) => {
-            // SECURITY FIX: Lock the credits row to prevent double-spending
-            const creditsResult = await tx.$queryRaw<UsageCredits[]>`
-              SELECT * FROM "UsageCredits"
-              WHERE "userId" = ${userId}
-                AND "billingPeriodStart" <= NOW()
-                AND "billingPeriodEnd" >= NOW()
-              ORDER BY "createdAt" DESC
-              LIMIT 1
-              FOR UPDATE NOWAIT
-            `;
+      try {
+        // Check if already reserved
+        const existingReservation = await redis.get(`credits:reserved:${sessionId}`);
+        if (existingReservation) {
+          return { success: true, reservationId: sessionId };
+        }
 
-            if (!creditsResult || creditsResult.length === 0) {
+        return await prisma.$transaction(
+          async (tx) => {
+            const credits = await tx.usageCredits.findFirst({
+              where: {
+                userId,
+                billingPeriodStart: { lte: new Date() },
+                billingPeriodEnd: { gte: new Date() },
+              },
+              orderBy: { createdAt: 'desc' },
+            });
+
+            if (!credits) {
               return { success: false, error: 'No active credits found' };
             }
 
-            const credits = creditsResult[0];
             const planType = credits.planType as keyof typeof config.plans;
-            
             if (planType === 'unlimited') {
               // Still create reservation for tracking
               const reservationData = {
@@ -496,7 +462,6 @@ export class CreditManager {
                 creditId: credits.id,
                 isUnlimited: true,
                 timestamp: Date.now(),
-                expiresAt: calculateReservationExpiry(minutes).toISOString(),
               };
 
               await redis.set(
@@ -509,45 +474,17 @@ export class CreditManager {
               return { success: true, reservationId: sessionId };
             }
 
-            // CRITICAL FIX: Check ALL outstanding reservations to prevent double-spending
-            // Since Upstash doesn't support KEYS, we maintain a user-specific reservation tracker
-            const userReservationsKey = `user:reservations:${userId}`;
-            const userReservations = await redis.get(userReservationsKey);
-            let totalReserved = 0;
-            
-            if (userReservations) {
-              try {
-                const reservationList = JSON.parse(userReservations) as Array<{sessionId: string, minutes: number, expiresAt: string}>;
-                const now = new Date();
-                
-                // Filter out expired reservations and sum active ones
-                const activeReservations = reservationList.filter(r => 
-                  new Date(r.expiresAt) > now && r.sessionId !== sessionId
-                );
-                
-                totalReserved = activeReservations.reduce((sum, r) => sum + r.minutes, 0);
-                
-                // Clean up expired reservations
-                if (activeReservations.length !== reservationList.length) {
-                  await redis.set(userReservationsKey, JSON.stringify(activeReservations), 'EX', 86400);
-                }
-              } catch (e) {
-                console.error(`Failed to parse user reservations:`, e);
-              }
-            }
-
-            // Calculate truly available credits (accounting for all reservations)
             const totalAvailable = credits.totalCredits + credits.bonusCredits;
-            const actualAvailable = totalAvailable - credits.usedCredits - totalReserved;
+            const remaining = totalAvailable - credits.usedCredits;
 
-            if (actualAvailable < minutes) {
+            if (remaining < minutes) {
               return { 
                 success: false, 
-                error: `Insufficient credits: ${actualAvailable} available (${totalReserved} reserved), ${minutes} requested` 
+                error: `Insufficient credits: ${remaining} available, ${minutes} requested` 
               };
             }
 
-            // Create reservation record with expiry
+            // Create reservation record
             const reservationData = {
               userId,
               sessionId,
@@ -555,7 +492,6 @@ export class CreditManager {
               creditId: credits.id,
               isUnlimited: false,
               timestamp: Date.now(),
-              expiresAt: calculateReservationExpiry(minutes).toISOString(),
             };
 
             await redis.set(
@@ -565,19 +501,6 @@ export class CreditManager {
               this.RESERVATION_TIMEOUT_SECONDS
             );
 
-            // Update user's reservation list for double-spending prevention
-            // Note: userReservationsKey already declared above
-            const existingReservations = await redis.get(userReservationsKey);
-            const reservationList = existingReservations ? JSON.parse(existingReservations) : [];
-            
-            reservationList.push({
-              sessionId,
-              minutes,
-              expiresAt: calculateReservationExpiry(minutes).toISOString()
-            });
-            
-            await redis.set(userReservationsKey, JSON.stringify(reservationList), 'EX', 86400);
-
             // Track reservation count for monitoring
             await redis.incr(`credits:reservations:${userId}:${new Date().toISOString().split('T')[0]}`);
 
@@ -586,12 +509,13 @@ export class CreditManager {
           {
             maxWait: 5000, // 5 seconds max wait time
             timeout: 10000, // 10 seconds timeout for the transaction
-            isolationLevel: 'ReadCommitted', // Highest isolation level for credit operations
+            isolationLevel: 'Serializable', // Highest isolation level for credit operations
           }
         );
-    } finally {
-      await this.releaseLock(lockKey, lockValue);
-    }
+      } finally {
+        await this.releaseLock(lockKey, lockValue);
+      }
+    });
   }
 
   /**
@@ -604,7 +528,7 @@ export class CreditManager {
     minutesUsed: number,
     metadata?: Record<string, any>
   ): Promise<UsageTransaction> {
-    const idempotencyKey = generateCreditIdempotencyKey('deductCredits', [
+    const idempotencyKey = this.generateIdempotencyKey('deductCredits', [
       userId,
       sessionId,
       vapiCallId,
@@ -622,82 +546,74 @@ export class CreditManager {
       try {
         return await prisma.$transaction(
           async (tx) => {
-            // SECURITY FIX: Use SELECT FOR UPDATE to lock the row and prevent race conditions
-            // This is the PostgreSQL way to prevent TOCTOU vulnerabilities
-            const creditsResult = await tx.$queryRaw<UsageCredits[]>`
-              SELECT * FROM "UsageCredits"
-              WHERE "userId" = ${userId}
-                AND "billingPeriodStart" <= NOW()
-                AND "billingPeriodEnd" >= NOW()
-              ORDER BY "createdAt" DESC
-              LIMIT 1
-              FOR UPDATE NOWAIT
-            `;
+            // Get current credits within transaction
+            const credits = await tx.usageCredits.findFirst({
+            where: {
+              userId,
+              billingPeriodStart: { lte: new Date() },
+              billingPeriodEnd: { gte: new Date() },
+            },
+            orderBy: { createdAt: 'desc' },
+          });
 
-            if (!creditsResult || creditsResult.length === 0) {
-              throw new Error('No active credits found for user');
-            }
+          if (!credits) {
+            throw new Error('No active credits found for user');
+          }
 
-            const credits = creditsResult[0];
+          // Check for duplicate transaction
+          const existingTransaction = await tx.usageTransaction.findFirst({
+            where: {
+              userId,
+              sessionId,
+              vapiCallId,
+              type: TransactionType.DEBIT,
+            },
+          });
 
-            // Check for duplicate transaction
-            const existingTransaction = await tx.usageTransaction.findFirst({
-              where: {
+          if (existingTransaction) {
+            return existingTransaction; // Return existing transaction if found
+          }
+
+          // Calculate actual deduction (round up to nearest minute)
+          const actualMinutes = Math.ceil(minutesUsed);
+
+          // For unlimited plans, just track usage without deducting
+          if (credits.planType === 'unlimited') {
+            return await tx.usageTransaction.create({
+              data: {
                 userId,
+                creditId: credits.id,
+                type: TransactionType.DEBIT,
+                amount: actualMinutes,
+                balance: -1, // Unlimited balance
                 sessionId,
                 vapiCallId,
-                type: TransactionType.DEBIT,
+                description: `Therapy session - ${actualMinutes} minutes (unlimited)`,
+                metadata,
               },
             });
+          }
 
-            if (existingTransaction) {
-              return existingTransaction; // Return existing transaction if found
-            }
+          // SECURITY FIX: Atomic check-and-update to prevent race conditions
+          // This ensures credits are checked and deducted in a single atomic operation
+          const result = await tx.$executeRaw`
+            UPDATE "UsageCredits" 
+            SET "usedCredits" = "usedCredits" + ${actualMinutes},
+                "updatedAt" = NOW()
+            WHERE "id" = ${credits.id}
+              AND ("totalCredits" + "bonusCredits" - "usedCredits") >= ${actualMinutes}
+            RETURNING "id"
+          `;
 
-            // Use centralized billing utility for consistent rounding
-            // minutesUsed is already in minutes, just round up
-            const actualMinutes = Math.ceil(minutesUsed);
-
-            // For unlimited plans, just track usage without deducting
-            if (credits.planType === 'unlimited') {
-              return await tx.usageTransaction.create({
-                data: {
-                  userId,
-                  creditId: credits.id,
-                  type: TransactionType.DEBIT,
-                  amount: actualMinutes,
-                  balance: -1, // Unlimited balance
-                  sessionId,
-                  vapiCallId,
-                  description: `Therapy session - ${actualMinutes} minutes (unlimited)`,
-                  metadata,
-                },
-              });
-            }
-
-            // Calculate available credits with row locked
+          if (result === 0) {
+            // No rows updated means insufficient credits
             const currentAvailable = calculateAvailableCredits(
               credits.totalCredits,
               credits.bonusCredits,
               credits.usedCredits
             );
-
-            if (currentAvailable < actualMinutes) {
-              throw new Error(`Insufficient credits: ${currentAvailable} available, ${actualMinutes} requested`);
-            }
-
-            // Now safely update with the row locked
-            const updateResult = await tx.usageCredits.update({
-              where: { id: credits.id },
-              data: {
-                usedCredits: credits.usedCredits + actualMinutes,
-                updatedAt: new Date(),
-              },
-            });
-
-            if (!updateResult) {
-              throw new Error('Failed to update credits');
-            }
+            throw new Error(`Insufficient credits: ${currentAvailable} available, ${actualMinutes} requested`);
+          }
 
           // Fetch the updated credits
           const updatedCredits = await tx.usageCredits.findUnique({
@@ -740,8 +656,9 @@ export class CreditManager {
             // Post-transaction cleanup
             const { transaction, updatedCredits, newBalance } = result;
             
-            // Mark reservation as consumed through database manager
-            await creditReservationManager.consumeReservation(sessionId);
+            // Remove reservation if exists
+            const reservationKey = `credits:reserved:${sessionId}`;
+            await redis.del(reservationKey);
 
             // Invalidate cache
             const cacheKey = `credits:${userId}:current`;
@@ -1133,8 +1050,16 @@ export class CreditManager {
    * Release specific credit reservation (for session cancellation)
    */
   async releaseReservation(sessionId: string): Promise<boolean> {
-    // Use database-backed reservation manager for consistent state
-    return await creditReservationManager.releaseReservation(sessionId);
+    const reservationKey = `credits:reserved:${sessionId}`;
+    const data = await redis.get(reservationKey);
+    
+    if (data) {
+      await redis.del(reservationKey);
+      console.log(`Released credit reservation for session ${sessionId}`);
+      return true;
+    }
+    
+    return false;
   }
 
   /**

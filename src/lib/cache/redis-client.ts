@@ -154,6 +154,109 @@ class RedisClient {
     }
   }
 
+  async keys(pattern: string): Promise<string[]> {
+    if (!this.client || !redisHealthMonitor.isRedisAvailable()) {
+      return [];
+    }
+
+    try {
+      // Note: Upstash doesn't support KEYS command in REST API
+      // This is a workaround - in production, use a different approach
+      console.warn('[RedisClient] KEYS command not fully supported in Upstash REST API');
+      return [];
+    } catch (error) {
+      console.error('[RedisClient] KEYS error:', error);
+      return [];
+    }
+  }
+
+  async incr(key: string): Promise<number> {
+    if (!this.client || !redisHealthMonitor.isRedisAvailable()) {
+      return 0;
+    }
+
+    try {
+      const timeoutPromise = new Promise<number>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis INCR timeout')), 3000)
+      );
+      
+      const result = await Promise.race([
+        this.client.incr(key),
+        timeoutPromise
+      ]);
+      
+      return result;
+    } catch (error) {
+      console.error('[RedisClient] INCR error:', error);
+      return 0;
+    }
+  }
+
+  async eval(script: string, keys: string[] = [], args: any[] = []): Promise<any> {
+    if (!this.client || !redisHealthMonitor.isRedisAvailable()) {
+      return null;
+    }
+
+    try {
+      // Validate inputs
+      const safeKeys = Array.isArray(keys) ? keys : [];
+      const safeArgs = Array.isArray(args) ? args : [];
+      
+      // Note: Upstash supports EVAL via REST API
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Redis EVAL timeout')), 5000)
+      );
+      
+      const result = await Promise.race([
+        this.client.eval(script, safeKeys, safeArgs),
+        timeoutPromise
+      ]);
+      
+      return result;
+    } catch (error) {
+      console.error('[RedisClient] EVAL error:', error);
+      return null;
+    }
+  }
+
+  async publish(channel: string, message: string): Promise<number> {
+    if (!this.client || !redisHealthMonitor.isRedisAvailable()) {
+      return 0;
+    }
+
+    try {
+      // Note: Upstash REST API doesn't support pub/sub
+      // This is a no-op for compatibility
+      console.warn('[RedisClient] PUBLISH not supported in Upstash REST API');
+      return 0;
+    } catch (error) {
+      console.error('[RedisClient] PUBLISH error:', error);
+      return 0;
+    }
+  }
+
+  async ttl(key: string): Promise<number> {
+    if (!this.client || !redisHealthMonitor.isRedisAvailable()) {
+      return -2; // Key doesn't exist
+    }
+
+    try {
+      const timeoutPromise = new Promise<number>((_, reject) => 
+        setTimeout(() => reject(new Error('Redis TTL timeout')), 3000)
+      );
+      
+      const result = await Promise.race([
+        this.client.ttl(key),
+        timeoutPromise
+      ]);
+      
+      return result;
+    } catch (error) {
+      console.error('[RedisClient] TTL error:', error);
+      return -2;
+    }
+  }
+
   async exists(key: string): Promise<number> {
     if (!this.client || !redisHealthMonitor.isRedisAvailable()) {
       return 0;

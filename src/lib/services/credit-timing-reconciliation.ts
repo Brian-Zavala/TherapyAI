@@ -11,6 +11,7 @@
 
 import { redis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-optimized';
+import { convertToBillableMinutes } from '@/lib/utils/billing-utils';
 
 export interface TimingData {
   sessionId: string;
@@ -239,7 +240,7 @@ export class CreditTimingReconciliation {
     }
     
     // Convert to minutes (round up for billing)
-    const actualMinutes = Math.ceil(actualSeconds / 60);
+    const actualMinutes = convertToBillableMinutes(actualSeconds);
     
     // Calculate maximum discrepancy for reporting
     const maxDiscrepancy = Math.max(vapiClientDiff, vapiServerDiff, clientServerDiff);

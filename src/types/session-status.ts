@@ -1,73 +1,67 @@
 /**
- * Centralized SessionStatus type definitions
- * IMPORTANT: Always use uppercase SessionStatus values to match Prisma schema
+ * Centralized session status type definitions
+ * Database uses UPPERCASE enums, application normalizes to lowercase for consistency
  */
 
-import { SessionStatus as PrismaSessionStatus } from '@prisma/client';
-
-// Re-export Prisma's SessionStatus enum for consistent usage
-export { PrismaSessionStatus as SessionStatus };
-
-// Type guard to check if a string is a valid SessionStatus
-export function isValidSessionStatus(status: string): status is PrismaSessionStatus {
-  return Object.values(PrismaSessionStatus).includes(status as PrismaSessionStatus);
+// Database enum values (Prisma generates these as UPPERCASE)
+export enum SessionStatus {
+  SCHEDULED = 'SCHEDULED',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  TERMINATED = 'TERMINATED',
+  ABANDONED = 'ABANDONED',
+  TECHNICAL_ISSUE = 'TECHNICAL_ISSUE'
 }
 
-// Helper to safely convert string to SessionStatus
-export function toSessionStatus(status: string): PrismaSessionStatus | undefined {
-  const upperStatus = status.toUpperCase();
-  return isValidSessionStatus(upperStatus) ? upperStatus as PrismaSessionStatus : undefined;
+// Reservation status enum for credit management
+export enum ReservationStatus {
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  CONSUMED = 'CONSUMED',
+  RELEASED = 'RELEASED'
 }
 
-// Session state checks using Prisma enums
-export function isSessionActive(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.ACTIVE;
+// Type guards for runtime validation
+export function isValidSessionStatus(status: string): status is keyof typeof SessionStatus {
+  return Object.values(SessionStatus).includes(status as SessionStatus);
 }
 
-export function isSessionPaused(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.PAUSED;
+export function isValidReservationStatus(status: string): status is keyof typeof ReservationStatus {
+  return Object.values(ReservationStatus).includes(status as ReservationStatus);
 }
 
-export function isSessionCompleted(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.COMPLETED;
-}
+// Constants for commonly used status values
+export const SESSION_STATUS = {
+  SCHEDULED: SessionStatus.SCHEDULED,
+  ACTIVE: SessionStatus.ACTIVE,
+  PAUSED: SessionStatus.PAUSED,
+  COMPLETED: SessionStatus.COMPLETED,
+  CANCELLED: SessionStatus.CANCELLED,
+  TERMINATED: SessionStatus.TERMINATED,
+  ABANDONED: SessionStatus.ABANDONED,
+  TECHNICAL_ISSUE: SessionStatus.TECHNICAL_ISSUE
+} as const;
 
-export function isSessionScheduled(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.SCHEDULED;
-}
+export const RESERVATION_STATUS = {
+  ACTIVE: ReservationStatus.ACTIVE,
+  EXPIRED: ReservationStatus.EXPIRED,
+  CONSUMED: ReservationStatus.CONSUMED,
+  RELEASED: ReservationStatus.RELEASED
+} as const;
 
-export function isSessionCancelled(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.CANCELLED;
-}
+// Terminal states for sessions
+export const TERMINAL_SESSION_STATES = [
+  SessionStatus.COMPLETED,
+  SessionStatus.CANCELLED,
+  SessionStatus.TERMINATED,
+  SessionStatus.ABANDONED,
+  SessionStatus.TECHNICAL_ISSUE
+] as const;
 
-export function isSessionTerminal(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.COMPLETED || 
-         status === PrismaSessionStatus.CANCELLED || 
-         status === PrismaSessionStatus.TERMINATED || 
-         status === PrismaSessionStatus.ABANDONED ||
-         status === PrismaSessionStatus.TECHNICAL_ISSUE;
-}
-
-export function canResumeSession(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.ACTIVE || status === PrismaSessionStatus.PAUSED;
-}
-
-export function canStartSession(status: PrismaSessionStatus | string): boolean {
-  return status === PrismaSessionStatus.SCHEDULED;
-}
-
-// Valid status transitions
-export const STATUS_TRANSITIONS: Record<PrismaSessionStatus, PrismaSessionStatus[]> = {
-  [PrismaSessionStatus.SCHEDULED]: [PrismaSessionStatus.ACTIVE, PrismaSessionStatus.CANCELLED],
-  [PrismaSessionStatus.ACTIVE]: [PrismaSessionStatus.PAUSED, PrismaSessionStatus.COMPLETED, PrismaSessionStatus.CANCELLED, PrismaSessionStatus.TERMINATED, PrismaSessionStatus.TECHNICAL_ISSUE],
-  [PrismaSessionStatus.PAUSED]: [PrismaSessionStatus.ACTIVE, PrismaSessionStatus.COMPLETED, PrismaSessionStatus.CANCELLED, PrismaSessionStatus.TERMINATED],
-  [PrismaSessionStatus.COMPLETED]: [], // Terminal state
-  [PrismaSessionStatus.CANCELLED]: [], // Terminal state
-  [PrismaSessionStatus.TERMINATED]: [], // Terminal state
-  [PrismaSessionStatus.ABANDONED]: [], // Terminal state
-  [PrismaSessionStatus.TECHNICAL_ISSUE]: [], // Terminal state
-};
-
-export function canTransitionStatus(from: PrismaSessionStatus, to: PrismaSessionStatus): boolean {
-  return STATUS_TRANSITIONS[from]?.includes(to) ?? false;
-}
+// Active states for sessions
+export const ACTIVE_SESSION_STATES = [
+  SessionStatus.ACTIVE,
+  SessionStatus.PAUSED
+] as const;

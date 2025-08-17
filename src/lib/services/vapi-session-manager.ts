@@ -4,6 +4,7 @@ import { CreditManager, creditManager } from './credit-manager.service';
 import { redis } from '@/lib/cache/redis-client';
 import { sendEmail } from '@/lib/email';
 import Vapi from '@vapi-ai/web';
+import { convertToBillableMinutes } from '@/lib/utils/billing-utils';
 
 export interface VapiSessionConfig {
   sessionId: string;

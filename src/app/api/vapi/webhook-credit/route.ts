@@ -6,6 +6,7 @@ import { redis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-optimized';
 import { SessionStatus } from '@prisma/client';
 import crypto from 'crypto';
+import { convertToBillableMinutes } from '@/lib/utils/billing-utils';
 
 // Credit-aware VAPI webhook handler with idempotency protection
 export async function POST(request: NextRequest) {
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     
     const config = sessionConfig ? JSON.parse(sessionConfig) : null;
     const elapsedSeconds = duration || 0;
-    const elapsedMinutes = Math.ceil(elapsedSeconds / 60);
+    const elapsedMinutes = convertToBillableMinutes(elapsedSeconds);
     
     console.log(`[VAPI-Credit-Webhook] Processing ${type} for session ${sessionId}`, {
       sessionId,
@@ -273,8 +274,11 @@ export async function POST(request: NextRequest) {
     
     // Don't mark as processed on error to allow retry
     // Only for critical errors - timeout and network issues should retry
-    if (!error.message?.includes('timeout') && !error.message?.includes('network')) {
-      await redis.set(`processed:${idempotencyKey}`, 'error', 'EX', 60); // 1 minute for errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (!errorMessage.includes('timeout') && !errorMessage.includes('network')) {
+      // Note: idempotencyKey is defined in parent scope
+      // Can't access body here, just mark with generic key
+      await redis.set(`processed:error:${Date.now()}`, 'error', 'EX', 60); // 1 minute for errors
     }
     
     // Always return 200 to prevent VAPI infinite retries
