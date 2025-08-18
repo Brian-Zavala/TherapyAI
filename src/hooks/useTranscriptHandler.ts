@@ -152,7 +152,7 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       
       // Save to database with retry logic (only if strategy allows)
       if (sessionId && shouldSaveTranscript('realtime')) {
-        console.log(`🔄 Sending assistant transcript to batching service: "${consolidatedText.substring(0, 50)}..."`)
+        console.log(`🔄 ASSISTANT TRANSCRIPT: Sending to batching service for session ${sessionId}: "${consolidatedText.substring(0, 50)}..."`)
         
         let retries = 3
         while (retries > 0) {
@@ -166,23 +166,23 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
             }, 'realtime')
             
             await addTranscriptEntry(transcriptData)
-            console.log('✅ Added assistant transcript to batch queue')
+            console.log(`✅ ASSISTANT TRANSCRIPT SUCCESS: Added to batch queue for session ${sessionId}`)
             break
           } catch (error) {
             retries--
             if (retries === 0) {
-              console.error('Failed to save transcript after 3 attempts:', error)
+              console.error(`❌ ASSISTANT TRANSCRIPT FAILED: After 3 attempts for session ${sessionId}:`, error)
               throw error
             }
-            console.warn(`Transcript save failed, retrying... (${retries} attempts left)`)
+            console.warn(`⚠️ ASSISTANT TRANSCRIPT RETRY: Attempt failed for session ${sessionId}, retrying... (${retries} attempts left)`)
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
         }
       } else if (!sessionId) {
-        console.warn('⚠️ TRANSCRIPT HANDLER: Cannot save transcript - no sessionId available')
-        console.warn('   This usually means the session hasn\'t been created in the database yet')
+        console.warn('⚠️ TRANSCRIPT HANDLER: Cannot save assistant transcript - no sessionId available')
+        console.warn('   This transcript will be buffered until sessionId becomes available')
       } else if (sessionId && !shouldSaveTranscript('realtime')) {
-        console.log('📋 Real-time transcript saving disabled by strategy - buffering for UI only')
+        console.log(`📋 ASSISTANT TRANSCRIPT: Real-time saving disabled for session ${sessionId} - buffering for UI only`)
       }
       
       // Update metrics
@@ -254,15 +254,37 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
       
       // Save to database with retry logic (only if strategy allows)
       if (sessionId && shouldSaveTranscript('realtime')) {
-        const transcriptData = markTranscriptSource({
-          sessionId,
-          speaker: 'user',
-          text: consolidatedText,
-          timestamp: new Date().toISOString(),
-          isFinal: true
-        }, 'realtime')
+        console.log(`🔄 USER TRANSCRIPT: Sending to batching service for session ${sessionId}: "${consolidatedText.substring(0, 50)}..."`)
         
-        await addTranscriptEntry(transcriptData)
+        let retries = 3
+        while (retries > 0) {
+          try {
+            const transcriptData = markTranscriptSource({
+              sessionId,
+              speaker: 'user',
+              text: consolidatedText,
+              timestamp: new Date().toISOString(),
+              isFinal: true
+            }, 'realtime')
+            
+            await addTranscriptEntry(transcriptData)
+            console.log(`✅ USER TRANSCRIPT SUCCESS: Added to batch queue for session ${sessionId}`)
+            break
+          } catch (error) {
+            retries--
+            if (retries === 0) {
+              console.error(`❌ USER TRANSCRIPT FAILED: After 3 attempts for session ${sessionId}:`, error)
+              throw error
+            }
+            console.warn(`⚠️ USER TRANSCRIPT RETRY: Attempt failed for session ${sessionId}, retrying... (${retries} attempts left)`)
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+      } else if (!sessionId) {
+        console.warn('⚠️ TRANSCRIPT HANDLER: Cannot save user transcript - no sessionId available')
+        console.warn('   This transcript will be buffered until sessionId becomes available')
+      } else if (sessionId && !shouldSaveTranscript('realtime')) {
+        console.log(`📋 USER TRANSCRIPT: Real-time saving disabled for session ${sessionId} - buffering for UI only`)
       }
       
       // Update metrics
@@ -596,11 +618,14 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
   // Process buffered transcripts when sessionId becomes available
   useEffect(() => {
     if (sessionId && pendingTranscriptsRef.current.length > 0) {
-      console.log(`🚀 TRANSCRIPT HANDLER: Processing ${pendingTranscriptsRef.current.length} buffered transcripts`);
+      console.log(`🚀 TRANSCRIPT HANDLER: SessionId available, processing ${pendingTranscriptsRef.current.length} buffered transcripts for session ${sessionId}`);
       
       const processPendingTranscripts = async () => {
         const pending = [...pendingTranscriptsRef.current];
         pendingTranscriptsRef.current = []; // Clear buffer
+        
+        let successCount = 0;
+        let failCount = 0;
         
         for (const entry of pending) {
           try {
@@ -613,11 +638,17 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
             }, 'buffered');
             
             await addTranscriptEntry(transcriptData);
-            console.log(`✅ Saved buffered ${entry.type} transcript`);
+            successCount++;
+            console.log(`✅ BUFFERED SAVE SUCCESS: ${entry.type} transcript (${entry.text.substring(0, 30)}...)`);
           } catch (error) {
-            console.error('Failed to save buffered transcript:', error);
+            failCount++;
+            console.error(`❌ BUFFERED SAVE FAILED: ${entry.type} transcript:`, error);
+            // Re-queue failed entry for retry
+            pendingTranscriptsRef.current.push(entry);
           }
         }
+        
+        console.log(`🎯 BUFFERED TRANSCRIPT SUMMARY: ${successCount} saved, ${failCount} failed for session ${sessionId}`);
       };
       
       processPendingTranscripts();

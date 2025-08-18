@@ -112,7 +112,7 @@ export async function POST(
       }));
 
       // Use createMany for better performance with large batches
-      await tx.transcriptEntry.createMany({
+      const result = await tx.transcriptEntry.createMany({
         data: transcriptData,
         // Remove skipDuplicates since TranscriptEntry has no unique constraints
         // and we don't want to silently drop any entries
@@ -124,11 +124,6 @@ export async function POST(
         data: {
           lastConversationStart: new Date(), // Update the last activity time
         },
-      });
-
-      // Return count instead of fetching entries back (faster)
-      const result = await tx.transcriptEntry.createMany({
-        data: transcriptData,
       });
 
       return { count: result.count, transcriptData };

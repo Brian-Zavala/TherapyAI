@@ -173,7 +173,13 @@ class BatchedTranscriptManager {
             firstEntry: chunk[0]
           })
           
-          const response = await fetch(`/api/sessions/${sessionId}/transcript/batch`, {
+          // Construct URL that works in both browser and server contexts
+          const baseUrl = typeof window !== 'undefined' 
+            ? '' // Browser: use relative URL
+            : process.env.NEXTAUTH_URL || 'http://localhost:3000' // Server: use absolute URL
+          const url = `${baseUrl}/api/sessions/${sessionId}/transcript/batch`
+          
+          const response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -277,9 +283,14 @@ class BatchedTranscriptManager {
   }
 
   /**
-   * Save to session storage as immediate backup
+   * Save to session storage as immediate backup (browser only)
    */
   private saveToSessionStorage(entry: TranscriptEntry): void {
+    // Skip if not in browser environment
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+      return
+    }
+    
     try {
       const storageKey = `transcript-batch-${entry.sessionId}`
       const existing = JSON.parse(sessionStorage.getItem(storageKey) || '[]')
