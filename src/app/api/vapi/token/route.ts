@@ -48,22 +48,37 @@ export async function POST(req: NextRequest) {
 
     try {
       let tokenData;
-      let tokenType: 'jwt' | 'api-key' = 'jwt';
+      let tokenType: 'direct' | 'jwt' | 'api-key' = 'direct';
       
-      // Check if we have JWT token generation available (preferred method)
-      if (vapiJWTRedisService && process.env.VAPI_PRIVATE_KEY && process.env.VAPI_ORG_ID) {
-        // Use JWT token generation - this is the recommended approach
-        console.log('[VAPI Token] Using JWT token generation for web client');
+      // Try using the public key directly first
+      const publicKey = process.env.VAPI_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
+      const serverKey = process.env.VAPI_SERVER_KEY;
+      const therapyApiKey = process.env.VAPI_THERAPY_API_KEY;
+      
+      // Use the public key for client SDK authentication
+      if (publicKey) {
+        console.log('[VAPI Token] Using VAPI public key for client SDK');
+        
+        tokenData = {
+          token: publicKey,
+          expiresAt: Math.floor(Date.now() / 1000) + 86400, // 24 hours for cache
+          scope,
+          issuedAt: Math.floor(Date.now() / 1000),
+          cached: false,
+        };
+        tokenType = 'direct';
+      } else if (vapiJWTRedisService && process.env.VAPI_PRIVATE_KEY && process.env.VAPI_ORG_ID) {
+        // Legacy JWT approach (keeping as fallback)
+        console.log('[VAPI Token] Falling back to JWT token generation');
         tokenData = await vapiJWTRedisService.getOrCreateToken(userId, scope, userType);
         tokenType = 'jwt';
       } else {
-        // Fallback: Check if we have a public API key available
+        // Final fallback: Check if we have a public API key available
         const apiKey = process.env.VAPI_API_KEY;
         const validation = apiKey ? validateVapiKey(apiKey) : null;
         
         if (validation?.isValid && validation.type === 'public') {
-          // Use the public API key directly as a fallback
-          console.log('[VAPI Token] Using public API key directly (fallback method)');
+          console.log('[VAPI Token] Using public API key directly (final fallback)');
           
           tokenData = {
             token: apiKey,
@@ -75,14 +90,12 @@ export async function POST(req: NextRequest) {
           tokenType = 'api-key';
         } else {
           console.error('[VAPI Token] No valid authentication method available');
-          console.error('[VAPI Token] Please set either:');
-          console.error('[VAPI Token] 1. VAPI_PRIVATE_KEY and VAPI_ORG_ID for JWT authentication (recommended)');
-          console.error('[VAPI Token] 2. VAPI_API_KEY with a public key (pk_) as a fallback');
+          console.error('[VAPI Token] Please set VAPI_PRIVATE_KEY (UUID format) in environment variables');
           return NextResponse.json({
             error: 'Voice service authentication not configured. Please contact support.',
             code: 'AUTH_NOT_CONFIGURED',
             statusCode: 503,
-            details: 'VAPI authentication requires either JWT token setup or a public API key',
+            details: 'VAPI authentication requires VAPI_PRIVATE_KEY to be set',
           } as VapiError, { status: 503 });
         }
       }

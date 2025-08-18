@@ -130,9 +130,29 @@ class VapiJWTRedisService {
         tag: scope,
         restrictions: scope === 'public' ? {
           enabled: true,
-          allowedOrigins: process.env.NODE_ENV === 'production' 
-            ? [process.env.NEXTAUTH_URL || 'https://yourdomain.com']
-            : ['http://localhost:3000', 'http://localhost:3001', 'http://0.0.0.0:3000'],
+          allowedOrigins: (() => {
+            const origins = [];
+            
+            // Add NEXTAUTH_URL if it exists
+            if (process.env.NEXTAUTH_URL) {
+              origins.push(process.env.NEXTAUTH_URL);
+            }
+            
+            // Add localhost variations for development
+            if (process.env.NODE_ENV !== 'production') {
+              origins.push(
+                'http://localhost:3000',
+                'http://localhost:3001', 
+                'http://0.0.0.0:3000',
+                'http://0.0.0.0:3001',
+                'http://127.0.0.1:3000',
+                'http://127.0.0.1:3001'
+              );
+            }
+            
+            // Remove duplicates
+            return [...new Set(origins)];
+          })(),
           allowTransientAssistant: true, // Allow inline configurations
         } : undefined,
       },

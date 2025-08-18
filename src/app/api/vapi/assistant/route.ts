@@ -154,11 +154,20 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
     selectedFamilyMembers: selectedFamilyMembers.length > 0 ? selectedFamilyMembers : undefined
   };
 
-  const sessionDuration = searchParams.get('duration') ? parseInt(searchParams.get('duration')!) : 30;
+  const sessionDuration = searchParams.get('duration') ? parseInt(searchParams.get('duration')!) : null;
   const sessionStartTime = searchParams.get('startTime') || new Date().toISOString();
 
+  // Validate that duration is provided when creating new sessions
+  if (!sessionDuration && !isResuming) {
+    console.error('[VAPI Assistant] No duration provided for new session');
+    return NextResponse.json(
+      { error: 'Session duration is required', details: 'Duration parameter must be provided when starting a new session' },
+      { status: 400 }
+    );
+  }
+
   const sessionOptions = {
-    duration: sessionDuration,
+    duration: sessionDuration || 30, // Fallback only for resumed sessions
     startTime: sessionStartTime
   };
 

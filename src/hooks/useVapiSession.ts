@@ -23,6 +23,7 @@ interface UseVapiSessionReturn {
   isConnected: boolean
   isMuted: boolean
   volumeLevel: number
+  audioLevel: number  // Expose as audioLevel for VoiceWaveform component
   startSession: () => Promise<void>
   endSession: () => Promise<void>
   toggleMute: () => void
@@ -323,6 +324,7 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
     isConnected,
     isMuted,
     volumeLevel,
+    audioLevel: volumeLevel,  // Expose volumeLevel as audioLevel for VoiceWaveform compatibility
     startSession,
     endSession,
     toggleMute,

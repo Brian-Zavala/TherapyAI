@@ -28,8 +28,9 @@ export function CallControls({
   onEndCall,
   onPauseResume
 }: CallControlsProps) {
-  // Only show pause/resume if conversation has actually started
-  const showPauseResume = conversationTimeSeconds > 0
+  // Always show pause/resume button during active sessions
+  // Users should be able to pause immediately, even before conversation starts
+  const showPauseResume = true
   
   return (
     <div className="px-6 pb-8 flex items-center justify-center relative">

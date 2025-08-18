@@ -116,19 +116,20 @@ export default function SessionTimerV2({
     const lastSync = safeSessionStorage.getItem(lastSyncKey)
     if (lastSync) {
       const timeSinceSync = Date.now() - parseInt(lastSync)
-      if (timeSinceSync < 10000) return // Don't sync more than once per 10 seconds
+      if (timeSinceSync < 30000) return // Don't sync more than once per 30 seconds (increased from 15)
     }
     
     // Calculate expected remaining time based on conversation time
     const totalSessionSeconds = durationMinutes * 60
     const expectedRemaining = Math.max(0, totalSessionSeconds - conversationTimeSeconds)
     
-    // If there's a significant difference (>10 seconds), restart the timer
+    // If there's a significant difference, restart the timer
     const currentRemaining = totalSeconds
     const timeDiff = Math.abs(expectedRemaining - currentRemaining)
     
-    // Only sync if the drift is significant and we're not near expiry
-    if (timeDiff > 10 && expectedRemaining > 30) {
+    // Only sync if the drift is very significant and we're not near expiry
+    // Increased threshold to 30 seconds to prevent constant resets, and require at least 2 minutes remaining
+    if (timeDiff > 30 && expectedRemaining > 120) {
       console.log(`⏱️ Timer sync needed: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
       const newExpiry = calculateExpiryTimestamp()
       restartRef.current(newExpiry, true)

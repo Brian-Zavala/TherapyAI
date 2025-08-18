@@ -854,7 +854,7 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Maya Thompson",
   type: "couple",
   model: {
-    provider: "OpenAI",
+    provider: "openai",
     model: "gpt-5-mini",
     temperature: 1.0,
     maxTokens: 250,
@@ -968,7 +968,7 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Elliot Mackaphy",
   type: "solo",
   model: {
-    provider: "OpenAI",
+    provider: "openai",
     model: "gpt-5-mini",
     temperature: 1.0,
     maxTokens: 250,
@@ -1092,7 +1092,7 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Jada Pearson",
   type: "family",
   model: {
-    provider: "OpenAI",
+    provider: "openai",
     model: "gpt-5-mini",
     temperature: 1.0,
     maxTokens: 250,
