@@ -1115,9 +1115,71 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   const startVAPISession = useCallback(async (sessionId: string, duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
     console.log('🚀 Starting VAPI for session:', sessionId);
     
-    // Continue with existing VAPI start logic...
-    // This would be the VAPI initialization code from the original handleDurationSelect
-  }, [user, therapyType]);
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // 1. Fetch personalized assistant configuration
+      const familyMembersToUse = familyMembersOverride || selectedFamilyMembers;
+      const familyMembersParam = therapyType === 'family' && familyMembersToUse?.length > 0 
+        ? `&selectedFamilyMembers=${encodeURIComponent(JSON.stringify(familyMembersToUse))}`
+        : '';
+      
+      const assistantResponse = await fetch(
+        `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${duration}&startTime=${encodeURIComponent(new Date().toISOString())}${familyMembersParam}`
+      );
+      
+      if (!assistantResponse.ok) {
+        throw new Error('Failed to fetch personalized assistant configuration');
+      }
+      
+      const personalizedConfig = await assistantResponse.json();
+      console.log('📋 Got personalized assistant configuration');
+      
+      // 2. Clean the configuration for inline use
+      const inlineConfig = { ...personalizedConfig };
+      // Remove fields that shouldn't be in inline config
+      delete inlineConfig.id;
+      delete inlineConfig.metadata;
+      delete inlineConfig.variableValues;
+      delete inlineConfig.recordingEnabled;
+      delete inlineConfig.hipaaEnabled;
+      delete inlineConfig.backgroundDenoisingEnabled;
+      delete inlineConfig.responseDelaySeconds;
+      delete inlineConfig.llmRequestDelaySeconds;
+      delete inlineConfig.numWordsToInterruptAssistant;
+      
+      // 3. Validate VAPI configuration
+      if (!inlineConfig.model || !inlineConfig.voice || !inlineConfig.transcriber) {
+        console.error('Invalid VAPI config:', inlineConfig);
+        throw new Error('Invalid assistant configuration');
+      }
+      
+      console.log('✅ VAPI validation passed, starting call...');
+      
+      // 4. Start VAPI call with inline configuration
+      if (!vapi.vapi) {
+        throw new Error('VAPI instance not initialized');
+      }
+      
+      await vapi.vapi.start(inlineConfig);
+      
+      // 5. Set session active state
+      setSessionActive(true);
+      console.log('📞 VAPI started, starting conversation timer');
+      
+      // 6. Set up audio analyzer
+      console.log('🎤 Setting up audio analyzer...');
+      
+    } catch (error) {
+      console.error('❌ Failed to start VAPI session:', error);
+      setError(error instanceof Error ? error.message : 'Failed to start voice session');
+      setSessionActive(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, therapyType, selectedFamilyMembers, vapi, setSessionActive]);
   
   // Handle ending existing session and starting new one
   const handleEndAndStartNew = useCallback(async () => {
