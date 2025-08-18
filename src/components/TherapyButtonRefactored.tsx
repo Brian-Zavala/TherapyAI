@@ -1189,11 +1189,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.log('✅ VAPI validation passed, starting call...');
       
       // 4. Check API key availability
-      if (keyLoading) {
-        throw new Error('VAPI public key still loading - please wait');
-      }
-      
+      // Don't check keyLoading if we already have a key - avoids race conditions
       if (!vapiApiKey) {
+        // Only check loading state if we don't have a key yet
+        if (keyLoading) {
+          throw new Error('VAPI public key still loading - please wait');
+        }
+        
         console.error('VAPI API key not available:', {
           runtimeKey: !!runtimePublicKey,
           token: !!vapiToken,
@@ -1217,17 +1219,35 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         source: runtimePublicKey ? 'Runtime API' : (vapiToken ? 'JWT Service' : 'Environment')
       });
       
-      // 5. Wait a moment for VAPI instance to initialize with the token
-      // The useVapiSession hook needs a moment to create the instance after receiving the token
+      // 5. Wait for VAPI instance to initialize
+      // The useVapiSession hook needs the API key to create the instance
       if (!vapi.vapi) {
-        console.log('⏳ VAPI instance not ready, waiting for initialization...');
-        // Give the hook a moment to initialize with the token
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('⏳ VAPI instance not ready, waiting for initialization...', {
+          hasApiKey: !!vapiApiKey,
+          keyType: vapiApiKey?.startsWith('pk_') ? 'Public' : 'JWT',
+          vapiState: {
+            isConnecting: vapi.isConnecting,
+            isConnected: vapi.isConnected
+          }
+        });
+        
+        // Give the hook a moment to initialize with the key
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Check again after brief wait
         if (!vapi.vapi) {
-          console.error('VAPI instance still not initialized. Token:', !!vapiToken, 'Hook state:', vapi);
-          throw new Error('VAPI instance not initialized - check JWT token and API configuration');
+          console.error('VAPI instance still not initialized after wait:', {
+            apiKey: !!vapiApiKey,
+            keySubstring: vapiApiKey?.substring(0, 10) + '...',
+            vapiHookState: vapi
+          });
+          
+          // Try one more time with a longer wait
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (!vapi.vapi) {
+            throw new Error('VAPI instance failed to initialize - check console for details');
+          }
         }
       }
       

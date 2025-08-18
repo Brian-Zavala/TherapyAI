@@ -44,11 +44,16 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
 
   // Initialize VAPI instance
   useEffect(() => {
-    if (!config.apiKey) return
+    if (!config.apiKey) {
+      console.log('[VAPI] No API key provided, skipping initialization');
+      return;
+    }
 
+    console.log('[VAPI] Initializing with key:', config.apiKey.substring(0, 10) + '...');
     const vapiInstance = new Vapi(config.apiKey)
     vapiRef.current = vapiInstance
     setVapi(vapiInstance)
+    console.log('[VAPI] Instance created successfully');
 
     // Set up event listeners
     vapiInstance.on('call-start', () => {
