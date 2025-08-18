@@ -268,15 +268,15 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }, [])
   
   // Get JWT token for VAPI authentication (more secure than public key)
+  // NOTE: JWT requires proper RSA private key setup. Currently using public key for production.
   const { token: vapiToken, isLoading: tokenLoading, error: tokenError } = useVapiToken({
     scope: 'public',
     autoRefresh: true
   })
   
-  // For development, use public key as fallback if JWT fails
-  // For production, only use JWT tokens for security
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const vapiApiKey = vapiToken || (isDevelopment ? process.env.NEXT_PUBLIC_VAPI_API_KEY : undefined);
+  // PRODUCTION FIX: Use public key directly since JWT private key is not properly configured
+  // TODO: Generate proper RSA keypair for JWT signing in production
+  const vapiApiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY || vapiToken || undefined;
   
   const vapi = useVapiSession({
     apiKey: vapiApiKey,
@@ -1171,19 +1171,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       console.log('✅ VAPI validation passed, starting call...');
       
-      // 4. Check API key availability
+      // 4. Check API key availability (using public key for production)
       if (!vapiApiKey) {
-        // If no public key and token is still loading
-        if (tokenLoading) {
-          throw new Error('VAPI authentication still loading');
-        }
-        
-        if (tokenError) {
-          throw new Error(`VAPI authentication failed: ${tokenError}`);
-        }
-        
+        console.error('VAPI API key not available. Public key:', !!process.env.NEXT_PUBLIC_VAPI_API_KEY, 'Token:', !!vapiToken);
         throw new Error('VAPI API key not available - check NEXT_PUBLIC_VAPI_API_KEY environment variable');
       }
+      
+      console.log('🔑 Using VAPI authentication:', vapiApiKey.startsWith('pk_') ? 'Public Key' : 'JWT Token');
       
       // 5. Wait a moment for VAPI instance to initialize with the token
       // The useVapiSession hook needs a moment to create the instance after receiving the token
