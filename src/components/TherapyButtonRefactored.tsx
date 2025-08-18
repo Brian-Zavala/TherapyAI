@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useVapiSession } from '@/hooks/useVapiSession'
+import { useVapiToken } from '@/hooks/useVapiToken'
 import { useSessionManagementV2 } from '@/hooks/useSessionManagementV2'
 import { useSessionWithCredits } from '@/hooks/useSessionWithCredits'
 import { useTranscriptHandler } from '@/hooks/useTranscriptHandler'
@@ -266,7 +267,18 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [])
   
+  // Get JWT token for VAPI authentication
+  const { token: vapiToken, isLoading: tokenLoading, error: tokenError } = useVapiToken({
+    scope: 'public',
+    autoRefresh: true
+  })
+  
+  // Use the public key directly if available, otherwise use JWT token
+  const vapiApiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY || vapiToken || undefined;
+  
   const vapi = useVapiSession({
+    apiKey: vapiApiKey,
+    assistantId: getAssistantId(therapyType),
     onCallStart: handleVapiCallStart,
     onCallEnd: handleVapiCallEnd,
     onError: handleVapiError,
@@ -1157,18 +1169,41 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       console.log('✅ VAPI validation passed, starting call...');
       
-      // 4. Start VAPI call with inline configuration
+      // 4. Check API key availability
+      if (!vapiApiKey) {
+        // If no public key and token is still loading
+        if (tokenLoading) {
+          throw new Error('VAPI authentication still loading');
+        }
+        
+        if (tokenError) {
+          throw new Error(`VAPI authentication failed: ${tokenError}`);
+        }
+        
+        throw new Error('VAPI API key not available - check NEXT_PUBLIC_VAPI_API_KEY environment variable');
+      }
+      
+      // 5. Wait a moment for VAPI instance to initialize with the token
+      // The useVapiSession hook needs a moment to create the instance after receiving the token
       if (!vapi.vapi) {
-        throw new Error('VAPI instance not initialized');
+        console.log('⏳ VAPI instance not ready, waiting for initialization...');
+        // Give the hook a moment to initialize with the token
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check again after brief wait
+        if (!vapi.vapi) {
+          console.error('VAPI instance still not initialized. Token:', !!vapiToken, 'Hook state:', vapi);
+          throw new Error('VAPI instance not initialized - check JWT token and API configuration');
+        }
       }
       
       await vapi.vapi.start(inlineConfig);
       
-      // 5. Set session active state
+      // 6. Set session active state
       setSessionActive(true);
       console.log('📞 VAPI started, starting conversation timer');
       
-      // 6. Set up audio analyzer
+      // 7. Set up audio analyzer
       console.log('🎤 Setting up audio analyzer...');
       
     } catch (error) {
@@ -1179,7 +1214,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     } finally {
       setIsLoading(false);
     }
-  }, [user, therapyType, selectedFamilyMembers, vapi, setSessionActive]);
+  }, [user, therapyType, selectedFamilyMembers, vapi, setSessionActive, vapiApiKey, tokenLoading, tokenError]);
   
   // Handle ending existing session and starting new one
   const handleEndAndStartNew = useCallback(async () => {
