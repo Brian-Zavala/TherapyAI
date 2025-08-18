@@ -30,9 +30,9 @@ import SessionTimerV2 from './SessionTimerV2'
 import VoiceWaveform from './VoiceWaveform'
 import SessionTranscript from './SessionTranscript'
 import { 
-  CallControls, 
+  CallControlsOptimized as CallControls, 
   CallHeader, 
-  PausedOverlay,
+  PausedOverlayOptimized as PausedOverlay,
   ErrorDisplay 
 } from './therapy'
 import TranscriptOverlay from './therapy/TranscriptOverlay'

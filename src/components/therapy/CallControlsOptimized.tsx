@@ -5,14 +5,15 @@ import { PauseResumeButtonOptimized } from './PauseResumeButtonOptimized'
 import { EndCallButtonOptimized } from './EndCallButtonOptimized'
 
 interface CallControlsProps {
-  isPaused: boolean
   isMuted: boolean
-  onTogglePause: () => void
-  onToggleMute: () => void
+  isSessionPaused: boolean
+  totalPausedTimeSeconds: number
+  conversationTimeSeconds?: number
+  isLoading: boolean
+  onMuteToggle: () => void
   onEndCall: () => void
-  isLoading?: boolean
+  onPauseResume: () => void
   disabled?: boolean
-  totalPausedTimeSeconds?: number
 }
 
 /**
@@ -23,14 +24,15 @@ interface CallControlsProps {
  * - Accessible with proper keyboard navigation
  */
 export const CallControlsOptimized = memo(function CallControlsOptimized({
-  isPaused,
   isMuted,
-  onTogglePause,
-  onToggleMute,
+  isSessionPaused,
+  totalPausedTimeSeconds,
+  conversationTimeSeconds = 0,
+  isLoading,
+  onMuteToggle,
   onEndCall,
-  isLoading = false,
-  disabled = false,
-  totalPausedTimeSeconds = 0
+  onPauseResume,
+  disabled = false
 }: CallControlsProps) {
   // Animation variants for container
   const containerVariants = {
@@ -72,7 +74,7 @@ export const CallControlsOptimized = memo(function CallControlsOptimized({
       className="flex flex-col items-center"
     >
       <motion.button
-        onClick={onToggleMute}
+        onClick={onMuteToggle}
         disabled={disabled}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -197,8 +199,8 @@ export const CallControlsOptimized = memo(function CallControlsOptimized({
           {/* Pause/Resume Button */}
           <motion.div variants={buttonVariants}>
             <PauseResumeButtonOptimized
-              isPaused={isPaused}
-              onClick={onTogglePause}
+              isPaused={isSessionPaused}
+              onClick={onPauseResume}
               disabled={disabled}
               totalPausedTimeSeconds={totalPausedTimeSeconds}
             />
@@ -219,7 +221,7 @@ export const CallControlsOptimized = memo(function CallControlsOptimized({
 
         {/* Optional status indicator */}
         <AnimatePresence>
-          {isPaused && (
+          {isSessionPaused && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

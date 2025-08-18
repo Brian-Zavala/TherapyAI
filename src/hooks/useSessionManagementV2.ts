@@ -345,7 +345,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       
       setSessionId(recoveryData.sessionId)
       setSessionStartTime(new Date(recoveryData.originalStart))
-      setSessionDuration((recoveryData.sessionDuration || DEFAULT_SESSION_DURATION) as 30 | 60)
+      setSessionDuration((recoveryData.sessionDuration || DEFAULT_SESSION_DURATION) as 15 | 20 | 25 | 30 | 60)
       setInitialConversationTime(recoveryData.conversationTimeSeconds)
       setInitialPausedTime(recoveryData.totalPausedTimeSeconds || 0)
       setSessionRecovered(true)

@@ -17,7 +17,7 @@ export const SessionDurationModal: React.FC<SessionDurationModalProps> = ({
   onClose,
   onSelectDuration,
   isLoading = false,
-  availableDurations = [15, 20, 25, 30, 45, 60]
+  availableDurations = [15, 20, 25, 30, 60]
 }) => {
   const handleDurationSelect = (duration: number) => {
     if (!isLoading) {
@@ -47,8 +47,6 @@ export const SessionDurationModal: React.FC<SessionDurationModalProps> = ({
         return 'Standard session'
       case 30:
         return 'Full session with deep discussion'
-      case 45:
-        return 'Extended session for complex topics'
       case 60:
         return 'Comprehensive therapy session'
       default:

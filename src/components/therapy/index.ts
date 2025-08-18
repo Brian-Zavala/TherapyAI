@@ -15,3 +15,9 @@ export { LoadingAnimation } from './LoadingAnimation'
 export { PausedOverlay } from './PausedOverlay'
 export { ErrorDisplay } from './ErrorDisplay'
 export { CallControls } from './CallControls'
+
+// Optimized versions
+export { CallControlsOptimized } from './CallControlsOptimized'
+export { PauseResumeButtonOptimized } from './PauseResumeButtonOptimized'
+export { EndCallButtonOptimized } from './EndCallButtonOptimized'
+export { PausedOverlayOptimized } from './PausedOverlayOptimized'
