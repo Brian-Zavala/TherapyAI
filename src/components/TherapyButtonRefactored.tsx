@@ -267,14 +267,16 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [])
   
-  // Get JWT token for VAPI authentication
+  // Get JWT token for VAPI authentication (more secure than public key)
   const { token: vapiToken, isLoading: tokenLoading, error: tokenError } = useVapiToken({
     scope: 'public',
     autoRefresh: true
   })
   
-  // Use the public key directly if available, otherwise use JWT token
-  const vapiApiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY || vapiToken || undefined;
+  // For development, use public key as fallback if JWT fails
+  // For production, only use JWT tokens for security
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const vapiApiKey = vapiToken || (isDevelopment ? process.env.NEXT_PUBLIC_VAPI_API_KEY : undefined);
   
   const vapi = useVapiSession({
     apiKey: vapiApiKey,
