@@ -98,7 +98,8 @@ export class CreditManager {
     `;
     
     try {
-      const result = await redis.eval(script, 1, key, lockValue) as number;
+      // Pass keys and args as arrays
+      const result = await redis.eval(script, [key], [lockValue]) as number;
       return result === 1;
     } catch (error) {
       console.error(`Failed to release lock ${key}:`, error);

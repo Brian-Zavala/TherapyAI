@@ -144,10 +144,10 @@ export class CreditReservationManager {
     // Create new reservation
     const result = await tx.$executeRaw`
       INSERT INTO "CreditReservation" 
-        (id, "userId", "sessionId", minutes, "creditId", "expiresAt", status, "createdAt")
+        (id, "userId", "sessionId", minutes, "creditId", "expiresAt", status, "createdAt", "updatedAt")
       VALUES 
         (${this.generateId()}, ${data.userId}, ${data.sessionId}, ${data.minutes}, 
-         ${data.creditId}, ${expiresAt}, 'ACTIVE', NOW())
+         ${data.creditId}, ${expiresAt}, 'ACTIVE', NOW(), NOW())
       RETURNING *
     `;
 
