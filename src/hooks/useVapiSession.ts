@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Vapi from '@vapi-ai/web'
 import { toast } from 'sonner'
+import { vapiInstanceManager } from '@/lib/services/vapi-instance-manager'
 
 interface VapiSessionConfig {
   apiKey?: string
@@ -41,19 +42,37 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
   const volumeIntervalRef = useRef<NodeJS.Timeout>()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
   const connectionAttempts = useRef(0)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
 
-  // Initialize VAPI instance
+  // Initialize VAPI instance using singleton manager
   useEffect(() => {
     if (!config.apiKey) {
       console.log('[VAPI] No API key provided, skipping initialization');
+      setVapi(null);
+      vapiRef.current = null;
       return;
     }
 
-    console.log('[VAPI] Initializing with key:', config.apiKey.substring(0, 10) + '...');
-    const vapiInstance = new Vapi(config.apiKey)
-    vapiRef.current = vapiInstance
-    setVapi(vapiInstance)
-    console.log('[VAPI] Instance created successfully');
+    console.log('[VAPI] Requesting instance from manager with key:', config.apiKey.substring(0, 10) + '...');
+    
+    let mounted = true;
+    
+    // Subscribe to instance changes first
+    unsubscribeRef.current = vapiInstanceManager.subscribe((instance) => {
+      if (!mounted) return;
+      console.log('[VAPI] Singleton instance update:', instance ? 'available' : 'null');
+      vapiRef.current = instance;
+      setVapi(instance);
+    });
+    
+    // Get or create instance from manager
+    vapiInstanceManager.getOrCreateInstance(config.apiKey)
+      .then(vapiInstance => {
+        if (!mounted) return;
+        
+        vapiRef.current = vapiInstance
+        setVapi(vapiInstance)
+        console.log('[VAPI] Instance obtained from manager successfully');
 
     // Set up event listeners
     vapiInstance.on('call-start', () => {
@@ -98,19 +117,32 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       }
     })
 
-    vapiInstance.on('volume-level', (level: number) => {
-      setVolumeLevel(level)
-      config.onVolumeLevel?.(level)
-    })
+        vapiInstance.on('volume-level', (level: number) => {
+          setVolumeLevel(level)
+          config.onVolumeLevel?.(level)
+        })
+      })
+      .catch(error => {
+        if (!mounted) return;
+        console.error('[VAPI] Failed to get instance from manager:', error);
+        setVapi(null);
+        vapiRef.current = null;
+      });
 
+    // Cleanup function
     return () => {
-      console.log('[VAPI] Cleaning up instance')
-      cleanupVolumeMonitoring()
+      mounted = false;
+      console.log('[VAPI] Component cleanup - NOT destroying singleton instance');
+      cleanupVolumeMonitoring();
       if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
       }
-      vapiInstance.stop()
-      vapiRef.current = null
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      // Note: We don't stop the instance here as it's managed by the singleton
+      vapiRef.current = null;
     }
   }, [config.apiKey])
 
@@ -145,8 +177,17 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
   }, [])
 
   const startSession = useCallback(async () => {
-    if (!vapi || isConnecting || isConnected) {
-      console.log('[VAPI] Cannot start: ', { hasVapi: !!vapi, isConnecting, isConnected })
+    // Use ref instead of state to avoid stale closure issues
+    const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
+    
+    if (!currentVapi || isConnecting || isConnected) {
+      console.log('[VAPI] Cannot start: ', { 
+        hasVapi: !!currentVapi, 
+        hasRef: !!vapiRef.current,
+        hasManager: !!vapiInstanceManager.getCurrentInstance(),
+        isConnecting, 
+        isConnected 
+      })
       return
     }
 
@@ -155,7 +196,7 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
     try {
       console.log('[VAPI] Starting session with assistant:', config.assistantId)
       
-      await vapi.start(config.assistantId)
+      await currentVapi.start(config.assistantId)
       
       // Start volume monitoring
       volumeIntervalRef.current = setInterval(() => {
@@ -172,17 +213,19 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       
       handleConnectionError()
     }
-  }, [vapi, isConnecting, isConnected, config.assistantId, handleConnectionError])
+  }, [isConnecting, isConnected, config.assistantId, handleConnectionError])
 
   const endSession = useCallback(async () => {
-    if (!vapi || !isConnected) {
+    const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
+    
+    if (!currentVapi || !isConnected) {
       console.log('[VAPI] Cannot end: not connected')
       return
     }
 
     try {
       console.log('[VAPI] Ending session')
-      await vapi.stop()
+      await currentVapi.stop()
       cleanupVolumeMonitoring()
       setIsConnected(false)
     } catch (error) {
@@ -191,14 +234,16 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
         description: 'The session may have already ended.'
       })
     }
-  }, [vapi, isConnected, cleanupVolumeMonitoring])
+  }, [isConnected, cleanupVolumeMonitoring])
 
   const toggleMute = useCallback(() => {
-    if (!vapi || !isConnected) return
+    const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
+    
+    if (!currentVapi || !isConnected) return
 
     try {
       const newMutedState = !isMuted
-      vapi.setMuted(newMutedState)
+      currentVapi.setMuted(newMutedState)
       setIsMuted(newMutedState)
       
       toast.info(newMutedState ? 'Microphone muted' : 'Microphone unmuted', {
@@ -208,16 +253,18 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       console.error('[VAPI] Failed to toggle mute:', error)
       toast.error('Failed to toggle mute')
     }
-  }, [vapi, isConnected, isMuted])
+  }, [isConnected, isMuted])
 
   const sendMessage = useCallback((message: string) => {
-    if (!vapi || !isConnected) {
+    const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
+    
+    if (!currentVapi || !isConnected) {
       console.warn('[VAPI] Cannot send message: not connected')
       return
     }
 
     try {
-      vapi.send({
+      currentVapi.send({
         type: 'add-message',
         message: {
           role: 'user',
@@ -227,15 +274,17 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
     } catch (error) {
       console.error('[VAPI] Failed to send message:', error)
     }
-  }, [vapi, isConnected])
+  }, [isConnected])
 
   const pauseSession = useCallback(async () => {
-    if (!vapi || !isConnected) return
+    const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
+    
+    if (!currentVapi || !isConnected) return
 
     try {
       console.log('[VAPI] Pausing session')
       // VAPI doesn't have a native pause, so we'll mute and save state
-      vapi.setMuted(true)
+      currentVapi.setMuted(true)
       setIsMuted(true)
       
       toast.info('Session paused', {
@@ -246,14 +295,16 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       console.error('[VAPI] Failed to pause session:', error)
       toast.error('Failed to pause session')
     }
-  }, [vapi, isConnected])
+  }, [isConnected])
 
   const resumeSession = useCallback(async () => {
-    if (!vapi || !isConnected) return
+    const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
+    
+    if (!currentVapi || !isConnected) return
 
     try {
       console.log('[VAPI] Resuming session')
-      vapi.setMuted(false)
+      currentVapi.setMuted(false)
       setIsMuted(false)
       
       toast.success('Session resumed', {
@@ -264,7 +315,7 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       console.error('[VAPI] Failed to resume session:', error)
       toast.error('Failed to resume session')
     }
-  }, [vapi, isConnected])
+  }, [isConnected])
 
   return {
     vapi,

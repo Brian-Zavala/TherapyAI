@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useVapiSession } from '@/hooks/useVapiSession'
 import { useVapiToken } from '@/hooks/useVapiToken'
 import { useVapiPublicKey } from '@/hooks/useVapiPublicKey'
+import { vapiInstanceManager } from '@/lib/services/vapi-instance-manager'
 import { useSessionManagementV2 } from '@/hooks/useSessionManagementV2'
 import { useSessionWithCredits } from '@/hooks/useSessionWithCredits'
 import { useTranscriptHandler } from '@/hooks/useTranscriptHandler'
@@ -1219,39 +1220,44 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         source: runtimePublicKey ? 'Runtime API' : (vapiToken ? 'JWT Service' : 'Environment')
       });
       
-      // 5. Wait for VAPI instance to initialize
-      // The useVapiSession hook needs the API key to create the instance
-      if (!vapi.vapi) {
-        console.log('⏳ VAPI instance not ready, waiting for initialization...', {
+      // 5. Ensure VAPI instance is ready
+      // First check if singleton manager already has the instance
+      let vapiInstance = vapiInstanceManager.getCurrentInstance();
+      
+      if (!vapiInstance && !vapi.vapi) {
+        console.log('⏳ VAPI instance not ready, requesting from manager...', {
           hasApiKey: !!vapiApiKey,
           keyType: vapiApiKey?.startsWith('pk_') ? 'Public' : 'JWT',
-          vapiState: {
-            isConnecting: vapi.isConnecting,
-            isConnected: vapi.isConnected
-          }
+          managerReady: vapiInstanceManager.isReady()
         });
         
-        // Give the hook a moment to initialize with the key
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Check again after brief wait
-        if (!vapi.vapi) {
-          console.error('VAPI instance still not initialized after wait:', {
-            apiKey: !!vapiApiKey,
-            keySubstring: vapiApiKey?.substring(0, 10) + '...',
-            vapiHookState: vapi
-          });
+        // Request instance from manager directly
+        try {
+          vapiInstance = await vapiInstanceManager.getOrCreateInstance(vapiApiKey);
+          console.log('✅ VAPI instance obtained from manager');
+        } catch (error) {
+          console.error('Failed to get VAPI instance from manager:', error);
           
-          // Try one more time with a longer wait
+          // Fallback: wait for hook to initialize
           await new Promise(resolve => setTimeout(resolve, 500));
           
           if (!vapi.vapi) {
-            throw new Error('VAPI instance failed to initialize - check console for details');
+            throw new Error('VAPI instance failed to initialize - check API key and console logs');
           }
+          vapiInstance = vapi.vapi;
         }
+      } else {
+        vapiInstance = vapi.vapi || vapiInstance;
+        console.log('✅ VAPI instance already available');
       }
       
-      await vapi.vapi.start(inlineConfig);
+      if (!vapiInstance) {
+        throw new Error('VAPI instance could not be obtained');
+      }
+      
+      // Start VAPI session with the instance
+      console.log('🚀 Starting VAPI call with configuration...');
+      await vapiInstance.start(inlineConfig);
       
       // 6. Set session active state
       setSessionActive(true);
