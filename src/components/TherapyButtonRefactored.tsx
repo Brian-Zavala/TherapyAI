@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useVapiSession } from '@/hooks/useVapiSession'
 import { useVapiToken } from '@/hooks/useVapiToken'
+import { useVapiPublicKey } from '@/hooks/useVapiPublicKey'
 import { useSessionManagementV2 } from '@/hooks/useSessionManagementV2'
 import { useSessionWithCredits } from '@/hooks/useSessionWithCredits'
 import { useTranscriptHandler } from '@/hooks/useTranscriptHandler'
@@ -267,16 +268,32 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [])
   
-  // Get JWT token for VAPI authentication (more secure than public key)
-  // NOTE: JWT requires proper RSA private key setup. Currently using public key for production.
+  // Get VAPI public key at runtime (fixes build-time environment variable issues)
+  const { publicKey: runtimePublicKey, isLoading: keyLoading, error: keyError } = useVapiPublicKey();
+  
+  // Get JWT token as fallback
   const { token: vapiToken, isLoading: tokenLoading, error: tokenError } = useVapiToken({
     scope: 'public',
     autoRefresh: true
   })
   
-  // PRODUCTION FIX: Use public key directly since JWT private key is not properly configured
-  // TODO: Generate proper RSA keypair for JWT signing in production
-  const vapiApiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY || vapiToken || undefined;
+  // Use runtime-fetched public key first, then JWT token, then environment variable as last resort
+  const vapiApiKey = runtimePublicKey || vapiToken || process.env.NEXT_PUBLIC_VAPI_API_KEY || undefined;
+  
+  // Log the authentication state for debugging
+  useEffect(() => {
+    if (vapiApiKey) {
+      console.log('[TherapyButton] VAPI auth ready:', {
+        type: vapiApiKey.startsWith('pk_') ? 'Public Key' : 'JWT Token',
+        source: runtimePublicKey ? 'Runtime API' : (vapiToken ? 'JWT Service' : 'Environment')
+      });
+    } else if (!keyLoading && !tokenLoading) {
+      console.error('[TherapyButton] No VAPI authentication available:', {
+        publicKeyError: keyError,
+        tokenError: tokenError
+      });
+    }
+  }, [vapiApiKey, runtimePublicKey, vapiToken, keyLoading, tokenLoading, keyError, tokenError]);
   
   const vapi = useVapiSession({
     apiKey: vapiApiKey,
@@ -1171,13 +1188,34 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       
       console.log('✅ VAPI validation passed, starting call...');
       
-      // 4. Check API key availability (using public key for production)
-      if (!vapiApiKey) {
-        console.error('VAPI API key not available. Public key:', !!process.env.NEXT_PUBLIC_VAPI_API_KEY, 'Token:', !!vapiToken);
-        throw new Error('VAPI API key not available - check NEXT_PUBLIC_VAPI_API_KEY environment variable');
+      // 4. Check API key availability
+      if (keyLoading) {
+        throw new Error('VAPI public key still loading - please wait');
       }
       
-      console.log('🔑 Using VAPI authentication:', vapiApiKey.startsWith('pk_') ? 'Public Key' : 'JWT Token');
+      if (!vapiApiKey) {
+        console.error('VAPI API key not available:', {
+          runtimeKey: !!runtimePublicKey,
+          token: !!vapiToken,
+          env: !!process.env.NEXT_PUBLIC_VAPI_API_KEY,
+          keyError,
+          tokenError
+        });
+        
+        // Provide helpful error message based on what failed
+        if (keyError) {
+          throw new Error(`Failed to load VAPI key: ${keyError}`);
+        } else if (tokenError) {
+          throw new Error(`VAPI authentication failed: ${tokenError}`);
+        } else {
+          throw new Error('VAPI API key not available - check server configuration');
+        }
+      }
+      
+      console.log('🔑 Using VAPI authentication:', {
+        type: vapiApiKey.startsWith('pk_') ? 'Public Key' : 'JWT Token',
+        source: runtimePublicKey ? 'Runtime API' : (vapiToken ? 'JWT Service' : 'Environment')
+      });
       
       // 5. Wait a moment for VAPI instance to initialize with the token
       // The useVapiSession hook needs a moment to create the instance after receiving the token
@@ -1210,7 +1248,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     } finally {
       setIsLoading(false);
     }
-  }, [user, therapyType, selectedFamilyMembers, vapi, setSessionActive, vapiApiKey, tokenLoading, tokenError]);
+  }, [user, therapyType, selectedFamilyMembers, vapi, setSessionActive, vapiApiKey, keyLoading, keyError, runtimePublicKey, vapiToken, tokenLoading, tokenError]);
   
   // Handle ending existing session and starting new one
   const handleEndAndStartNew = useCallback(async () => {
@@ -2175,7 +2213,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       <div className="flex items-center justify-center w-full h-full min-h-[200px]">
         <motion.button
           onClick={handleTherapyClick}
-          disabled={disabled || vapi.isConnecting || session.isEndingSession || isLoading}
+          disabled={disabled || vapi.isConnecting || session.isEndingSession || isLoading || keyLoading}
           title={`Start a ${therapyType} therapy session`}
           className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center shadow-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 cursor-pointer"
           aria-label="Start therapy session"
