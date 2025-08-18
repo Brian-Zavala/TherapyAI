@@ -1143,6 +1143,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.log(`💳 Credits remaining: ${creditsRemaining}`);
       console.log(`🔄 Concurrent sessions: ${concurrentInfo.current}/${concurrentInfo.limit}`);
       
+      // CRITICAL FIX: Update session management hook state after API creation
+      // This ensures session.sessionId is available for transcripts and timer
+      safeSessionStorage.setItem('active-session-id', sessionId);
+      safeSessionStorage.setItem(`session-${sessionId}-start-time`, new Date().toISOString());
+      
       // Save session info for recovery
       safeSessionStorage.setItem('pending-session-id', sessionId);
       safeSessionStorage.setItem('pending-session-duration', duration.toString());
@@ -1150,6 +1155,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       if (familyMembersOverride) {
         safeSessionStorage.setItem('pending-family-members', JSON.stringify(familyMembersOverride));
       }
+      
+      // Update session management hook with external session data
+      session.setExternalSession(sessionId, duration);
       
       // Now start VAPI with the created session
       await startVAPISession(sessionId, duration, familyMembersOverride);

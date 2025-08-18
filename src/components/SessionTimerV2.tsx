@@ -116,7 +116,7 @@ export default function SessionTimerV2({
     const lastSync = safeSessionStorage.getItem(lastSyncKey)
     if (lastSync) {
       const timeSinceSync = Date.now() - parseInt(lastSync)
-      if (timeSinceSync < 30000) return // Don't sync more than once per 30 seconds (increased from 15)
+      if (timeSinceSync < 120000) return // Don't sync more than once per 2 minutes (increased from 30s)
     }
     
     // Calculate expected remaining time based on conversation time
@@ -127,15 +127,18 @@ export default function SessionTimerV2({
     const currentRemaining = totalSeconds
     const timeDiff = Math.abs(expectedRemaining - currentRemaining)
     
-    // Only sync if the drift is very significant and we're not near expiry
-    // Increased threshold to 30 seconds to prevent constant resets, and require at least 2 minutes remaining
-    if (timeDiff > 30 && expectedRemaining > 120) {
+    // Only sync if the drift is VERY significant (2+ minutes) and we're not near expiry
+    // Much higher threshold to prevent constant resets, and require at least 5 minutes remaining
+    if (timeDiff > 120 && expectedRemaining > 300) {
       console.log(`⏱️ Timer sync needed: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
       const newExpiry = calculateExpiryTimestamp()
       restartRef.current(newExpiry, true)
       
       // Update last sync time
       safeSessionStorage.setItem(lastSyncKey, Date.now().toString())
+    } else if (timeDiff > 30) {
+      // For smaller drifts, just log but don't reset the timer
+      console.log(`📊 Timer drift detected but not syncing: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s, threshold: 120s)`)
     }
   }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, sessionId]) // Remove restart and calculateExpiryTimestamp to prevent infinite loops
   

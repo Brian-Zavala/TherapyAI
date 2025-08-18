@@ -58,6 +58,7 @@ interface UseSessionManagementV2Return {
   
   // Methods
   createSession: (duration: SessionDuration, familyMembers?: FamilyMember[], forceNew?: boolean, linkedSessionId?: string | null) => Promise<string | null>
+  setExternalSession: (sessionId: string, duration: SessionDuration) => void
   checkForActiveSession: () => Promise<SessionRecoveryData | null>
   recoverSession: (recoveryData: SessionRecoveryData) => Promise<void>
   pauseSession: () => Promise<void>
@@ -266,6 +267,27 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       sessionCreationInProgress.current = false
     }
   }, [therapyType, onSessionCreated, onError])
+  
+  // Set external session data (for sessions created outside the hook)
+  const setExternalSession = useCallback((sessionId: string, duration: SessionDuration) => {
+    console.log(`📝 Setting external session: ${sessionId}, duration: ${duration} minutes`)
+    
+    // Update session state
+    setSessionId(sessionId)
+    setSessionDuration(duration)
+    setSessionStartTime(new Date())
+    setInitialConversationTime(0)
+    setInitialPausedTime(0)
+    setSessionRecovered(false)
+    
+    // Save to storage for recovery
+    safeSessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, sessionId)
+    safeSessionStorage.setItem(`session-${sessionId}-start-time`, new Date().toISOString())
+    safeSessionStorage.setItem('active-session-id', sessionId)
+    
+    // Trigger callback
+    onSessionCreated?.(sessionId)
+  }, [onSessionCreated])
   
   // Check for active sessions
   const checkForActiveSession = useCallback(async (): Promise<SessionRecoveryData | null> => {
@@ -609,6 +631,7 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
     
     // Methods
     createSession,
+    setExternalSession,
     checkForActiveSession,
     recoverSession,
     pauseSession,
