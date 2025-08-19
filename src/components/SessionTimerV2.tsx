@@ -104,43 +104,37 @@ export default function SessionTimerV2({
     }
   }, [isConversationActive, isPaused, isRunning, isClient]) // Remove start/pause to prevent infinite loops
   
-  // Handle external conversation time updates
+  // Recovery-only sync logic (NO real-time sync during active sessions)
   useEffect(() => {
     if (!isClient) return
     
-    // Skip sync if conversation is not active or is paused
-    if (!isConversationActive || isPaused) return
+    // ONLY sync during session recovery scenarios (page refresh, session restore)
+    // Check if this is a recovery scenario by looking for recovery flag
+    const isRecoveryScenario = safeSessionStorage.getItem(`timer-recovery-${sessionId}`) === 'true'
     
-    // Check if we recently synced to prevent rapid re-syncs
-    const lastSyncKey = `timer-last-sync-${sessionId}`
-    const lastSync = safeSessionStorage.getItem(lastSyncKey)
-    if (lastSync) {
-      const timeSinceSync = Date.now() - parseInt(lastSync)
-      if (timeSinceSync < 120000) return // Don't sync more than once per 2 minutes (increased from 30s)
+    if (!isRecoveryScenario) {
+      // For real-time sessions, NEVER sync - let useAccurateSessionTimer be authoritative
+      return
     }
     
-    // Calculate expected remaining time based on conversation time
+    // Recovery sync: Only run once per recovery
+    console.log('🔄 Recovery sync initiated for session:', sessionId)
+    
     const totalSessionSeconds = durationMinutes * 60
     const expectedRemaining = Math.max(0, totalSessionSeconds - conversationTimeSeconds)
-    
-    // If there's a significant difference, restart the timer
     const currentRemaining = totalSeconds
     const timeDiff = Math.abs(expectedRemaining - currentRemaining)
     
-    // Only sync if the drift is VERY significant (2+ minutes) and we're not near expiry
-    // Much higher threshold to prevent constant resets, and require at least 5 minutes remaining
-    if (timeDiff > 120 && expectedRemaining > 300) {
-      console.log(`⏱️ Timer sync needed: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
+    // Sync for any meaningful difference during recovery (1+ minute)
+    if (timeDiff > 60) {
+      console.log(`🔄 Recovery sync: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
       const newExpiry = calculateExpiryTimestamp()
       restartRef.current(newExpiry, true)
-      
-      // Update last sync time
-      safeSessionStorage.setItem(lastSyncKey, Date.now().toString())
-    } else if (timeDiff > 30) {
-      // For smaller drifts, just log but don't reset the timer
-      console.log(`📊 Timer drift detected but not syncing: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s, threshold: 120s)`)
     }
-  }, [conversationTimeSeconds, durationMinutes, totalSeconds, isConversationActive, isPaused, isClient, sessionId]) // Remove restart and calculateExpiryTimestamp to prevent infinite loops
+    
+    // Clear recovery flag - only sync once per recovery
+    safeSessionStorage.removeItem(`timer-recovery-${sessionId}`)
+  }, [isClient, sessionId]) // Minimal dependencies - only run on mount/sessionId change
   
   // Calculate percentage used for warnings
   const percentageUsed = useMemo(() => {

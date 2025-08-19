@@ -372,6 +372,9 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       setInitialPausedTime(recoveryData.totalPausedTimeSeconds || 0)
       setSessionRecovered(true)
       
+      // Set timer recovery flag for SessionTimerV2 sync
+      safeSessionStorage.setItem(`timer-recovery-${recoveryData.sessionId}`, 'true')
+      
       // Save recovery state
       safeSessionStorage.setItem(STORAGE_KEYS.CURRENT_SESSION_ID, recoveryData.sessionId)
       safeSessionStorage.setItem('active-session-id', recoveryData.sessionId)
