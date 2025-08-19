@@ -33,8 +33,8 @@ export function CallControls({
   const showPauseResume = true
   
   return (
-    <div className="px-6 pb-8 flex items-center justify-center relative">
-      <div className="flex items-end justify-center space-x-4 sm:space-x-6">
+    <div className="px-4 sm:px-6 pb-6 sm:pb-8 flex items-center justify-center relative w-full">
+      <div className="flex items-center justify-center space-x-3 sm:space-x-4 max-w-full">
         {/* Mute Button */}
         <MuteButton 
           isMuted={isMuted}

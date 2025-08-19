@@ -18,7 +18,10 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
   // Update audioLevel ref
   useEffect(() => {
     audioLevelRef.current = audioLevel;
-    console.log('🎤 VoiceWaveform audioLevel updated:', audioLevel);
+    // Only log significant changes to reduce console spam
+    if (audioLevel > 30 || audioLevel === 0) {
+      console.log('🎤 VoiceWaveform audioLevel updated:', audioLevel);
+    }
   }, [audioLevel]);
   
   // Update speaking state based on audio level
@@ -44,7 +47,6 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
     
     // Preserve state during transitions
     if (isTransitioning) {
-      console.log('🎨 VoiceWaveform: Preserving state during transition');
       return;
     }
     
@@ -83,21 +85,19 @@ function VoiceWaveform({ audioLevel, isTransitioning = false }: VoiceWaveformPro
       
       const canvas = canvasRef.current;
       if (!canvas) {
-        console.warn('🎨 VoiceWaveform: Canvas not ready yet');
         animationRef.current = requestAnimationFrame(render);
         return;
       }
       
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        console.warn('🎨 VoiceWaveform: Context not ready yet');
         animationRef.current = requestAnimationFrame(render);
         return;
       }
       
-      // Log every 60 frames (approximately once per second)
+      // Reduce logging frequency - log every 5 seconds instead of every second
       frameCount++;
-      if (frameCount % 60 === 0) {
+      if (frameCount % 300 === 0) {
         console.log('🎨 VoiceWaveform animation running, audioLevel:', audioLevelRef.current);
       }
       

@@ -16,7 +16,7 @@ export function MuteButton({ isMuted, onClick, disabled = false }: MuteButtonPro
       <button 
         onClick={onClick}
         disabled={disabled}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-600 flex items-center justify-center mb-1 sm:mb-2 transition-colors duration-300 hover:bg-gray-700 cursor-pointer disabled:opacity-50"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-600 hover:bg-gray-500 active:bg-gray-700 flex items-center justify-center mb-1 sm:mb-2 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
         aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
       >
         {isMuted ? (
@@ -33,7 +33,6 @@ export function MuteButton({ isMuted, onClick, disabled = false }: MuteButtonPro
               strokeLinejoin="round" 
               strokeWidth={2} 
               d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" 
-              strokeDasharray="2 2" 
             />
             <path 
               strokeLinecap="round" 
