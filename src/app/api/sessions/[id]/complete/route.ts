@@ -10,12 +10,9 @@ import { rateLimitManager } from '@/lib/rate-limit-manager';
 import { logger } from '@/lib/logger';
 import { trackNotificationInteraction } from '@/lib/notification-tokens';
 import { sendSMS } from '@/lib/sms-service';
-import { CreditManager } from '@/lib/services/credit-manager.service';
-import { timingReconciliation } from '@/lib/services/credit-timing-reconciliation';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const lifecycleManager = SessionLifecycleManager.getInstance();
-const creditManager = new CreditManager();
 
 // In-memory lock for session completion to prevent race conditions
 // This is necessary because multiple hooks (useSessionManagementV2 and useSupabaseSessionState)
@@ -182,59 +179,8 @@ export async function POST(
       billableMinutes: finalBillableMinutes
     });
 
-    // Use lifecycle manager to complete session
+    // Use lifecycle manager to complete session (includes unified credit deduction)
     await lifecycleManager.completeSession(sessionId, therapySession.userId);
-
-    // CRITICAL FIX: Deduct credits for manual session completion
-    // This ensures users are properly charged when manually ending sessions
-    try {
-      // Reconcile timing from all sources for accurate billing
-      const reconciliation = await timingReconciliation.reconcileTiming(sessionId);
-      
-      if (reconciliation.actualMinutes > 0) {
-        await creditManager.deductCredits(
-          therapySession.userId,
-          sessionId,
-          therapySession.vapiCallId || `manual-${sessionId}`,
-          reconciliation.actualMinutes,
-          {
-            source: 'manual_completion',
-            reconciliationData: reconciliation,
-            sessionType: therapySession.sessionType,
-            completionSource: 'user_initiated',
-            manualBillableMinutes: finalBillableMinutes,
-            conversationTimeSeconds: finalConversationTimeSeconds
-          }
-        );
-        
-        logger.info('Credits deducted for manual session completion', {
-          sessionId,
-          userId: therapySession.userId,
-          minutes: reconciliation.actualMinutes,
-          reconciliationSource: reconciliation.source,
-          confidence: reconciliation.confidence,
-          vapiCallId: therapySession.vapiCallId || `manual-${sessionId}`
-        });
-      } else {
-        logger.info('No credits deducted - zero minute session', {
-          sessionId,
-          userId: therapySession.userId,
-          reconciliation
-        });
-      }
-    } catch (creditError) {
-      // Don't fail session completion if credit deduction fails
-      logger.error('Credit deduction failed during manual completion', {
-        sessionId,
-        userId: therapySession.userId,
-        error: creditError,
-        billableMinutes: finalBillableMinutes,
-        conversationTimeSeconds: finalConversationTimeSeconds
-      });
-      
-      // Session completion should still proceed successfully
-      // The credit deduction failure will be logged and can be manually corrected
-    }
 
     // Update session with billing data
     await prisma.session.update({

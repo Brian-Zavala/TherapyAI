@@ -383,14 +383,14 @@ export class VapiSessionManager {
   }
 
   /**
-   * Complete a session and deduct credits
+   * Complete a session using SessionLifecycleManager for unified architecture
    */
   async completeSession(
     sessionId: string,
     vapiCallId: string,
     durationSeconds: number
   ): Promise<void> {
-    const session = await prisma.therapySession.findUnique({
+    const session = await prisma.session.findUnique({
       where: { id: sessionId },
       include: { user: true },
     });
@@ -400,42 +400,64 @@ export class VapiSessionManager {
       return;
     }
 
-    const minutesUsed = Math.ceil(durationSeconds / 60);
-
-    // Deduct credits
+    // Update VAPI timing for reconciliation
     try {
-      await this.creditManager.deductCredits(
-        session.userId,
-        sessionId,
-        vapiCallId,
-        minutesUsed,
-        {
-          therapyType: session.therapyType,
-          actualDuration: durationSeconds,
-        }
-      );
+      const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation');
+      await timingReconciliation.updateVapiTiming(sessionId, durationSeconds);
     } catch (error) {
-      console.error('Error deducting credits:', error);
+      console.error('Error updating VAPI timing:', error);
     }
 
-    // Update session record
-    await prisma.therapySession.update({
+    // Delegate to SessionLifecycleManager for unified completion
+    try {
+      const { SessionLifecycleManager } = await import('@/lib/session/session-lifecycle-manager');
+      await SessionLifecycleManager.getInstance().completeSession(sessionId, session.userId);
+    } catch (error) {
+      console.error('Error completing session via lifecycle manager:', error);
+      
+      // Fallback to manual cleanup if lifecycle manager fails
+      await this.handleFailedCompletion(sessionId, vapiCallId, durationSeconds);
+    }
+
+    // Clean up Redis config
+    const configKey = `session:config:${sessionId}`;
+    await redis.del(configKey);
+  }
+
+  /**
+   * Fallback completion when SessionLifecycleManager fails
+   */
+  private async handleFailedCompletion(
+    sessionId: string,
+    vapiCallId: string,
+    durationSeconds: number
+  ): Promise<void> {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { user: true },
+    });
+
+    if (!session) return;
+
+    const minutesUsed = Math.ceil(durationSeconds / 60);
+
+    // Mark as completed in database as fallback
+    await prisma.session.update({
       where: { id: sessionId },
       data: {
         status: SessionStatus.COMPLETED,
-        duration: minutesUsed,
-        creditsUsed: minutesUsed,
+        conversationTimeSeconds: durationSeconds,
         completedAt: new Date(),
         endTime: new Date(),
       },
     });
 
-    // Clean up Redis
-    const configKey = `session:config:${sessionId}`;
-    await redis.del(configKey);
-
-    // Send session summary email
-    await this.sendSessionSummary(session.user.email, session.user.name, minutesUsed);
+    console.warn('Session completed via fallback mechanism', {
+      sessionId,
+      vapiCallId,
+      durationSeconds,
+      minutesUsed
+    });
   }
 
   /**

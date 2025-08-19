@@ -9,6 +9,7 @@ export type SessionLifecycleState =
   | 'ACTIVE'
   | 'ENDING'
   | 'COMPLETING'
+  | 'DEDUCTING_CREDITS'  // NEW STATE
   | 'CALCULATING_METRICS'
   | 'COMPLETED'
   | 'FAILED';
@@ -132,7 +133,7 @@ export class SessionLifecycleManager {
       });
       
       // For certain transitions, mark as failed instead of throwing
-      if (toState === 'COMPLETING' || toState === 'CALCULATING_METRICS') {
+      if (toState === 'COMPLETING' || toState === 'DEDUCTING_CREDITS' || toState === 'CALCULATING_METRICS') {
         try {
           this.sessionStates.set(sessionId, 'FAILED');
           await this.updateDatabaseState(sessionId, 'FAILED');
@@ -163,6 +164,59 @@ export class SessionLifecycleManager {
     try {
       // Ensure VAPI call is terminated
       await this.terminateVapiCall(sessionId);
+      
+      // Deduct credits with timing reconciliation
+      await this.transitionSession(sessionId, 'DEDUCTING_CREDITS', async () => {
+        const { CreditManager } = await import('@/lib/services/credit-manager.service');
+        const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation');
+        
+        const creditManager = new CreditManager();
+        
+        // Get session details for credit calculation
+        const session = await prisma.session.findUnique({
+          where: { id: sessionId },
+          include: { user: true }
+        });
+        
+        if (!session) {
+          throw new Error(`Session ${sessionId} not found`);
+        }
+
+        // Reconcile timing from all sources for accurate billing
+        const reconciliation = await timingReconciliation.reconcileTiming(sessionId);
+        
+        if (reconciliation.actualMinutes > 0) {
+          await creditManager.deductCredits(
+            userId,
+            sessionId,
+            session.vapiCallId || `lifecycle-${sessionId}`,
+            reconciliation.actualMinutes,
+            {
+              source: 'lifecycle_manager',
+              reconciliationData: reconciliation,
+              sessionType: session.sessionType,
+              completionState: 'unified_deduction',
+              timingSource: reconciliation.source,
+              confidence: reconciliation.confidence
+            }
+          );
+          
+          logger.info('Credits deducted via lifecycle manager', {
+            sessionId,
+            userId,
+            minutes: reconciliation.actualMinutes,
+            timingSource: reconciliation.source,
+            confidence: reconciliation.confidence,
+            warnings: reconciliation.warnings
+          });
+        } else {
+          logger.info('No credits deducted - zero minute session', {
+            sessionId,
+            userId,
+            reconciliation
+          });
+        }
+      });
       
       // Calculate metrics (deduplication handled internally)
       await this.transitionSession(sessionId, 'CALCULATING_METRICS', async () => {
@@ -245,7 +299,8 @@ export class SessionLifecycleManager {
     const validTransitions: Record<SessionLifecycleState, SessionLifecycleState[]> = {
       ACTIVE: ['ENDING', 'FAILED'],
       ENDING: ['COMPLETING', 'FAILED'],
-      COMPLETING: ['CALCULATING_METRICS', 'FAILED'],
+      COMPLETING: ['DEDUCTING_CREDITS', 'FAILED'],
+      DEDUCTING_CREDITS: ['CALCULATING_METRICS', 'FAILED'],
       CALCULATING_METRICS: ['COMPLETED', 'FAILED'],
       COMPLETED: [], // Terminal state
       FAILED: [] // Terminal state
@@ -288,6 +343,7 @@ export class SessionLifecycleManager {
       case 'ACTIVE':
       case 'ENDING':
       case 'COMPLETING':
+      case 'DEDUCTING_CREDITS':
       case 'CALCULATING_METRICS':
         return SessionStatus.ACTIVE;
       case 'COMPLETED':
