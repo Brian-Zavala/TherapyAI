@@ -236,7 +236,7 @@ async function handleSessionUpdate(
       updateData.duration = duration
     }
     
-    // Handle conversation time tracking with validation
+    // Handle conversation time tracking with validation and timing reconciliation
     if (conversationTimeSeconds !== undefined) {
       try {
         if (typeof conversationTimeSeconds === 'string' && conversationTimeSeconds.startsWith('ADD_')) {
@@ -258,6 +258,16 @@ async function handleSessionUpdate(
           }
           updateData.conversationTimeSeconds = timeSeconds
           console.log(`📊 Setting conversation time to ${timeSeconds}s`);
+          
+          // Update server timing in reconciliation system
+          try {
+            const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation');
+            await timingReconciliation.updateServerTiming(sessionId);
+            console.log(`🕒 Updated server timing for session ${sessionId}`);
+          } catch (timingError) {
+            console.warn(`⚠️ Failed to update server timing for session ${sessionId}:`, timingError);
+            // Don't fail the whole request for timing reconciliation errors
+          }
         }
       } catch (timeError) {
         console.error(`❌ Error processing conversation time:`, timeError);

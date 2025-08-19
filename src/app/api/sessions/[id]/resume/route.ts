@@ -73,6 +73,23 @@ export async function POST(
         pauseStartTime: null, // Clear pause start time
       }
     })
+    
+    // Update timing reconciliation system
+    try {
+      const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation');
+      
+      // Track the pause duration that just ended
+      if (pauseDuration > 0) {
+        await timingReconciliation.trackPauseTime(sessionId, pauseDuration * 1000); // Convert to milliseconds
+        console.log(`🕒 Tracked completed pause duration: ${pauseDuration}s for session ${sessionId}`);
+      }
+      
+      // Update server timing
+      await timingReconciliation.updateServerTiming(sessionId);
+    } catch (timingError) {
+      console.warn(`⚠️ Failed to update timing reconciliation for resume in session ${sessionId}:`, timingError);
+      // Don't fail the whole request for timing errors
+    }
 
     // Calculate total elapsed time
     const totalElapsedSeconds = therapySession.startTime

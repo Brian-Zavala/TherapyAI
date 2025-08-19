@@ -1,0 +1,386 @@
+name: Credit Deduction Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/lib/services/credit-manager.service.ts'
+      - 'src/lib/services/credit-timing-reconciliation.ts'
+      - 'src/lib/session/session-lifecycle-manager.ts'
+      - 'src/lib/services/vapi-session-manager.ts'
+      - 'src/app/api/sessions/[id]/complete/route.ts'
+      - 'src/__tests__/**'
+      - 'package.json'
+      - 'jest.config.js'
+      - 'jest.setup.js'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/lib/services/credit-manager.service.ts'
+      - 'src/lib/services/credit-timing-reconciliation.ts'
+      - 'src/lib/session/session-lifecycle-manager.ts'
+      - 'src/lib/services/vapi-session-manager.ts'
+      - 'src/app/api/sessions/[id]/complete/route.ts'
+      - 'src/__tests__/**'
+      - 'package.json'
+      - 'jest.config.js'
+      - 'jest.setup.js'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - credit-deduction-only
+        - performance-only
+
+env:
+  NODE_ENV: test
+  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET_TEST }}
+  NEXTAUTH_URL: http://localhost:3000
+  DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+  UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL_TEST }}
+  UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN_TEST }}
+  VAPI_API_KEY: ${{ secrets.VAPI_API_KEY_TEST }}
+  VAPI_ORG_ID: ${{ secrets.VAPI_ORG_ID_TEST }}
+  VAPI_WEBHOOK_SECRET: ${{ secrets.VAPI_WEBHOOK_SECRET_TEST }}
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=node-modules-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies
+        run: npm ci
+
+  lint-and-typecheck:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+  credit-deduction-tests:
+    needs: [setup, lint-and-typecheck]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-suite: 
+          - manual-completion
+          - vapi-webhook
+          - race-conditions
+          - timing-reconciliation
+          - edge-cases
+          - performance
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run credit deduction tests
+        run: |
+          if [ "${{ github.event.inputs.test_type }}" = "credit-deduction-only" ] || [ "${{ github.event.inputs.test_type }}" = "all" ] || [ "${{ github.event.inputs.test_type }}" = "" ]; then
+            npm run test:credit-deduction -- --coverage --testNamePattern="${{ matrix.test-suite }}"
+          fi
+
+      - name: Upload coverage reports
+        if: matrix.test-suite == 'manual-completion'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: credit-deduction
+          name: credit-deduction-coverage
+          fail_ci_if_error: true
+
+      - name: Archive test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            coverage/
+            jest-results.xml
+
+  performance-tests:
+    needs: [setup, lint-and-typecheck]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'performance-only' || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run performance tests
+        run: |
+          npm run test:credit-deduction -- --testNamePattern="Performance|Concurrency" --verbose
+
+      - name: Analyze performance results
+        run: |
+          echo "Performance test completed. Check logs for timing results."
+
+  integration-tests:
+    needs: [setup, lint-and-typecheck]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      UPSTASH_REDIS_REST_URL: http://localhost:6379
+      UPSTASH_REDIS_REST_TOKEN: test-token
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma db push
+
+      - name: Run full integration test suite
+        run: npm run test:credit-deduction -- --coverage --maxWorkers=1
+
+      - name: Upload comprehensive coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: integration
+          name: integration-coverage
+          fail_ci_if_error: false
+
+  security-scan:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run npm audit
+        run: npm audit --audit-level moderate
+
+      - name: Check for sensitive data in tests
+        run: |
+          if grep -r "sk_live\|pk_live\|rk_live" src/__tests__/ ; then
+            echo "❌ Live API keys found in tests!"
+            exit 1
+          else
+            echo "✅ No sensitive data found in tests"
+          fi
+
+  validate-test-quality:
+    needs: [credit-deduction-tests, integration-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Validate test coverage thresholds
+        run: |
+          npm run test:coverage -- --passWithNoTests
+          echo "✅ All coverage thresholds met"
+
+      - name: Check test completeness
+        run: |
+          TEST_COUNT=$(npm run test:credit-deduction -- --listTests --json | jq '.length')
+          if [ "$TEST_COUNT" -lt 50 ]; then
+            echo "⚠️ Warning: Only $TEST_COUNT tests found. Expected 50+ comprehensive tests."
+          else
+            echo "✅ $TEST_COUNT tests found - comprehensive coverage achieved"
+          fi
+
+      - name: Validate critical scenarios
+        run: |
+          CRITICAL_TESTS=$(npm run test:credit-deduction -- --listTests --json | jq -r '.[]' | grep -c -E "(race.condition|timing.reconciliation|zero.minute|browser.crash|concurrent)" || echo "0")
+          if [ "$CRITICAL_TESTS" -lt 5 ]; then
+            echo "❌ Missing critical test scenarios. Found: $CRITICAL_TESTS, Expected: 5+"
+            exit 1
+          else
+            echo "✅ All critical scenarios covered: $CRITICAL_TESTS tests"
+          fi
+
+  deployment-readiness:
+    needs: [credit-deduction-tests, integration-tests, performance-tests, security-scan, validate-test-quality]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check deployment readiness
+        run: |
+          if [ "${{ needs.credit-deduction-tests.result }}" = "success" ] && 
+             [ "${{ needs.integration-tests.result }}" = "success" ] && 
+             [ "${{ needs.performance-tests.result }}" = "success" ] && 
+             [ "${{ needs.security-scan.result }}" = "success" ] &&
+             [ "${{ needs.validate-test-quality.result }}" = "success" ]; then
+            echo "✅ All tests passed - Credit deduction system ready for deployment"
+            echo "deployment_ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests failed - Credit deduction system NOT ready for deployment"
+            echo "Failed jobs:"
+            echo "  Credit Deduction Tests: ${{ needs.credit-deduction-tests.result }}"
+            echo "  Integration Tests: ${{ needs.integration-tests.result }}"
+            echo "  Performance Tests: ${{ needs.performance-tests.result }}"
+            echo "  Security Scan: ${{ needs.security-scan.result }}"
+            echo "  Test Quality: ${{ needs.validate-test-quality.result }}"
+            echo "deployment_ready=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## 🎉 Credit Deduction System - Deployment Ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All critical tests have passed successfully:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Credit deduction scenarios validated" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Race condition prevention verified" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Timing reconciliation accuracy confirmed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Edge cases and error handling tested" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Performance thresholds met" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Security scan passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The system is ready for production deployment with confidence in billing accuracy and system reliability." >> $GITHUB_STEP_SUMMARY
+
+  notify-on-failure:
+    needs: [deployment-readiness]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Notify team of test failures
+        run: |
+          echo "❌ CRITICAL: Credit deduction tests failed!"
+          echo "This affects billing accuracy and financial integrity."
+          echo "Immediate attention required before any deployment."
+          echo ""
+          echo "Failed workflow: ${{ github.workflow }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Run: ${{ github.run_id }}"

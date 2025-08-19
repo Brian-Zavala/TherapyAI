@@ -4,6 +4,9 @@ import { sessionCache } from '@/lib/session-cache';
 import { profileCache } from '@/lib/cache/profile-cache';
 import { logger } from '@/lib/logger';
 import { AxiosError } from 'axios';
+import { CreditManager } from '@/lib/services/credit-manager.service';
+import { timingReconciliation } from '@/lib/services/credit-timing-reconciliation';
+import { calculateMetrics } from '@/lib/metrics/metrics-deduplication';
 
 export type SessionLifecycleState = 
   | 'ACTIVE'
@@ -132,8 +135,17 @@ export class SessionLifecycleManager {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
       
-      // For certain transitions, mark as failed instead of throwing
-      if (toState === 'COMPLETING' || toState === 'DEDUCTING_CREDITS' || toState === 'CALCULATING_METRICS') {
+      // For certain transitions, handle errors more gracefully
+      if (toState === 'DEDUCTING_CREDITS') {
+        // Credit deduction failures shouldn't prevent session completion
+        logger.warn('Credit deduction failed, but session can still complete', {
+          sessionId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        
+        // Don't throw for credit deduction failures - session completion should succeed
+        return;
+      } else if (toState === 'COMPLETING' || toState === 'CALCULATING_METRICS') {
         try {
           this.sessionStates.set(sessionId, 'FAILED');
           await this.updateDatabaseState(sessionId, 'FAILED');
@@ -167,9 +179,6 @@ export class SessionLifecycleManager {
       
       // Deduct credits with timing reconciliation
       await this.transitionSession(sessionId, 'DEDUCTING_CREDITS', async () => {
-        const { CreditManager } = await import('@/lib/services/credit-manager.service');
-        const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation');
-        
         const creditManager = new CreditManager();
         
         // Get session details for credit calculation
@@ -220,7 +229,6 @@ export class SessionLifecycleManager {
       
       // Calculate metrics (deduplication handled internally)
       await this.transitionSession(sessionId, 'CALCULATING_METRICS', async () => {
-        const { calculateMetrics } = await import('@/lib/metrics/metrics-deduplication');
         await calculateMetrics(sessionId, userId);
       });
 

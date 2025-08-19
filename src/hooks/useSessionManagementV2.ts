@@ -118,26 +118,39 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       lastServerUpdateTime.current = now
       
       try {
-        // Update conversation time in database
-        const response = await fetch(`/api/sessions/${sessionId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationTimeSeconds: Math.floor(conversationTime),
-            lastConversationStart: conversationStartTime?.toISOString()
-          })
-        })
+        // Update both database and timing reconciliation with client timing
+        const [dbResponse] = await Promise.allSettled([
+          // Update conversation time in database
+          fetch(`/api/sessions/${sessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationTimeSeconds: Math.floor(conversationTime),
+              lastConversationStart: conversationStartTime?.toISOString()
+            })
+          }),
+          
+          // Update client timing in reconciliation system
+          (async () => {
+            const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation')
+            await timingReconciliation.updateClientTiming(sessionId, conversationTime * 1000) // Convert to milliseconds
+          })()
+        ])
         
-        if (!response.ok) {
-          console.error('❌ Failed to update conversation time:', response.status)
+        if (dbResponse.status === 'rejected' || (dbResponse.status === 'fulfilled' && !dbResponse.value.ok)) {
+          console.error('❌ Failed to update conversation time:', 
+            dbResponse.status === 'rejected' 
+              ? dbResponse.reason 
+              : `HTTP ${dbResponse.value.status}`
+          )
         } else {
           // Log milestone updates
           if (conversationTime % 300 === 0 && conversationTime > 0) {
-            console.log(`💰 Billing milestone: ${Math.floor(conversationTime / 60)}min`)
+            console.log(`💰 Billing milestone: ${Math.floor(conversationTime / 60)}min (client timing updated)`)
           }
         }
       } catch (error) {
-        console.error('❌ Error updating conversation time:', error)
+        console.error('❌ Error updating conversation time and client timing:', error)
       }
     }, [sessionId, conversationStartTime]),
     onExpire: useCallback(() => {

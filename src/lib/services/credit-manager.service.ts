@@ -656,8 +656,8 @@ export class CreditManager {
             }
 
             // Use centralized billing utility for consistent rounding
-            // minutesUsed is already in minutes, just round up
-            const actualMinutes = Math.ceil(minutesUsed);
+            // Check if minutesUsed is already an integer to avoid double rounding
+            const actualMinutes = Number.isInteger(minutesUsed) ? minutesUsed : Math.ceil(minutesUsed);
 
             // For unlimited plans, just track usage without deducting
             if (credits.planType === 'unlimited') {
