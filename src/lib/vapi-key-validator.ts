@@ -27,8 +27,11 @@ export function validateVapiKey(key: string | undefined): VapiKeyValidation {
     };
   }
 
+  // Trim any whitespace or quotes that might have been accidentally included
+  const trimmedKey = key.trim().replace(/^["']|["']$/g, '');
+
   // Check if it might be a JWT token (contains dots)
-  if (key.includes('.') && key.split('.').length === 3) {
+  if (trimmedKey.includes('.') && trimmedKey.split('.').length === 3) {
     return {
       isValid: false,
       type: 'invalid',
@@ -44,7 +47,7 @@ export function validateVapiKey(key: string | undefined): VapiKeyValidation {
   // VAPI uses UUID format keys - validate UUID pattern
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   
-  if (uuidPattern.test(key)) {
+  if (uuidPattern.test(trimmedKey)) {
     // VAPI keys are all considered "public" for web client use
     // The distinction between public/private is handled by VAPI internally
     return {
@@ -55,7 +58,7 @@ export function validateVapiKey(key: string | undefined): VapiKeyValidation {
   }
 
   // Check for legacy prefixed format (deprecated)
-  if (key.startsWith('pk_') || key.startsWith('pk-')) {
+  if (trimmedKey.startsWith('pk_') || trimmedKey.startsWith('pk-')) {
     return {
       isValid: true,
       type: 'public',
@@ -66,7 +69,7 @@ export function validateVapiKey(key: string | undefined): VapiKeyValidation {
     };
   }
 
-  if (key.startsWith('sk_') || key.startsWith('sk-')) {
+  if (trimmedKey.startsWith('sk_') || trimmedKey.startsWith('sk-')) {
     return {
       isValid: true,
       type: 'secret',
@@ -83,7 +86,7 @@ export function validateVapiKey(key: string | undefined): VapiKeyValidation {
   return {
     isValid: false,
     type: 'invalid',
-    message: 'Invalid VAPI key format',
+    message: 'Unknown key format',
     recommendations: [
       'VAPI API keys should be UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
       'Get your API key from https://dashboard.vapi.ai',

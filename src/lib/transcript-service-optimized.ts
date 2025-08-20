@@ -20,9 +20,9 @@ export type TranscriptEntry = {
  */
 class BatchedTranscriptManager {
   private queue: Map<string, TranscriptEntry[]> = new Map()
-  private batchSize = 10 // Reduced to save more frequently
+  private batchSize = 50 // Optimized: save after 50 entries (was 10)
   private maxBatchSize = 90 // Stay under API limit of 100
-  private batchTimeout = 2000 // 2 seconds - reduced for better real-time experience
+  private batchTimeout = 10000 // 10 seconds - optimized for less DB load (was 2s)
   private timeouts: Map<string, NodeJS.Timeout> = new Map()
   private saving: Set<string> = new Set()
   

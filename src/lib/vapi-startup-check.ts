@@ -10,15 +10,15 @@ export function performVapiStartupCheck(): void {
   const apiKey = process.env.VAPI_API_KEY;
   const orgId = process.env.VAPI_ORG_ID;
   const privateKey = process.env.VAPI_PRIVATE_KEY;
-
-  // Check API Key
-  const keyValidation = validateVapiKey(apiKey);
   
   if (!apiKey) {
     console.error('❌ [VAPI] VAPI_API_KEY is not set');
     console.error('   → Get your API key from https://dashboard.vapi.ai');
     return;
   }
+
+  // Check API Key after confirming it exists
+  const keyValidation = validateVapiKey(apiKey);
 
   if (!keyValidation.isValid) {
     console.error(`❌ [VAPI] Invalid API key: ${keyValidation.message}`);
@@ -61,15 +61,14 @@ export function performVapiStartupCheck(): void {
   console.log('📊 [VAPI] Configuration summary:');
   console.log(`   - Authentication method: ${privateKey ? 'JWT tokens' : 'Direct API key'}`);
   console.log(`   - Key type: ${keyValidation.type}`);
+  console.log(`   - Key format: ${apiKey.startsWith('pk_') ? 'Legacy public' : apiKey.startsWith('sk_') ? 'Legacy secret' : 'UUID'}`);
   console.log(`   - Web client ready: ${keyValidation.type === 'public' ? 'Yes' : 'No'}`);
   
-  if (keyValidation.type !== 'public') {
-    console.error('');
-    console.error('🚨 [VAPI] ACTION REQUIRED:');
-    console.error('   1. Log into https://dashboard.vapi.ai');
-    console.error('   2. Create a new PUBLIC key (starts with pk_)');
-    console.error('   3. Update VAPI_API_KEY in your .env file');
-    console.error('   4. Restart your development server');
+  if (keyValidation.type === 'secret') {
+    console.warn('');
+    console.warn('⚠️  [VAPI] Using secret key for web client');
+    console.warn('   → Secret keys should only be used server-side');
+    console.warn('   → Consider using a UUID key or public key (pk_) for browser usage');
   }
 }
 
