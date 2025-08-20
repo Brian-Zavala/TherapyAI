@@ -1411,7 +1411,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       const currentSessionId = session.sessionId
       
       // Stop VAPI call first
-      await vapi.stop()
+      await vapi.endSession()
       
       // End session through both systems for proper synchronization
       // NOTE: Both hooks make the same API call to ensure they work independently.
