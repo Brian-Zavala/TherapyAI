@@ -4,12 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import { withTransaction, withRetry } from '@/lib/prisma-enhanced'
 import { generateMetricsFromSession } from '../../metrics-helper'
+import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager'
 import { Resend } from 'resend'
 import SessionCompletedEmail from '@/emails/SessionCompleted'
 import { rateLimitManager } from '@/lib/rate-limit-manager'
 import { z } from 'zod'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const lifecycleManager = SessionLifecycleManager.getInstance()
 
 // Enhanced request validation
 const CompleteSessionSchema = z.object({
@@ -99,6 +101,16 @@ export async function POST(
         sessionId: therapySession.id 
       }, { status: 409 })
     }
+    
+    // 🚨 CRITICAL FIX: Use lifecycle manager for proper credit deduction BEFORE enhanced completion
+    // This was a MAJOR REVENUE LEAK - enhanced route was bypassing all credit deduction logic!
+    // The lifecycleManager.completeSession() handles:
+    // - Credit deduction via CreditManager.deductCredits()
+    // - Timing reconciliation for accurate billing
+    // - VAPI call termination
+    // - Proper state transitions (ENDING -> COMPLETING -> DEDUCTING_CREDITS -> COMPLETED)
+    console.log('💳 Processing credit deduction via SessionLifecycleManager...')
+    await lifecycleManager.completeSession(sessionId, therapySession.userId)
     
     // 🚀 ENHANCED SESSION COMPLETION WITH TRANSACTION
     const completionResult = await withTransaction(async (tx) => {
