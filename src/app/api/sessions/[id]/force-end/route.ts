@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma-optimized';
 import { authOptions } from '@/lib/auth';
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
+import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
 import { z } from 'zod';
 import type { Session } from '@prisma/client';
 
@@ -76,65 +77,79 @@ export async function POST(
     
     const { reason, terminationType, skipBillingProtection, vapiCallCost } = validatedData.data;
     
-    // 2025 Standard: Use transaction for atomic operations
-    const result = await prisma.$transaction(async (tx) => {
-      // Get the session with user info
-      const session = await tx.session.findUnique({
-        where: { id: sessionId },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              isDeleted: true
-            }
+    // Get the session with user info for validation
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            isDeleted: true
           }
         }
+      }
+    });
+    
+    if (!session) {
+      return NextResponse.json<ApiError>(
+        { error: 'Session not found', code: 'NOT_FOUND' }, 
+        { status: 404 }
+      );
+    }
+    
+    // Verify user owns the session
+    if (session.user.email !== authSession.user.email) {
+      return NextResponse.json<ApiError>(
+        { error: 'Not authorized', code: 'FORBIDDEN' }, 
+        { status: 403 }
+      );
+    }
+    
+    // Check if session is already ended
+    if (['COMPLETED', 'CANCELLED', 'TERMINATED', 'ABANDONED'].includes(session.status)) {
+      log.info('Session already ended', { 
+        sessionId, 
+        currentStatus: session.status 
       });
       
-      if (!session) {
-        throw new Error('Session not found');
-      }
-      
-      // Verify user owns the session
-      if (session.user.email !== authSession.user.email) {
-        throw new Error('Not authorized to end this session');
-      }
-      
-      // Check if session is already ended
-      if (['COMPLETED', 'CANCELLED', 'TERMINATED', 'ABANDONED'].includes(session.status)) {
-        log.info('Session already ended', { 
-          sessionId, 
-          currentStatus: session.status 
-        });
-        return { session, alreadyEnded: true };
-      }
-      
-      // Calculate session duration and estimated cost
-      const conversationTime = session.conversationTimeSeconds || 0;
-      const estimatedMinutes = Math.ceil(conversationTime / 60);
-      const estimatedCost = estimatedMinutes * 0.13; // $0.13 per minute
-      
-      // Billing protection check (unless explicitly skipped)
-      if (!skipBillingProtection && conversationTime > 0) {
-        // Log warning for sessions with significant conversation time
-        if (conversationTime > 300) { // More than 5 minutes
-          log.info('WARNING: Ending session with significant conversation time', {
-            sessionId,
-            conversationTimeSeconds: conversationTime,
-            estimatedCost: estimatedCost.toFixed(2),
-            reason: reason
-          });
-        }
-      }
-      
-      // Update the session
-      const updatedSession = await tx.session.update({
+      return NextResponse.json({
+        success: true,
+        session: {
+          id: session.id,
+          status: session.status,
+          endTime: session.endTime,
+          conversationTimeSeconds: session.conversationTimeSeconds,
+          vapiCallCost: session.vapiCallCost
+        },
+        alreadyEnded: true,
+        message: 'Session was already ended'
+      });
+    }
+    
+    // Calculate session duration for logging
+    const conversationTime = session.conversationTimeSeconds || 0;
+    const estimatedMinutes = Math.ceil(conversationTime / 60);
+    
+    // Billing protection warning (unless explicitly skipped)
+    if (!skipBillingProtection && conversationTime > 300) { // More than 5 minutes
+      log.info('WARNING: Force ending session with significant conversation time', {
+        sessionId,
+        conversationTimeSeconds: conversationTime,
+        estimatedMinutes,
+        reason: reason
+      });
+    }
+    
+    // 🚨 CRITICAL FIX: Use SessionLifecycleManager for proper credit deduction
+    const lifecycleManager = SessionLifecycleManager.getInstance();
+    
+    // First update session metadata before completion
+    await prisma.$transaction(async (tx) => {
+      // Update session with force-end metadata
+      await tx.session.update({
         where: { id: sessionId },
         data: {
-          status: 'COMPLETED',
-          endTime: new Date(),
-          completedAt: new Date(),
           terminationReason: terminationType,
           notes: session.notes ? 
             `${session.notes}\n\n[Force ended: ${reason}]` : 
@@ -167,24 +182,42 @@ export async function POST(
             reason: reason,
             terminationType,
             conversationTimeSeconds: conversationTime,
-            estimatedCost: estimatedCost,
+            estimatedMinutes,
             skipBillingProtection,
-            requestedBy: authSession.user.email
+            requestedBy: authSession.user.email,
+            source: 'force_end_api'
           }
         }
       });
-      
-      return { session: updatedSession, alreadyEnded: false };
     });
     
-    // 2025 Standard: Invalidate caches
-    sessionCache.invalidate(cacheKeys.userSessions(result.session.userId));
-    sessionCache.invalidate(cacheKeys.session(sessionId));
+    // Complete session with proper credit deduction via SessionLifecycleManager
+    await lifecycleManager.completeSession(sessionId, session.userId);
+    
+    // Get updated session for response
+    const completedSession = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        status: true,
+        endTime: true,
+        completedAt: true,
+        conversationTimeSeconds: true,
+        vapiCallCost: true
+      }
+    });
+    
+    const result = { 
+      session: completedSession!, 
+      alreadyEnded: false 
+    };
+    
+    // NOTE: Cache invalidation is handled by SessionLifecycleManager
     
     // Log the action
     log.info('Session force ended', {
       sessionId,
-      userId: result.session.userId,
+      userId: session.userId,
       reason,
       terminationType,
       alreadyEnded: result.alreadyEnded,
@@ -209,22 +242,6 @@ export async function POST(
     
   } catch (error) {
     log.error('Failed to force end session', error);
-    
-    if (error instanceof Error) {
-      if (error.message === 'Session not found') {
-        return NextResponse.json<ApiError>(
-          { error: 'Session not found', code: 'NOT_FOUND' }, 
-          { status: 404 }
-        );
-      }
-      
-      if (error.message === 'Not authorized to end this session') {
-        return NextResponse.json<ApiError>(
-          { error: 'Not authorized', code: 'FORBIDDEN' }, 
-          { status: 403 }
-        );
-      }
-    }
     
     return NextResponse.json<ApiError>(
       { 
