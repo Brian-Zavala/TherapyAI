@@ -14,20 +14,22 @@ import { Session } from 'next-auth'
 import Vapi from '@vapi-ai/web'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase-client'
 
 // Components
 import SessionDurationModal from './SessionDurationModal'
 import TherapyTypeSelector from './TherapyTypeSelector'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
-import ActiveSessionFoundModalOptimized from './ActiveSessionFoundModalOptimized'
+import UnifiedSessionModal from './UnifiedSessionModal'
 import SessionTimerV2 from './SessionTimerV2'
 import VoiceWaveform from './VoiceWaveform'
-import CallControlsOptimized from './therapy/CallControlsOptimized'
+import { CallControlsOptimized } from './therapy/CallControlsOptimized'
 import TranscriptOverlay from './therapy/TranscriptOverlay'
+import { SessionConflictDialog } from './SessionConflictDialog'
 
 // Hooks (only the essential ones we can't replace)
 import useButtonSound from '@/hooks/useButtonSound'
+import { useSessionConflict } from '@/hooks/useSessionConflict'
 
 // Services
 import { 
@@ -55,6 +57,27 @@ interface TherapyButtonDirectEnhancedProps {
   onSessionConflict?: (conflictData: any) => void
   onSessionStarted?: () => void
   linkedSessionId?: string | null
+}
+
+// Loading messages that cycle through
+const loadingMessages = [
+  "Finding the perfect space for our conversation...",
+  "Preparing a comfortable environment...",
+  "Setting up your private therapy session...",
+  "Creating a safe space for you to share...",
+  "Getting everything ready for our talk...",
+  "Almost there... just a moment more..."
+]
+
+// Recovery timing constants for consistency
+const RECOVERY_CONSTANTS = {
+  COOLDOWN_MS: 2000,               // Cooldown between recovery attempts
+  STALE_DATA_MS: 60000,           // When recovery data is considered stale (60s)
+  AUTO_START_VALIDITY_MS: 60000,   // How long auto-start data is valid (60s)
+  VAPI_READY_TIMEOUT_MS: 15000,    // Max wait for VAPI to be ready (15s)
+  VAPI_READY_CHECK_INTERVAL_MS: 500, // How often to check VAPI readiness
+  DEFERRED_RECOVERY_DELAY_MS: 200,   // Delay for deferred recovery dispatch
+  CLEANUP_INTERVAL_MS: 30000        // How often to clean up old recovery data (30s)
 }
 
 interface SessionState {
@@ -86,8 +109,17 @@ export default function TherapyButtonDirectEnhanced({
   linkedSessionId
 }: TherapyButtonDirectEnhancedProps) {
   const router = useRouter()
-  const supabase = createClient()
   const playSound = useButtonSound()
+  
+  // Session conflict handling
+  const {
+    conflictSession,
+    isConflictDialogOpen,
+    setIsConflictDialogOpen,
+    handleSessionConflict,
+    resumeExistingSession,
+    formatSessionTime
+  } = useSessionConflict()
   
   // VAPI instance - singleton pattern without external manager
   const vapiRef = useRef<Vapi | null>(null)
@@ -127,7 +159,9 @@ export default function TherapyButtonDirectEnhanced({
   const [showDurationModal, setShowDurationModal] = useState(false)
   const [showTherapySelector, setShowTherapySelector] = useState(false)
   const [showFamilySelector, setShowFamilySelector] = useState(false)
+  const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   
   // Refs for cleanup and timers
   const connectionTimeoutRef = useRef<NodeJS.Timeout>()
@@ -150,6 +184,22 @@ export default function TherapyButtonDirectEnhanced({
       }
     }
   }, [])
+
+  /**
+   * Cycle through loading messages
+   */
+  useEffect(() => {
+    if (!isConnecting) {
+      setLoadingMessageIndex(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((prev) => (prev + 1) % loadingMessages.length)
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [isConnecting])
 
   /**
    * Check for recoverable sessions on mount
@@ -520,8 +570,14 @@ export default function TherapyButtonDirectEnhanced({
         // Handle session conflict
         if (sessionResponse.status === 409) {
           const errorData = await sessionResponse.json()
-          if (errorData.code === 'EXISTING_ACTIVE_SESSION' && onSessionConflict) {
-            onSessionConflict(errorData)
+          if (errorData.code === 'EXISTING_ACTIVE_SESSION') {
+            // Use our own conflict handling
+            handleSessionConflict(errorData.session)
+            setShowConflictDialog(true)
+            // Also call parent's callback if provided
+            if (onSessionConflict) {
+              onSessionConflict(errorData)
+            }
             return
           }
         }
@@ -794,6 +850,51 @@ export default function TherapyButtonDirectEnhanced({
   }
 
   /**
+   * Handle resuming existing session from conflict
+   */
+  const handleResumeExisting = useCallback(async () => {
+    if (!conflictSession) return
+    
+    setShowConflictDialog(false)
+    
+    try {
+      // Resume the existing session
+      await resumeExistingSession(conflictSession.id)
+      
+      // Redirect to the session
+      router.push(`/therapy/session/${conflictSession.id}`)
+    } catch (error) {
+      console.error('[Session] Failed to resume:', error)
+      toast.error('Failed to resume session')
+    }
+  }, [conflictSession, resumeExistingSession, router])
+
+  /**
+   * Handle ending existing session and starting new one
+   */
+  const handleEndAndStartNew = useCallback(async () => {
+    if (!conflictSession) return
+    
+    setShowConflictDialog(false)
+    
+    try {
+      // End the existing session
+      await fetch(`/api/sessions/${conflictSession.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forceComplete: true })
+      })
+      
+      // Start new session with forceNew flag
+      // We'll trigger the modal flow instead of directly calling startCall
+      setShowDurationModal(true)
+    } catch (error) {
+      console.error('[Session] Failed to end and start new:', error)
+      toast.error('Failed to start new session')
+    }
+  }, [conflictSession])
+
+  /**
    * Cleanup session resources
    */
   const cleanupSession = () => {
@@ -867,7 +968,7 @@ export default function TherapyButtonDirectEnhanced({
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                {isConnecting ? 'Connecting...' : 'Therapy Session Active'}
+                {isConnecting ? loadingMessages[loadingMessageIndex] : 'Therapy Session Active'}
               </h1>
               {session && (
                 <SessionTimerV2
@@ -972,15 +1073,36 @@ export default function TherapyButtonDirectEnhanced({
         }}
       />
 
-      <ActiveSessionFoundModalOptimized
-        isOpen={showRecoveryModal}
-        onClose={() => {
+      <UnifiedSessionModal
+        mode={showRecoveryModal ? 'recovery' : null}
+        sessionData={recoverableSession}
+        onRecover={handleRecoverSession}
+        onEndSession={() => {
           setShowRecoveryModal(false)
           setRecoverableSession(null)
         }}
-        onRecover={handleRecoverSession}
-        sessionData={recoverableSession}
+      />
+      <SessionConflictDialog
+        isOpen={showConflictDialog}
+        conflictSession={conflictSession}
+        onResume={handleResumeExisting}
+        onEndAndStartNew={handleEndAndStartNew}
+        onClose={() => setShowConflictDialog(false)}
       />
     </>
   )
+}
+
+// Helper functions for assistant configuration
+function getAssistantId(therapyType: TherapyType): string {
+  // These should match your VAPI assistant IDs
+  switch (therapyType) {
+    case 'couple':
+      return process.env.NEXT_PUBLIC_VAPI_COUPLE_ASSISTANT_ID || ''
+    case 'family':
+      return process.env.NEXT_PUBLIC_VAPI_FAMILY_ASSISTANT_ID || ''
+    case 'solo':
+    default:
+      return process.env.NEXT_PUBLIC_VAPI_SOLO_ASSISTANT_ID || ''
+  }
 }
