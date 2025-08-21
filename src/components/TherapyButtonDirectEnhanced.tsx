@@ -316,10 +316,20 @@ export default function TherapyButtonDirectEnhanced({
     try {
       const response = await fetch('/api/user/credits')
       const data = await response.json()
-      setUserCredits(data.availableCredits || 0)
+      
+      console.log('[CREDIT DEBUG] API response:', data)
+      
+      // Fix: Use correct path to credits data
+      const availableCredits = data.credits?.remaining || data.credits?.available || 0
+      setUserCredits(availableCredits)
+      
+      console.log('[CREDIT DEBUG] Set userCredits to:', availableCredits)
+      
       setConcurrentSessions(data.concurrentSessions || 0)
     } catch (error) {
       console.error('[Credits] Failed to fetch:', error)
+      // Don't leave userCredits as null on error - this causes "No Credits Available"
+      setUserCredits(0)
     } finally {
       setCreditsLoading(false)
     }
@@ -944,7 +954,7 @@ export default function TherapyButtonDirectEnhanced({
       {!isConnected && !isConnecting && !session && (
         <button
           onClick={() => setShowDurationModal(true)}
-          disabled={disabled || creditsLoading || userCredits === 0}
+          disabled={disabled || creditsLoading || (userCredits !== null && userCredits <= 0)}
           className={cn(
             "px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600",
             "text-white font-semibold rounded-xl",
@@ -956,7 +966,8 @@ export default function TherapyButtonDirectEnhanced({
           )}
         >
           {creditsLoading ? 'Loading...' : 
-           userCredits === 0 ? 'No Credits Available' : 
+           (userCredits !== null && userCredits <= 0) ? 'No Credits Available' : 
+           userCredits === null ? 'Loading Credits...' :
            'Start Therapy Session'}
         </button>
       )}
