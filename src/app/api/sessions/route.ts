@@ -12,20 +12,11 @@ import { z } from 'zod';
 import { strictDurationSchema } from '@/lib/validation/duration-validation';
 import type { Session, User } from '@prisma/client';
 
-// Utility to convert frontend sessionType to Prisma enum
-function sessionTypeToPrismaEnum(sessionType: string): 'SOLO' | 'COUPLE' | 'FAMILY' {
-  switch (sessionType.toLowerCase()) {
-    case 'solo': 
-    case 'individual':
-      return 'SOLO';
-    case 'couple':
-      return 'COUPLE';  
-    case 'family':
-      return 'FAMILY';
-    default:
-      return 'SOLO'; // fallback
-  }
-}
+// CRITICAL FIX: Use centralized session type mapping for consistency
+import { 
+  therapyTypeToPrismaEnum, 
+  detectSessionTypeFromTheme 
+} from '@/lib/database/session-type-integrity';
 
 // 2025 Standard: Type definitions
 // Define a type for the selected session fields to avoid type mismatches
@@ -432,8 +423,34 @@ export async function POST(request: NextRequest) {
           isPaused: false,
           conversationTimeSeconds: 0,
           totalPausedTimeSeconds: 0,
-          // CRITICAL FIX: Store the actual therapy type with proper enum conversion
-          sessionType: sessionTypeToPrismaEnum(data.sessionType)
+          // CRITICAL FIX: Store the actual therapy type with proper enum conversion and validation
+          sessionType: (() => {
+            // First try to use the provided sessionType
+            let sessionType = therapyTypeToPrismaEnum(data.sessionType);
+            
+            // Cross-validate against theme to catch mismatches early
+            const themeBasedType = detectSessionTypeFromTheme(data.theme);
+            if (sessionType !== themeBasedType) {
+              log.warn('SessionType mismatch detected during creation', {
+                provided: data.sessionType,
+                mappedTo: sessionType,
+                themeBasedType,
+                theme: data.theme,
+                userId: user.id
+              });
+              
+              // Use theme-based type if provided type seems incorrect
+              if (data.sessionType === 'solo' && data.theme.toLowerCase().includes('couple')) {
+                sessionType = themeBasedType;
+                log.info('Corrected sessionType based on theme', {
+                  corrected: sessionType,
+                  theme: data.theme
+                });
+              }
+            }
+            
+            return sessionType;
+          })()
         }
       });
       

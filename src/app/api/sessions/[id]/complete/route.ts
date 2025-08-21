@@ -14,6 +14,78 @@ import { sendSMS } from '@/lib/sms-service';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const lifecycleManager = SessionLifecycleManager.getInstance();
 
+/**
+ * Verify that all necessary metrics tables were populated for dashboard display
+ * CRITICAL: Dashboard metrics depend on ProgressTracking and CommunicationMetric tables
+ */
+async function verifySessionMetricsCreation(sessionId: string, userId: string): Promise<{
+  success: boolean;
+  hasProgressTracking: boolean;
+  hasCommunicationMetrics: boolean;
+  hasSessionMetrics: boolean;
+  details?: string;
+}> {
+  try {
+    // Check for ProgressTracking record (required for relationship progress dashboard)
+    const progressTracking = await prisma.progressTracking.findFirst({
+      where: {
+        sessionId,
+        userId
+      }
+    });
+
+    // Check for CommunicationMetric record (required for communication metrics dashboard)
+    const communicationMetrics = await prisma.communicationMetric.findFirst({
+      where: {
+        sessionId,
+        userId,
+        metricType: { not: 'real-time' } // Only count final metrics
+      }
+    });
+
+    // Check for SessionMetrics record (for detailed analytics)
+    const sessionMetrics = await prisma.sessionMetrics.findFirst({
+      where: {
+        sessionId,
+        userId
+      }
+    });
+
+    const hasProgressTracking = !!progressTracking;
+    const hasCommunicationMetrics = !!communicationMetrics;
+    const hasSessionMetrics = !!sessionMetrics;
+
+    // Success requires at minimum ProgressTracking and CommunicationMetrics for dashboard
+    const success = hasProgressTracking && hasCommunicationMetrics;
+
+    const details = !success ? 
+      `Missing: ${!hasProgressTracking ? 'ProgressTracking ' : ''}${!hasCommunicationMetrics ? 'CommunicationMetrics ' : ''}${!hasSessionMetrics ? 'SessionMetrics' : ''}`.trim() :
+      'All metrics tables populated';
+
+    return {
+      success,
+      hasProgressTracking,
+      hasCommunicationMetrics,
+      hasSessionMetrics,
+      details
+    };
+  } catch (error) {
+    logger.error('Error verifying session metrics creation', {
+      sessionId,
+      userId,
+      error
+    });
+    
+    return {
+      success: false,
+      hasProgressTracking: false,
+      hasCommunicationMetrics: false,
+      hasSessionMetrics: false,
+      details: `Verification error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
 // In-memory lock for session completion to prevent race conditions
 // This is necessary because multiple hooks (useSessionManagementV2 and useSupabaseSessionState)
 // may call this endpoint simultaneously. Both need to make the call to work independently,
@@ -181,6 +253,42 @@ export async function POST(
 
     // Use lifecycle manager to complete session (includes unified credit deduction)
     await lifecycleManager.completeSession(sessionId, therapySession.userId);
+
+    // CRITICAL FIX: Verify metrics were actually created for dashboard display
+    const metricsVerification = await verifySessionMetricsCreation(sessionId, therapySession.userId);
+    if (!metricsVerification.success) {
+      logger.error('Session completed but metrics verification failed', {
+        sessionId,
+        userId: therapySession.userId,
+        verification: metricsVerification
+      });
+      
+      // Attempt one retry of metrics calculation
+      try {
+        const { calculateMetrics } = await import('@/lib/metrics/metrics-deduplication');
+        await calculateMetrics(sessionId, therapySession.userId);
+        
+        // Verify again after retry
+        const retryVerification = await verifySessionMetricsCreation(sessionId, therapySession.userId);
+        if (!retryVerification.success) {
+          logger.error('Metrics calculation retry also failed', {
+            sessionId,
+            userId: therapySession.userId,
+            retryVerification
+          });
+        } else {
+          logger.info('Metrics calculation retry succeeded', {
+            sessionId,
+            userId: therapySession.userId
+          });
+        }
+      } catch (retryError) {
+        logger.error('Error during metrics calculation retry', {
+          sessionId,
+          error: retryError
+        });
+      }
+    }
 
     // Update session with billing data
     await prisma.session.update({

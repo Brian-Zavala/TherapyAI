@@ -159,19 +159,56 @@ export class SessionLifecycleManager {
   }
 
   /**
-   * Complete a session with proper state transitions
+   * Complete a session with proper state transitions and distributed locking
    */
   async completeSession(sessionId: string, userId: string): Promise<void> {
-    const currentState = await this.getSessionState(sessionId);
+    // CRITICAL FIX: Use Redis distributed lock to prevent race conditions across server instances
+    const { redis } = await import('@/lib/cache/redis-client');
+    const lockKey = `session_completion_lock:${sessionId}`;
+    const lockTTL = 60; // 60 seconds
+    
+    try {
+      // Try to acquire distributed lock
+      const lockAcquired = await redis.set(lockKey, '1', {
+        nx: true, // Only set if not exists
+        ex: lockTTL // Expire after 60 seconds
+      });
 
-    if (currentState === 'COMPLETED') {
-      logger.info('Session already completed', { sessionId });
-      return;
-    }
+      if (!lockAcquired) {
+        logger.warn('Could not acquire session completion lock - completion already in progress', { 
+          sessionId, 
+          userId 
+        });
+        
+        // Wait a bit and check if completion finished
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const finalState = await this.getSessionState(sessionId);
+        
+        if (finalState === 'COMPLETED') {
+          logger.info('Session completed by another process', { sessionId });
+          return;
+        }
+        
+        throw new Error(`Session completion already in progress for ${sessionId}`);
+      }
 
-    // Transition through states
-    await this.transitionSession(sessionId, 'ENDING');
-    await this.transitionSession(sessionId, 'COMPLETING');
+      const currentState = await this.getSessionState(sessionId);
+
+      if (currentState === 'COMPLETED') {
+        logger.info('Session already completed', { sessionId });
+        return;
+      }
+
+      logger.info('Starting distributed session completion', {
+        sessionId,
+        userId,
+        currentState,
+        lockAcquired: true
+      });
+
+      // Transition through states
+      await this.transitionSession(sessionId, 'ENDING');
+      await this.transitionSession(sessionId, 'COMPLETING');
     
     try {
       // Ensure VAPI call is terminated
@@ -235,6 +272,11 @@ export class SessionLifecycleManager {
       // Final transition to completed
       await this.transitionSession(sessionId, 'COMPLETED');
       
+      logger.info('Session completion finished successfully', {
+        sessionId,
+        userId
+      });
+      
     } catch (error) {
       logger.error('Error completing session', {
         sessionId,
@@ -249,6 +291,27 @@ export class SessionLifecycleManager {
       }
       
       throw error;
+    } finally {
+      // CRITICAL: Always release the distributed lock, even on failure
+      try {
+        await redis.del(lockKey);
+        logger.info('Released session completion lock', { sessionId });
+      } catch (lockError) {
+        logger.error('Failed to release session completion lock', {
+          sessionId,
+          error: lockError
+        });
+      }
+    }
+    
+    } catch (lockAcquisitionError) {
+      // This catch handles the initial lock acquisition failure
+      logger.error('Failed to acquire or process session completion lock', {
+        sessionId,
+        userId,
+        error: lockAcquisitionError
+      });
+      throw lockAcquisitionError;
     }
   }
 

@@ -149,41 +149,43 @@ async function performMetricsCalculation(
   const topicDistribution = calculateTopicDistribution(messages);
   const emotionalTopics = identifyEmotionalTopics(messages);
 
-  // Create metrics record
-  const metrics = await prisma.sessionMetrics.create({
-    data: {
-      sessionId,
-      userId,
-      duration,
-      totalMessages,
-      userMessages,
-      assistantMessages,
-      engagementScore,
-      sentimentScore: isNaN(sentimentTrend.average) ? 0 : sentimentTrend.average,
-      sentimentTrend: sentimentTrend.trend,
-      topicsCovered: topicDistribution.topics,
-      emotionalInsights: {
-        primaryEmotions: emotionalTopics.primary,
-        emotionalProgression: emotionalTopics.progression,
-        breakthroughMoments: emotionalTopics.breakthroughs
-      },
-      completionRate: 1.0, // Session was completed
-      qualityScore: calculateQualityScore({
-        duration,
-        totalMessages,
-        engagementScore,
-        sentimentScore: isNaN(sentimentTrend.average) ? 0 : sentimentTrend.average
-      })
-    }
-  });
-
-  // CRITICAL: Also create ProgressTracking data for dashboard charts
-  // This is what the relationship progress dashboard actually displays
-  try {
+  // CRITICAL FIX: Create all metrics in a single transaction to prevent partial failures
+  // If any metric creation fails, all are rolled back to maintain consistency
+  const metrics = await prisma.$transaction(async (tx) => {
+    // Calculate dashboard scores once for consistency
     const communicationScore = Math.round((engagementScore + (sentimentTrend.average || 50)) / 2);
     const closenessScore = Math.round(sentimentTrend.average || 50);
     
-    await prisma.progressTracking.create({
+    // 1. Create SessionMetrics (detailed analytics)
+    const sessionMetrics = await tx.sessionMetrics.create({
+      data: {
+        sessionId,
+        userId,
+        duration,
+        totalMessages,
+        userMessages,
+        assistantMessages,
+        engagementScore,
+        sentimentScore: isNaN(sentimentTrend.average) ? 0 : sentimentTrend.average,
+        sentimentTrend: sentimentTrend.trend,
+        topicsCovered: topicDistribution.topics,
+        emotionalInsights: {
+          primaryEmotions: emotionalTopics.primary,
+          emotionalProgression: emotionalTopics.progression,
+          breakthroughMoments: emotionalTopics.breakthroughs
+        },
+        completionRate: 1.0, // Session was completed
+        qualityScore: calculateQualityScore({
+          duration,
+          totalMessages,
+          engagementScore,
+          sentimentScore: isNaN(sentimentTrend.average) ? 0 : sentimentTrend.average
+        })
+      }
+    });
+
+    // 2. Create ProgressTracking (required for relationship progress dashboard)
+    const progressTracking = await tx.progressTracking.create({
       data: {
         userId,
         sessionId,
@@ -195,14 +197,8 @@ async function performMetricsCalculation(
       }
     });
 
-    logger.info('Progress tracking data created', {
-      sessionId,
-      communicationScore,
-      closenessScore
-    });
-
-    // Also create CommunicationMetrics for the insights system
-    await prisma.communicationMetric.create({
+    // 3. Create CommunicationMetric (required for communication metrics dashboard)
+    const communicationMetrics = await tx.communicationMetric.create({
       data: {
         userId,
         sessionId,
@@ -218,14 +214,53 @@ async function performMetricsCalculation(
       }
     });
 
-    logger.info('Communication metrics created', {
+    logger.info('All metrics created in transaction', {
       sessionId,
-      overall: communicationScore
+      communicationScore,
+      closenessScore,
+      hasSessionMetrics: !!sessionMetrics,
+      hasProgressTracking: !!progressTracking,
+      hasCommunicationMetrics: !!communicationMetrics
     });
-  } catch (error) {
-    logger.error('Failed to create progress tracking data', {
+
+    return sessionMetrics;
+  }, {
+    // Transaction options for better reliability
+    maxWait: 10000, // 10 seconds max wait for transaction
+    timeout: 30000, // 30 seconds timeout
+    isolationLevel: 'ReadCommitted' // Prevent phantom reads
+  });
+
+  // CRITICAL FIX: Invalidate dashboard cache when new metrics are created
+  // This ensures fresh data is returned to dashboard APIs instead of cached empty results
+  try {
+    const { dashboardCache } = await import('@/lib/cache/dashboard-cache');
+    
+    // Get session details for cache invalidation
+    const sessionForCache = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { theme: true, sessionType: true }
+    });
+    
+    if (sessionForCache) {
+      await dashboardCache.invalidateOnSessionComplete(
+        userId, 
+        sessionForCache.theme || '', 
+        sessionForCache.sessionType || 'SOLO'
+      );
+      
+      logger.info('Dashboard cache invalidated after metrics creation', {
+        sessionId,
+        userId,
+        sessionType: sessionForCache.sessionType,
+        theme: sessionForCache.theme
+      });
+    }
+  } catch (cacheError) {
+    logger.error('Failed to invalidate dashboard cache after metrics creation', {
       sessionId,
-      error: error instanceof Error ? error.message : error
+      userId,
+      error: cacheError
     });
   }
 
