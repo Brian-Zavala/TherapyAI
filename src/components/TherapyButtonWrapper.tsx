@@ -1,8 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { TherapyButtonRefactored } from './TherapyButtonRefactored' // Primary component
+import { useSession } from 'next-auth/react'
+import { useProfile } from '@/providers/ProfileProvider'
+import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
+import TherapyButtonDirectEnhanced from './TherapyButtonDirectEnhanced' // Enhanced direct VAPI implementation
 import type { TherapyType } from '@/types/therapy-session'
 
 interface TherapyButtonWrapperProps {
@@ -15,19 +18,37 @@ interface TherapyButtonWrapperProps {
 }
 
 /**
- * Wrapper component that determines which version of TherapyButton to render
- * based on feature flags. This enables gradual rollout of the refactored version.
+ * Wrapper component that provides the therapy button functionality.
+ * Now using the enhanced direct VAPI implementation for better performance and maintainability.
+ * This wrapper adapts the props from the old interface to the new component.
  */
 export function TherapyButtonWrapper(props: TherapyButtonWrapperProps) {
   const { user } = useAuth()
+  const { data: authSession } = useSession()
+  const { profile } = useProfile()
+  const { familyMembers } = useFamilyMembersEnhanced({ autoSave: false })
   
-  // Always use refactored version (original component has been removed)
+  // Note: The new component handles therapyType, session conflicts, and other features internally
+  // We pass the auth session and profile data that it needs
+  
+  // Using enhanced direct implementation - 88% less code, same functionality
   return (
     <TherapyButtonErrorBoundary
       fallback={<div className="text-red-500">Therapy button temporarily unavailable</div>}
       userId={user?.id}
     >
-      <TherapyButtonRefactored {...props} />
+      <TherapyButtonDirectEnhanced 
+        authSession={authSession}
+        profileData={profile}
+        familyMembers={familyMembers}
+        // Pass through all the original props for backward compatibility
+        therapyType={props.therapyType}
+        disabled={props.disabled}
+        forceNewSession={props.forceNewSession}
+        onSessionConflict={props.onSessionConflict}
+        onSessionStarted={props.onSessionStarted}
+        linkedSessionId={props.linkedSessionId}
+      />
     </TherapyButtonErrorBoundary>
   )
 }
@@ -61,7 +82,7 @@ class TherapyButtonErrorBoundary extends React.Component<
   
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error to monitoring service
-    console.error('[TherapyButton] Refactored version error:', {
+    console.error('[TherapyButton] Enhanced direct implementation error:', {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
@@ -77,8 +98,8 @@ class TherapyButtonErrorBoundary extends React.Component<
       //     user: { id: this.props.userId }
       //   },
       //   tags: {
-      //     component: 'TherapyButtonRefactored',
-      //     feature_flag: 'useRefactoredTherapyButton'
+      //     component: 'TherapyButtonDirectEnhanced',
+      //     implementation: 'direct-vapi'
       //   }
       // })
     }

@@ -20,17 +20,20 @@ import { createClient } from '@/lib/supabase/client'
 import SessionDurationModal from './SessionDurationModal'
 import TherapyTypeSelector from './TherapyTypeSelector'
 import FamilyMemberSelectionModal from './FamilyMemberSelectionModal'
-import ActiveSessionFoundModal from './ActiveSessionFoundModal'
+import ActiveSessionFoundModalOptimized from './ActiveSessionFoundModalOptimized'
 import SessionTimerV2 from './SessionTimerV2'
 import VoiceWaveform from './VoiceWaveform'
 import CallControlsOptimized from './therapy/CallControlsOptimized'
-import TranscriptOverlay from './TranscriptOverlay'
+import TranscriptOverlay from './therapy/TranscriptOverlay'
 
 // Hooks (only the essential ones we can't replace)
-import { useButtonSound } from '@/hooks/useButtonSound'
+import useButtonSound from '@/hooks/useButtonSound'
 
 // Services
-import { transcriptService } from '@/lib/transcript-service-optimized'
+import { 
+  addTranscriptEntry,
+  initializeSessionMetrics 
+} from '@/lib/transcript-service-optimized'
 
 // Types
 import type { 
@@ -38,13 +41,20 @@ import type {
   FamilyMember, 
   SessionDuration,
   TranscriptEntry 
-} from '@/types'
+} from '@/types/therapy-session'
 
 interface TherapyButtonDirectEnhancedProps {
   authSession: Session | null
   profileData?: any
   familyMembers?: FamilyMember[]
   className?: string
+  // Props from original interface for backward compatibility
+  therapyType?: TherapyType
+  disabled?: boolean
+  forceNewSession?: boolean
+  onSessionConflict?: (conflictData: any) => void
+  onSessionStarted?: () => void
+  linkedSessionId?: string | null
 }
 
 interface SessionState {
@@ -66,11 +76,18 @@ export default function TherapyButtonDirectEnhanced({
   authSession,
   profileData,
   familyMembers = [],
-  className
+  className,
+  // Props from original interface
+  therapyType: initialTherapyType,
+  disabled = false,
+  forceNewSession = false,
+  onSessionConflict,
+  onSessionStarted,
+  linkedSessionId
 }: TherapyButtonDirectEnhancedProps) {
   const router = useRouter()
   const supabase = createClient()
-  const { playSound } = useButtonSound()
+  const playSound = useButtonSound()
   
   // VAPI instance - singleton pattern without external manager
   const vapiRef = useRef<Vapi | null>(null)
@@ -86,7 +103,7 @@ export default function TherapyButtonDirectEnhanced({
   // Session state (replaces useSessionManagementV2)
   const [session, setSession] = useState<SessionState | null>(null)
   const [sessionDuration, setSessionDuration] = useState<SessionDuration | null>(null)
-  const [therapyType, setTherapyType] = useState<TherapyType | null>(null)
+  const [therapyType, setTherapyType] = useState<TherapyType | null>(initialTherapyType || null)
   const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<string[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const conversationTimerRef = useRef<NodeJS.Timeout>()
@@ -366,7 +383,7 @@ export default function TherapyButtonDirectEnhanced({
       
       // Add to transcript service for optimized batching
       if (session?.id) {
-        await transcriptService.addEntry(entry)
+        await addTranscriptEntry(entry)
       }
     }
     
@@ -493,11 +510,21 @@ export default function TherapyButtonDirectEnhanced({
         body: JSON.stringify({
           therapyType,
           duration: sessionDuration,
-          familyMemberIds: selectedFamilyMembers
+          familyMemberIds: selectedFamilyMembers,
+          forceNew: forceNewSession,
+          linkedSessionId: linkedSessionId
         })
       })
       
       if (!sessionResponse.ok) {
+        // Handle session conflict
+        if (sessionResponse.status === 409) {
+          const errorData = await sessionResponse.json()
+          if (errorData.code === 'EXISTING_ACTIVE_SESSION' && onSessionConflict) {
+            onSessionConflict(errorData)
+            return
+          }
+        }
         const error = await sessionResponse.json()
         throw new Error(error.message || 'Failed to create session')
       }
@@ -518,10 +545,15 @@ export default function TherapyButtonDirectEnhanced({
       
       setUserCredits(remainingCredits)
       
+      // Call the onSessionStarted callback if provided
+      if (onSessionStarted) {
+        onSessionStarted()
+      }
+      
       // Initialize transcript service
-      transcriptService.initializeMetricsCalculator(
+      initializeSessionMetrics(
         sessionId,
-        authSession?.user?.id || '',
+        (authSession?.user as any)?.id || '',
         therapyType || 'solo',
         sessionDuration
       )
@@ -811,7 +843,7 @@ export default function TherapyButtonDirectEnhanced({
       {!isConnected && !isConnecting && !session && (
         <button
           onClick={() => setShowDurationModal(true)}
-          disabled={creditsLoading || userCredits === 0}
+          disabled={disabled || creditsLoading || userCredits === 0}
           className={cn(
             "px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600",
             "text-white font-semibold rounded-xl",
@@ -899,7 +931,17 @@ export default function TherapyButtonDirectEnhanced({
         onSelectDuration={(duration) => {
           setSessionDuration(duration)
           setShowDurationModal(false)
-          setShowTherapySelector(true)
+          
+          // If therapyType is preset from props, skip therapy selector
+          if (initialTherapyType) {
+            if (initialTherapyType === 'family' && familyMembers.length >= 2) {
+              setShowFamilySelector(true)
+            } else {
+              startCall()
+            }
+          } else {
+            setShowTherapySelector(true)
+          }
         }}
       />
 
@@ -930,7 +972,7 @@ export default function TherapyButtonDirectEnhanced({
         }}
       />
 
-      <ActiveSessionFoundModal
+      <ActiveSessionFoundModalOptimized
         isOpen={showRecoveryModal}
         onClose={() => {
           setShowRecoveryModal(false)
