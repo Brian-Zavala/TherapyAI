@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkDatabaseConnection } from '@/lib/prisma-optimized';
+import { checkDatabaseConnection } from '@/lib/database/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
 
 export async function GET(request: NextRequest) {

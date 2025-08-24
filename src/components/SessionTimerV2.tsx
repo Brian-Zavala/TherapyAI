@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useTimer, useStopwatch } from 'react-timer-hook'
-import { safeSessionStorage } from '@/lib/safe-session-storage'
+import { safeSessionStorage } from '@/lib/session/safe-session-storage'
 
 interface SessionTimerV2Props {
   sessionId: string // Session ID for storage keys

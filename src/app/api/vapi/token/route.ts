@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { vapiJWTRedisService, isRedisEnabled } from '@/lib/vapi-jwt-redis.service';
-import { vapiPublicTokenService } from '@/lib/vapi-public-token-service';
+import { vapiJWTRedisService, isRedisEnabled } from '@/lib/vapi/vapi-jwt-redis.service';
+import { vapiPublicTokenService } from '@/lib/vapi/vapi-public-token-service';
 import { upstashRedis } from '@/lib/upstash-redis.service';
-import { validateVapiKey } from '@/lib/vapi-key-validator';
-import type { VapiTokenRequest, VapiError } from '@/lib/vapi-jwt.service';
+import { validateVapiKey } from '@/lib/vapi/vapi-key-validator';
+import type { VapiTokenRequest, VapiError } from '@/lib/vapi/vapi-jwt.service';
 
 /**
  * Generate a secure client token for Vapi

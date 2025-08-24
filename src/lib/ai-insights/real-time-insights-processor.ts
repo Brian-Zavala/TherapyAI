@@ -4,11 +4,11 @@
  * Updates insights in real-time as session metrics change
  */
 
-import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { createClient } from '@/utils/supabase/client';
-import { broadcastToChannel } from '@/lib/metrics-broadcaster';
-import { IncrementalMetrics } from '@/lib/real-time-metrics-optimized';
+import { broadcastToChannel } from '@/lib/metrics/metrics-broadcaster';
+import { IncrementalMetrics } from '@/lib/metrics/real-time-metrics-optimized';
 import { ProcessedSessionData } from './session-data-processor';
 import { DynamicInsight } from './ai-insight-generator';
 

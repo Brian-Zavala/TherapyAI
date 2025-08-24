@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAssistant, getAssistant, updateAssistant } from '@/lib/vapi-server';
-import { getPersonalizedAssistantConfig } from '@/lib/vapi';
+import { createAssistant, getAssistant, updateAssistant } from '@/lib/vapi/vapi-server';
+import { getPersonalizedAssistantConfig } from '@/lib/vapi/vapi';
 import { getServerSession, Session } from 'next-auth';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { authOptions } from '@/lib/auth';
-import { cleanAndValidateVapiConfig } from '@/lib/vapi-config-cleaner';
+import { cleanAndValidateVapiConfig } from '@/lib/vapi/vapi-config-cleaner';
 
 async function getPersonalizedAssistant(req: NextRequest, session: Session) {
   const { searchParams } = new URL(req.url);

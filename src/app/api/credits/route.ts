@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { vapiSessionManager } from '@/lib/services/vapi-session-manager';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/database/prisma';
 
 // GET /api/credits - Get current credit balance and usage
 export async function GET(request: NextRequest) {

@@ -1,5 +1,5 @@
 // metrics-helper.ts
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 
 // Helper function to generate metrics from the session
 export async function generateMetricsFromSession(userId: string, duration: number, sessionId?: string, transcript?: string, therapyType: string = 'couple', assistantId?: string) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import type { VapiTokenResponse } from '@/lib/vapi-jwt.service';
+import type { VapiTokenResponse } from '@/lib/vapi/vapi-jwt.service';
 
 interface UseVapiTokenOptions {
   scope?: 'public' | 'private';

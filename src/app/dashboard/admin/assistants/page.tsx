@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi';
+import { COUPLE_THERAPY_ASSISTANT_CONFIG } from '@/lib/vapi/vapi';
 
 interface Assistant {
   id: string;

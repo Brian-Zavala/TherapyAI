@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { safeSessionStorage } from '@/lib/safe-session-storage'
+import { safeSessionStorage } from '@/lib/session/safe-session-storage'
 
 interface SessionRecoveryInfo {
   sessionId: string

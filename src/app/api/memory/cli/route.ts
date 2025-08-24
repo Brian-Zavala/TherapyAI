@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { saveConversationToMemory } from '@/lib/mcp-memory-context';
+import { saveConversationToMemory } from '@/lib/services/mcp-memory-context';
 
 export async function POST(req: NextRequest) {
   try {

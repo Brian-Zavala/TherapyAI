@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 export enum DashboardErrorCode {
   // Authentication errors

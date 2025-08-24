@@ -6,8 +6,8 @@
  * and require therapist validation before display to clients.
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 
 export interface ClinicalDisclaimer {
   id: string;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyNotificationToken } from '@/lib/notification-tokens';
+import { verifyNotificationToken } from '@/lib/notifications/notification-tokens';
 import { prisma } from '@/lib/database/prisma-client';
 
 export async function GET(

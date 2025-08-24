@@ -4,7 +4,7 @@
  * and multi-dimensional therapy metrics
  */
 
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import type { 
   GeneratedInsights, 
   DynamicInsight, 

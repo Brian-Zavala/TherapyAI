@@ -10,7 +10,7 @@ import { SessionDurationPicker } from './SessionDurationPicker'
 import { RecurringSessionOptions } from './RecurringSessionOptions'
 import { SessionNotesForm } from './SessionNotesForm'
 import { TherapyType } from '@prisma/client'
-import { getUserTimezone, formatSessionTime } from '@/lib/date-utils'
+import { getUserTimezone, formatSessionTime } from '@/lib/utils/date-utils'
 import { useProfile } from '@/providers/ProfileProvider'
 
 interface EnhancedSchedulerModalProps {

@@ -3,17 +3,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { InsightDetailModal } from './InsightDetailModal';
-import { getSupabaseClient } from '@/lib/supabase-singleton';
+import { getSupabaseClient } from '@/lib/database/supabase-singleton';
 import { useSession } from 'next-auth/react';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
-import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard/dashboard-theme';
+import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import TherapyTypeTabs, { 
   useTherapyTypeTabs, 

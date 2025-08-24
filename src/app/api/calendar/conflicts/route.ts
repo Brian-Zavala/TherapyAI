@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { z } from 'zod';
 import { addMinutes, isWithinInterval, parseISO } from 'date-fns';
 

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { rateLimitManager } from '@/lib/rate-limit-manager'
 import { upstashRedis } from '@/lib/upstash-redis.service'
 import { creditManager } from '@/lib/services/credit-manager.service'

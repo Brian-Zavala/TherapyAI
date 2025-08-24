@@ -6,11 +6,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { z } from 'zod';
 import { strictDurationSchema } from '@/lib/validation/duration-validation';
 import { EnhancedReminderEngine } from '@/lib/enhanced-scheduler/reminder-engine';
-import { CalendarIntegrationService } from '@/lib/enhanced-scheduler/calendar-integration';
+// import { CalendarIntegrationService } from '@/lib/enhanced-scheduler/calendar-integration'; // TODO: Implement calendar integration
 import { Logger } from '@/lib/enhanced-scheduler/logging';
 
 // Request validation schema

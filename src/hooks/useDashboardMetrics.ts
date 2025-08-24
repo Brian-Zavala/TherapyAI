@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSupabaseRealTimeMetrics } from './useSupabaseRealTimeMetrics'
 import { useSession } from 'next-auth/react'
-import type { IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
+import type { IncrementalMetrics } from '@/lib/metrics/real-time-metrics-optimized'
 
 interface UseDashboardMetricsOptions {
   autoConnect?: boolean

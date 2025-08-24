@@ -10,7 +10,7 @@ import {
   getRelevantMemories, 
   saveConversationToMemory,
   formatMemoriesForPrompt
-} from '@/lib/mcp-memory-context';
+} from '@/lib/services/mcp-memory-context';
 
 // GET /api/memory - Search for relevant memories
 export async function GET(req: NextRequest) {

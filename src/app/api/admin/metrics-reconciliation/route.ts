@@ -13,7 +13,7 @@ import {
   getReconciliationStats,
   findSessionsMissingMetrics
 } from '@/lib/jobs/metrics-reconciliation';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {

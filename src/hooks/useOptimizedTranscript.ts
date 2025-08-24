@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getSupabaseClient } from '@/lib/supabase-singleton'
+import { getSupabaseClient } from '@/lib/database/supabase-singleton'
 
 // Get Supabase client singleton
 const supabase = getSupabaseClient()

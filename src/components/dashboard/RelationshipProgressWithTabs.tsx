@@ -8,8 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
-import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard/dashboard-theme';
+import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import TherapyTypeTabs, { 
   useTherapyTypeTabs, 

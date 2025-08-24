@@ -5,7 +5,7 @@
  * Uses database-backed reservations for ACID guarantees instead of Redis.
  */
 
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
 import { calculateReservationExpiry, isReservationExpired } from '@/lib/utils/billing-utils';
 

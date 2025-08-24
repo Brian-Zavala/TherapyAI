@@ -3,8 +3,8 @@
  * Automatically triggers insight regeneration and pattern analysis when sessions complete
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { DynamicInsightsService } from './dynamic-insights-service';
 import { AdvancedPatternAnalytics } from './advanced-pattern-analytics';
 import { insightsBroadcaster } from './real-time-insights-broadcaster';

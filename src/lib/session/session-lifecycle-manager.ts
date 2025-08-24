@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { SessionStatus } from '@prisma/client';
-import { sessionCache } from '@/lib/session-cache';
+import { sessionCache } from '@/lib/session/session-cache';
 import { profileCache } from '@/lib/cache/profile-cache';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import { AxiosError } from 'axios';
 import { CreditManager } from '@/lib/services/credit-manager.service';
 import { timingReconciliation } from '@/lib/services/credit-timing-reconciliation';
@@ -137,14 +137,16 @@ export class SessionLifecycleManager {
       
       // For certain transitions, handle errors more gracefully
       if (toState === 'DEDUCTING_CREDITS') {
-        // Credit deduction failures shouldn't prevent session completion
-        logger.warn('Credit deduction failed, but session can still complete', {
+        // CRITICAL FIX: Credit deduction failures MUST prevent session completion
+        // This prevents users from getting free sessions due to payment processing errors
+        logger.error('Credit deduction failed - session cannot complete without payment', {
           sessionId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
+          severity: 'CRITICAL_REVENUE_LOSS'
         });
         
-        // Don't throw for credit deduction failures - session completion should succeed
-        return;
+        // SECURITY: Throw error to prevent free sessions - DO NOT allow completion without payment
+        throw new Error(`Credit deduction failed for session ${sessionId}: ${error instanceof Error ? error.message : 'Unknown error'}`)
       } else if (toState === 'COMPLETING' || toState === 'CALCULATING_METRICS') {
         try {
           this.sessionStates.set(sessionId, 'FAILED');
@@ -168,34 +170,74 @@ export class SessionLifecycleManager {
     const lockTTL = 60; // 60 seconds
     
     try {
-      // Try to acquire distributed lock
-      const lockAcquired = await redis.set(lockKey, '1', {
-        nx: true, // Only set if not exists
-        ex: lockTTL // Expire after 60 seconds
-      });
+      // CRITICAL FIX: Atomic lock acquisition with session state check
+      // Use Lua script to atomically check session state and acquire lock
+      const luaScript = `
+        local lockKey = KEYS[1]
+        local sessionKey = KEYS[2]
+        local lockValue = ARGV[1]
+        local lockTTL = tonumber(ARGV[2])
+        
+        -- Check if session is already completed (prevent duplicate completions)
+        local sessionState = redis.call('GET', sessionKey)
+        if sessionState == 'COMPLETED' then
+          return 'already_completed'
+        end
+        
+        -- Try to acquire lock atomically
+        local lockResult = redis.call('SET', lockKey, lockValue, 'NX', 'EX', lockTTL)
+        if lockResult then
+          -- Mark session as being processed
+          redis.call('SET', sessionKey, 'COMPLETING', 'EX', lockTTL)
+          return 'lock_acquired'
+        else
+          return 'lock_failed'
+        end
+      `;
+      
+      const sessionStateKey = `session_state:${sessionId}`;
+      const lockResult = await redis.eval(
+        luaScript,
+        2, // Number of keys
+        lockKey,
+        sessionStateKey,
+        '1', // Lock value
+        lockTTL.toString()
+      ) as string;
 
-      if (!lockAcquired) {
+      if (lockResult === 'already_completed') {
+        logger.info('Session already completed (atomic check)', { sessionId });
+        return;
+      }
+      
+      if (lockResult === 'lock_failed') {
         logger.warn('Could not acquire session completion lock - completion already in progress', { 
           sessionId, 
           userId 
         });
         
-        // Wait a bit and check if completion finished
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const finalState = await this.getSessionState(sessionId);
-        
-        if (finalState === 'COMPLETED') {
-          logger.info('Session completed by another process', { sessionId });
-          return;
+        // Wait and check final state with exponential backoff
+        let waitTime = 1000;
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          const finalState = await this.getSessionState(sessionId);
+          
+          if (finalState === 'COMPLETED') {
+            logger.info('Session completed by another process', { sessionId });
+            return;
+          }
+          
+          waitTime *= 2; // Exponential backoff
         }
         
         throw new Error(`Session completion already in progress for ${sessionId}`);
       }
 
+      // Double-check current state after acquiring lock
       const currentState = await this.getSessionState(sessionId);
 
       if (currentState === 'COMPLETED') {
-        logger.info('Session already completed', { sessionId });
+        logger.info('Session already completed (double-check after lock)', { sessionId });
         return;
       }
 
@@ -292,12 +334,16 @@ export class SessionLifecycleManager {
       
       throw error;
     } finally {
-      // CRITICAL: Always release the distributed lock, even on failure
+      // CRITICAL: Always release both the distributed lock and session state key
       try {
-        await redis.del(lockKey);
-        logger.info('Released session completion lock', { sessionId });
+        const sessionStateKey = `session_state:${sessionId}`;
+        await Promise.all([
+          redis.del(lockKey),
+          redis.del(sessionStateKey)
+        ]);
+        logger.info('Released session completion lock and state key', { sessionId });
       } catch (lockError) {
-        logger.error('Failed to release session completion lock', {
+        logger.error('Failed to release session completion resources', {
           sessionId,
           error: lockError
         });

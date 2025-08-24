@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
-import { therapeuticInsightEngine } from '@/lib/therapeutic-insight-engine';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { therapeuticInsightEngine } from '@/lib/services/therapeutic-insight-engine';
 
 // POST - Trigger therapeutic analysis for a completed session
 export async function POST(

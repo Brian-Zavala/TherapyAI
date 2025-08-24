@@ -15,7 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { dashboardTheme } from '@/lib/dashboard-theme';
+import { dashboardTheme } from '@/lib/dashboard/dashboard-theme';
 import '@/styles/dashboard-modern.css';
 
 // ========================================

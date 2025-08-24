@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { creditManager } from '@/lib/services/credit-manager.service';
 
 export async function POST(request: NextRequest) {

@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { timingReconciliation } from '@/lib/services/credit-timing-reconciliation';
 import { vapiSessionManager } from '@/lib/services/vapi-session-manager';

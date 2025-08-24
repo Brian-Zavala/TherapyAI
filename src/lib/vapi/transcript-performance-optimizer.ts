@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma-optimized';
-import { TranscriptService } from '@/lib/transcript-service-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { TranscriptService } from '@/lib/transcript/transcript-service-optimized';
 import { metrics } from '@/lib/performance/metrics-monitor';
 import type { VAPIMessage, VAPIEndOfCallReport } from './types';
 

@@ -6,10 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { mcpMemoryOps } from '@/lib/mcp-memory-server';
+import { mcpMemoryOps } from '@/lib/services/mcp-memory-server';
 import { 
   formatMemoriesForPrompt
-} from '@/lib/mcp-memory-context';
+} from '@/lib/services/mcp-memory-context';
 
 // Local definitions until exported from mcp-memory-context
 const MEMORY_CONFIG = {

@@ -1,10 +1,10 @@
 // app/api/sessions/[id]/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { authOptions } from '@/lib/auth'
 import { generateMetricsFromSession } from './metrics-helper'
-import { sessionCache, cacheKeys } from '@/lib/session-cache'
+import { sessionCache, cacheKeys } from '@/lib/session/session-cache'
 
 export async function GET(
   request: Request,
@@ -105,7 +105,7 @@ export async function GET(
   }
 }
 
-import { SESSION_CONFIG } from '@/lib/session-config';
+import { SESSION_CONFIG } from '@/lib/session/session-config';
 
 // Rate limiting map to prevent too frequent updates per session
 const updateRateLimit = new Map<string, number>();

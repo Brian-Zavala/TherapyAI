@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { constructWebhookEvent, stripe, getSubscription } from '@/lib/stripe';
-import { prisma } from '@/lib/prisma-optimized';
+import { constructWebhookEvent, stripe, getSubscription } from '@/lib/services/stripe';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
 import Stripe from 'stripe';
 import Redlock from 'redlock';
-import { deduplicateWebhookEvent } from '@/lib/webhook-deduplication';
+import { deduplicateWebhookEvent } from '@/lib/api/webhook-deduplication';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { parseStripeTimestamp, toUTCMidnight } from '@/lib/utils/date-utils';
 

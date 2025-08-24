@@ -5,16 +5,16 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getSupabaseClient } from '@/lib/supabase-singleton'
+import { getSupabaseClient } from '@/lib/database/supabase-singleton'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type { IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
+import type { IncrementalMetrics } from '@/lib/metrics/real-time-metrics-optimized'
 import { 
   REALTIME_CHANNELS, 
   REALTIME_EVENTS, 
   REALTIME_CONFIG,
   shouldPersistMetrics,
   type MetricsUpdatePayload 
-} from '@/lib/supabase-realtime-config'
+} from '@/lib/database/supabase-realtime-config'
 
 interface UseSupabaseRealTimeMetricsOptions {
   sessionId: string

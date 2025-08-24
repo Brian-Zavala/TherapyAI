@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import IntroWelcomeScreen from '@/components/IntroWelcomeScreen'
 import { motion } from 'framer-motion'
-import { enhancedScrollToTop } from '@/lib/scroll-utils'
+import { enhancedScrollToTop } from '@/lib/utils/scroll-utils'
 
 export default function IntroPage() {
   const router = useRouter()

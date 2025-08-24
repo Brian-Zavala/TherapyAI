@@ -4,7 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 const VAPI_WEBHOOK_SECRET = process.env.VAPI_WEBHOOK_SECRET || '';
 

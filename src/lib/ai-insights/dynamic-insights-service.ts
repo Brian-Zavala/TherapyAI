@@ -4,8 +4,8 @@
  * Replaces the hardcoded therapy-insights-generator.ts
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { AIInsightGenerator, UserContext, GeneratedInsights } from './ai-insight-generator';
 import { dailyTipScheduler } from './daily-tip-scheduler';
 import { ComprehensiveInsights } from '../therapy-insights-generator';

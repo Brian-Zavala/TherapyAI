@@ -1,12 +1,12 @@
 // src/app/api/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { authOptions } from '@/lib/auth';
 import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
-import { sendSessionConfirmation } from '@/lib/sms-service';
-import { sessionCache, cacheKeys } from '@/lib/session-cache';
+import { sendSessionConfirmation } from '@/lib/notifications/sms-service';
+import { sessionCache, cacheKeys } from '@/lib/session/session-cache';
 import { validateEmailEnvironment } from '@/lib/env-validation';
 import { z } from 'zod';
 import { strictDurationSchema } from '@/lib/validation/duration-validation';
@@ -455,7 +455,7 @@ export async function POST(request: NextRequest) {
       });
       
       // Enhance session with concerns context (non-blocking)
-      import('@/lib/session-concerns-context').then(({ enhanceSessionWithConcerns }) => {
+      import('@/lib/session/session-concerns-context').then(({ enhanceSessionWithConcerns }) => {
         enhanceSessionWithConcerns(newSession.id, user.id).catch(err => 
           log.error('Failed to enhance session with concerns', { error: err })
         );

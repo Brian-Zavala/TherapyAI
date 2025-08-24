@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
 import { onSessionCompleted } from '@/lib/ai-insights/session-completion-handler';
 import { Resend } from 'resend';
 import SessionCompletedEmail from '@/emails/SessionCompleted';
 import { rateLimitManager } from '@/lib/rate-limit-manager';
-import { logger } from '@/lib/logger';
-import { trackNotificationInteraction } from '@/lib/notification-tokens';
-import { sendSMS } from '@/lib/sms-service';
+import { logger } from '@/lib/utils/logger';
+import { trackNotificationInteraction } from '@/lib/notifications/notification-tokens';
+import { sendSMS } from '@/lib/notifications/sms-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const lifecycleManager = SessionLifecycleManager.getInstance();
@@ -301,7 +301,7 @@ export async function POST(
 
     // Flush any pending transcript batches
     try {
-      const { flushSessionTranscripts, cleanupSessionMetrics } = await import('@/lib/transcript-service-optimized');
+      const { flushSessionTranscripts, cleanupSessionMetrics } = await import('@/lib/transcript/transcript-service-optimized');
       await flushSessionTranscripts(sessionId);
       cleanupSessionMetrics(sessionId);
       

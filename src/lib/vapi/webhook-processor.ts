@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TranscriptPerformanceOptimizer } from './transcript-performance-optimizer';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { notificationService } from '@/lib/notifications/notification-service';
 import { metrics } from '@/lib/performance/metrics-monitor';
 import { therapyInsightsQueue } from '@/lib/queue/therapy-insights-queue';

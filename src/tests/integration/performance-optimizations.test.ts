@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { profileCache } from '@/lib/cache/profile-cache'
 import { redisHealthMonitor } from '@/lib/cache/redis-health'
 import { performanceMonitor } from '@/lib/monitoring/performance-monitor'
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { getServerSession } from 'next-auth'
 
 // Define UserProfile interface locally

@@ -1,11 +1,11 @@
 // app/api/cron/session-reminders/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { Resend } from 'resend';
 import SessionReminderEmail from '@/emails/SessionReminder';
 import SessionMissedEmail from '@/emails/SessionMissed';
-import { sendSessionReminder } from '@/lib/sms-service';
-import { createSessionNotificationToken, generateNotificationUrls } from '@/lib/notification-tokens';
+import { sendSessionReminder } from '@/lib/notifications/sms-service';
+import { createSessionNotificationToken, generateNotificationUrls } from '@/lib/notifications/notification-tokens';
 
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);

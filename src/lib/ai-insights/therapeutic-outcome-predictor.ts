@@ -3,8 +3,8 @@
  * Advanced ML system for predicting relationship therapy success and optimal intervention timing
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { ProcessedSessionData } from './session-data-processor';
 import { RelationshipTrend } from './advanced-pattern-analytics';
 

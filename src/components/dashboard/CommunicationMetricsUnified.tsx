@@ -5,7 +5,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useCommunicationMetricsFromContext } from '@/hooks/useDashboardContext';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard/dashboard-theme';
 import { useDashboardLoading } from '@/app/dashboard/page';
 import { DashboardErrorWrapper } from './DashboardErrorBoundary';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';

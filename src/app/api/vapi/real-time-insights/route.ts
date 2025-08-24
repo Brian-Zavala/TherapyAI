@@ -4,11 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import { verifyVAPIWebhookSignature } from '@/lib/vapi/webhook-verification';
 import { realTimeInsightsProcessor } from '@/lib/ai-insights/real-time-insights-processor';
-import { broadcastToChannel } from '@/lib/metrics-broadcaster';
-import { prisma } from '@/lib/prisma-optimized';
+import { broadcastToChannel } from '@/lib/metrics/metrics-broadcaster';
+import { prisma } from '@/lib/database/prisma-optimized';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();

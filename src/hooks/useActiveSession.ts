@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { safeSessionStorage } from '@/lib/safe-session-storage';
+import { safeSessionStorage } from '@/lib/session/safe-session-storage';
 
 export function useActiveSession() {
   const { data: session } = useSession();

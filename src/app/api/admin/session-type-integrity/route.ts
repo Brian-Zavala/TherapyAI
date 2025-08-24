@@ -12,7 +12,7 @@ import {
   validateUserDashboardIntegrity,
   invalidateCacheForCorrectedSessions
 } from '@/lib/database/session-type-integrity';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {

@@ -2,8 +2,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth'; 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { getPersonalizedAssistantConfig } from '@/lib/vapi';
 import { z } from 'zod';
 import { strictDurationSchema } from '@/lib/validation/duration-validation';

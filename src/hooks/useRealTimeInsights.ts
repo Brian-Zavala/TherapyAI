@@ -7,7 +7,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@supabase/supabase-js';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import type { InsightUpdatePayload } from '@/lib/ai-insights/real-time-insights-broadcaster';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

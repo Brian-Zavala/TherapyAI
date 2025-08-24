@@ -4,7 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import FacebookProvider from "next-auth/providers/facebook"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { compare } from "bcryptjs"
 import { z } from "zod"
 import { creditManager } from '@/lib/services/credit-manager.service'

@@ -2,7 +2,7 @@
 // @ts-ignore
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals'
 import { PrismaClient } from '@prisma/client'
-import { prisma } from '@/lib/prisma-enhanced'
+import { prisma } from '@/lib/database/prisma-enhanced'
 import { createMockUser, createMockSession, cleanupTestData } from './test-utils'
 
 // Test database client

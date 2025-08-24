@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/database/prisma-client';
+import { prisma } from '@/lib/database/prisma';
 import { 
   verifyNotificationToken, 
   trackNotificationInteraction 
-} from '@/lib/notification-tokens';
+} from '@/lib/notifications/notification-tokens';
 import { z } from 'zod';
 
 const querySchema = z.object({

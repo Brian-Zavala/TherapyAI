@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/database/prisma';
 import { redis } from '@/lib/cache/redis-client';
 import { SessionStatus, SessionType } from '@prisma/client';
 import { z } from 'zod';
@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
   
   try {
+    console.log(`[${requestId}] Session creation request started`);
+    
     // Get user session
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -41,7 +43,10 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
+    console.log(`[${requestId}] Request body:`, body);
+    
     const validatedData = sessionCreationSchema.parse(body);
+    console.log(`[${requestId}] Validated data:`, validatedData);
 
     // Atomic credit validation and session creation
     const lockKey = `session:create:${session.user.id}`;
@@ -294,7 +299,7 @@ export async function POST(request: NextRequest) {
         data: {
           sessionId: result.session.id,
           status: result.session.status,
-          duration: result.session.sessionLength,
+          duration: result.session.duration,
           creditsReserved: result.creditsReserved,
           creditsRemaining: result.creditsRemaining,
           planType: result.planType,

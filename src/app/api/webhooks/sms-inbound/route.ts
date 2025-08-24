@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { handleOptOut, handleOptIn } from '@/lib/sms-service';
+import { handleOptOut, handleOptIn } from '@/lib/notifications/sms-service';
 import crypto from 'crypto';
 
 // Verify webhook signature from Twilio

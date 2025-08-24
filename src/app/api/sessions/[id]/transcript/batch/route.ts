@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedServerSession } from '@/lib/auth/session-optimized';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 
 /**
  * Batch endpoint for transcript entries - saves multiple entries in a single transaction

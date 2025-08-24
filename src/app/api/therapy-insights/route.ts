@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { generateDynamicTherapyInsights } from '@/lib/ai-insights/dynamic-insights-service'
 import { realTimeInsightsProcessor } from '@/lib/ai-insights/real-time-insights-processor'
 import { 
@@ -9,7 +9,7 @@ import {
   validateDashboardAuth,
   withRetry 
 } from '@/lib/api/dashboard-error-handler'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/utils/logger'
 import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache'
 import { getCachedSession } from '@/lib/auth/session-cache'
 import { performanceMonitor } from '@/lib/performance/monitoring'

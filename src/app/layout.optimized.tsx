@@ -8,7 +8,7 @@ import { PerformanceMonitoring } from '@/lib/analytics/web-vitals'
 
 // Optimized providers
 import { OptimizedProviders } from '@/components/providers/OptimizedProviders'
-import { PerformanceProfiler } from '@/lib/performance-monitoring'
+import { PerformanceProfiler } from '@/lib/performance/performance-monitoring'
 
 // Critical CSS only
 import './globals.css'

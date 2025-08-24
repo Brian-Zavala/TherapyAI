@@ -2,7 +2,7 @@
  * Optimized user query functions with proper indexing and caching
  */
 
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { Prisma } from '@prisma/client';
 import { profileCache, cacheKeys } from '@/lib/cache/profile-cache';
 

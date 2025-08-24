@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import { redis } from '@/lib/cache/redis-client';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 
 // PostgreSQL INTEGER max value for overflow protection
 export const MAX_CREDITS = 2147483647;

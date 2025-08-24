@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { z } from 'zod';
 import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache';
 import { getCachedSession } from '@/lib/auth/session-cache';

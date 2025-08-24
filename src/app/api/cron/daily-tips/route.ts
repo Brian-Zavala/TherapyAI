@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { dailyTipScheduler } from '@/lib/ai-insights/daily-tip-scheduler';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   // Verify this is a legitimate cron request

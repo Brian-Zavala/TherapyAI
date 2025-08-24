@@ -1,6 +1,6 @@
 // VAPI Tool Calls Handler for Real-time Therapeutic Tracking
 import { NextRequest, NextResponse } from 'next/server';
-import { vapiContextManager } from '@/lib/vapi-context-manager';
+import { vapiContextManager } from '@/lib/vapi/vapi-context-manager';
 
 export async function POST(request: NextRequest) {
   try {

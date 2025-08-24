@@ -8,7 +8,7 @@ import { ThemeProvider } from 'next-themes'
 
 // Performance optimized imports
 import { createOptimizedQueryClient, setupQueryPersistence } from '@/lib/query-client-setup'
-import { usePerformanceMonitoring } from '@/lib/performance-monitoring'
+import { usePerformanceMonitoring } from '@/lib/performance/performance-monitoring'
 
 // Lazy load heavy providers
 const ReactQueryDevtoolsLazy = lazy(() => 

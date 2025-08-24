@@ -6,8 +6,8 @@
  * No predictive claims are made - descriptive analytics only
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { SafeTherapeuticAnalyzer, TherapeuticSupportAnalysis } from './therapeutic-outcome-predictor-safe';
 import { getDisclaimerService, withDisclaimerCheck, ClinicalDisclaimer } from './clinical-disclaimer-service';
 import { dailyTipScheduler } from './daily-tip-scheduler';

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import type { ContextMemory } from '@/lib/mcp-memory-context';
+import type { ContextMemory } from '@/lib/services/mcp-memory-context';
 
 // Hook for React components to use memory context
 export function useMemoryContext(userMessage: string): {

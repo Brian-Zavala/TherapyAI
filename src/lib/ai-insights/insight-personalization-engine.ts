@@ -3,8 +3,8 @@
  * Uses machine learning and behavioral data to personalize insights based on user engagement
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 
 export interface UserEngagementProfile {
   userId: string;

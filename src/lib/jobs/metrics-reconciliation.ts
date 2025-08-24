@@ -5,8 +5,8 @@
  * and CommunicationMetric records. This fixes dashboard sync issues for historical sessions.
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { calculateMetrics } from '@/lib/metrics/metrics-deduplication';
 
 export interface ReconciliationProgress {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma-optimized'
-import { withTransaction, withRetry } from '@/lib/prisma-enhanced'
+import { prisma } from '@/lib/database/prisma-optimized'
+import { withTransaction, withRetry } from '@/lib/database/prisma-enhanced'
 import { generateMetricsFromSession } from '../../metrics-helper'
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager'
 import { Resend } from 'resend'
@@ -253,10 +253,10 @@ export async function POST(
     
     // Clean up resources outside transaction
     try {
-      const { cleanupSessionMetrics } = await import('@/lib/transcript-service-optimized')
+      const { cleanupSessionMetrics } = await import('@/lib/transcript/transcript-service-optimized')
       cleanupSessionMetrics(sessionId)
       
-      const { cleanupBroadcastChannels } = await import('@/lib/metrics-broadcaster')
+      const { cleanupBroadcastChannels } = await import('@/lib/metrics/metrics-broadcaster')
       await cleanupBroadcastChannels(sessionId)
     } catch (cleanupError) {
       console.error('⚠️ Error during cleanup:', cleanupError)

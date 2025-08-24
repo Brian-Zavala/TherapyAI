@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import { DashboardErrorCode } from '@/lib/api/dashboard-error-handler';
 import { useDebounce } from '@/hooks/useDebounce';
 

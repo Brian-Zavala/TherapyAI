@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { z } from 'zod';
 import { SESSION_DURATION_OPTIONS, type SessionDuration } from '@/lib/therapy-session/constants';
 
 /**
@@ -194,7 +195,7 @@ export const sessionCreationSchema = z.object({
     age: z.number(),
     relation: z.string(),
   })).optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.any()).optional(), // Allow any type in metadata
 });
 
 export default {

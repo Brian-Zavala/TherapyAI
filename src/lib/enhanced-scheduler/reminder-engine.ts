@@ -4,7 +4,7 @@
  * Supports multiple notification channels with retry mechanisms
  */
 
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { Logger } from './logging';
 import { NotificationService } from './notification-service';
 import { CalendarIntegrationService } from './calendar-integration';

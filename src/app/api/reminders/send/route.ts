@@ -4,10 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { Resend } from 'resend';
 import { z } from 'zod';
-import { sendSMS, formatPhoneNumber } from '@/lib/sms-service';
+import { sendSMS, formatPhoneNumber } from '@/lib/notifications/sms-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

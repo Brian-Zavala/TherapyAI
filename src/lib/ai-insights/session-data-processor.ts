@@ -3,8 +3,8 @@
  * Extracts and preprocesses session data for AI analysis
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 
 export interface ProcessedSessionData {
   sessionId: string;

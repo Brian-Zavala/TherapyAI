@@ -5,8 +5,8 @@
  * This prevents the dashboard metric sync issues caused by sessionType mismatches
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { SessionType } from '@prisma/client';
 
 // Centralized therapy type mapping - replaces duplicated functions across the codebase

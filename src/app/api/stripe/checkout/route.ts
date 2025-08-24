@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createCheckoutSession, getOrCreateCustomer, STRIPE_PRICES, handleStripeError } from '@/lib/stripe';
-import { prisma } from '@/lib/prisma-optimized';
+import { createCheckoutSession, getOrCreateCustomer, STRIPE_PRICES, handleStripeError } from '@/lib/services/stripe';
+import { prisma } from '@/lib/database/prisma-optimized';
 
 export async function POST(request: NextRequest) {
   try {

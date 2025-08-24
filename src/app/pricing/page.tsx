@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { CheckIcon, XMarkIcon, SparklesIcon, StarIcon, ShieldCheckIcon, HeartIcon, ChartBarIcon, ClockIcon, UsersIcon, BoltIcon } from '@heroicons/react/24/solid';
-import { createCheckoutSession } from '@/lib/stripe-client';
+import { createCheckoutSession } from '@/lib/services/stripe-client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listAssistants } from '@/lib/vapi-server';
+import { listAssistants } from '@/lib/vapi/vapi-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 

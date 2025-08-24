@@ -3,7 +3,7 @@
  * Handles sophisticated recurring session scheduling with user preferences and conflict detection
  */
 
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { Logger } from './logging';
 import { CalendarIntegrationService } from './calendar-integration';
 import { z } from 'zod';

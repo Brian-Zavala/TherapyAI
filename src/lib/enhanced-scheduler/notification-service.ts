@@ -7,7 +7,7 @@ import { Resend } from 'resend';
 // TODO: Install twilio package for SMS support
 // import { Twilio } from 'twilio';
 type Twilio = any;
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { Logger } from './logging';
 import { z } from 'zod';
 import { render } from '@react-email/render';

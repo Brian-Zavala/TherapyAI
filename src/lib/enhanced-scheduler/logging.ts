@@ -3,7 +3,7 @@
  * Structured logging with multiple outputs and log levels
  */
 
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 
 export enum LogLevel {
   DEBUG = 0,

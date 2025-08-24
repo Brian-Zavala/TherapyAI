@@ -3,7 +3,7 @@
  * Detects and merges duplicate transcripts, prioritizing webhook data as source of truth
  */
 
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { 
   getTranscriptStrategy, 
   shouldRunReconciliation,

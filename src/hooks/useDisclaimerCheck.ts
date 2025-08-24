@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 const DISCLAIMER_VERSION = '1.0.0'; // Current disclaimer version
 

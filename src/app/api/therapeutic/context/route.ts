@@ -2,9 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
-import { therapeuticInsightEngine } from '@/lib/therapeutic-insight-engine';
-import { vapiContextManager } from '@/lib/vapi-context-manager';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { therapeuticInsightEngine } from '@/lib/services/therapeutic-insight-engine';
+import { vapiContextManager } from '@/lib/vapi/vapi-context-manager';
 
 // GET - Get therapeutic context for session preparation
 export async function GET(request: NextRequest) {

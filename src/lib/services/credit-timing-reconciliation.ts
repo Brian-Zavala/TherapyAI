@@ -10,7 +10,7 @@
  */
 
 import { redis } from '@/lib/cache/redis-client';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { convertToBillableMinutes } from '@/lib/utils/billing-utils';
 
 export interface TimingData {

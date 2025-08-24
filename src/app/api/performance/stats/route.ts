@@ -9,7 +9,7 @@ import { authOptions } from '@/lib/auth';
 import { getPerformanceReport } from '@/lib/performance/monitoring';
 import { dashboardCache } from '@/lib/cache/dashboard-cache';
 import { getSessionCacheStats } from '@/lib/auth/session-cache';
-import { checkDatabaseConnection } from '@/lib/prisma-optimized';
+import { checkDatabaseConnection } from '@/lib/database/prisma-optimized';
 
 export async function GET(request: Request) {
   try {

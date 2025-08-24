@@ -1,10 +1,10 @@
 // route.ts for session transcript API endpoint
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { prisma } from '@/lib/prisma-optimized'
+import { prisma } from '@/lib/database/prisma-optimized'
 import { authOptions } from '@/lib/auth'
 import type { Session as NextAuthSession } from 'next-auth'
-import { sessionCache, cacheKeys } from '@/lib/session-cache'
+import { sessionCache, cacheKeys } from '@/lib/session/session-cache'
 
 // POST endpoint to add a new transcript entry to a session
 export async function POST(

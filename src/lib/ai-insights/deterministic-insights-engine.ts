@@ -4,7 +4,7 @@
  * Built from research on Gottman Method, EFT, and evidence-based couples therapy
  */
 
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import type { 
   GeneratedInsights, 
   DynamicInsight, 

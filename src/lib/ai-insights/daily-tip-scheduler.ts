@@ -3,8 +3,8 @@
  * Handles automatic rotation of daily tips at midnight and personalized tip generation
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { AIInsightGenerator } from './ai-insight-generator';
 
 export interface DailyTipRotationConfig {

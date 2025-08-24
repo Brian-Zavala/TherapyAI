@@ -6,8 +6,8 @@
  * All crisis detections bypass normal workflows for immediate attention
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { getSMSService } from '@/lib/sms/sms-service-factory';
 
 export interface CrisisIndicator {

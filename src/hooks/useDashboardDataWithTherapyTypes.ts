@@ -12,7 +12,7 @@ import {
   getFallbackAIInsights,
   cacheSuccessfulQueryData,
   withFallbackCaching
-} from '@/lib/dashboard-fallbacks';
+} from '@/lib/dashboard/dashboard-fallbacks';
 
 // Enhanced dashboard data fetcher with therapy type support
 interface TherapyTypeAwareDashboardData {

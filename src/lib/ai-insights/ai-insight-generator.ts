@@ -3,7 +3,7 @@
  * Uses Claude AI to analyze real VAPI session data and generate personalized insights
  */
 
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import { ProcessedSessionData, SessionDataProcessor } from './session-data-processor';
 import { DeterministicInsightEngine } from './deterministic-insights-engine';
 import { ComprehensiveInsightsService } from './comprehensive-insights-service';

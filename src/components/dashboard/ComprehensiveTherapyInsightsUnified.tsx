@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useTherapyInsightsFromContext } from '@/hooks/useDashboardContext';
 import { TherapyInsightsErrorBoundary } from '@/components/therapy-insights';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard/dashboard-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import '@/styles/dashboard-positioning-fix.css';
 import { 

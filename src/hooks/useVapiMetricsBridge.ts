@@ -6,7 +6,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useSupabaseRealTimeMetrics } from './useSupabaseRealTimeMetrics'
-import { RealTimeMetricsCalculator } from '@/lib/real-time-metrics-optimized'
+import { RealTimeMetricsCalculator } from '@/lib/metrics/real-time-metrics-optimized'
 import type { TranscriptEntry } from '@/types/therapy-session'
 
 interface UseVapiMetricsBridgeOptions {

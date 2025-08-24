@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { UsageCredits, UsageTransaction, TransactionType, AlertType } from '@prisma/client';
 import { sendEmail } from '@/lib/email';
 import { redis } from '@/lib/cache/redis-client';

@@ -4,7 +4,7 @@
  */
 
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/lib/supabase-singleton';
+import { getSupabaseClient } from '@/lib/database/supabase-singleton';
 
 export interface RealtimeNotification {
   id: string;

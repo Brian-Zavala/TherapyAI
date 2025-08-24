@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
-import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard/dashboard-theme';
+import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
 import { DashboardErrorWrapper } from './DashboardErrorBoundary';
 import TherapyTypeTabs, { 

@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useProgressDataFromContext } from '@/hooks/useDashboardContext';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
+import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard/dashboard-theme';
 import { useDashboardLoading } from '@/app/dashboard/page';
 import { DashboardErrorWrapper } from './DashboardErrorBoundary';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';

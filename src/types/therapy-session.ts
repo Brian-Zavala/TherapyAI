@@ -1,4 +1,4 @@
-import { IncrementalMetrics } from '@/lib/real-time-metrics-optimized';
+import { IncrementalMetrics } from '@/lib/metrics/real-time-metrics-optimized';
 import { SessionDuration } from '@/lib/therapy-session/constants';
 import Vapi from '@vapi-ai/web';
 

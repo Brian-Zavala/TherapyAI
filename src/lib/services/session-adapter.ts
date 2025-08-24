@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
 import { SessionStatus, TherapyType } from '@prisma/client';
 import { performanceMonitor } from '@/lib/monitoring/performance-monitor';

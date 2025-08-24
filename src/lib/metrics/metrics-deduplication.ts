@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 import { SessionMetrics } from '@prisma/client';
 
 const METRICS_LOCK_PREFIX = 'metrics:lock:';

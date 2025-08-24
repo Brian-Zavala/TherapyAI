@@ -13,8 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
-import { isEventProcessed, markEventProcessed } from '@/lib/webhook-event-store';
-import { enqueueWebhookEvent } from '@/lib/webhook-processor';
+import { isEventProcessed, markEventProcessed } from '@/lib/api/webhook-event-store';
+import { enqueueWebhookEvent } from '@/lib/api/webhook-processor';
 
 // Initialize Stripe with latest API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {

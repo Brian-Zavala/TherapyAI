@@ -1,5 +1,5 @@
 import { SessionLifecycleManager } from './session-lifecycle-manager';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 let cleanupInterval: NodeJS.Timeout | null = null;
 

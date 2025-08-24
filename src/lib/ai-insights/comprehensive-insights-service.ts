@@ -4,8 +4,8 @@
  * Analyzes transcripts, metrics, and patterns to provide deep, actionable insights
  */
 
-import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { DeterministicInsightEngine } from './deterministic-insights-engine';
 import { EnhancedInsightEngine } from './enhanced-insights-engine';
 import type { 

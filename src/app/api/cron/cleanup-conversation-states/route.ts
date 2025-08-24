@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma-optimized'
-import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/database/prisma-optimized'
+import { logger } from '@/lib/utils/logger'
 
 // Simple in-memory rate limiter for cron endpoints
 const lastExecutionTime = new Map<string, number>()

@@ -3,8 +3,8 @@
  * Implements sophisticated longitudinal analysis and predictive relationship modeling
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { ProcessedSessionData } from './session-data-processor';
 
 export interface RelationshipTrend {

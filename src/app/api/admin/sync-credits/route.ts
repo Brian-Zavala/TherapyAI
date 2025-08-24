@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { redis } from '@/lib/cache/redis-client';
 
 // Admin endpoint to sync user credits with their subscription status
 export async function POST(request: NextRequest) {
   try {
-    // Check admin authentication (you may want to add proper admin role checking)
+    // CRITICAL FIX: Proper admin role validation
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -17,10 +17,30 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // SECURITY: Enforce admin role requirement for credit sync operations
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, email: true }
+    });
+    
+    if (!user || user.role !== 'admin') {
+      logger.error('Non-admin attempted to access admin sync-credits endpoint', {
+        userId: session.user.id,
+        userEmail: user?.email,
+        userRole: user?.role,
+        severity: 'SECURITY_VIOLATION'
+      });
+      
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+    
     const { userId, forceSync } = await request.json();
     
-    // Get user with subscription details
-    const user = await prisma.user.findUnique({
+    // Get target user with subscription details
+    const targetUser = await prisma.user.findUnique({
       where: { id: userId || session.user.id },
       select: {
         id: true,
@@ -31,7 +51,7 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    if (!user) {
+    if (!targetUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -41,9 +61,9 @@ export async function POST(request: NextRequest) {
     // Determine plan type based on subscription status
     let planType: 'free' | 'essential' | 'growth' | 'unlimited' = 'free';
     
-    if (user.subscriptionStatus === 'active' && user.subscriptionId) {
+    if (targetUser.subscriptionStatus === 'active' && targetUser.subscriptionId) {
       // Check if subscription ID contains plan hints
-      const subId = user.subscriptionId.toLowerCase();
+      const subId = targetUser.subscriptionId.toLowerCase();
       if (subId.includes('unlimited')) {
         planType = 'unlimited';
       } else if (subId.includes('growth')) {
@@ -56,13 +76,13 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log(`[Credit Sync] User ${user.email}: ${user.subscriptionStatus} → ${planType}`);
+    console.log(`[Credit Sync] User ${targetUser.email}: ${targetUser.subscriptionStatus} → ${planType}`);
     
     // Get current credits
     const now = new Date();
     const existingCredits = await prisma.usageCredits.findFirst({
       where: {
-        userId: user.id,
+        userId: targetUser.id,
         billingPeriodStart: { lte: now },
         billingPeriodEnd: { gte: now },
       },
@@ -94,20 +114,20 @@ export async function POST(request: NextRequest) {
     
     // Update or create credits
     const credits = await creditManager.initializeBillingPeriodWithNotification(
-      user.id,
+      targetUser.id,
       planType,
       billingStart,
       billingEnd,
-      user.subscriptionId || undefined
+      targetUser.subscriptionId || undefined
     );
     
     // Clear cache to force UI refresh
-    await redis.del(`credits:${user.id}:current`);
+    await redis.del(`credits:${targetUser.id}:current`);
     
     // Broadcast update event
-    await redis.publish(`credits:updates:${user.id}`, JSON.stringify({
+    await redis.publish(`credits:updates:${targetUser.id}`, JSON.stringify({
       type: 'manual_sync',
-      userId: user.id,
+      userId: targetUser.id,
       timestamp: new Date().toISOString()
     }));
     

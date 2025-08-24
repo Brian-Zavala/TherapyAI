@@ -7,8 +7,8 @@
  * All insights require therapist validation before display to clients.
  */
 
-import { prisma } from '@/lib/prisma-optimized';
-import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/database/prisma-optimized';
+import { logger } from '@/lib/utils/logger';
 import { ProcessedSessionData } from './session-data-processor';
 import { RelationshipTrend } from './advanced-pattern-analytics';
 

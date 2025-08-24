@@ -1,9 +1,9 @@
 // src/app/api/sessions/[id]/force-end/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { authOptions } from '@/lib/auth';
-import { sessionCache, cacheKeys } from '@/lib/session-cache';
+import { sessionCache, cacheKeys } from '@/lib/session/session-cache';
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
 import { z } from 'zod';
 import type { Session } from '@prisma/client';

@@ -3,7 +3,7 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react'
 import { Clock, Loader } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { getAvailableTimeSlots, formatInUserTimezone } from '@/lib/date-utils'
+import { getAvailableTimeSlots, formatInUserTimezone } from '@/lib/utils/date-utils'
 import { format } from 'date-fns'
 
 interface TimeSlotPickerProps {

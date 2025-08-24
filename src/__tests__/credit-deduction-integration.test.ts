@@ -37,10 +37,10 @@ jest.mock('@/lib/logger');
 import { CreditManager } from '@/lib/services/credit-manager.service';
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
 import { timingReconciliation } from '@/lib/services/credit-timing-reconciliation';
-import { prisma } from '@/lib/prisma-optimized';
+import { prisma } from '@/lib/database/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
 import { rateLimitManager } from '@/lib/rate-limit-manager';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/utils/logger';
 
 // Type the mocked modules
 const mockCreditManager = jest.mocked(CreditManager);
