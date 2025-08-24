@@ -103,24 +103,36 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 ✅ **Systematic Documentation**: TodoWrite + MCP memory creates knowledge continuity
 ✅ **Security-First Mindset**: Always think 'how can users bypass this?' when building billing/revenue systems
 
-## 📁 CLAUDE.md File Structure
+## 📁 Project Structure (Updated Jan 2025)
 
-**IMPORTANT**: Multiple CLAUDE.md files exist for different purposes. Update the CORRECT file:
+### Documentation
+- **`/CLAUDE.md`**: Main project docs
+- **`/docs/`**: Organized documentation
+  - `architecture/`: System design docs
+  - `deployment/`: Deploy guides
+  - `compliance/`: HIPAA, security
+  - `api/`: VAPI guides
+  - `features/`: Pricing, testing
 
-- **`/CLAUDE.md`** (ROOT - THIS FILE): Main project documentation, config, workflows
-- **`/PRICING-STRATEGY-ANALYSIS.md`**: 💰 CRITICAL - Pricing tiers, credits, costs (MUST READ for pricing/billing features)
-- **`/docs/CREDIT-SYSTEM-INTEGRATION-PLAN.md`**: 🎯 CRITICAL - Credit/session integration architecture (MUST READ for session features)
-- **`/VAPI-COMPLETE-GUIDE.md`**: 🚨 CRITICAL - Comprehensive VAPI documentation (MUST READ for ANY VAPI work)
-- **`/src/components/CLAUDE.md`**: React component patterns, UI guidelines
-- **`/src/app/api/CLAUDE.md`**: API route documentation, patterns
-- **`/src/app/dashboard/CLAUDE.md`**: Dashboard-specific features
-- **`/src/hooks/CLAUDE.md`**: Custom hooks documentation
-- **`/src/lib/CLAUDE.md`**: Library utilities, helpers
-- **`/src/types/CLAUDE.md`**: TypeScript types, interfaces
-- **`/src/emails/CLAUDE.md`**: Email templates, configs
-- **`/prisma/CLAUDE.md`**: Database schema, migrations
-
-Always verify you're updating the appropriate CLAUDE.md for your changes!
+### Code Organization
+- **`/src/components/`**: React components
+  - `modals/`: All modal dialogs
+  - `forms/`: Inputs & selectors
+  - `ui/`: Primitives (buttons, display)
+  - `sessions/`: Session components
+  - `providers/`: Context providers
+  - `shared/`: Utility components
+- **`/src/lib/`**: Core libraries
+  - `database/`: Prisma, Supabase
+  - `services/`: Business logic
+  - `vapi/`: VAPI integration
+  - `metrics/`: Real-time metrics
+- **`/scripts/`**: Organized scripts
+  - `database/`: Migrations, backfills
+  - `testing/`: Test scripts
+  - `deployment/`: Setup scripts
+  - `monitoring/`: Health checks
+  - `utilities/`: Helper scripts
 
 ## 🤖 AI Development Team Configuration
 
@@ -192,6 +204,15 @@ npm run lint             # Lint code
 npm run prisma:generate  # Generate Prisma client
 ```
 
+## 🧹 Directory Cleanup (Jan 2025)
+
+**366 files reorganized** for enterprise-ready structure:
+- Removed root clutter (logs, test files, backups)
+- 16 docs → `/docs/` with categories
+- 90+ scripts → categorized folders
+- 80+ lib files → logical grouping
+- 58 components → structured by type
+
 ## 🌿 Git Workflow
 
 ⚠️ **IMPORTANT**: Always create and switch to a feature branch before adding new features!
@@ -236,7 +257,7 @@ git commit -m "docs: update profile system architecture"
 
 ## 💰 Pricing & Credit System
 
-**ALWAYS refer to [PRICING-STRATEGY-ANALYSIS.md](./PRICING-STRATEGY-ANALYSIS.md) for pricing details!**
+**ALWAYS refer to [docs/features/PRICING-STRATEGY-ANALYSIS.md](./docs/features/PRICING-STRATEGY-ANALYSIS.md) for pricing details!**
 
 ### Subscription Tiers (Per PRICING-STRATEGY-ANALYSIS.md)
 | Tier | Price | Sessions | Minutes/Session | Total Minutes | Concurrent |
@@ -255,7 +276,7 @@ git commit -m "docs: update profile system architecture"
 
 ### Credit System Implementation
 
-**MUST READ [/docs/CREDIT-SYSTEM-INTEGRATION-PLAN.md](./docs/CREDIT-SYSTEM-INTEGRATION-PLAN.md) for implementation details!**
+**MUST READ [docs/features/CREDIT-SYSTEM-INTEGRATION-PLAN.md](./docs/features/CREDIT-SYSTEM-INTEGRATION-PLAN.md) for implementation details!**
 
 #### Key Components
 - **CreditManager**: `src/lib/services/credit-manager.service.ts` - Core credit operations
@@ -421,16 +442,14 @@ railway variables set NEXTAUTH_SECRET="your-32-char-secret"
 **Traffic**: Edge → CDN/Load Balancer → App Instance  
 ⚠️ **CRITICAL**: Address CVE-2025-29927 (Next.js auth bypass) before production
 
-## 🚨 CRITICAL: VAPI Documentation Reference Requirement 🚨
+## 🚨 CRITICAL: VAPI Documentation Reference 🚨
 
-**MANDATORY FOR ALL VAPI-RELATED CHANGES:**
-- **ALWAYS** consult `/VAPI-COMPLETE-GUIDE.md` BEFORE implementing ANY VAPI, session, or assistant features
-- **NEVER** modify VAPI code without checking the comprehensive documentation first
-- **MUST** follow the documented patterns for JWT tokens, session management, and API calls
-- **KEY REFERENCE**: 2,464-line guide with complete TypeScript patterns and optimizations
-- **Failure to reference VAPI docs = BROKEN VOICE FEATURES**
+**MANDATORY FOR ALL VAPI CHANGES:**
+- **ALWAYS** consult `/docs/api/VAPI-COMPLETE-GUIDE.md` BEFORE any VAPI work
+- **KEY REFERENCE**: 2,464-line guide with TypeScript patterns
+- **Failure to reference = BROKEN VOICE FEATURES**
 
-The VAPI documentation contains:
+Contains:
 - Every available API call and method
 - Correct configuration patterns (hipaaEnabled: false, recordingEnabled: true)
 - Session management best practices
@@ -496,29 +515,15 @@ The VAPI documentation contains:
 - WebRTC transport may show "disconnected" warnings - this is normal, session continues
 - Metrics broadcast every 5-10 entries or on significant confidence changes
 
-## 🐛 Profile System Known Issues & Solutions (Jan 2025)
+## 🐛 Profile System Fixes (Jan 2025)
 
-### Profile Update Flow Architecture
-1. **Frontend**: `ProfileClient.tsx` → Form state management with `isInitialized` flag
-2. **Provider**: `ProfileProvider.tsx` → React Query with optimistic updates and error recovery
-3. **API**: `/api/user/profile/route.ts` → Transaction-based updates for User, UserProfile, FamilyMember
-4. **Database**: Prisma with PostgreSQL → Ensure schema sync with `prisma:db:push`
+**Architecture**: ProfileClient → ProfileProvider (React Query) → API → Prisma transactions
 
-### Critical Bug Fixes Applied
-- **Variable Scope Issue**: `familyMembersToCreate` was used outside transaction scope → Added `familyMembersCreatedCount` tracker
-- **Loading Flicker**: Form rendered with empty fields before data → Added `isInitialized` flag + `ProfileLoadingSpinner`
-- **Missing UI Fields**: No inputs for array fields → Added comma-separated inputs for currentConcerns/preferredDays
-- **Error Handling**: Empty `{}` errors → Enhanced parsing for JSON/text responses with detailed messages
-- **Database Sync**: Missing `timezone` column → Run `prisma:db:push` to sync schema
-
-### Profile Update Checklist
-✅ All form fields must be included in `handleUpdate` spread operator
-✅ Array fields (currentConcerns, preferredDays) need special handling
-✅ Age fields must be parsed from string to integer
-✅ Transaction must track variables needed outside its scope
-✅ Loading state must wait for both `profile` data AND `isInitialized` flag
-✅ Error messages must be user-friendly with specific guidance
-✅ Database schema must match Prisma schema (run `prisma:db:push` if errors)
+**Fixed Issues**:
+- Variable scope in transactions
+- Loading flicker with `isInitialized` flag
+- Array field handling (currentConcerns, preferredDays)
+- Database sync with `prisma:db:push`
 
 
 
@@ -544,45 +549,17 @@ export async function POST(request: NextRequest) {
 ## 🔍 Debug Guide
 
 ### Quick Fixes
+- **Build Errors**: `rm -rf .next node_modules/.cache`
+- **Prisma Sync**: `npm run prisma:db:push`
+- **Session Pause 400**: Fixed duplicate calls (Jan 2025)
+- **Profile Flicker**: `isInitialized` flag fix
+- **Redis Parse**: Try-catch JSON.parse
 
-1. **Async Prisma**: Fixed with Proxy wrapper in `prisma-optimized.ts`
-2. **Session Returns Undefined**: Check hook returns `data.session.id` not `session.id`
-3. **Build Errors**: `rm -rf .next node_modules/.cache`
-4. **Type Errors**: Verify Prisma schema matches TypeScript types
-5. **Infinite Welcome Emails**: Redis deduplication + partial success handling
-6. **Notification Loops**: Check `welcomeMessageSent` flag + Redis keys
-7. **Slow User.findUnique (2514ms)**: Fixed with parallel queries in `optimized-user-queries.ts`
-8. **Dashboard API Errors**: Use `dashboard-error-handler.ts` for consistent error handling
-9. **Number Safety**: Use `sanitizeNumber()` and `sanitizePercentage()` from `dashboard-schemas.ts`
-10. **Session Pause 400 Errors**: Fixed duplicate calls, made endpoint idempotent (Jan 2025)
-11. **Sentry Configuration**: Moved to `instrumentation.ts` with `onRequestError` hook + `global-error.tsx` (Jan 2025)
-12. **Profile Update 500 Errors**: Check variable scope in transactions, ensure `familyMembersToCreate` is accessible
-13. **Profile Loading Flicker**: Use `isInitialized` flag to prevent form showing before data loads
-14. **Database Schema Mismatch**: Run `npm run prisma:db:push` to sync schema with database
-15. **Missing Form Fields**: Ensure all profile fields have corresponding UI inputs (currentConcerns, preferredDays, etc.)
-
-### Debug Checklist
-
-- **API 500s**: Check Prisma init → ENV vars → DB connection → Middleware order
-- **Session Issues**: Verify hook structure → API response format → Auth state
-- **Build Errors**: Clean artifacts → Check imports → Fix circular deps
-
-### File Dependencies
-
-```
-Profile: /api/user/profile → cache/profile-cache → queue/background-jobs
-Session: /api/sessions → session-cache → prisma-optimized → hooks → VAPI-COMPLETE-GUIDE.md
-Auth: lib/auth → middleware → all API routes
-VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
-```
-
-### Common Issues & Migrations
-
-- **Sentry v8**: Remove `autoSessionTracking`, `maxValueLength`
-- **React Query v5**: `cacheTime` → `gcTime`, remove `onError`
-- **Prisma**: Use uppercase enums (COMPLETED), `isDeleted` not `isActive`
-- **NextAuth**: Need `/api/auth/session` & `/api/auth/providers` routes
-- **useEffect**: Must be imported from 'react' in all components
+### Migration Notes
+- **Sentry v8**: Remove `autoSessionTracking`
+- **React Query v5**: `cacheTime` → `gcTime`
+- **Prisma**: Uppercase enums (COMPLETED)
+- **VAPI**: Must reference `/docs/api/VAPI-COMPLETE-GUIDE.md`
 
 
 ## MCP Tools
