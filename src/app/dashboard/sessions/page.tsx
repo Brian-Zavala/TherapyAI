@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
-import SessionTranscriptSMS from '@/components/SessionTranscriptSMS'
+import SessionTranscriptSMS from '@/components/sessions/SessionTranscriptSMS'
 import SessionsLoadingSpinner from '@/components/sessions/SessionsLoadingSpinner'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import CreditDisplay from '@/components/CreditDisplay'
+import CreditDisplay from '@/components/shared/CreditDisplay'
 
 type TranscriptEntry = {
   id: string

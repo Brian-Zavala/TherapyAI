@@ -8,7 +8,7 @@ import FamilyMembersStepEnhanced from './FamilyMembersStepEnhanced'
 import ConcernsOnboardingStep from './ConcernsOnboardingStep'
 import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
 import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import ButtonWithSound from '@/components/ButtonWithSound'
+import ButtonWithSound from '@/components/ui/buttons/ButtonWithSound'
 import GlassCard from '@/components/ui/glass-card'
 import { toast } from 'sonner'
 

@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { HeartHandshake, Brain, Home, Target, User } from 'lucide-react';
-import ConcernsSelector from '@/components/ConcernsSelector';
+import ConcernsSelector from '@/components/forms/selectors/ConcernsSelector';
 import GlassCard from '@/components/ui/glass-card';
-import ButtonWithSound from '@/components/ButtonWithSound';
+import ButtonWithSound from '@/components/ui/buttons/ButtonWithSound';
 import { CONCERN_CATEGORIES } from '@/data/therapy-concerns';
 
 interface ConcernsOnboardingStepProps {

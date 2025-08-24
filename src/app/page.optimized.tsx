@@ -13,8 +13,8 @@ const PlansSection = lazy(() => import('@/components/sections/PlansSection'))
 const FAQSection = lazy(() => import('@/components/sections/FAQSection'))
 
 // Critical components loaded immediately
-import ButtonWithSound from '@/components/ButtonWithSound'
-import ScrollDownArrow from '@/components/ScrollDownArrow'
+import ButtonWithSound from '@/components/ui/buttons/ButtonWithSound'
+import ScrollDownArrow from '@/components/ui/buttons/ScrollDownArrow'
 import Link from 'next/link'
 
 // Performance monitoring

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PlusCircleIcon, XCircleIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
-import ButtonWithSound from '@/components/ButtonWithSound'
+import ButtonWithSound from '@/components/ui/buttons/ButtonWithSound'
 import GlassCard from '@/components/ui/glass-card'
 
 interface FamilyMembersStepProps {
