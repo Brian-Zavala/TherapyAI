@@ -633,7 +633,7 @@ function Dashboard({ data }) {
 ## Development Workflow
 
 1. **Task Management**: Break down → Prioritize → Track with TodoWrite tool
-2. **VAPI Changes**: 🚨 READ `/VAPI-COMPLETE-GUIDE.md` FIRST → Implement → Test
+2. **VAPI Changes**: 🚨 READ `/docs/api/VAPI-COMPLETE-GUIDE.md` FIRST → Implement → Test
 3. **Code Changes**: Search MCP → Make changes → Update MCP memory
 4. **Testing**: Isolate tests → Integration checks → Validate flow
 5. **Documentation**: Update MCP entities → Document fixes → Update CLAUDE.md
