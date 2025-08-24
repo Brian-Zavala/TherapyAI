@@ -8,16 +8,37 @@ Production-ready Next.js 15 therapy platform with enterprise voice AI.
 
 🚨 **CRITICAL**: Platform is **NOT HIPAA COMPLIANT**. See [HIPAA-COMPLIANCE.md](./HIPAA-COMPLIANCE.md) for required actions before handling real patient data.
 
+## 🚀 React 19 Modern Standards (2025)
+
+**MANDATORY: Use React 19's latest features - NO legacy patterns!**
+
+### Must-Use Hooks
+- **`useOptimistic`**: Instant UI updates with auto-rollback on failure
+- **`useActionState`**: Form state + pending states in one hook
+- **`use()`**: Read promises/context directly (works in loops/conditionals!)
+- **`useFormStatus`**: Access form state without prop drilling
+- **`useTransition`**: Async support for non-blocking updates
+- **`useDeferredValue`**: Control expensive re-renders
+
+### Modern Patterns
+- **Actions API**: Async functions with automatic pending/error states
+- **Server Components**: Use RSC for data fetching (stable in v19)
+- **Render-as-you-fetch**: Start rendering immediately, update progressively
+- **No useEffect for data**: Use `use()` hook or Server Components
+
+### Performance First
+- Concurrent rendering by default
+- Suspense for all async operations
+- Error boundaries for global error handling
+
 ## 🚨🚨 CRITICAL UI/UX REQUIREMENT 🚨🚨
 
-**MANDATORY FOR ALL UI UPDATES/CREATION:**
-- **ALWAYS** refer to `/src/components/CLAUDE.md` for responsive design guidelines
-- **NEVER** create UI without following the mobile-first responsive patterns
-- **MUST** test on 375px width (iPhone SE) before considering any UI complete
-- **Key patterns**: `text-sm sm:text-base`, `p-3 sm:p-4`, `flex flex-col sm:flex-row`
-- **Failure to follow responsive guidelines = BROKEN UI ON MOBILE**
+**MANDATORY FOR ALL UI UPDATES:**
+- **ALWAYS** follow mobile-first patterns in `/src/components/CLAUDE.md`
+- **MUST** test on 375px width (iPhone SE)
+- **Key patterns**: `text-sm sm:text-base`, `p-3 sm:p-4`
 
-See detailed patterns in `/src/components/CLAUDE.md` → "📱 Responsive Design Guidelines"
+See `/src/components/CLAUDE.md` → "📱 Responsive Design Guidelines"
 
 ## 🧠 MCP Memory Usage & Learning from Mistakes
 
@@ -528,21 +549,39 @@ Contains:
 
 
 
-## Core Patterns
+## Core Patterns (React 19 Style)
 
 ```typescript
-// API Route
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+// ✅ Modern Form with useActionState + useOptimistic
+function TherapyForm() {
+  const [optimisticData, setOptimistic] = useOptimistic(data);
+  const [state, submitAction, isPending] = useActionState(
+    async (prev, formData) => {
+      setOptimistic(formData); // Instant UI update
+      return await saveTherapySession(formData);
+    }
+  );
+  
+  return <form action={submitAction}>...</form>;
 }
 
-// VAPI Webhook (5s timeout)
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  processWebhookAsync(body.message); // Fire & forget
-  return NextResponse.json({ success: true });
+// ✅ Data Fetching with use() hook - NO useEffect!
+function SessionData({ sessionId }) {
+  const session = use(fetchSession(sessionId)); // Suspense-enabled
+  return <div>{session.data}</div>;
+}
+
+// ✅ Performance with useTransition + useDeferredValue
+function Dashboard({ data }) {
+  const [isPending, startTransition] = useTransition();
+  const deferredMetrics = useDeferredValue(data.metrics);
+  
+  return (
+    <>
+      <QuickStats data={data.stats} /> {/* Immediate */}
+      <ExpensiveChart data={deferredMetrics} /> {/* Deferred */}
+    </>
+  );
 }
 ```
 
@@ -556,10 +595,12 @@ export async function POST(request: NextRequest) {
 - **Redis Parse**: Try-catch JSON.parse
 
 ### Migration Notes
+- **React 19**: Stop using `useEffect` for data fetching
+- **Forms**: Replace manual state with `useActionState`
+- **Optimistic UI**: Use `useOptimistic` not manual rollback
 - **Sentry v8**: Remove `autoSessionTracking`
 - **React Query v5**: `cacheTime` → `gcTime`
 - **Prisma**: Uppercase enums (COMPLETED)
-- **VAPI**: Must reference `/docs/api/VAPI-COMPLETE-GUIDE.md`
 
 
 ## MCP Tools
