@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useRef, useState, useEffect, Suspense, lazy } from "react";
 import dynamic from "next/dynamic";
-import ImagePreloader from "@/components/ImagePreloader";
+import ImagePreloader from "@/components/ui/images/ImagePreloader";
 
 // Framer Motion imports
 import {
@@ -18,9 +18,9 @@ import {
 } from "framer-motion";
 
 // Regular imports
-import ButtonWithSound from "@/components/ButtonWithSound";
-import ScrollDownArrow from "@/components/ScrollDownArrow";
-import TypewriterText from "@/components/TypewriterText";
+import ButtonWithSound from "@/components/ui/buttons/ButtonWithSound";
+import ScrollDownArrow from "@/components/ui/buttons/ScrollDownArrow";
+import TypewriterText from "@/components/ui/display/TypewriterText";
 import { ImagesSlider, ImageConfig } from "@/components/ui/images-slider";
 
 // Dynamic imports with loading fallbacks

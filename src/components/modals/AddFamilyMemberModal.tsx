@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState, useOptimistic } from 'react';
+import { useFormStatus } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -12,17 +13,92 @@ interface AddFamilyMemberModalProps {
   existingMembers: string[];
 }
 
+// Form state type
+type FormState = {
+  error: string | null;
+  success: boolean;
+};
+
+// Submit button component to use useFormStatus
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer ${
+        pending 
+          ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+          : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transform hover:scale-105'
+      }`}
+    >
+      {pending ? (
+        <span className="flex items-center justify-center gap-2">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+          />
+          Adding...
+        </span>
+      ) : (
+        'Add Member'
+      )}
+    </button>
+  );
+}
+
 export default function AddFamilyMemberModal({
   isOpen,
   onClose,
   onAdd,
   existingMembers
 }: AddFamilyMemberModalProps) {
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
-  const [relationship, setRelationship] = useState('');
-  const [error, setError] = useState('');
   const [isClient, setIsClient] = useState(false);
+  
+  // Optimistic state for instant UI feedback
+  const [optimisticMembers, addOptimisticMember] = useOptimistic(
+    existingMembers,
+    (current: string[], newMember: string) => [...current, newMember]
+  );
+
+  // Form action state with built-in pending state
+  const [formState, formAction] = useActionState(
+    async (prevState: FormState, formData: FormData): Promise<FormState> => {
+      const name = formData.get('name') as string;
+      const age = formData.get('age') as string;
+      const relationship = formData.get('relationship') as string;
+      
+      // Validation
+      if (!name.trim()) {
+        return { error: 'Please enter a name', success: false };
+      }
+      
+      if (optimisticMembers.includes(name.trim())) {
+        return { error: 'This family member already exists', success: false };
+      }
+      
+      // Optimistically add the member for instant feedback
+      addOptimisticMember(name.trim());
+      
+      // Call the parent's onAdd function
+      try {
+        await Promise.resolve(onAdd({ 
+          name: name.trim(), 
+          age: age.trim(), 
+          relationship: relationship.trim() 
+        }));
+        
+        // Success - close modal after a brief delay
+        setTimeout(() => onClose(), 100);
+        return { error: null, success: true };
+      } catch (error) {
+        return { error: 'Failed to add family member', success: false };
+      }
+    },
+    { error: null, success: false }
+  );
 
   useEffect(() => {
     setIsClient(true);
@@ -30,30 +106,11 @@ export default function AddFamilyMemberModal({
 
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setAge('');
-      setRelationship('');
-      setError('');
+      // Reset form state when modal opens
+      formState.error = null;
+      formState.success = false;
     }
   }, [isOpen]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!name.trim()) {
-      setError('Please enter a name');
-      return;
-    }
-
-    if (existingMembers.includes(name.trim())) {
-      setError('This family member already exists');
-      return;
-    }
-
-    onAdd({ name: name.trim(), age: age.trim(), relationship: relationship.trim() });
-    onClose();
-  };
 
   const modalContent = (
     <AnimatePresence>
@@ -92,11 +149,15 @@ export default function AddFamilyMemberModal({
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                {error && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <p className="text-red-300 text-sm sm:text-base sm:text-lg">{error}</p>
-                  </div>
+              <form action={formAction} className="p-6 space-y-4">
+                {formState.error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg"
+                  >
+                    <p className="text-red-300 text-sm sm:text-base sm:text-lg">{formState.error}</p>
+                  </motion.div>
                 )}
 
                 <div>
@@ -105,8 +166,7 @@ export default function AddFamilyMemberModal({
                   </label>
                   <input
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    name="name"
                     placeholder="Enter family member's name"
                     className="w-full px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-colors cursor-pointer"
                     autoFocus
@@ -119,8 +179,7 @@ export default function AddFamilyMemberModal({
                   </label>
                   <input
                     type="number"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
+                    name="age"
                     placeholder="Enter age (optional)"
                     min="0"
                     max="120"
@@ -133,8 +192,8 @@ export default function AddFamilyMemberModal({
                     Relationship
                   </label>
                   <select
-                    value={relationship}
-                    onChange={(e) => setRelationship(e.target.value)}
+                    name="relationship"
+                    defaultValue=""
                     className="w-full px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-colors cursor-pointer"
                   >
                     <option value="" className="bg-gray-800">Select relationship</option>
@@ -236,12 +295,7 @@ export default function AddFamilyMemberModal({
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all cursor-pointer duration-200 font-medium"
-                  >
-                    Add Member
-                  </button>
+                  <SubmitButton />
                 </div>
               </form>
             </div>

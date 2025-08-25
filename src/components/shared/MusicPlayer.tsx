@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSoundContext } from './SoundProvider'
+import { useSoundContext } from '@/components/providers/SoundProvider'
 import { usePathname } from 'next/navigation'
 import { 
   Music, 

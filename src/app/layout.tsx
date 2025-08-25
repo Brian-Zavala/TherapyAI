@@ -1,11 +1,11 @@
 // src/app/layout.tsx
 import { ReactNode } from "react";
-import { ClientProviders } from "@/components/ClientComponents";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ClientProviders } from "@/components/shared/ClientComponents";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 // Run VAPI startup check on server
 if (typeof window === 'undefined') {
-  import('@/lib/vapi-startup-check');
+  import('@/lib/vapi/vapi-startup-check');
 }
 
 import "./globals.css";

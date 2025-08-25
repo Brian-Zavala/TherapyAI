@@ -1,11 +1,11 @@
 "use client";
 
 import { ReactNode } from "react";
-import { SoundProvider } from "@/components/SoundProvider";
-import MusicPlayer from "@/components/MusicPlayer";
-import SpotlightManager from "@/components/SpotlightManager";
-import AuthProvider from "@/components/AuthProvider";
-import Navigation from "@/components/Navigation";
+import { SoundProvider } from "@/components/providers/SoundProvider";
+import MusicPlayer from "@/components/shared/MusicPlayer";
+import SpotlightManager from "@/components/layout/SpotlightManager";
+import AuthProvider from "@/components/providers/AuthProvider";
+import Navigation from "@/components/layout/Navigation";
 import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 import { ProfileProvider } from "@/providers/ProfileProvider";
 import { NotificationProvider } from "@/providers/NotificationProvider";

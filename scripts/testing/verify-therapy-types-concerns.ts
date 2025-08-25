@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { formatConcernsForVAPI } from '../src/lib/concerns-formatter';
+import { formatConcernsForVAPI } from '../../src/lib/services/concerns-formatter';
 
 console.log('🎯 Verifying Concerns Work for All Therapy Types\n');
 

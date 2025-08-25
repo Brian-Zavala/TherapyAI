@@ -3,9 +3,9 @@ import Vapi from "@vapi-ai/web";
 import {
   formatConcernsForVAPI,
   migrateLegacyConcerns,
-} from "./concerns-formatter";
-import { getDurationTools, getDurationAwareSystemPrompt } from "./vapi-duration-tools";
-import { getCommunicationGuidance, buildCommunicationInstructions } from './vapi-communication-styles';
+} from "./services/concerns-formatter";
+import { getDurationTools, getDurationAwareSystemPrompt } from "./vapi/vapi-duration-tools";
+import { getCommunicationGuidance, buildCommunicationInstructions } from './vapi/vapi-communication-styles';
 
 // 2025 Standard: Type definitions
 export interface VapiInitOptions {

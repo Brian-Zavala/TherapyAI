@@ -56,7 +56,7 @@ export async function register() {
     
     try {
       // Warm up database connection to prevent cold start delays
-      const { warmupDatabase } = await import('./lib/db-warmup')
+      const { warmupDatabase } = await import('./lib/database/db-warmup')
       await warmupDatabase()
       
       // Initialize other services that might have cold start issues

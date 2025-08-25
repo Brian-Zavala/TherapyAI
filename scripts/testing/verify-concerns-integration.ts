@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
-import { prisma } from '../src/lib/prisma';
-import { formatConcernsForVAPI, getConcernsSummary, migrateLegacyConcerns } from '../src/lib/concerns-formatter';
-import { THERAPY_CONCERNS, getConcernsByIds } from '../src/data/therapy-concerns';
+import { prisma } from '../../src/lib/database/prisma';
+import { formatConcernsForVAPI, getConcernsSummary, migrateLegacyConcerns } from '../../src/lib/services/concerns-formatter';
+import { THERAPY_CONCERNS, getConcernsByIds } from '../../src/data/therapy-concerns';
 
 async function verifyConcernsIntegration() {
   console.log('🔍 Verifying Concerns Integration...\n');

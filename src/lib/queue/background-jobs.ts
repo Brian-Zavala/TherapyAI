@@ -267,12 +267,12 @@ async function updateJob(job: Job) {
 async function processJob(job: Job) {
   switch (job.type) {
     case JobType.SEND_WELCOME_MESSAGES:
-      const { sendWelcomeMessages } = await import('@/lib/welcome-messages')
+      const { sendWelcomeMessages } = await import('@/lib/notifications/welcome-messages')
       await sendWelcomeMessages(job.data)
       break
       
     case JobType.SEND_SESSION_REMINDER:
-      const { sendSessionReminder } = await import('@/lib/sms-service')
+      const { sendSessionReminder } = await import('@/lib/notifications/sms-service')
       await sendSessionReminder(job.data.userId, job.data.sessionTime)
       break
       

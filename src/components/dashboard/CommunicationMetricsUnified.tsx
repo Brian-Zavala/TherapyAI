@@ -1,7 +1,7 @@
 // src/components/dashboard/CommunicationMetricsUnified.tsx
 "use client";
 
-import React from 'react';
+import React, { useDeferredValue, useTransition } from 'react';
 import { motion } from 'framer-motion';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
 import { useCommunicationMetricsFromContext } from '@/hooks/useDashboardContext';
@@ -104,29 +104,37 @@ function MetricItem({ label, value, icon, trend, metricType, index, isAnimating 
   const theme = getMetricTheme(metricType);
   const trendData = trend ? dashboardTheme.getTrendIcon(trend) : null;
   
+  // Use deferred values for expensive animations
+  const deferredValue = useDeferredValue(value);
+  const deferredIsAnimating = useDeferredValue(isAnimating);
+  const [isPending, startTransition] = useTransition();
+  
   // Smooth value animation
   const [displayValue, setDisplayValue] = React.useState(0);
   const [hasReachedTarget, setHasReachedTarget] = React.useState(false);
   const [showCounterMorph, setShowCounterMorph] = React.useState(false);
   
   React.useEffect(() => {
+    // Use transition for non-urgent updates
     const timer = setTimeout(() => {
-      const wasZero = displayValue === 0;
-      setDisplayValue(value);
-      // Trigger flourish animation when first reaching target
-      if (wasZero && value > 0) {
-        setTimeout(() => {
-          setHasReachedTarget(true);
-          setTimeout(() => setHasReachedTarget(false), 600);
-        }, 1200); // Wait for progress bar to finish animating
-      }
+      startTransition(() => {
+        const wasZero = displayValue === 0;
+        setDisplayValue(deferredValue);
+        // Trigger flourish animation when first reaching target
+        if (wasZero && deferredValue > 0) {
+          setTimeout(() => {
+            setHasReachedTarget(true);
+            setTimeout(() => setHasReachedTarget(false), 600);
+          }, 1200); // Wait for progress bar to finish animating
+        }
+      });
     }, 100);
     return () => clearTimeout(timer);
-  }, [value, displayValue]);
+  }, [deferredValue, displayValue]);
   
-  // Trigger counter morph animation periodically
+  // Trigger counter morph animation periodically with deferred values
   React.useEffect(() => {
-    if (isAnimating && value > 0) {
+    if (deferredIsAnimating && deferredValue > 0) {
       const morphTimeout = setTimeout(() => {
         setShowCounterMorph(true);
         setTimeout(() => setShowCounterMorph(false), 600);
@@ -134,7 +142,7 @@ function MetricItem({ label, value, icon, trend, metricType, index, isAnimating 
       
       return () => clearTimeout(morphTimeout);
     }
-  }, [isAnimating, value, index]);
+  }, [deferredIsAnimating, deferredValue, index]);
 
   return (
     <motion.div 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useTransition, useDeferredValue } from 'react'
 import { motion } from 'framer-motion'
 
 interface SessionTimerProps {
@@ -25,16 +25,21 @@ export default function SessionTimer({
   const [remainingSeconds, setRemainingSeconds] = useState(durationMinutes * 60)
   const [isExpired, setIsExpired] = useState(false)
   
+  // Use deferred values for expensive calculations
+  const deferredConversationTime = useDeferredValue(conversationTimeSeconds)
+  const deferredIsActive = useDeferredValue(isConversationActive)
+  const [isPending, startTransition] = useTransition()
+  
   // Track the last conversationTimeSeconds to detect external updates
   const lastConversationTimeRef = useRef(conversationTimeSeconds)
 
   useEffect(() => {
-    // Calculate the current remaining time
+    // Calculate the current remaining time with deferred values
     const calculateRemaining = () => {
-      let currentConversationTime = conversationTimeSeconds
+      let currentConversationTime = deferredConversationTime
       
       // Add current active segment time if conversation is active
-      if (isConversationActive && conversationStartTime) {
+      if (deferredIsActive && conversationStartTime) {
         const now = new Date()
         const currentSegmentMs = now.getTime() - conversationStartTime.getTime()
         const currentSegmentSeconds = Math.floor(currentSegmentMs / 1000)
@@ -45,56 +50,61 @@ export default function SessionTimer({
       return Math.max(0, totalSeconds - currentConversationTime)
     }
     
-    // Initial calculation
-    const initialRemaining = calculateRemaining()
-    setRemainingSeconds(initialRemaining)
+    // Initial calculation with transition for non-urgent update
+    startTransition(() => {
+      const initialRemaining = calculateRemaining()
+      setRemainingSeconds(initialRemaining)
+    })
     
     // Check if conversationTimeSeconds was updated externally
-    if (conversationTimeSeconds !== lastConversationTimeRef.current) {
-      console.log(`⏱️ External conversation time update detected: ${lastConversationTimeRef.current}s → ${conversationTimeSeconds}s`)
-      lastConversationTimeRef.current = conversationTimeSeconds
+    if (deferredConversationTime !== lastConversationTimeRef.current) {
+      console.log(`⏱️ External conversation time update detected: ${lastConversationTimeRef.current}s → ${deferredConversationTime}s`)
+      lastConversationTimeRef.current = deferredConversationTime
     }
 
     const interval = setInterval(() => {
       // Always recalculate based on current props
       const newRemaining = calculateRemaining()
       
-      setRemainingSeconds(prev => {
-        // If there's a significant difference (> 2 seconds), use the recalculated value
-        if (Math.abs(newRemaining - prev) > 2) {
-          console.log(`⏱️ Timer correction: ${prev}s → ${newRemaining}s (diff: ${prev - newRemaining}s)`)
-          return newRemaining
-        }
-        
-        // Otherwise, just count down normally if active
-        if (!isConversationActive) {
-          return prev
-        }
-        
-        const countdownRemaining = Math.max(0, prev - 1)
-        
-        // Log timer calculation for debugging (only at key moments)
-        if (countdownRemaining === 300 || countdownRemaining === 60 || countdownRemaining === 30 || countdownRemaining === 10) {
-          const usedSeconds = durationMinutes * 60 - countdownRemaining
-          console.log(`⏱️ TIMER: ${Math.floor(usedSeconds / 60)}:${(usedSeconds % 60).toString().padStart(2, '0')} used, ${Math.floor(countdownRemaining / 60)}:${(countdownRemaining % 60).toString().padStart(2, '0')} remaining (${durationMinutes}min session)`);
-        }
-        
-        if (countdownRemaining === 0 && !isExpired) {
-          setIsExpired(true)
-        }
+      // Use transition for timer updates to keep UI responsive
+      startTransition(() => {
+        setRemainingSeconds(prev => {
+          // If there's a significant difference (> 2 seconds), use the recalculated value
+          if (Math.abs(newRemaining - prev) > 2) {
+            console.log(`⏱️ Timer correction: ${prev}s → ${newRemaining}s (diff: ${prev - newRemaining}s)`)
+            return newRemaining
+          }
+          
+          // Otherwise, just count down normally if active
+          if (!deferredIsActive) {
+            return prev
+          }
+          
+          const countdownRemaining = Math.max(0, prev - 1)
+          
+          // Log timer calculation for debugging (only at key moments)
+          if (countdownRemaining === 300 || countdownRemaining === 60 || countdownRemaining === 30 || countdownRemaining === 10) {
+            const usedSeconds = durationMinutes * 60 - countdownRemaining
+            console.log(`⏱️ TIMER: ${Math.floor(usedSeconds / 60)}:${(usedSeconds % 60).toString().padStart(2, '0')} used, ${Math.floor(countdownRemaining / 60)}:${(countdownRemaining % 60).toString().padStart(2, '0')} remaining (${durationMinutes}min session)`);
+          }
+          
+          if (countdownRemaining === 0 && !isExpired) {
+            setIsExpired(true)
+          }
 
-        // Call the callback with remaining time for VAPI integration
-        if (onTimeUpdate) {
-          const remainingMinutes = Math.floor(countdownRemaining / 60)
-          onTimeUpdate(remainingMinutes, countdownRemaining)
-        }
-        
-        return countdownRemaining
+          // Call the callback with remaining time for VAPI integration
+          if (onTimeUpdate) {
+            const remainingMinutes = Math.floor(countdownRemaining / 60)
+            onTimeUpdate(remainingMinutes, countdownRemaining)
+          }
+          
+          return countdownRemaining
+        })
       })
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [durationMinutes, conversationTimeSeconds, isConversationActive, conversationStartTime, onTimeUpdate, isExpired])
+  }, [durationMinutes, deferredConversationTime, deferredIsActive, conversationStartTime, onTimeUpdate, isExpired])
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {

@@ -7,13 +7,13 @@ export const runtime = 'nodejs'
 export const maxDuration = 30 // 30 seconds max for Railway
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma-optimized"
+import { prisma } from "@/lib/database/prisma-optimized"
 import { profileCache, cacheKeys } from "@/lib/cache/profile-cache"
 import { findUserByEmailOptimized } from "@/lib/database/optimized-user-queries"
 import { jobQueue, JobType } from "@/lib/queue/background-jobs"
-import { formatPhoneNumber, validatePhoneNumber } from "@/lib/sms-service"
-import type { WelcomeUser } from "@/lib/welcome-messages"
-import { notificationPrefsSchema, preferredDaysSchema, currentConcernsSchema, onboardingDataSchema } from "@/lib/zod-schemas";
+import { formatPhoneNumber, validatePhoneNumber } from "@/lib/notifications/sms-service"
+import type { WelcomeUser } from "@/lib/notifications/welcome-messages"
+import { notificationPrefsSchema, preferredDaysSchema, currentConcernsSchema, onboardingDataSchema } from "@/lib/utils/zod-schemas";
 
 // Cache control headers
 const CACHE_HEADERS = {

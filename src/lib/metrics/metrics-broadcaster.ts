@@ -3,7 +3,7 @@
 
 import { createClient } from '@/utils/supabase/client';
 import type { IncrementalMetrics } from './real-time-metrics-optimized';
-import { REALTIME_CHANNELS, REALTIME_EVENTS } from './supabase-realtime-config';
+import { REALTIME_CHANNELS, REALTIME_EVENTS } from '../database/supabase-realtime-config';
 
 interface MetricsBroadcastOptions {
   userId: string;

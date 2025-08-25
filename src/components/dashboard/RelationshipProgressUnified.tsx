@@ -1,7 +1,7 @@
 // src/components/dashboard/RelationshipProgressUnified.tsx
 "use client";
 
-import React from 'react';
+import React, { useDeferredValue, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -38,10 +38,17 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
   const theme = getMetricTheme(metricType);
   const [displayValue, setDisplayValue] = React.useState(0);
   
+  // Use deferred value for expensive animation calculations
+  const deferredValue = useDeferredValue(value);
+  const [isPending, startTransition] = useTransition();
+  
   React.useEffect(() => {
-    const timer = setTimeout(() => setDisplayValue(value), 100);
-    return () => clearTimeout(timer);
-  }, [value]);
+    // Use transition for non-urgent animation updates
+    startTransition(() => {
+      const timer = setTimeout(() => setDisplayValue(deferredValue), 100);
+      return () => clearTimeout(timer);
+    });
+  }, [deferredValue]);
 
   // Determine achievement level
   const getAchievementBadge = (val: number) => {
@@ -51,7 +58,8 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
     return null;
   };
 
-  const achievement = getAchievementBadge(value);
+  // Use deferred value for badge calculation
+  const achievement = getAchievementBadge(deferredValue);
 
   return (
     <motion.div 

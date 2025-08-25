@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 import Vapi from "@vapi-ai/web";
@@ -117,12 +117,28 @@ export default function TherapyButtonDirectEnhanced({
   const vapiRef = useRef<Vapi | null>(null);
   const [vapi, setVapi] = useState<Vapi | null>(null);
 
-  // Connection state
+  // Connection state with optimistic updates for instant UI feedback
   const [isConnected, setIsConnected] = useState(false);
+  const [optimisticConnected, setOptimisticConnected] = useOptimistic(
+    isConnected,
+    (state, newState: boolean) => newState
+  );
+  
   const [isConnecting, setIsConnecting] = useState(false);
+  const [optimisticConnecting, setOptimisticConnecting] = useOptimistic(
+    isConnecting,
+    (state, newState: boolean) => newState
+  );
+  
   const [assistantIsSpeaking, setAssistantIsSpeaking] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(0);
+  
+  // Mute state with optimistic update for instant feedback
   const [isMuted, setIsMuted] = useState(false);
+  const [optimisticMuted, setOptimisticMuted] = useOptimistic(
+    isMuted,
+    (state, newState: boolean) => newState
+  );
 
   // Session state (replaces useSessionManagementV2)
   const [session, setSession] = useState<SessionState | null>(null);
@@ -134,7 +150,14 @@ export default function TherapyButtonDirectEnhanced({
   const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<FamilyMember[]>(
     []
   );
+  
+  // Pause state with optimistic update for instant UI feedback
   const [isPaused, setIsPaused] = useState(false);
+  const [optimisticPaused, setOptimisticPaused] = useOptimistic(
+    isPaused,
+    (state, newState: boolean) => newState
+  );
+  
   const conversationTimerRef = useRef<NodeJS.Timeout>();
   const pauseTimestampRef = useRef<number>();
 
@@ -165,6 +188,9 @@ export default function TherapyButtonDirectEnhanced({
   const reconnectAttemptsRef = useRef(0);
   const timeWarningsRef = useRef<Set<number>>(new Set());
   const sessionChannelRef = useRef<any>(null);
+  
+  // Transition for async operations
+  const [isPending, startTransition] = useTransition();
 
   /**
    * Initialize VAPI instance (singleton pattern)
@@ -258,12 +284,12 @@ export default function TherapyButtonDirectEnhanced({
 
     // Cleanup
     return () => {
-      if (isConnected && vapi) {
+      if (optimisticConnected && vapi) {
         vapi.stop();
       }
       cleanupSession();
     };
-  }, [vapi, session]);
+  }, [vapi, session, optimisticConnected]);
 
   /**
    * Set up Supabase real-time subscriptions (replaces useSupabaseSessionState)
@@ -289,7 +315,7 @@ export default function TherapyButtonDirectEnhanced({
    * Conversation timer (replaces session management timing)
    */
   useEffect(() => {
-    if (session && isConnected && !isPaused) {
+    if (session && optimisticConnected && !optimisticPaused) {
       conversationTimerRef.current = setInterval(() => {
         updateConversationTime();
       }, 100); // Update every 100ms for accuracy
@@ -304,7 +330,7 @@ export default function TherapyButtonDirectEnhanced({
         clearInterval(conversationTimerRef.current);
       }
     };
-  }, [session, isConnected, isPaused]);
+  }, [session, optimisticConnected, optimisticPaused]);
 
   /**
    * Fetch user credits
@@ -373,7 +399,9 @@ export default function TherapyButtonDirectEnhanced({
    */
   const handleCallStart = () => {
     setIsConnected(true);
+    setOptimisticConnected(true);
     setIsConnecting(false);
+    setOptimisticConnecting(false);
 
     // Start conversation timer
     if (session) {
@@ -409,9 +437,15 @@ export default function TherapyButtonDirectEnhanced({
    */
   const handleCallEnd = async () => {
     setIsConnected(false);
+    setOptimisticConnected(false);
     setIsConnecting(false);
+    setOptimisticConnecting(false);
     setAssistantIsSpeaking(false);
     setVolumeLevel(0);
+    setIsMuted(false);
+    setOptimisticMuted(false);
+    setIsPaused(false);
+    setOptimisticPaused(false);
 
     // Complete session
     if (session) {
@@ -560,10 +594,10 @@ export default function TherapyButtonDirectEnhanced({
   };
 
   /**
-   * Start therapy session
+   * Start therapy session with optimistic updates
    */
   const startCall = async () => {
-    if (!vapi || isConnecting || isConnected) return;
+    if (!vapi || optimisticConnecting || optimisticConnected) return;
 
     // Validate credits
     if (userCredits === null || userCredits < (sessionDuration || 15)) {
@@ -583,10 +617,13 @@ export default function TherapyButtonDirectEnhanced({
       return;
     }
 
+    // Optimistic update for instant UI feedback
+    setOptimisticConnecting(true);
+    playSound();
+
     try {
       setIsConnecting(true);
       setError(null);
-      playSound();
 
       // Create session in database with credit validation
       const sessionResponse = await fetch("/api/sessions/create-with-credits", {
@@ -717,7 +754,9 @@ export default function TherapyButtonDirectEnhanced({
       );
     } catch (error: any) {
       console.error("[VAPI] Failed to start:", error);
+      // Revert optimistic state on error
       setIsConnecting(false);
+      setOptimisticConnecting(false);
       setError(error.message || "Failed to start therapy session");
       toast.error("Failed to start session", {
         description: error.message || "Please try again",
@@ -736,62 +775,72 @@ export default function TherapyButtonDirectEnhanced({
   }, [vapi, playSound]);
 
   /**
-   * Pause session
+   * Pause session with optimistic update for instant UI feedback
    */
   const pauseSession = useCallback(async () => {
-    if (!vapi || !isConnected || !session) return;
+    if (!vapi || !optimisticConnected || !session) return;
     
     // Prevent double pause
-    if (isPaused) {
+    if (optimisticPaused) {
       console.log("[Session] Already paused, skipping");
       return;
     }
 
-    setIsPaused(true);
+    // Optimistic update for instant UI feedback
+    setOptimisticPaused(true);
     pauseTimestampRef.current = Date.now();
-    vapi.setMuted(true);
+    
+    // Start transition for async operations
+    startTransition(async () => {
+      try {
+        vapi.setMuted(true);
+        setIsPaused(true);
 
-    // Update session state
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            status: "PAUSED",
-            pausedAt: new Date(),
-          }
-        : null
-    );
+        // Update session state
+        setSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "PAUSED",
+                pausedAt: new Date(),
+              }
+            : null
+        );
 
-    // Broadcast pause state
-    if (sessionChannelRef.current) {
-      sessionChannelRef.current.send({
-        type: "broadcast",
-        event: "session-update",
-        payload: { status: "PAUSED" },
-      });
-    }
+        // Broadcast pause state
+        if (sessionChannelRef.current) {
+          sessionChannelRef.current.send({
+            type: "broadcast",
+            event: "session-update",
+            payload: { status: "PAUSED" },
+          });
+        }
 
-    // Update database (idempotent endpoint)
-    try {
-      await fetch(`/api/sessions/${session.id}/pause`, {
-        method: "POST",
-      });
-    } catch (error) {
-      console.error("[Session] Failed to pause in database:", error);
-    }
+        // Update database (idempotent endpoint)
+        await fetch(`/api/sessions/${session.id}/pause`, {
+          method: "POST",
+        });
+        
+        toast.info("Session paused");
+      } catch (error) {
+        // Rollback on error
+        console.error("[Session] Failed to pause:", error);
+        setIsPaused(false);
+        toast.error("Failed to pause session");
+      }
+    });
 
-    toast.info("Session paused");
     playSound();
-  }, [vapi, isConnected, session, isPaused, playSound]);
+  }, [vapi, optimisticConnected, session, optimisticPaused, playSound, startTransition]);
 
   /**
-   * Resume session
+   * Resume session with optimistic update for instant UI feedback
    */
   const resumeSession = useCallback(async () => {
-    if (!vapi || !isConnected || !session) return;
+    if (!vapi || !optimisticConnected || !session) return;
     
     // Prevent double resume
-    if (!isPaused) {
+    if (!optimisticPaused) {
       console.log("[Session] Already active, skipping resume");
       return;
     }
@@ -801,56 +850,79 @@ export default function TherapyButtonDirectEnhanced({
       ? Date.now() - pauseTimestampRef.current
       : 0;
 
-    setIsPaused(false);
-    vapi.setMuted(false);
+    // Optimistic update for instant UI feedback
+    setOptimisticPaused(false);
+    
+    // Start transition for async operations
+    startTransition(async () => {
+      try {
+        vapi.setMuted(false);
+        setIsPaused(false);
 
-    // Update session state
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            status: "ACTIVE",
-            pausedAt: undefined,
-            totalPausedTime: prev.totalPausedTime + pausedDuration,
-          }
-        : null
-    );
+        // Update session state
+        setSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "ACTIVE",
+                pausedAt: undefined,
+                totalPausedTime: prev.totalPausedTime + pausedDuration,
+              }
+            : null
+        );
 
-    // Broadcast resume state
-    if (sessionChannelRef.current) {
-      sessionChannelRef.current.send({
-        type: "broadcast",
-        event: "session-update",
-        payload: { status: "ACTIVE" },
-      });
-    }
+        // Broadcast resume state
+        if (sessionChannelRef.current) {
+          sessionChannelRef.current.send({
+            type: "broadcast",
+            event: "session-update",
+            payload: { status: "ACTIVE" },
+          });
+        }
 
-    // Update database
-    try {
-      await fetch(`/api/sessions/${session.id}/resume`, {
-        method: "POST",
-      });
-    } catch (error) {
-      console.error("[Session] Failed to resume in database:", error);
-    }
+        // Update database
+        await fetch(`/api/sessions/${session.id}/resume`, {
+          method: "POST",
+        });
+        
+        toast.success("Session resumed");
+      } catch (error) {
+        // Rollback on error
+        console.error("[Session] Failed to resume:", error);
+        setIsPaused(true);
+        toast.error("Failed to resume session");
+      }
+    });
 
-    toast.success("Session resumed");
     playSound();
-  }, [vapi, isConnected, session, isPaused, playSound]);
+  }, [vapi, optimisticConnected, session, optimisticPaused, playSound, startTransition]);
 
   /**
-   * Toggle mute
+   * Toggle mute with optimistic update for instant UI feedback
    */
   const toggleMute = useCallback(() => {
-    if (!vapi || !isConnected) return;
+    if (!vapi || !optimisticConnected) return;
 
-    const newMutedState = !isMuted;
-    vapi.setMuted(newMutedState);
-    setIsMuted(newMutedState);
-
-    toast.info(newMutedState ? "Microphone muted" : "Microphone unmuted");
+    const newMutedState = !optimisticMuted;
+    
+    // Optimistic update for instant UI feedback
+    setOptimisticMuted(newMutedState);
+    
+    // Start transition for async operation
+    startTransition(async () => {
+      try {
+        vapi.setMuted(newMutedState);
+        setIsMuted(newMutedState);
+        toast.info(newMutedState ? "Microphone muted" : "Microphone unmuted");
+      } catch (error) {
+        // Rollback on error
+        setIsMuted(!newMutedState);
+        toast.error("Failed to toggle mute");
+      }
+    });
+    
     playSound();
-  }, [vapi, isConnected, isMuted, playSound]);
+  }, [vapi, optimisticConnected, optimisticMuted, playSound, startTransition]);
 
   /**
    * Complete session
@@ -1070,7 +1142,7 @@ export default function TherapyButtonDirectEnhanced({
   return (
     <>
       {/* Start button */}
-      {!isConnected && !isConnecting && !session && (
+      {!optimisticConnected && !optimisticConnecting && !session && (
         <button
           onClick={() => setShowDurationModal(true)}
           disabled={
@@ -1099,20 +1171,20 @@ export default function TherapyButtonDirectEnhanced({
       )}
 
       {/* Active session UI */}
-      {(isConnecting || isConnected || session) && (
+      {(optimisticConnecting || optimisticConnected || session) && (
         <div className="fixed inset-0 z-50 bg-gradient-to-br from-purple-50 to-blue-50">
           <div className="container mx-auto px-4 py-8 h-full flex flex-col">
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                {isConnecting
+                {optimisticConnecting
                   ? loadingMessages[loadingMessageIndex]
                   : "Therapy Session Active"}
               </h1>
               {session && (
                 <SessionTimerV2
                   startTime={session.startTime}
-                  isPaused={isPaused}
+                  isPaused={optimisticPaused}
                   maxDuration={session.duration}
                   conversationTime={session.conversationTime}
                 />
@@ -1127,7 +1199,7 @@ export default function TherapyButtonDirectEnhanced({
             {/* Voice waveform */}
             <div className="flex-1 flex items-center justify-center mb-8">
               <VoiceWaveform
-                isActive={isConnected && !isPaused}
+                isActive={optimisticConnected && !optimisticPaused}
                 audioLevel={volumeLevel}
                 isSpeaking={assistantIsSpeaking}
               />
@@ -1145,12 +1217,12 @@ export default function TherapyButtonDirectEnhanced({
             {/* Controls */}
             <div className="flex justify-center gap-4 mb-8">
               <CallControlsOptimized
-                isMuted={isMuted}
-                isPaused={isPaused}
+                isMuted={optimisticMuted}
+                isPaused={optimisticPaused}
                 onToggleMute={toggleMute}
-                onTogglePause={isPaused ? resumeSession : pauseSession}
+                onTogglePause={optimisticPaused ? resumeSession : pauseSession}
                 onEndCall={stopCall}
-                disabled={!isConnected}
+                disabled={!optimisticConnected}
               />
             </div>
 
