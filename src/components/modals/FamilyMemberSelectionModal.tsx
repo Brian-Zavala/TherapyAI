@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, User, UserCheck, UserX, AlertCircle, CheckCircle } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import FamilyMemberCard from './FamilyMemberCard';
+import FamilyMemberCard from '../features/family/FamilyMemberCard';
 import RemoveMemberConfirmationModal from './RemoveMemberConfirmationModal';
 
 interface FamilyMember {

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
-import TherapyTypeSelector from "@/components/TherapyTypeSelector";
-import PreSessionWarmup from "@/components/PreSessionWarmup";
-import DigitalClock from "@/components/DigitalClock";
-import UnifiedSessionModal, { SessionModalMode } from "@/components/UnifiedSessionModal";
+import { TherapyButtonWrapper as TherapyButton } from "@/components/therapy/TherapyButtonWrapper";
+import TherapyTypeSelector from "@/components/therapy/TherapyTypeSelector";
+import PreSessionWarmup from "@/components/sessions/PreSessionWarmup";
+import DigitalClock from "@/components/ui/display/DigitalClock";
+import UnifiedSessionModal, { SessionModalMode } from "@/components/modals/UnifiedSessionModal";
 import { useTherapySessionRecovery } from "@/hooks/useTherapySessionRecovery";
 import { motion, AnimatePresence } from "framer-motion";
 import type { TherapyType } from "@/types/therapy-session";
@@ -19,7 +19,7 @@ import { useProfile } from "@/providers/ProfileProvider";
 import { isSessionActive as checkSessionActive } from "@/lib/utils/session-status";
 import { useFamilyMembersEnhanced } from "@/hooks/useFamilyMembersEnhanced";
 import { useSearchParams } from 'next/navigation';
-import CreditDisplay from "@/components/CreditDisplay";
+import CreditDisplay from "@/components/credits/CreditDisplay";
 
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import CreditDisplay from "@/components/CreditDisplay";
+import CreditDisplay from "@/components/credits/CreditDisplay";
 import { useEffect } from "react";
 
 export default function TestCreditsPage() {

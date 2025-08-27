@@ -6,11 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Spotlight } from "@/components/ui/spotlight-new";
 import GlassCard from "@/components/ui/glass-card";
 import { useSession } from "next-auth/react";
-import ButtonWithSound from "@/components/ButtonWithSound";
+import ButtonWithSound from "@/components/ui/buttons/ButtonWithSound";
 import ConfettiAnimation from "@/components/ui/confetti-animation";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import RelationshipAssessment from "@/components/RelationshipAssessment";
-import OnboardingSuccessSplash from "@/components/OnboardingSuccessSplash";
+import RelationshipAssessment from "@/components/onboarding/RelationshipAssessment";
+import OnboardingSuccessSplash from "@/components/onboarding/OnboardingSuccessSplash";
 import { usePersistentOnboarding } from "@/hooks/usePersistentOnboarding";
 // Removed scroll-utils import - using direct container scrolling instead
 

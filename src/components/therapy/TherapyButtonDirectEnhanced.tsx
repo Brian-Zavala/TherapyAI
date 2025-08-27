@@ -9,15 +9,15 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase-client";
 
 // Components
-import SessionDurationModal from "./SessionDurationModal";
+import SessionDurationModal from "../modals/SessionDurationModal";
 import TherapyTypeSelector from "./TherapyTypeSelector";
-import FamilyMemberSelectionModal from "./FamilyMemberSelectionModal";
-import UnifiedSessionModal from "./UnifiedSessionModal";
-import SessionTimerV2 from "./SessionTimerV2";
-import VoiceWaveform from "./VoiceWaveform";
-import { CallControlsOptimized } from "./therapy/CallControlsOptimized";
-import TranscriptOverlay from "./therapy/TranscriptOverlay";
-import { SessionConflictDialog } from "./SessionConflictDialog";
+import FamilyMemberSelectionModal from "../modals/FamilyMemberSelectionModal";
+import UnifiedSessionModal from "../modals/UnifiedSessionModal";
+import SessionTimerV2 from "../sessions/SessionTimerV2";
+import VoiceWaveform from "../ui/display/VoiceWaveform";
+import { CallControlsOptimized } from "./CallControlsOptimized";
+import TranscriptOverlay from "./TranscriptOverlay";
+import { SessionConflictDialog } from "../modals/SessionConflictDialog";
 
 // Hooks (only the essential ones we can't replace)
 import useButtonSound from "@/hooks/useButtonSound";

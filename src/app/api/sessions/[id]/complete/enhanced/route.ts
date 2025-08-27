@@ -116,7 +116,7 @@ export async function POST(
     const completionResult = await withTransaction(async (tx) => {
       // 1. Flush pending transcripts with transaction context
       console.log('📦 Flushing all pending transcript batches...')
-      const { flushSessionTranscripts, cleanupSessionMetrics } = await import('@/lib/transcript-service-optimized')
+      const { flushSessionTranscripts, cleanupSessionMetrics } = await import('@/lib/transcript/transcript-service-optimized')
       
       await flushSessionTranscripts(sessionId)
       

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyNotificationToken } from '@/lib/notifications/notification-tokens';
-import { prisma } from '@/lib/database/prisma-client';
+import { prisma } from '@/lib/database/prisma';
 
 export async function GET(
   request: NextRequest,

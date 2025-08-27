@@ -7,7 +7,7 @@ import {
   Loader,
   Users,
 } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/layout/Navigation";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProfile } from "@/providers/ProfileProvider";
@@ -18,9 +18,9 @@ import { UserPreferences } from "@/lib/enhanced-scheduler/types";
 import {
   formatInUserTimezone,
   getUserTimezone,
-} from "@/lib/date-utils";
+} from "@/lib/utils/date-utils";
 import { useNotificationPermissions } from "@/hooks/useNotificationPermissions";
-import { NotificationPermissionModal } from "@/components/NotificationPermissionModal";
+import { NotificationPermissionModal } from "@/components/modals/NotificationPermissionModal";
 
 interface Session {
   id: string;

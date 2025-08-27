@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAssistant, getAssistant, updateAssistant } from '@/lib/vapi/vapi-server';
-import { getPersonalizedAssistantConfig } from '@/lib/vapi/vapi';
+import { getPersonalizedAssistantConfig } from '@/lib/vapi';
 import { getServerSession, Session } from 'next-auth';
 import { prisma } from '@/lib/database/prisma-optimized';
 import { authOptions } from '@/lib/auth';

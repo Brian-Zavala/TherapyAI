@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
-import SessionTimer from './SessionTimer'
+import SessionTimer from '../sessions/SessionTimer'
 import { Clock, AlertCircle } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
