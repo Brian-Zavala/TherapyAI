@@ -59,9 +59,9 @@ export const PauseResumeButtonOptimized = memo(function PauseResumeButtonOptimiz
           ${/* Mobile-first sizing with 44px minimum touch target */''}
           w-11 h-11 min-w-[44px] min-h-[44px]
           ${/* Tablet and up */''}
-          sm:w-14 sm:h-14 sm:min-w-[56px] sm:min-h-[56px]
+          sm:w-12 sm:h-12 sm:min-w-[48px] sm:min-h-[48px]
           ${/* Desktop */''}
-          lg:w-16 lg:h-16 lg:min-w-[64px] lg:min-h-[64px]
+          lg:w-14 lg:h-14 lg:min-w-[56px] lg:min-h-[56px]
           rounded-full
           ${/* Dynamic colors with smooth transitions */''}
           ${isPaused 

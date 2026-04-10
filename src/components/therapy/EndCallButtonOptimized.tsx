@@ -49,11 +49,11 @@ export const EndCallButtonOptimized = memo(function EndCallButtonOptimized({
         className={`
           relative overflow-hidden
           ${/* Mobile-first sizing with minimum touch target */''}
-          w-16 h-16 min-w-[64px] min-h-[64px]
+          w-14 h-14 min-w-[56px] min-h-[56px]
           ${/* Tablet and up */''}
-          sm:w-20 sm:h-20 sm:min-w-[80px] sm:min-h-[80px]
+          sm:w-16 sm:h-16 sm:min-w-[64px] sm:min-h-[64px]
           ${/* Desktop */''}
-          lg:w-24 lg:h-24 lg:min-w-[96px] lg:min-h-[96px]
+          lg:w-18 lg:h-18 lg:min-w-[72px] lg:min-h-[72px]
           ${/* Styling */''}
           rounded-full
           bg-gradient-to-br from-red-600 to-red-700
@@ -106,7 +106,7 @@ export const EndCallButtonOptimized = memo(function EndCallButtonOptimized({
           ) : (
             <motion.svg 
               xmlns="http://www.w3.org/2000/svg" 
-              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white"
+              className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white"
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"

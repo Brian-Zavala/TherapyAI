@@ -82,8 +82,8 @@ export const CallControlsOptimized = memo(function CallControlsOptimized({
           relative overflow-hidden
           ${/* Mobile-first sizing */''}
           w-11 h-11 min-w-[44px] min-h-[44px]
-          sm:w-14 sm:h-14 sm:min-w-[56px] sm:min-h-[56px]
-          lg:w-16 lg:h-16 lg:min-w-[64px] lg:min-h-[64px]
+          sm:w-12 sm:h-12 sm:min-w-[48px] sm:min-h-[48px]
+          lg:w-14 lg:h-14 lg:min-w-[56px] lg:min-h-[56px]
           rounded-full
           ${isMuted 
             ? 'bg-gradient-to-br from-gray-600 to-gray-700' 
@@ -167,35 +167,10 @@ export const CallControlsOptimized = memo(function CallControlsOptimized({
         initial="hidden"
         animate="visible"
         exit="exit"
-        className={`
-          ${/* Container positioning */''}
-          fixed bottom-0 inset-x-0
-          ${/* Background with blur */''}
-          bg-gradient-to-t from-gray-900/95 via-gray-900/90 to-transparent
-          backdrop-blur-md
-          ${/* Border */''}
-          border-t border-gray-800/50
-          ${/* Padding responsive */''}
-          p-4 sm:p-6 lg:p-8
-          ${/* Safe area for mobile devices */''}
-          pb-safe sm:pb-6 lg:pb-8
-          ${/* Z-index */''}
-          z-40
-        `}
+        className="w-full pt-3 pb-2 sm:pt-4 sm:pb-3"
       >
-        {/* Gradient overlay for smooth transition */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-gray-900/50 to-transparent pointer-events-none" />
-        
         {/* Controls container */}
-        <div className={`
-          relative
-          ${/* Flexbox layout */''}
-          flex items-center justify-center
-          ${/* Gap responsive */''}
-          gap-6 sm:gap-8 lg:gap-12
-          ${/* Max width for large screens */''}
-          max-w-lg mx-auto
-        `}>
+        <div className="flex items-center justify-center gap-4 sm:gap-6">
           {/* Pause/Resume Button */}
           <motion.div variants={buttonVariants}>
             <PauseResumeButtonOptimized
@@ -227,13 +202,9 @@ export const CallControlsOptimized = memo(function CallControlsOptimized({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.3, delay: 0.2 }}
-              className={`
-                mt-4 text-center
-                text-xs sm:text-sm text-orange-400
-                font-medium
-              `}
+              className="mt-2 text-center text-[10px] sm:text-xs text-orange-400 font-medium"
             >
-              Session paused • You are not being billed
+              Session paused • Not being billed
             </motion.div>
           )}
         </AnimatePresence>

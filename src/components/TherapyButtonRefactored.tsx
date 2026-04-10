@@ -106,6 +106,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   // Debounce ref for pause/resume operations
   const pauseResumeDebounceRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Ref to handleEndSession so handleVapiCallEnd can trigger it without stale closures
+  const handleEndSessionRef = useRef<(() => void) | null>(null)
   
   // Centralized function to manage session-active class
   const setSessionActive = useCallback((active: boolean) => {
@@ -177,12 +180,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   const handleVapiCallEnd = useCallback((reason?: string) => {
     console.log('[TherapyButton] VAPI call ended:', reason)
-    
+
     // CRITICAL: Save conversation time when VAPI unexpectedly ends
     // This ensures we don't lose billing data if connection drops
     if (sessionRef.current?.sessionId && sessionRef.current?.conversationTimeSeconds > 0) {
       console.log('💾 Saving conversation time on VAPI disconnect:', sessionRef.current.conversationTimeSeconds)
-      
+
       // Force update conversation time to database
       fetch(`/api/sessions/${sessionRef.current.sessionId}`, {
         method: 'PATCH',
@@ -196,13 +199,22 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         console.error('Failed to save conversation time on disconnect:', error)
       })
     }
-    
+
     // Remove session-active class when VAPI call ends
     // Only if we're not loading or in a modal
     if (!isLoadingRef.current && !showDurationModalRef.current && !showFamilySelectionModalRef.current) {
       setSessionActive(false)
     }
-    // Conversation time tracking should automatically stop
+
+    // When VAPI ends the call (e.g. assistant used endCall tool), trigger full session completion
+    // This ensures the session is properly completed, credits updated, and user redirected
+    if (sessionRef.current?.sessionId && !endSessionInProgressRef.current) {
+      console.log('🔚 VAPI call ended with active session - triggering session completion')
+      // Small delay to let VAPI finish cleanup before we run our completion
+      setTimeout(() => {
+        handleEndSessionRef.current?.()
+      }, 500)
+    }
   }, [setSessionActive])
   
   const handleVapiError = useCallback((error: unknown) => {
@@ -239,35 +251,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       hasTranscriptHandler: !!transcriptRef.current,
       currentSessionId: sessionRef.current?.sessionId
     });
-    
-    // Check if this is a function call message
+
+    // Log function calls for debugging (endCall tool is handled natively by VAPI)
     if (message?.type === 'function-call' && message?.functionCall) {
-      console.log('🔧 VAPI Function Call detected in message handler:', message.functionCall.name, message.functionCall.parameters);
-      
-      if (message.functionCall.name === 'end_therapy_session') {
-        console.log('🛑 VAPI requested session end via function call');
-        
-        // Store reference to trigger after we have access to handleEndSession
-        safeSessionStorage.setItem('vapi-end-session-requested', 'true');
-        
-        // First acknowledge to the user that we're ending the session
-        const goodbyeMessage = message.functionCall.parameters?.message || "Thank you for sharing with me today. Take care until we meet again.";
-        
-        // Use VAPI say() to provide a graceful ending message
-        if (vapiInstanceRef.current) {
-          try {
-            // Have VAPI say goodbye but DON'T end the call yet - let handleEndSession do it properly
-            if (vapiInstanceRef.current && typeof vapiInstanceRef.current.say === 'function') {
-              vapiInstanceRef.current.say(goodbyeMessage, false);
-            }
-            console.log('📤 Sent graceful goodbye message via function call handler');
-          } catch (error) {
-            console.error('Failed to send goodbye message:', error);
-          }
-        }
-      }
+      console.log('🔧 VAPI Function Call detected:', message.functionCall.name);
     }
-    
+
     // Forward VAPI messages to transcript handler
     if (transcriptRef.current) {
       transcriptRef.current.handleVapiMessage(message, vapiInstanceRef.current)
@@ -395,7 +384,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           } else if (remainingMinutes === 1) {
             systemMessage = '[SYSTEM NOTIFICATION] 1 minute remaining in session. Begin wrapping up immediately. Offer brief closing remarks and prepare to end.';
           } else if (remainingMinutes === 0.5) { // 30 seconds
-            systemMessage = '[SYSTEM NOTIFICATION] 30 seconds remaining. You MUST call the end_therapy_session function NOW with a warm goodbye message. Do not wait any longer.';
+            systemMessage = '[SYSTEM NOTIFICATION] 30 seconds remaining. Deliver a brief warm goodbye with an encouraging thought, then IMMEDIATELY call the endCall tool to end the call. Do not wait any longer.';
           }
           
           if (systemMessage) {
@@ -1466,6 +1455,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [vapi, session, sessionState, setSessionActive, router])
 
+  // Keep handleEndSessionRef in sync so handleVapiCallEnd can call it
+  useEffect(() => {
+    handleEndSessionRef.current = handleEndSession
+  }, [handleEndSession])
+
   // Handle pause/resume with proper VAPI stop/restart to prevent billing
   const handlePauseResume = useCallback(async () => {
     // Debounce to prevent rapid clicking - check and set atomically
@@ -1651,22 +1645,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }, [handleEndSession, vapi, therapyType, session.isEndingSession, user]) // Include user for personalized goodbye
 
   // Check for VAPI function call session end request
-  useEffect(() => {
-    // Only check once when handleEndSession becomes available
-    const endRequested = safeSessionStorage.getItem('vapi-end-session-requested');
-    if (endRequested === 'true' && !session.isEndingSession && handleEndSession) {
-      console.log('📌 Processing deferred VAPI end session request');
-      safeSessionStorage.removeItem('vapi-end-session-requested');
-      
-      // Trigger session end with a delay to ensure VAPI has time to say goodbye
-      const timeoutId = setTimeout(() => {
-        handleEndSession();
-      }, 3000); // 3 seconds for goodbye message
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [handleEndSession, session.isEndingSession]);
-
   // Handle mute toggle
   const toggleMute = useCallback(() => {
     const newMuteState = !isMuted
@@ -1903,12 +1881,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       <div className="flex flex-col items-center justify-center w-full max-w-full sm:max-w-lg mx-auto px-2" style={{ 
         position: 'relative', 
         zIndex: 10000, 
-        overflow: 'visible',
         minHeight: '600px'
       }}>
         {/* Phone container with proper styling matching original */}
         <motion.div
-          className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-visible relative mx-auto border-zinc-700 mt-0`}
+          className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-hidden relative mx-auto border-zinc-700 mt-0`}
           animate={{ 
             height: 'auto',
             y: 0,
@@ -1938,7 +1915,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             borderRadius: '28px',
             zIndex: 9999,
             position: 'relative',
-            display: 'block',
+            display: 'flex',
+            flexDirection: 'column' as const,
             visibility: 'visible'
           }}
         >
@@ -2103,7 +2081,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           ) : (
             <>
               {/* Main Content */}
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col items-center justify-between h-[calc(100%-80px)] overflow-y-auto rounded-b-[28px] bg-black">
+              <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-col items-center justify-between flex-1 overflow-y-auto rounded-b-[28px] bg-black">
                 {/* Security Notice */}
                 <div className="text-center py-2 text-gray-300 text-xs sm:text-sm">
                   <span>End-to-end encrypted</span>
