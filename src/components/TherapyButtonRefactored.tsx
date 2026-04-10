@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
@@ -1839,6 +1840,16 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       default: return 'Dr. Maya Thompson'
     }
   }
+
+  // Get therapist image based on therapy type
+  const getTherapistImage = () => {
+    switch (therapyType) {
+      case 'solo': return '/images/dr-elliot-mackaphy.webp'
+      case 'family': return '/images/dr-jada-pearson.webp'
+      case 'couple':
+      default: return '/images/dr-maya-thompson.webp'
+    }
+  }
   
   // Render different states
   // Show authentication loading state first
@@ -1907,6 +1918,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }}
           style={{
             height: 'auto',
+            minHeight: '480px',
             boxShadow: '0 0 50px rgba(0, 0, 0, 0.5)',
             background: 'rgba(0, 0, 0, 0.95)',
             border: '2px solid rgba(255, 255, 255, 0.3)',
@@ -1919,8 +1931,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }}
         >
           {/* Call Header */}
-          <CallHeader 
+          <CallHeader
             therapistName={getTherapistName()}
+            therapistImage={getTherapistImage()}
             isPaused={sessionState.isPaused}
             isVisible={!isLoading && !vapi.isConnecting}
           />
@@ -2088,15 +2101,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
                 {/* Therapist Avatar */}
                 <div className="py-4 sm:py-6 relative">
                   <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-lg mb-3 sm:mb-4 border-2 border-blue-300 mx-auto relative">
-                    <video
-                      src={`/videos/${therapyType === 'solo' ? 'ian_profile.mp4' : 
-                                    therapyType === 'family' ? 'jada_profile.mp4' : 
-                                    'maya_profile.mp4'}`}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
+                    <Image
+                      src={getTherapistImage()}
+                      alt={getTherapistName()}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 112px, 144px"
+                      priority
                     />
                   </div>
                   <div className="flex items-center justify-center gap-2">
