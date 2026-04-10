@@ -2,7 +2,7 @@
 
 Production-ready Next.js 15 therapy platform with enterprise voice AI.
 
-**Status**: ✅ **PRODUCTION READY** | **Stack**: Next.js 15, React 19, TypeScript, Prisma, Supabase, VAPI, NextAuth, TailwindCSS 4
+**Status**: ✅ **PRODUCTION READY** | **Stack**: Next.js 15, React 19, TypeScript, Prisma, Supabase, VAPI, Clerk, TailwindCSS 4
 
 ⚠️ **Important**: We deploy on Railway, NOT Vercel. All Vercel-specific code has been removed.
 
@@ -65,10 +65,33 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 - Essential: 160 credits, Growth: 400 credits, Unlimited: 1200 credits
 - No SSE/WebSocket - Upstash Redis doesn't support traditional pub/sub
 - Exponential backoff polling reduces API calls by 70%
+- **Real-time countdown**: Credits decrement every 30s during active VAPI sessions (local timer, syncs on session end)
+- Listens for `sessionStarted`/`sessionEnded` window events to start/stop countdown
 - Error boundaries prevent UI crashes from API failures
 - Environment-based Stripe price IDs (no hardcoding)
 
 ## 📚 Claude's Mistakes & Lessons Learned
+
+### Clerk Auth Migration (April 2026)
+**MISTAKE**: Top-level `import jwt from 'jsonwebtoken'` in `vapi/token/route.ts` and `vapi-server.ts`
+- **Error**: `TypeError: Cannot read properties of undefined (reading 'prototype')` — crashes Turbopack
+- **FIX**: Use lazy dynamic imports: `const jwt = (await import('jsonwebtoken')).default`
+- **LESSON**: Some Node.js packages with native bindings crash Turbopack when imported at top level. Always use dynamic `import()` for `jsonwebtoken` and similar packages.
+
+**MISTAKE**: `useClerkSession` created new session object references every render
+- **Error**: Infinite re-render loops in `useVapiToken` and other hooks using session as dependency
+- **FIX**: Wrap session object in `useMemo` with stable deps (`clerkUser?.fullName`, `dbUserId`, etc.)
+- **LESSON**: Hooks that return objects must memoize them. Use primitive values (`.user?.id`) as deps, not objects.
+
+**MISTAKE**: ElevenLabs voice IDs were disabled/removed but still hardcoded
+- **Error**: `pipeline-error-eleven-labs-voice-disabled-by-owner` — instant session ejection
+- **FIX**: Updated voice IDs in `vapi.ts` and `.env` to active voices. Used Vapi MCP tools to diagnose.
+- **LESSON**: Voice IDs can be disabled externally. Always verify via Vapi API (`list_calls` shows `endedReason`).
+
+**MISTAKE**: `findOrCreateUser` returned early for clerkId-found users without initializing credits
+- **Error**: Credits showed 0/0 for migrated users
+- **FIX**: Added `ensureCreditsExist(user.id)` call in all three code paths (clerkId found, email found, new user)
+- **LESSON**: When migrating auth, ensure all initialization side effects run in every code path.
 
 ### Credit Display Implementation (Jan 2025)
 **MISTAKE**: Placed `useEffect` hook with `refetch` dependency before `useQuery` declaration
@@ -368,8 +391,15 @@ Set these in Railway Dashboard → Project → Variables or via CLI:
 ```env
 # Core Configuration (use .env NOT .env.local)
 DATABASE_URL="postgresql://...?pgbouncer=true&connection_limit=1"
-NEXTAUTH_URL=https://your-app.railway.app
-NEXTAUTH_SECRET=min-32-chars-secure-key
+
+# Clerk Authentication (replaces NextAuth)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_SECRET_KEY=sk_live_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/intro
+CLERK_WEBHOOK_SECRET=whsec_...
 
 # Railway-specific (auto-injected)
 RAILWAY_ENVIRONMENT=production
@@ -396,7 +426,7 @@ UPSTASH_REDIS_REST_TOKEN=your-token
 **Set via CLI:**
 ```bash
 railway variables set DATABASE_URL="postgresql://..."
-railway variables set NEXTAUTH_SECRET="your-32-char-secret"
+railway variables set CLERK_SECRET_KEY="sk_live_..."
 ```
 
 ### 4. Railway Configuration
@@ -432,7 +462,7 @@ railway variables set NEXTAUTH_SECRET="your-32-char-secret"
 
 **Architecture**: GitHub → Railway Build → Health Check → Live Deployment  
 **Traffic**: Edge → CDN/Load Balancer → App Instance  
-⚠️ **CRITICAL**: Address CVE-2025-29927 (Next.js auth bypass) before production
+⚠️ **NOTE**: CVE-2025-29927 (Next.js middleware auth bypass) is mitigated by Clerk middleware handling auth server-side
 
 ## 🚨 CRITICAL: VAPI Documentation Reference Requirement 🚨
 
@@ -454,7 +484,7 @@ The VAPI documentation contains:
 - Tool/function calling patterns
 - Event handling and webhook implementations
 
-## 🚨 VAPI Session Critical Fixes (Updated Jan 2025)
+## 🚨 VAPI Session Critical Fixes (Updated April 2026)
 
 1. **JWT Expiration**: Must be < 3600 seconds (use 3599) - Fixed in `vapi-jwt-redis.service.ts`
 2. **Inline Config Structure**: Pass clean config object directly to `vapi.start()`:
@@ -485,7 +515,14 @@ The VAPI documentation contains:
    - `variableValues`, `metadata`, `recordingEnabled`, `hipaaEnabled`
    - `responseDelaySeconds`, `llmRequestDelaySeconds`, `numWordsToInterruptAssistant`
    - `functions` (at root), `backgroundDenoisingEnabled`
-7. **Session Pause Errors Fixed** (Jan 2025):
+7. **ElevenLabs Voice IDs**: Must be active in your ElevenLabs account. Current voices (April 2026):
+   - Dr. Elliot (solo): `XmUeU0FRyne67Dy7UaT4`
+   - Dr. Maya (couples): `0G7xjh2pNSLRvJSpklE4`
+   - Dr. Jada (family): `zQjGMGv0jjccPqAwHqqv`
+   - Set via env: `NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID`, `NEXT_PUBLIC_VAPI_MAYA_VOICE_ID`, `NEXT_PUBLIC_VAPI_JADA_VOICE_ID`
+   - Error `pipeline-error-eleven-labs-voice-disabled-by-owner` = voice ID invalid/disabled
+8. **Model Names**: Use real models (`gpt-4o-mini`, not `gpt-5-mini`). Invalid model = instant Daily.co ejection.
+9. **Session Pause Errors Fixed** (Jan 2025):
    - **Problem**: 400 error "Session is already paused" due to duplicate API calls
    - **Root Cause**: `session.pauseSession()` → PATCH, then `sessionState.pauseSession()` → POST
    - **Solution**: Removed duplicate call in TherapyButtonRefactored.tsx:1563-1565
@@ -536,20 +573,85 @@ The VAPI documentation contains:
 
 
 
+## 🔐 Authentication: Clerk (Migrated from NextAuth — April 2026)
+
+**CRITICAL**: This project uses **Clerk** for authentication, NOT NextAuth. All NextAuth code has been removed.
+
+### Auth Architecture
+- **Server-side**: `getAuthSession()` from `src/lib/auth.ts` — drop-in replacement for `getServerSession(authOptions)`
+- **Client-side**: `useClerkSession()` from `src/hooks/useClerkSession.ts` — drop-in for `useSession()` from next-auth/react
+- **Middleware**: `src/middleware.ts` uses `clerkMiddleware()` with rate limiting
+- **Webhook**: `/api/webhooks/clerk/route.ts` handles Clerk user sync events
+- **Sign-in/up pages**: `/sign-in/[[...sign-in]]` and `/sign-up/[[...sign-up]]`
+
+### Auth Pattern for API Routes
+```typescript
+import { getAuthSession } from '@/lib/auth'
+
+export async function GET(req: NextRequest) {
+  const session = await getAuthSession();
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  // session.user has: id (DB user ID), email, name, image
+}
+```
+
+### Auth Pattern for Client Components
+```typescript
+import { useClerkSession } from '@/hooks/useClerkSession'
+
+function MyComponent() {
+  const { data: session, status } = useClerkSession();
+  // session?.user has: id, name, email, image
+}
+```
+
+### Key Migration Details
+- `getAuthSession()` calls Clerk's `auth()` + `currentUser()`, then finds/creates DB user via `clerkId` or email
+- User table has `clerkId` field for Clerk-to-DB linking
+- Credits are auto-initialized for all users (free tier: 45 min)
+- `useClerkSession` uses `useMemo` to prevent infinite re-renders from object reference instability
+- `jsonwebtoken` package MUST use lazy dynamic `import()` — top-level imports crash Turbopack
+
+### Environment Variables (Clerk)
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/intro
+CLERK_WEBHOOK_SECRET=whsec_... # For /api/webhooks/clerk
+```
+
+### Removed Files (NextAuth)
+- `src/app/api/auth/[...nextauth]/route.ts`
+- `src/app/api/auth/{debug,diagnostic,providers,session,test}/route.ts`
+- `src/lib/next-auth-config.ts`, `src/lib/auth-optimized.ts`
+- `src/lib/custom-prisma-adapter.ts`
+- `src/lib/auth/session-cache.ts`, `src/lib/auth/session-optimized.ts`
+- `src/types/next-auth.d.ts`
+- `src/middleware.optimized-upstash.ts`, `src/middleware.secure.ts`
+
 ## 🏛️ Key Architecture Notes
 
+- **Authentication**: Clerk (NOT NextAuth) — see section above
 - **Primary session component**: `TherapyButtonRefactored.tsx` (not the legacy `TherapyButton.tsx`)
 - **Test runners**: Both Jest (`jest.config.js`) and Vitest (`vitest.config.ts`) are available; Jest is the primary runner
 - **Image CDN**: Bunny CDN with a custom Next.js image loader in `next.config.js`
-- **Middleware**: `src/middleware.ts` has optimized variants for performance
+- **Middleware**: `src/middleware.ts` uses Clerk middleware with rate limiting
 - **Bundle analysis**: Run `ANALYZE=true npm run build` to inspect bundle sizes
+- **VAPI MCP Server**: `.mcp.json` connects Vapi API for direct account inspection (in `.gitignore`)
 
 ## Core Patterns
 
 ```typescript
-// API Route
+// API Route (Clerk auth)
+import { getAuthSession } from '@/lib/auth'
+
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthSession();
   if (!session?.user?.id)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
@@ -581,6 +683,11 @@ export async function POST(request: NextRequest) {
 13. **Profile Loading Flicker**: Use `isInitialized` flag to prevent form showing before data loads
 14. **Database Schema Mismatch**: Run `npm run prisma:db:push` to sync schema with database
 15. **Missing Form Fields**: Ensure all profile fields have corresponding UI inputs (currentConcerns, preferredDays, etc.)
+16. **VAPI Ejection ("Meeting ended due to ejection")**: Check ElevenLabs voice IDs are active, model name exists (use `gpt-4o-mini` not `gpt-5-mini`)
+17. **jsonwebtoken Crash ("Cannot read properties of undefined reading 'prototype'")**: Use lazy `const jwt = (await import('jsonwebtoken')).default` — never top-level import
+18. **Session Fetch Timeout (15s)**: Use `?lite=true` param on `/api/sessions/[id]` to skip transcript loading
+19. **Credits Showing 0/0**: Check `ensureCreditsExist()` is called in all paths of `findOrCreateUser()` in `src/lib/auth.ts`
+20. **Infinite Re-renders in VAPI hooks**: Use `session?.user?.id` as deps, not the session object (new reference each render)
 
 ### Debug Checklist
 
@@ -593,7 +700,8 @@ export async function POST(request: NextRequest) {
 ```
 Profile: /api/user/profile → cache/profile-cache → queue/background-jobs
 Session: /api/sessions → session-cache → prisma-optimized → hooks → VAPI-COMPLETE-GUIDE.md
-Auth: lib/auth → middleware → all API routes
+Auth: lib/auth (Clerk) → middleware (clerkMiddleware) → all API routes
+Client Auth: useClerkSession → useAuth → all client components
 VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 ```
 
@@ -602,8 +710,9 @@ VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 - **Sentry v8**: Remove `autoSessionTracking`, `maxValueLength`
 - **React Query v5**: `cacheTime` → `gcTime`, remove `onError`
 - **Prisma**: Use uppercase enums (COMPLETED), `isDeleted` not `isActive`
-- **NextAuth**: Need `/api/auth/session` & `/api/auth/providers` routes
+- **Auth**: Uses Clerk — `getAuthSession()` server-side, `useClerkSession()` client-side (NextAuth fully removed)
 - **useEffect**: Must be imported from 'react' in all components
+- **jsonwebtoken**: MUST use lazy `import()` — top-level imports crash Turbopack
 
 
 ## MCP Tools
@@ -649,7 +758,21 @@ VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 4. **Fix Systematically**: One module at a time
 5. **Verify**: Re-run build after each fix batch
 
-### Recent Fixes (Jan 2025)
+### Recent Fixes (April 2026)
+- ✅ **Migrated authentication from NextAuth to Clerk** (258 files changed)
+- ✅ Fixed VAPI voice IDs — ElevenLabs voices were disabled by owner, updated to active voices
+- ✅ Fixed VAPI model name (`gpt-5-mini` → `gpt-4o-mini` — nonexistent model caused instant ejection)
+- ✅ Fixed `jsonwebtoken` top-level import crash with Turbopack (lazy dynamic imports)
+- ✅ Fixed credit display real-time countdown during active sessions (30s update interval)
+- ✅ Fixed session fetch query timeout — added `?lite=true` mode to skip transcript loading
+- ✅ Fixed session conflict dialog for concurrent session handling
+- ✅ Fixed React hooks order violation in `useClerkSession` (useMemo before early returns)
+- ✅ Fixed infinite re-render loop from unstable session object references in `useVapiToken`
+- ✅ Fixed `AIInsightsWithTabs` null access after session end (`/api/sessions/active` returns direct object, not wrapped)
+- ✅ Fixed stale closure in TherapyButton VAPI message handler (use `sessionRef.current`)
+- ✅ Updated `@vapi-ai/web` from 2.2.4 to 2.5.2 (daily-js 0.75.2 no longer supported)
+
+### Previous Fixes (Jan 2025)
 - ✅ Fixed Prisma SessionStatus enum case sensitivity (use UPPERCASE)
 - ✅ Optimized User.findUnique query (2514ms → ~500ms) with parallel queries
 - ✅ Fixed TranscriptEntry confidence field error (field doesn't exist)
@@ -679,6 +802,7 @@ VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 ## Resources
 
 - [Next.js 15](https://nextjs.org/docs) | [VAPI](https://docs.vapi.ai) | [Supabase](https://supabase.com/docs)
+- [Clerk Docs](https://clerk.com/docs) | [Clerk Next.js](https://clerk.com/docs/quickstarts/nextjs)
 - [Railway Deploy](https://docs.railway.app) | [PostHog](https://posthog.com/docs)
 - [Sentry v8 Migration](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v7-to-v8/) 
 - [React Query v5 Migration](https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5)

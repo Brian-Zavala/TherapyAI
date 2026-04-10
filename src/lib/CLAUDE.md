@@ -4,11 +4,11 @@ Authentication, database, real-time metrics, VAPI integration, WebSocket communi
 
 ## Auth & Database
 
-**`auth.ts`** - NextAuth config, JWT strategy, 30-day sessions, email/password + OAuth
+**`auth.ts`** - Clerk auth helpers. `getAuthSession()` is the drop-in replacement for `getServerSession(authOptions)`. Resolves Clerk user → DB user via `clerkId` or email. Auto-creates users and initializes credits.
 
 **`prisma.ts`** - Singleton client, connection pooling, dev/prod handling
 
-**`custom-prisma-adapter.ts`** - NextAuth-Prisma bridge for session persistence
+**REMOVED**: `custom-prisma-adapter.ts`, `auth-optimized.ts`, `next-auth-config.ts`, `auth/session-cache.ts`, `auth/session-optimized.ts` (all NextAuth-specific)
 
 ## VAPI Integration
 
@@ -68,7 +68,7 @@ WebSocket Server ← Service Layer ← Real-time Metrics
 
 ## Configuration
 
-**Env Validation**: Required vars: DATABASE_URL, VAPI_API_KEY, NEXTAUTH_SECRET, JWT_TOKEN_SECRET
+**Env Validation**: Required vars: DATABASE_URL, VAPI_API_KEY, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, JWT_TOKEN_SECRET
 
 **Feature Flags**: realTimeMetrics, enhancedTranscription, advancedAnalytics (env-based)
 

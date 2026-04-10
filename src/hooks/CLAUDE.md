@@ -4,7 +4,9 @@ Custom hooks for auth, sessions, real-time metrics, VAPI integration. Refactored
 
 ## Core Hooks
 
-**`useAuth`** - NextAuth session management, returns `{ user, isAuthenticated, isLoading, logout }`
+**`useAuth`** - Clerk session management, returns `{ user, isAuthenticated, isLoading, logout }`
+
+**`useClerkSession`** - Drop-in replacement for `useSession()` from next-auth/react. Uses `useMemo` for stable object references. Returns `{ data: session, status }`.
 
 **`useTherapySessionRecovery`** - Detects/recovers interrupted sessions, conversation-time based validation, deduplication logic
 
@@ -42,7 +44,7 @@ Realtime: `useVapiMetricsBridge` → `useSupabaseRealTimeMetrics` ← `useSupaba
 
 **Supabase Realtime**: Broadcast (ephemeral), Database (persistent), Presence (tracking) - Auto-reconnect, proper cleanup
 
-**Auth**: NextAuth status validation, absolute URL callbacks, fallback navigation
+**Auth**: Clerk auth via `useClerkSession`, memoized session object to prevent re-renders, DB user ID resolution via `/api/auth/me`
 
 ## Common Issues
 

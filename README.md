@@ -30,10 +30,11 @@ An AI-powered therapy platform featuring real-time voice therapy sessions, intel
 - **Progress tracking** with confidence scoring
 
 ### Authentication & Security
-- **Secure authentication** with NextAuth.js
+- **Secure authentication** with [Clerk](https://clerk.com/)
 - **JWT token management** with rate limiting
-- **Session-based access control**
+- **Session-based access control** via Clerk middleware
 - **Protected API routes** and pages
+- **Webhook-based user sync** with Clerk events
 
 ### Responsive Design
 - **Mobile-first responsive UI**
@@ -55,7 +56,7 @@ An AI-powered therapy platform featuring real-time voice therapy sessions, intel
 - **Database**: [PostgreSQL](https://www.postgresql.org/) with [Supabase](https://supabase.com/)
 - **ORM**: [Prisma](https://www.prisma.io/)
 - **Voice AI**: [VAPI](https://vapi.ai/)
-- **Authentication**: [NextAuth.js](https://next-auth.js.org/)
+- **Authentication**: [Clerk](https://clerk.com/)
 - **Email**: [Resend](https://resend.com/)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
 - **Charts**: [Recharts](https://recharts.org/)
@@ -92,9 +93,13 @@ Create a `.env` file (not `.env.local`) in the root directory:
 # Database
 DATABASE_URL=postgresql://postgres.xxx:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres
 
-# NextAuth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-nextauth-secret
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/intro
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
@@ -195,7 +200,7 @@ Open [https://localhost:3000](https://localhost:3000) in your browser.
 │   │   └── ui/            # Reusable UI components
 │   ├── hooks/             # Custom React hooks
 │   ├── lib/               # Utilities and services
-│   │   ├── auth.ts        # Authentication config
+│   │   ├── auth.ts        # Clerk auth helpers (getAuthSession)
 │   │   ├── prisma.ts      # Database client
 │   │   └── vapi/          # VAPI integration
 │   ├── types/             # TypeScript type definitions
@@ -254,10 +259,11 @@ The application uses Prisma with PostgreSQL, featuring:
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Configure environment variables in Vercel dashboard
-3. Deploy with automatic CI/CD
+### Railway (Production)
+1. Connect your GitHub repository to Railway
+2. Configure environment variables in Railway dashboard (see env template above)
+3. Deploy with automatic CI/CD on push to main
+4. See `CLAUDE.md` for detailed Railway deployment guide
 
 ### Manual Deployment
 ```bash
