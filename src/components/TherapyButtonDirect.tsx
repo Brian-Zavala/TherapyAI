@@ -132,7 +132,7 @@ export default function TherapyButtonDirect({
 
     // Volume level for waveform
     vapi.on('volume-level', (volume: number) => {
-      setVolumeLevel(volume)
+      setVolumeLevel(Math.round(volume * 100))
     })
 
     // Message handling

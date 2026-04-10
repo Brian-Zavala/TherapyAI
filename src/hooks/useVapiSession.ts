@@ -120,8 +120,10 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
     })
 
         vapiInstance.on('volume-level', (level: number) => {
-          setVolumeLevel(level)
-          config.onVolumeLevel?.(level)
+          // VAPI SDK emits 0-1 float, scale to 0-100 for VoiceWaveform thresholds
+          const scaled = Math.round(level * 100)
+          setVolumeLevel(scaled)
+          config.onVolumeLevel?.(scaled)
         })
       })
       .catch(error => {
