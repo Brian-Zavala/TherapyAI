@@ -1878,10 +1878,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
     // Active session UI with proper phone container
     return (
-      <div className="flex flex-col items-center justify-center w-full max-w-full sm:max-w-lg mx-auto px-2" style={{ 
-        position: 'relative', 
-        zIndex: 10000, 
-        minHeight: '600px'
+      <div className="flex flex-col items-center w-full max-w-full sm:max-w-lg mx-auto px-2 py-4" style={{
+        position: 'relative',
+        zIndex: 10000
       }}>
         {/* Phone container with proper styling matching original */}
         <motion.div
@@ -1908,7 +1907,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }}
           style={{
             height: 'auto',
-            minHeight: '520px',
             boxShadow: '0 0 50px rgba(0, 0, 0, 0.5)',
             background: 'rgba(0, 0, 0, 0.95)',
             border: '2px solid rgba(255, 255, 255, 0.3)',
