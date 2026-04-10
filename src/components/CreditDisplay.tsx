@@ -95,25 +95,33 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   }, [isAuthenticated, refetch]);
   
   // Track elapsed session minutes for real-time credit countdown
+  // Accounts for paused time so credits don't drain while paused
   const [sessionElapsedMinutes, setSessionElapsedMinutes] = useState(0);
   const sessionStartRef = useRef<number | null>(null);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pausedAtRef = useRef<number | null>(null);
+  const totalPausedMsRef = useRef<number>(0);
 
   useEffect(() => {
     const handleSessionStarted = () => {
       sessionStartRef.current = Date.now();
+      totalPausedMsRef.current = 0;
+      pausedAtRef.current = null;
       setSessionElapsedMinutes(0);
       // Update every 30 seconds
       sessionTimerRef.current = setInterval(() => {
-        if (sessionStartRef.current) {
-          const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 60000);
-          setSessionElapsedMinutes(elapsed);
+        if (sessionStartRef.current && !pausedAtRef.current) {
+          const wallTime = Date.now() - sessionStartRef.current;
+          const activeTime = wallTime - totalPausedMsRef.current;
+          setSessionElapsedMinutes(Math.floor(activeTime / 60000));
         }
       }, 30000);
     };
 
     const handleSessionEnd = () => {
       sessionStartRef.current = null;
+      pausedAtRef.current = null;
+      totalPausedMsRef.current = 0;
       setSessionElapsedMinutes(0);
       if (sessionTimerRef.current) {
         clearInterval(sessionTimerRef.current);
@@ -121,14 +129,35 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
       }
     };
 
+    const handleSessionPaused = () => {
+      pausedAtRef.current = Date.now();
+    };
+
+    const handleSessionResumed = () => {
+      if (pausedAtRef.current) {
+        totalPausedMsRef.current += Date.now() - pausedAtRef.current;
+        pausedAtRef.current = null;
+      }
+      // Recalculate immediately on resume
+      if (sessionStartRef.current) {
+        const wallTime = Date.now() - sessionStartRef.current;
+        const activeTime = wallTime - totalPausedMsRef.current;
+        setSessionElapsedMinutes(Math.floor(activeTime / 60000));
+      }
+    };
+
     window.addEventListener('sessionStarted', handleSessionStarted);
     window.addEventListener('sessionEnd', handleSessionEnd);
     window.addEventListener('sessionEnded', handleSessionEnd);
+    window.addEventListener('sessionPaused', handleSessionPaused);
+    window.addEventListener('sessionResumed', handleSessionResumed);
 
     return () => {
       window.removeEventListener('sessionStarted', handleSessionStarted);
       window.removeEventListener('sessionEnd', handleSessionEnd);
       window.removeEventListener('sessionEnded', handleSessionEnd);
+      window.removeEventListener('sessionPaused', handleSessionPaused);
+      window.removeEventListener('sessionResumed', handleSessionResumed);
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
     };
   }, []);

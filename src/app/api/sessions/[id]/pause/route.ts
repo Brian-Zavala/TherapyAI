@@ -111,26 +111,14 @@ export async function POST(
       }
     })
     
-    // Update timing reconciliation system with pause tracking
+    // Update timing reconciliation system
+    // Note: Actual pause duration is calculated on RESUME (from pauseStartTime → resumedAt)
+    // and accumulated into totalPausedTimeSeconds. This just notifies the reconciliation service.
     try {
       const { timingReconciliation } = await import('@/lib/services/credit-timing-reconciliation');
-      
-      // Calculate pause time since last resume (if any)
-      const pauseStartMs = therapySession.pausedAt 
-        ? new Date(therapySession.pausedAt).getTime() 
-        : Date.now();
-      const pauseDurationMs = Date.now() - pauseStartMs;
-      
-      if (pauseDurationMs > 0) {
-        await timingReconciliation.trackPauseTime(sessionId, pauseDurationMs);
-        console.log(`🕒 Tracked pause time: ${Math.round(pauseDurationMs / 1000)}s for session ${sessionId}`);
-      }
-      
-      // Update server timing
       await timingReconciliation.updateServerTiming(sessionId);
     } catch (timingError) {
       console.warn(`⚠️ Failed to update timing reconciliation for pause in session ${sessionId}:`, timingError);
-      // Don't fail the whole request for timing errors
     }
 
     // Calculate total elapsed time
