@@ -1889,36 +1889,33 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
     // Active session UI with proper phone container
     return (
-      <div className="flex flex-col items-center w-full max-w-full sm:max-w-lg mx-auto px-2 py-4" style={{
+      <div className="flex flex-col items-center w-full max-w-full sm:max-w-lg mx-auto px-2" style={{
         position: 'relative',
         zIndex: 10000
       }}>
-        {/* Phone container with proper styling matching original */}
+        {/* Phone container sized to fit viewport */}
         <motion.div
-          className={`w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-hidden relative mx-auto border-zinc-700 mt-0`}
-          animate={{ 
-            height: 'auto',
+          className="w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-hidden relative mx-auto border-zinc-700"
+          animate={{
             y: 0,
             opacity: 1,
             scale: 1,
-            top: '0px',
           }}
-          initial={{ 
-            height: '80px',
+          initial={{
             opacity: 0,
             scale: 0.9,
           }}
-          transition={{ 
-            duration: 0.8, 
+          transition={{
+            duration: 0.8,
             type: "spring",
             damping: 25,
             stiffness: 80,
-            // Add delay for recovered sessions to ensure modal has time to close
             delay: isRecoveredSession ? 0.5 : 0
           }}
           style={{
-            height: 'auto',
-            minHeight: '480px',
+            height: 'calc(100vh - 80px)',
+            maxHeight: '700px',
+            minHeight: '400px',
             boxShadow: '0 0 50px rgba(0, 0, 0, 0.5)',
             background: 'rgba(0, 0, 0, 0.95)',
             border: '2px solid rgba(255, 255, 255, 0.3)',
@@ -2094,19 +2091,19 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
               {/* Main Content */}
               <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-col items-center justify-between flex-1 overflow-y-auto rounded-b-[28px] bg-black">
                 {/* Security Notice */}
-                <div className="text-center py-2 text-gray-300 text-xs sm:text-sm">
+                <div className="text-center py-1 text-gray-300 text-xs">
                   <span>End-to-end encrypted</span>
                 </div>
-                
+
                 {/* Therapist Avatar */}
-                <div className="py-4 sm:py-6 relative">
-                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-lg mb-3 sm:mb-4 border-2 border-blue-300 mx-auto relative">
+                <div className="py-2 sm:py-3 relative">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-lg mb-2 sm:mb-3 border-2 border-blue-300 mx-auto relative">
                     <Image
                       src={getTherapistImage()}
                       alt={getTherapistName()}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 112px, 144px"
+                      sizes="(max-width: 640px) 96px, 112px"
                       priority
                     />
                   </div>

@@ -2,25 +2,25 @@
 
 interface CallHeaderProps {
   therapistName: string
+  therapistImage?: string
   isPaused: boolean
   isVisible: boolean
 }
 
 /**
  * Call header component showing therapist name and connection status
- * Displays connection state with pulsing indicator
  */
 export function CallHeader({ therapistName, isPaused, isVisible }: CallHeaderProps) {
   if (!isVisible) return null
 
   return (
-    <div className="px-4 sm:px-6 pt-5 pb-3 flex flex-col items-center justify-center relative">
-      <div className="text-white text-center bg-black px-6 py-3 rounded-t-[28px] shadow-inner w-full border-t border-x border-gray-800">
-        <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
+    <div className="px-4 sm:px-6 pt-4 pb-2 flex flex-col items-center justify-center relative">
+      <div className="text-white text-center bg-black px-6 py-2 rounded-t-[28px] w-full">
+        <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5">
           {therapistName}
         </h3>
-        <p className="text-xs sm:text-sm font-medium flex items-center justify-center">
-          <span 
+        <p className="text-xs font-medium flex items-center justify-center">
+          <span
             className={`inline-block w-2 h-2 rounded-full mr-2 ${
               isPaused ? 'bg-orange-400' : 'bg-green-400 animate-pulse'
             }`}

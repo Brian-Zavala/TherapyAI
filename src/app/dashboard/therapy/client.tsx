@@ -1005,8 +1005,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
               "div",
               {
                 key: "header",
-                className:
-                  "flex flex-col md:flex-row md:justify-between md:items-center mb-2 sm:mb-3 md:mb-4",
+                className: `flex flex-col md:flex-row md:justify-between md:items-center mb-2 sm:mb-3 md:mb-4 ${isSessionActive ? 'hidden' : ''}`,
               },
               [
                 // Title and date
@@ -1721,7 +1720,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       {
                                         key: "active-info",
                                         className:
-                                          "p-4 md:p-6 rounded-2xl mb-4 md:mb-8 shadow-inner bg-transparent",
+                                          "hidden",
                                       },
                                       [
                                         // Info icon at the top with pulsing animation - hidden on mobile
