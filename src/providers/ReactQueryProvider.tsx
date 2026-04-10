@@ -99,13 +99,14 @@ export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools 
-          initialIsOpen={false} 
+      {/* TanStack Query Devtools - uncomment to re-enable */}
+      {/* {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools
+          initialIsOpen={false}
           buttonPosition="bottom-right"
           styleNonce={undefined}
         />
-      )}
+      )} */}
     </QueryClientProvider>
   );
 }

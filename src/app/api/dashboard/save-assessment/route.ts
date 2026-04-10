@@ -76,33 +76,33 @@ export async function POST(request: Request) {
     const adjustedConflictScore = Math.min(100, Math.round(conflictScore * sessionAdjustmentFactor));
     const adjustedIntimacyScore = Math.min(100, Math.round(intimacyScore * sessionAdjustmentFactor));
     
-    // Save to CommunicationMetric with adjusted scores
-    const savedMetrics = await prisma.communicationMetric.create({
-      data: {
-        userId: user.id,
-        sessionId: null, // Assessment metric, not tied to a specific session
-        clarity: adjustedCommunicationScore,
-        empathy: adjustedTrustScore,
-        respect: adjustedConflictScore,
-        overall: adjustedIntimacyScore,
-        listening: adjustedCommunicationScore,
-        expression: adjustedTrustScore,
-        metricType: 'assessment',
-        calculatedAt: new Date(date)
-      },
-    });
-    
-    // Create progress tracking data
-    await prisma.progressTracking.create({
-      data: {
-        userId: user.id,
-        closenessScore: Math.round((communicationScore + intimacyScore) / 2),
-        communicationScore: Math.round(communicationScore),
-        date: new Date()
-      },
-    });
-    
-    return NextResponse.json({ success: true, savedMetrics });
+    // Save metrics and progress tracking atomically
+    const savedMetrics = await prisma.$transaction([
+      prisma.communicationMetric.create({
+        data: {
+          userId: user.id,
+          sessionId: null,
+          clarity: adjustedCommunicationScore,
+          empathy: adjustedTrustScore,
+          respect: adjustedConflictScore,
+          overall: adjustedIntimacyScore,
+          listening: adjustedCommunicationScore,
+          expression: adjustedTrustScore,
+          metricType: 'assessment',
+          calculatedAt: new Date(date)
+        },
+      }),
+      prisma.progressTracking.create({
+        data: {
+          userId: user.id,
+          closenessScore: Math.round((communicationScore + intimacyScore) / 2),
+          communicationScore: Math.round(communicationScore),
+          date: new Date()
+        },
+      }),
+    ]);
+
+    return NextResponse.json({ success: true, savedMetrics: savedMetrics[0] });
   } catch (error) {
     console.error("Error saving assessment data:", error);
     return NextResponse.json(

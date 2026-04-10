@@ -25,7 +25,7 @@ const therapyOptions: TherapyOption[] = [
     description:
       "Build a healthier relationship with guided support, improved communication techniques, and conflict resolution strategies tailored for couples.",
     therapist: "Dr. Maya Thompson",
-    imageUrl: "/videos/maya_profile.mp4",
+    imageUrl: "/images/dr-maya-thompson.webp",
   },
   {
     id: "solo",
@@ -34,7 +34,7 @@ const therapyOptions: TherapyOption[] = [
     description:
       "Embark on a journey of personal growth and emotional wellbeing with confidential, one-on-one therapeutic guidance for your unique challenges.",
     therapist: "Dr. Elliot Mackaphy",
-    imageUrl: "/videos/ian_profile.mp4",
+    imageUrl: "/images/dr-elliot-mackaphy.webp",
   },
   {
     id: "family",
@@ -43,7 +43,7 @@ const therapyOptions: TherapyOption[] = [
     description:
       "Strengthen family bonds, improve communication patterns, and create healthier dynamics between all family members in a collaborative setting.",
     therapist: "Dr. Jada Pearson",
-    imageUrl: "/videos/jada_profile.mp4",
+    imageUrl: "/images/dr-jada-pearson.webp",
   },
 ];
 
@@ -510,44 +510,13 @@ export default function TherapyTypeSelector({
                           <div className="flex flex-col items-center text-center">
                             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-green-500/10 p-1 mb-2 sm:mb-3 border-2 border-blue-500/10 shadow-md overflow-hidden">
                               <div className="w-full h-full rounded-full bg-white overflow-hidden relative">
-                                <video
-                                  src={option.imageUrl}
-                                  className="w-full h-full object-cover"
-                                  autoPlay
-                                  loop
-                                  muted
-                                  playsInline
-                                  onError={(e) => {
-                                    const target = e.target as HTMLVideoElement;
-                                    target.style.display = "none";
-                                    const fallbackId = `selector-fallback-${option.id}`;
-                                    const fallback = document.getElementById(fallbackId);
-                                    if (fallback) {
-                                      fallback.style.display = "flex";
-                                    }
-                                  }}
+                                <Image
+                                  src={option.imageUrl!}
+                                  alt={option.therapist}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 640px) 80px, 96px"
                                 />
-
-                                {/* Fallback icon - initially hidden */}
-                                <div
-                                  id={`selector-fallback-${option.id}`}
-                                  className="w-full h-full rounded-full bg-white absolute inset-0 items-center justify-center"
-                                  style={{ display: "none" }}
-                                >
-                                  <svg
-                                    className="w-10 h-10 text-indigo-300"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="1.5"
-                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                    ></path>
-                                  </svg>
-                                </div>
                               </div>
                             </div>
                             <h4 className="font-bold text-base sm:text-lg mb-1 text-blue-500">

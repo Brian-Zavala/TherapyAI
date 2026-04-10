@@ -576,9 +576,31 @@ export function useDashboardDataUnified(
   const query = useQuery(queryOptions);
   
   // ========================================
+  // SESSION COMPLETION → CACHE INVALIDATION
+  // ========================================
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const handleSessionEnded = () => {
+      // Wait briefly for server-side metrics to be written before refetching
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['dashboard-data-unified', session.user.id],
+        });
+        queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+        queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      }, 3000);
+    };
+
+    window.addEventListener('sessionEnded', handleSessionEnded);
+    return () => window.removeEventListener('sessionEnded', handleSessionEnded);
+  }, [session?.user?.id, queryClient]);
+
+  // ========================================
   // REAL-TIME UPDATES
   // ========================================
-  
+
   useEffect(() => {
     if (!enableRealTime || !session?.user?.id) return;
     

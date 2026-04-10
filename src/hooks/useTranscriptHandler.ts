@@ -656,6 +656,49 @@ export function useTranscriptHandler(options: UseTranscriptHandlerOptions): UseT
     }
   }, [sessionId]);
   
+  // Use sendBeacon for reliable transcript delivery on page unload
+  useEffect(() => {
+    if (!sessionId) return
+
+    const handleBeforeUnload = () => {
+      const pending = pendingTranscriptsRef.current
+      const assistantText = assistantBufferRef.current.trim()
+      const userText = userBufferRef.current.trim()
+
+      const entries: any[] = [...pending]
+
+      if (assistantText) {
+        entries.push({
+          sessionId,
+          speaker: 'assistant',
+          text: assistantText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        })
+      }
+      if (userText) {
+        entries.push({
+          sessionId,
+          speaker: 'user',
+          text: userText,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        })
+      }
+
+      if (entries.length > 0 && navigator.sendBeacon) {
+        const blob = new Blob(
+          [JSON.stringify({ entries })],
+          { type: 'application/json' }
+        )
+        navigator.sendBeacon(`/api/sessions/${sessionId}/transcript/batch`, blob)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [sessionId])
+
   // Cleanup on unmount to prevent memory leaks
   useEffect(() => {
     return () => {

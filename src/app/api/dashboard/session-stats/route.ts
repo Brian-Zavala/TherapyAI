@@ -48,20 +48,14 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Calculate active streak
-    const streakData = await calculateActiveStreak(userId)
-    
-    // Calculate session completion rate
-    const completionRate = await calculateCompletionRate(userId)
-    
-    // Get preferred session times
-    const preferences = await getSessionPreferences(userId)
-    
-    // Get session distribution by theme
-    const themeDistribution = await getThemeDistribution(userId)
-    
-    // Get family member participation stats
-    const familyStats = await getFamilyParticipationStats(userId)
+    // Run all stat calculations in parallel
+    const [streakData, completionRate, preferences, themeDistribution, familyStats] = await Promise.all([
+      calculateActiveStreak(userId),
+      calculateCompletionRate(userId),
+      getSessionPreferences(userId),
+      getThemeDistribution(userId),
+      getFamilyParticipationStats(userId),
+    ])
 
     return NextResponse.json({
       totalSessions: parseInt(sessionStats.total_sessions || '0'),
@@ -97,7 +91,7 @@ async function calculateActiveStreak(userId: string) {
       },
       orderBy: { date: 'desc' },
       select: { date: true },
-      take: 365, // Last year of sessions
+      take: 90, // Last 3 months is sufficient for streak calculation
     })
   })
 
@@ -174,6 +168,7 @@ async function getSessionPreferences(userId: string) {
       date: true,
       startTime: true,
     },
+    orderBy: { date: 'desc' },
     take: 50, // Last 50 sessions
   })
 

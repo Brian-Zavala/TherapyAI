@@ -169,10 +169,13 @@ model Session {
   @@index([userId, status])
   @@index([userId, startTime])
   @@index([userId, sessionType])
+  @@index([userId, status, sessionType])
+  @@index([userId, status, date])
   @@index([assistantId])
   @@index([status, startTime])
   @@index([notificationToken])
   @@index([completedAt])
+  @@index([vapiCallId])
 }
 
 model SessionFamilyMember {

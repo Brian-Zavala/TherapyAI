@@ -54,15 +54,15 @@ export function OptimizedProviders({
       <ThemeProvider {...themeConfig}>
         {children}
 
-        {/* Development tools - lazy loaded */}
-        {showDevtools && (
+        {/* TanStack Query Devtools - uncomment to re-enable */}
+        {/* {showDevtools && (
           <Suspense fallback={null}>
             <ReactQueryDevtoolsLazy
               initialIsOpen={false}
               position={"bottom-right" as any}
             />
           </Suspense>
-        )}
+        )} */}
       </ThemeProvider>
     </QueryClientProvider>
   )

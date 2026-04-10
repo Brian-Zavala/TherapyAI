@@ -4,7 +4,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/hooks/useClerkSession'
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { TherapyType } from '@/components/dashboard/TherapyTypeTabs';
 import { 
   getFallbackCommunicationMetrics,
@@ -102,6 +102,22 @@ export function useDashboardDataWithTherapyTypes(
   } = options;
 
   const userId = session?.user?.id;
+
+  // Invalidate all dashboard caches when a session ends
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleSessionEnded = () => {
+      // Wait for server-side metrics to be written before refetching
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      }, 3000);
+    };
+
+    window.addEventListener('sessionEnded', handleSessionEnded);
+    return () => window.removeEventListener('sessionEnded', handleSessionEnded);
+  }, [userId, queryClient]);
 
   // Communication metrics queries - Individual queries to prevent AbortError cascade
   const communicationQueries = therapyTypes.reduce((acc, type) => {

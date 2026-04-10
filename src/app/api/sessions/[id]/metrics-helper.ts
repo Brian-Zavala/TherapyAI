@@ -124,14 +124,14 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
     await prisma.communicationMetric.create({
       data: {
         userId,
-        sessionId: sessionId || '', // Provide empty string if no sessionId
+        sessionId: sessionId || null,
         clarity: metrics.activeListeningScore,
         empathy: metrics.emotionalSupportScore,
         respect: metrics.conflictResolutionScore,
         overall: Math.round((metrics.closenessScore + metrics.communicationScore) / 2),
         listening: metrics.activeListeningScore,
         expression: metrics.expressingNeedsScore,
-        metricType: 'manual',
+        metricType: 'final',
         calculatedAt: new Date()
       }
     });

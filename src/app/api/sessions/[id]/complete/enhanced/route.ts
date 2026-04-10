@@ -179,7 +179,8 @@ export async function POST(
         therapyType = 'solo'
       }
       
-      // Generate metrics with enhanced analysis
+      // Generate metrics from transcript analysis
+      // This creates both CommunicationMetric and ProgressTracking records
       await generateMetricsFromSession(
         therapySession.userId,
         finalBillableMinutes,
@@ -188,43 +189,6 @@ export async function POST(
         therapyType,
         therapySession.assistantId || undefined
       )
-      
-      // 5. Create final communication metric record
-      const finalMetric = await tx.communicationMetric.create({
-        data: {
-          userId: therapySession.userId,
-          sessionId: sessionId,
-          clarity: validatedData.finalMetrics?.clarityScore || 75,
-          empathy: validatedData.finalMetrics?.empathyScore || 75,
-          respect: validatedData.finalMetrics?.respectScore || 75,
-          overall: 75,
-          listening: 75,
-          expression: 75,
-          metricType: 'session-complete',
-          calculatedAt: new Date()
-        }
-      })
-      
-      // 6. Update progress tracking
-      const weekNumber = Math.floor((Date.now() - new Date(therapySession.user.createdAt).getTime()) / (7 * 24 * 60 * 60 * 1000))
-      
-      await tx.progressTracking.upsert({
-        where: {
-          id: `${therapySession.userId}-${therapyType}-progress`
-        },
-        update: {
-          closenessScore: finalMetric.overall,
-          communicationScore: finalMetric.overall,
-          notes: `Session ${sessionId} completed successfully`
-        },
-        create: {
-          id: `${therapySession.userId}-${therapyType}-progress`,
-          userId: therapySession.userId,
-          closenessScore: finalMetric.overall,
-          communicationScore: finalMetric.overall,
-          notes: `First session of week ${weekNumber} completed`
-        }
-      })
       
       // 7. Update conversation state final status
       if (therapySession.conversationState) {

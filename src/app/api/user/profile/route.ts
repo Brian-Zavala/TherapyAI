@@ -349,24 +349,17 @@ export async function PATCH(request: Request) {
         }
       })
       
-      // EDGE CASE: Soft delete to prevent data loss on transaction failure
-      await tx.familyMember.updateMany({
-        where: { userId: user.id },
-        data: { isActive: false }
+      // Delete existing family members before recreating
+      await tx.familyMember.deleteMany({
+        where: { userId: user.id }
       })
-      
+
       const familyMembersToCreate = []
       for (let i = 1; i <= 7; i++) {
         const memberName = data[`familyMember${i}`]
         const memberAge = data[`familyMember${i}Age`]
         const memberRelation = data[`familyMember${i}Relation`]
-        
-        console.log(`[Profile API] Processing family member ${i}:`, {
-          name: memberName,
-          age: memberAge,
-          relation: memberRelation
-        })
-        
+
         // Only create family member if name is provided and not empty
         if (memberName && typeof memberName === 'string' && memberName.trim()) {
           familyMembersToCreate.push({
@@ -379,18 +372,16 @@ export async function PATCH(request: Request) {
           })
         }
       }
-      
-      console.log(`[Profile API] Creating ${familyMembersToCreate.length} family members for user ${user.id}:`, familyMembersToCreate)
-      
+
       if (familyMembersToCreate.length > 0) {
         await tx.familyMember.createMany({
           data: familyMembersToCreate
         })
       }
-      
+
       // Store count for debug output
       familyMembersCreatedCount = familyMembersToCreate.length
-      
+
       return user
     })
     
@@ -654,24 +645,17 @@ export async function PUT(request: Request) {
         updatedAt: upsertResult.updatedAt
       })
       
-      // EDGE CASE: Soft delete to prevent data loss on transaction failure
-      await tx.familyMember.updateMany({
-        where: { userId: user.id },
-        data: { isActive: false }
+      // Delete existing family members before recreating
+      await tx.familyMember.deleteMany({
+        where: { userId: user.id }
       })
-      
+
       const familyMembersToCreate = []
       for (let i = 1; i <= 7; i++) {
         const memberName = data[`familyMember${i}`]
         const memberAge = data[`familyMember${i}Age`]
         const memberRelation = data[`familyMember${i}Relation`]
-        
-        console.log(`[Profile API] Processing family member ${i}:`, {
-          name: memberName,
-          age: memberAge,
-          relation: memberRelation
-        })
-        
+
         // Only create family member if name is provided and not empty
         if (memberName && typeof memberName === 'string' && memberName.trim()) {
           familyMembersToCreate.push({
@@ -684,15 +668,13 @@ export async function PUT(request: Request) {
           })
         }
       }
-      
-      console.log(`[Profile API] Creating ${familyMembersToCreate.length} family members for user ${user.id}:`, familyMembersToCreate)
-      
+
       if (familyMembersToCreate.length > 0) {
         await tx.familyMember.createMany({
           data: familyMembersToCreate
         })
       }
-      
+
       // Store count for debug output
       familyMembersCreatedCount = familyMembersToCreate.length
       

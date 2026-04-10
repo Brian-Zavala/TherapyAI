@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
@@ -7,9 +6,8 @@ import { SessionStatus } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   const requestId = crypto.randomUUID();
-  
+
   try {
-    // Get user session
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({
@@ -21,8 +19,8 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Check for active TherapySession records (credit system)
-    const activeSession = await prisma.therapySession.findFirst({
+    // Check for active Session records (primary model)
+    const activeSession = await prisma.session.findFirst({
       where: {
         userId: session.user.id,
         status: {
@@ -37,10 +35,13 @@ export async function GET(request: NextRequest) {
         status: true,
         duration: true,
         createdAt: true,
-        sessionDate: true,
+        date: true,
         notes: true,
         userId: true,
-        updatedAt: true
+        updatedAt: true,
+        sessionType: true,
+        vapiCallId: true,
+        conversationTimeSeconds: true,
       }
     });
 
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
     let canRecover = true;
     let creditsRemaining = 0;
 
-    // Validate session hasn't expired
+    // Validate session hasn't expired (24h max)
     const sessionAgeHours = (Date.now() - new Date(activeSession.createdAt).getTime()) / (1000 * 60 * 60);
     if (sessionAgeHours > 24) {
       canRecover = false;
@@ -67,46 +68,28 @@ export async function GET(request: NextRequest) {
     // Check credit status for recovery
     if (canRecover) {
       try {
-        // Get credit reservation for this session
         const reservationKey = `credits:reserved:${activeSession.id}`;
         const reservation = await redis.get(reservationKey);
-        
+
         if (reservation) {
-          const reservationData = JSON.parse(reservation);
+          const reservationData = typeof reservation === 'string' ? JSON.parse(reservation) : reservation;
           creditsRemaining = reservationData.creditsReserved || 0;
-          
-          // If no credits remaining, can't recover
+
           if (creditsRemaining <= 0) {
             canRecover = false;
           }
         } else {
-          // No reservation found - use session duration
-          creditsRemaining = activeSession.duration || 0;
-          
+          // No reservation found - use session duration minus consumed time
+          const consumedMinutes = Math.ceil((activeSession.conversationTimeSeconds || 0) / 60);
+          creditsRemaining = Math.max(0, (activeSession.duration || 0) - consumedMinutes);
+
           if (creditsRemaining <= 0) {
             canRecover = false;
           }
         }
       } catch (error) {
         console.error(`[${requestId}] Error checking credit status for recovery:`, error);
-        // Default to allowing recovery but with 0 credits
         creditsRemaining = 0;
-      }
-    }
-
-    // Update session metrics for recovery
-    if (canRecover) {
-      try {
-        // Touch the session to update last access time
-        await prisma.therapySession.update({
-          where: { id: activeSession.id },
-          data: {
-            updatedAt: new Date()
-          }
-        });
-      } catch (error) {
-        console.error(`[${requestId}] Error updating recovery metadata:`, error);
-        // Don't fail recovery for metadata update errors
       }
     }
 
@@ -119,7 +102,9 @@ export async function GET(request: NextRequest) {
         status: activeSession.status,
         duration: activeSession.duration,
         createdAt: activeSession.createdAt,
-        sessionDate: activeSession.sessionDate
+        sessionDate: activeSession.date,
+        sessionType: activeSession.sessionType,
+        vapiCallId: activeSession.vapiCallId,
       },
       requestId,
       timestamp: new Date().toISOString(),
@@ -141,7 +126,7 @@ export async function GET(request: NextRequest) {
 // POST endpoint for marking recovery completion
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
-  
+
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
@@ -163,21 +148,18 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Update recovery status
-    await prisma.therapySession.update({
+    // Update recovery status on Session model
+    await prisma.session.update({
       where: {
         id: sessionId,
-        userId: session.user.id // Security: ensure ownership
+        userId: session.user.id,
       },
       data: {
-        metadata: {
-          ...(await prisma.therapySession.findUnique({
-            where: { id: sessionId },
-            select: { metadata: true }
-          }))?.metadata as any || {},
+        notes: JSON.stringify({
           recoveryCompleted: recovered,
           recoveryCompletedAt: new Date().toISOString()
-        }
+        }),
+        updatedAt: new Date(),
       }
     });
 
@@ -189,7 +171,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error(`[${requestId}] Recovery completion error:`, error);
-    
+
     return NextResponse.json({
       success: false,
       error: 'INTERNAL_ERROR',

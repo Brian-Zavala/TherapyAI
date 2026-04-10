@@ -82,97 +82,86 @@ export async function GET(request: NextRequest) {
     
     logger.info('Generating dynamic therapy insights', { userId, therapyType })
     
-    // CRITICAL FIX: Fetch user's recent therapy sessions filtered by therapy type
-    const recentSessions = await withRetry(
-      () => prisma.session.findMany({
-        where: {
-          userId,
-          status: 'COMPLETED',
-          sessionType: sessionTypeValue, // CRITICAL: Filter by specific therapy type
-          // Only include sessions with meaningful conversation time
-          conversationTimeSeconds: { gt: 60 }
-        },
-        orderBy: {
-          startTime: 'desc',
-        },
-        take: 10,
-        include: {
-          communicationMetrics: {
-            where: {
-              metricType: 'final',
-            },
-            select: {
-              listening: true,
-              expression: true,
-              respect: true,
-              empathy: true,
-              overall: true,
-              confidence: true,
-            }
+    // Fetch sessions and profile in parallel (independent queries)
+    const [recentSessions, userProfile] = await Promise.all([
+      // Recent therapy sessions filtered by therapy type
+      withRetry(
+        () => prisma.session.findMany({
+          where: {
+            userId,
+            status: 'COMPLETED',
+            sessionType: sessionTypeValue,
+            conversationTimeSeconds: { gt: 60 }
           },
-          transcriptEntries: {
-            select: {
-              speaker: true,
-              text: true,
-              timestamp: true,
-              sentiment: true,
-              topics: true,
-            },
-            orderBy: {
-              timestamp: 'asc'
-            },
-            take: 100 // Limit transcript entries per session to manage memory
+          orderBy: {
+            startTime: 'desc',
           },
-          sessionFamilyMembers: {
-            include: {
-              familyMember: {
-                select: {
-                  name: true,
-                  relationship: true
-                }
+          take: 5,
+          include: {
+            communicationMetrics: {
+              where: {
+                metricType: 'final',
+              },
+              select: {
+                listening: true,
+                expression: true,
+                respect: true,
+                empathy: true,
+                overall: true,
+                confidence: true,
+              }
+            },
+            transcriptEntries: {
+              select: {
+                speaker: true,
+                text: true,
+                timestamp: true,
+                sentiment: true,
+                topics: true,
+              },
+              orderBy: {
+                timestamp: 'asc'
+              },
+              take: 30
+            },
+            sessionFamilyMembers: {
+              include: {
+                familyMember: {
+                  select: {
+                    name: true,
+                    relationship: true
+                  }
+                },
               },
             },
           },
-        },
-      })
-    )
-    
-    // Fetch user profile for personalization with retry
-    const userProfile = await withRetry(
-      () => prisma.userProfile.findUnique({
-        where: {
-          userId,
-        },
-        select: {
-          pronouns: true,
-          age: true,
-          partnerName: true,
-          partnerAge: true,
-          relationshipStatus: true,
-          currentConcerns: true,
-          communicationStyle: true,
-          sessionPreference: true,
-          user: {
-            select: {
-              name: true,
-              email: true,
-              sessions: {
-                where: { status: 'COMPLETED' },
-                select: {
-                  id: true,
-                  conversationTimeSeconds: true,
-                  startTime: true
-                },
-                orderBy: {
-                  startTime: 'desc'
-                },
-                take: 20
+        })
+      ),
+      // User profile for personalization
+      withRetry(
+        () => prisma.userProfile.findUnique({
+          where: {
+            userId,
+          },
+          select: {
+            pronouns: true,
+            age: true,
+            partnerName: true,
+            partnerAge: true,
+            relationshipStatus: true,
+            currentConcerns: true,
+            communicationStyle: true,
+            sessionPreference: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
               }
             }
           }
-        }
-      })
-    )
+        })
+      ),
+    ])
     
     // Generate dynamic insights based on actual VAPI session data
     const insights = await generateDynamicTherapyInsights({

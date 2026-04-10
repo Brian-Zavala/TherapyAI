@@ -64,29 +64,48 @@ export async function GET(request: Request) {
     // CRITICAL FIX: Use sessionType for accurate filtering with proper enum conversion
     const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
 
-    // Get the 3 most recent completed sessions for this therapy type with retry and proper filtering
-    const recentSessions = await withRetry(
-      () => prisma.session.findMany({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          sessionType: sessionTypeValue
-        },
-        orderBy: {
-          date: 'desc'
-        },
-        take: 3,
-        select: {
-          id: true,
-          duration: true,
-          date: true,
-          theme: true,
-          sessionType: true
-        }
-      })
-    );
+    // Run independent queries in parallel: recentSessions + communicationMetric
+    const [recentSessions, metrics] = await Promise.all([
+      // Get the 3 most recent completed sessions for this therapy type with retry and proper filtering
+      withRetry(
+        () => prisma.session.findMany({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            sessionType: sessionTypeValue
+          },
+          orderBy: {
+            date: 'desc'
+          },
+          take: 3,
+          select: {
+            id: true,
+            duration: true,
+            date: true,
+            theme: true,
+            sessionType: true
+          }
+        })
+      ),
+      // CRITICAL FIX: Get communication metrics filtered by session therapy type
+      withRetry(
+        () => prisma.communicationMetric.findFirst({
+          where: {
+            userId: user.id,
+            sessionId: { not: null }, // CRITICAL: Only include metrics with valid session links
+            metricType: { not: 'real-time' }, // Only get final calculated metrics
+            session: {
+              sessionType: sessionTypeValue // CRITICAL: Filter by the actual session therapy type
+            }
+          },
+          orderBy: {
+            calculatedAt: 'desc'
+          }
+        })
+      )
+    ]);
 
-    // Get transcript entries for recent sessions with error handling
+    // Sequential: Get transcript entries for recent sessions (depends on recentSessions)
     let transcriptAnalysis = null;
     if (recentSessions.length > 0) {
       try {
@@ -105,17 +124,17 @@ export async function GET(request: Request) {
             }
           })
         );
-        
+
         if (transcriptEntries.length > 0) {
           try {
             // Import the analysis function from metrics-helper
             const { analyzeTranscriptForMetrics } = await import('@/app/api/sessions/[id]/metrics-helper');
-            
+
             // Combine transcript entries into a single transcript
             const combinedTranscript = transcriptEntries
               .map(entry => `${entry.speaker}: ${entry.text}`)
               .join('\n');
-            
+
             // Analyze the transcripts with error handling
             const avgDuration = recentSessions.reduce((sum, s) => sum + (s.duration || 0), 0) / recentSessions.length;
             transcriptAnalysis = analyzeTranscriptForMetrics(combinedTranscript, 70, 5, therapyType);
@@ -129,23 +148,6 @@ export async function GET(request: Request) {
         // Continue without transcript data rather than failing the entire request
       }
     }
-
-    // CRITICAL FIX: Get communication metrics filtered by session therapy type
-    const metrics = await withRetry(
-      () => prisma.communicationMetric.findFirst({
-        where: {
-          userId: user.id,
-          sessionId: { not: null }, // CRITICAL: Only include metrics with valid session links
-          metricType: { not: 'real-time' }, // Only get final calculated metrics
-          session: {
-            sessionType: sessionTypeValue // CRITICAL: Filter by the actual session therapy type
-          }
-        },
-        orderBy: {
-          calculatedAt: 'desc'
-        }
-      })
-    );
     
     let responseData;
     
