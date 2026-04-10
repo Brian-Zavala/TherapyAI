@@ -1,9 +1,8 @@
+import { getAuthSession } from '@/lib/auth'
 // Phase 3: Web Vitals Analytics Endpoint
 // Collects and processes performance metrics
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 interface VitalMetric {
   metric: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
@@ -144,7 +143,7 @@ export async function POST(req: NextRequest) {
 
 // GET endpoint for retrieving metrics (admin only)
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthSession();
   
   if (!session?.user?.id) {
     return NextResponse.json(

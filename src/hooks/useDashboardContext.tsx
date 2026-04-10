@@ -41,6 +41,7 @@ export function useCommunicationMetricsFromContext() {
     isRefetching: dashboardData.isRefetching,
     error: dashboardData.error,
     loadingState: dashboardData.loadingState,
+    refetch: dashboardData.refetch,
   };
 }
 
@@ -52,6 +53,7 @@ export function useProgressDataFromContext() {
     isRefetching: dashboardData.isRefetching,
     error: dashboardData.error,
     loadingState: dashboardData.loadingState,
+    refetch: dashboardData.refetch,
   };
 }
 
@@ -63,5 +65,6 @@ export function useTherapyInsightsFromContext() {
     isRefetching: dashboardData.isRefetching,
     error: dashboardData.error,
     loadingState: dashboardData.loadingState,
+    refetch: dashboardData.refetch,
   };
 }

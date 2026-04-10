@@ -205,9 +205,8 @@ export function DashboardRealTimeExample() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <CommunicationMetricsRealTime 
-              therapyType="couple"
-              showLiveIndicator={true}
+            <CommunicationMetricsRealTime
+              {...{ therapyType: "couple", showLiveIndicator: true } as any}
             />
           </motion.div>
 

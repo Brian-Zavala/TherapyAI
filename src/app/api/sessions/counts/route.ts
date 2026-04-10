@@ -1,7 +1,6 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/sessions/counts/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma-optimized';
 import { 
   handleDashboardError, 
@@ -11,7 +10,6 @@ import {
   DashboardErrorCode
 } from '@/lib/api/dashboard-error-handler';
 import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache';
-import { getCachedSession } from '@/lib/auth/session-cache';
 import { performanceMonitor } from '@/lib/performance/monitoring';
 import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
@@ -20,7 +18,7 @@ export async function GET(request: Request) {
   
   try {
     // Use cached session to reduce auth overhead
-    const session = await getCachedSession(request);
+    const session = await getAuthSession();
     const { email } = await validateDashboardAuth(session);
 
     // Find the user in the database using optimized query with caching
@@ -169,7 +167,7 @@ export async function GET(request: Request) {
     
     return handleDashboardError(error, {
       route: '/api/sessions/counts',
-      userId: (await getServerSession(authOptions))?.user?.id,
+      userId: (await getAuthSession())?.user?.id,
       action: 'fetchSessionCounts',
     });
   }

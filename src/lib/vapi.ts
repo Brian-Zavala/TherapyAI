@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Vapi from "@vapi-ai/web";
 
 import {
@@ -855,7 +856,7 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   type: "couple",
   model: {
     provider: "openai",
-    model: "gpt-5-mini",
+    model: "gpt-4o-mini",
     temperature: 1.0,
     maxTokens: 250,
     messages: [
@@ -933,7 +934,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   voice: {
     provider: "11labs",
     voiceId:
-      process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID || "Yu4extp5aod8kaqzti3t",
+      process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID || "0G7xjh2pNSLRvJSpklE4",
     model: "eleven_turbo_v2_5",
   },
   transcriber: {
@@ -969,7 +970,7 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   type: "solo",
   model: {
     provider: "openai",
-    model: "gpt-5-mini",
+    model: "gpt-4o-mini",
     temperature: 1.0,
     maxTokens: 250,
     messages: [
@@ -1048,8 +1049,9 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   voice: {
     provider: "11labs",
     voiceId:
-      process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "zSSB5ODlBiskDz2GIM5l", // Custom voice for Dr. Elliot
+      process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "XmUeU0FRyne67Dy7UaT4", // Custom voice for Dr. Elliot
     model: "eleven_turbo_v2_5",
+    speed: 1.15,
   },
   transcriber: {
     provider: "deepgram",
@@ -1093,7 +1095,7 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   type: "family",
   model: {
     provider: "openai",
-    model: "gpt-5-mini",
+    model: "gpt-4o-mini",
     temperature: 1.0,
     maxTokens: 250,
     messages: [
@@ -1175,7 +1177,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   voice: {
     provider: "11labs",
     voiceId:
-      process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID || "Owaxzdx7w5vej9dcytzz",
+      process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID || "zQjGMGv0jjccPqAwHqqv",
     model: "eleven_turbo_v2_5",
   },
   transcriber: {

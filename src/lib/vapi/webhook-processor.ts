@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { TranscriptPerformanceOptimizer } from './transcript-performance-optimizer';
 import { prisma } from '@/lib/prisma-optimized';

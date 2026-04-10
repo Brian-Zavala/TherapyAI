@@ -47,9 +47,18 @@ export function useSessionConflict() {
     return false;
   }, []);
 
-  const resumeExistingSession = useCallback(() => {    if (conflictSession) {
-      // Navigate to existing session
-      window.location.href = `/session/${conflictSession.id}`;
+  const resumeExistingSession = useCallback(() => {
+    if (conflictSession) {
+      // Dispatch recovery event so TherapyButton picks it up
+      const recoveryEvent = new CustomEvent('session-recovery-auto-start', {
+        detail: {
+          sessionId: conflictSession.id,
+          conversationTimeSeconds: conflictSession.conversationTimeSeconds || 0,
+          duration: conflictSession.duration,
+          therapyType: conflictSession.theme || 'solo',
+        }
+      });
+      window.dispatchEvent(recoveryEvent);
       toast.success('Resuming existing session');
     }
     setIsConflictDialogOpen(false);

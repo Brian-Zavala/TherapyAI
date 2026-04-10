@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma-optimized';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { redis } from '@/lib/cache/redis-client';
@@ -9,7 +8,7 @@ import { redis } from '@/lib/cache/redis-client';
 export async function POST(request: NextRequest) {
   try {
     // Check admin authentication (you may want to add proper admin role checking)
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
     // Update or create credits
     const credits = await creditManager.initializeBillingPeriodWithNotification(
       user.id,
-      planType,
+      planType as 'free' | 'pro',
       billingStart,
       billingEnd,
       user.subscriptionId || undefined

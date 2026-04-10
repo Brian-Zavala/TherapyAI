@@ -1,11 +1,38 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { vapiJWTRedisService, isRedisEnabled } from '@/lib/vapi-jwt-redis.service';
-import { vapiPublicTokenService } from '@/lib/vapi-public-token-service';
-import { upstashRedis } from '@/lib/upstash-redis.service';
 import { validateVapiKey } from '@/lib/vapi-key-validator';
 import type { VapiTokenRequest, VapiError } from '@/lib/vapi-jwt.service';
+
+// Lazy-load these to avoid jsonwebtoken crash at module init
+let _vapiJWTRedisService: any = null;
+let _isRedisEnabled = false;
+let _upstashRedis: any = null;
+
+async function getJWTService() {
+  if (_vapiJWTRedisService === null) {
+    try {
+      const mod = await import('@/lib/vapi-jwt-redis.service');
+      _vapiJWTRedisService = mod.vapiJWTRedisService;
+      _isRedisEnabled = mod.isRedisEnabled;
+    } catch {
+      _vapiJWTRedisService = undefined;
+      _isRedisEnabled = false;
+    }
+  }
+  return { vapiJWTRedisService: _vapiJWTRedisService, isRedisEnabled: _isRedisEnabled };
+}
+
+async function getUpstashRedis() {
+  if (_upstashRedis === null) {
+    try {
+      const mod = await import('@/lib/upstash-redis.service');
+      _upstashRedis = mod.upstashRedis;
+    } catch {
+      _upstashRedis = undefined;
+    }
+  }
+  return _upstashRedis;
+}
 
 /**
  * Generate a secure client token for Vapi
@@ -14,7 +41,7 @@ import type { VapiTokenRequest, VapiError } from '@/lib/vapi-jwt.service';
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -67,11 +94,14 @@ export async function POST(req: NextRequest) {
           cached: false,
         };
         tokenType = 'direct';
-      } else if (vapiJWTRedisService && process.env.VAPI_PRIVATE_KEY && process.env.VAPI_ORG_ID) {
+      } else if (process.env.VAPI_PRIVATE_KEY && process.env.VAPI_ORG_ID) {
         // Legacy JWT approach (keeping as fallback)
-        console.log('[VAPI Token] Falling back to JWT token generation');
-        tokenData = await vapiJWTRedisService.getOrCreateToken(userId, scope, userType);
-        tokenType = 'jwt';
+        const { vapiJWTRedisService } = await getJWTService();
+        if (vapiJWTRedisService) {
+          console.log('[VAPI Token] Falling back to JWT token generation');
+          tokenData = await vapiJWTRedisService.getOrCreateToken(userId, scope, userType);
+          tokenType = 'jwt';
+        }
       } else {
         // Final fallback: Check if we have a public API key available
         const apiKey = process.env.VAPI_API_KEY;
@@ -111,6 +141,7 @@ export async function POST(req: NextRequest) {
       response.headers.set('X-Response-Time', `${responseTime}ms`);
       response.headers.set('X-Cache-Status', tokenData.cached ? 'HIT' : 'MISS');
       response.headers.set('X-Rate-Limit-Profile', userType === 'premium' ? 'premium' : 'vapi-token');
+      const { isRedisEnabled } = await getJWTService();
       response.headers.set('X-Backend-Type', isRedisEnabled ? 'redis' : 'memory');
       response.headers.set('X-Token-Type', tokenType);
       
@@ -150,6 +181,8 @@ export async function POST(req: NextRequest) {
 // Health check endpoint
 export async function GET() {
   try {
+    const upstashRedis = await getUpstashRedis();
+    const { isRedisEnabled } = await getJWTService();
     const health = upstashRedis ? await upstashRedis.healthCheck() : null;
     const metrics = upstashRedis ? upstashRedis.getMetrics() : null;
 
@@ -164,7 +197,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json({
       status: 'error',
-      backend: isRedisEnabled ? 'redis' : 'memory',
+      backend: 'unknown',
       error: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }

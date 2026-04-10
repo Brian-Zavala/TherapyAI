@@ -1,11 +1,10 @@
+import { getAuthSession } from '@/lib/auth'
 /**
  * Optimized Notifications API with caching and improved query performance
  * This is an example implementation showing how to apply the performance optimizations
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
 import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache';
@@ -23,7 +22,7 @@ async function getCachedSession(request: Request) {
     return cached.session;
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await getAuthSession();
   if (session) {
     sessionCache.set(cacheKey, {
       session,

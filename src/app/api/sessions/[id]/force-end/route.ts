@@ -1,8 +1,7 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/sessions/[id]/force-end/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma-optimized';
-import { authOptions } from '@/lib/auth';
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
 import { z } from 'zod';
@@ -43,7 +42,7 @@ export async function POST(
 ) {
   try {
     // 2025 Standard: Auth check
-    const authSession = await getServerSession(authOptions);
+    const authSession = await getAuthSession();
     if (!authSession?.user?.email) {
       return NextResponse.json<ApiError>(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' }, 

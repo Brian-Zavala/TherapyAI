@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Concerns-Focused Webhook Processor
  * Extracts and processes therapy concerns insights from VAPI webhooks

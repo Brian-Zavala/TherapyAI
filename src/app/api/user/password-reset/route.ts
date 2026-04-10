@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { Resend } from "resend"
 import { withAuth } from "@/lib/middleware/withAuth"
 import { createPasswordResetToken } from "@/lib/security/tokens"
@@ -9,7 +8,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

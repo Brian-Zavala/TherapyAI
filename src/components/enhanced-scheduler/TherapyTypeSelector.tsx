@@ -3,7 +3,7 @@
 import React from 'react'
 import { Users, User, UsersIcon, Heart, Brain, Activity } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { TherapyType } from '@prisma/client'
+import { SessionType as TherapyType } from '@prisma/client'
 
 interface TherapyTypeSelectorProps {
   selectedType: TherapyType | null
@@ -25,7 +25,7 @@ interface TherapyTypeOption {
 
 const therapyTypeOptions: TherapyTypeOption[] = [
   {
-    type: 'INDIVIDUAL',
+    type: 'SOLO' as TherapyType,
     label: 'Individual',
     description: 'Personal growth and self-discovery',
     icon: User,
@@ -38,7 +38,7 @@ const therapyTypeOptions: TherapyTypeOption[] = [
     ]
   },
   {
-    type: 'COUPLES',
+    type: 'COUPLE' as TherapyType,
     label: 'Couples',
     description: 'Strengthen your relationship',
     icon: Heart,
@@ -65,7 +65,7 @@ const therapyTypeOptions: TherapyTypeOption[] = [
     ]
   },
   {
-    type: 'GROUP',
+    type: 'FAMILY' as TherapyType, // Mapped from GROUP to FAMILY
     label: 'Group',
     description: 'Connect with others on similar journeys',
     icon: Users,
@@ -122,7 +122,7 @@ export function TherapyTypeSelector({
     }
     
     // Show couples option only if partner is connected
-    if (option.type === 'COUPLES' && !partnerConnected) {
+    if (option.type === 'COUPLE' && !partnerConnected) {
       return false
     }
     

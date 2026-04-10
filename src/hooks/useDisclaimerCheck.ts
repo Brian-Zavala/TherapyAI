@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/hooks/useClerkSession'
 import { logger } from '@/lib/logger';
 
 const DISCLAIMER_VERSION = '1.0.0'; // Current disclaimer version

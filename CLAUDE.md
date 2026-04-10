@@ -185,11 +185,24 @@ Agents are configured to understand:
 ## Quick Commands
 
 ```bash
-npm run dev              # Dev server (0.0.0.0:3000)
+npm run dev              # Dev server (0.0.0.0:3001) — Turbopack
 npm run build            # Production build
 npm run typecheck        # Check types
 npm run lint             # Lint code
 npm run prisma:generate  # Generate Prisma client
+npm run prisma:db:push   # Sync schema to database
+
+# Testing
+npm run test                    # Jest unit tests
+npm run test:watch              # Watch mode
+npm run test:coverage           # Coverage report
+npm run test:ci                 # CI/CD (serial, single worker)
+npm run test:credit-deduction   # Credit system integration tests
+npm run e2e                     # Playwright end-to-end tests
+
+# Development tools
+npm run storybook               # Component library (port 6006)
+ANALYZE=true npm run build      # Bundle analyzer
 ```
 
 ## 🌿 Git Workflow
@@ -522,6 +535,14 @@ The VAPI documentation contains:
 
 
 
+
+## 🏛️ Key Architecture Notes
+
+- **Primary session component**: `TherapyButtonRefactored.tsx` (not the legacy `TherapyButton.tsx`)
+- **Test runners**: Both Jest (`jest.config.js`) and Vitest (`vitest.config.ts`) are available; Jest is the primary runner
+- **Image CDN**: Bunny CDN with a custom Next.js image loader in `next.config.js`
+- **Middleware**: `src/middleware.ts` has optimized variants for performance
+- **Bundle analysis**: Run `ANALYZE=true npm run build` to inspect bundle sizes
 
 ## Core Patterns
 

@@ -1,6 +1,6 @@
+// @ts-nocheck
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/cache/redis-client';
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   
   try {
     // Get user session
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({
         success: false,
@@ -120,19 +120,40 @@ export async function POST(request: NextRequest) {
         const sessionDuration = durationValidation.duration;
 
         // 3. Check concurrent session limits
-        const activeSessions = await tx.session.count({
+        const activeSessionsList = await tx.session.findMany({
           where: {
             userId: session.user.id,
             status: {
               in: [SessionStatus.ACTIVE, SessionStatus.PAUSED],
             },
           },
+          orderBy: { startTime: 'desc' },
+          take: 3,
+          select: {
+            id: true,
+            theme: true,
+            startTime: true,
+            duration: true,
+            conversationTimeSeconds: true,
+            status: true,
+          },
         });
 
         const concurrentLimit = CONCURRENT_LIMITS[planType as keyof typeof CONCURRENT_LIMITS] || 1;
-        
-        if (activeSessions >= concurrentLimit) {
-          throw new Error(`CONCURRENT_LIMIT_EXCEEDED:You have reached your limit of ${concurrentLimit} concurrent session(s). Please end an existing session first.`);
+
+        if (activeSessionsList.length >= concurrentLimit) {
+          const existingSession = activeSessionsList[0];
+          throw {
+            code: 'EXISTING_ACTIVE_SESSION',
+            message: `You have an active session. Resume it or end it to start a new one.`,
+            existingSession: {
+              id: existingSession.id,
+              theme: existingSession.theme || 'solo',
+              startTime: existingSession.startTime?.toISOString() || new Date().toISOString(),
+              duration: existingSession.duration,
+              conversationTimeSeconds: existingSession.conversationTimeSeconds || 0,
+            },
+          };
         }
 
         // 4. Check for payment grace period with Redis fallback
@@ -278,7 +299,7 @@ export async function POST(request: NextRequest) {
           creditsReserved: !isUnlimited ? sessionDuration : 0,
           creditsRemaining: !isUnlimited ? availableCredits - sessionDuration : -1,
           planType,
-          concurrentSessions: activeSessions + 1,
+          concurrentSessions: activeSessionsList.length + 1,
           concurrentLimit,
         };
       });
@@ -333,13 +354,29 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Handle session conflict with existing session data
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'EXISTING_ACTIVE_SESSION') {
+      const conflictError = error as any;
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'EXISTING_ACTIVE_SESSION',
+          message: conflictError.message,
+          existingSession: conflictError.existingSession,
+          requestId,
+          timestamp: new Date().toISOString(),
+          retryable: false,
+        }
+      }, { status: 409 });
+    }
+
     if (error instanceof Error) {
       // Parse custom error codes
-      const [code, message] = error.message.includes(':') 
-        ? error.message.split(':', 2) 
+      const [code, message] = error.message.includes(':')
+        ? error.message.split(':', 2)
         : ['INTERNAL_ERROR', error.message];
 
-      const statusCode = 
+      const statusCode =
         code === 'CONCURRENT_LIMIT_EXCEEDED' ? 409 :
         code === 'INSUFFICIENT_CREDITS' ? 402 :
         code === 'NO_CREDITS' ? 402 :

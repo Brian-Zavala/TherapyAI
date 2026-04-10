@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 /**
  * Returns the VAPI public key for client-side initialization
@@ -9,7 +8,7 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   try {
     // Verify authentication
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

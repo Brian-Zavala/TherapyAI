@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import { generateDynamicTherapyInsights } from '@/lib/ai-insights/dynamic-insights-service'
 import { realTimeInsightsProcessor } from '@/lib/ai-insights/real-time-insights-processor'
@@ -11,7 +10,6 @@ import {
 } from '@/lib/api/dashboard-error-handler'
 import { logger } from '@/lib/logger'
 import { dashboardCache, cacheKeys } from '@/lib/cache/dashboard-cache'
-import { getCachedSession } from '@/lib/auth/session-cache'
 import { performanceMonitor } from '@/lib/performance/monitoring'
 
 // Utility to convert frontend therapy type to Prisma enum for filtering
@@ -40,7 +38,7 @@ export async function GET(request: NextRequest) {
     const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
     
     // Use cached session to reduce auth overhead
-    const session = await getCachedSession(request)
+    const session = await getAuthSession()
     const { userId } = await validateDashboardAuth(session)
     
     // Check if there's an active session with real-time insights
@@ -214,14 +212,14 @@ export async function GET(request: NextRequest) {
     performanceMonitor.trackApiCall('/api/therapy-insights', duration, undefined, { error: true })
     
     logger.error('Failed to generate dynamic therapy insights', { 
-      userId: (await getServerSession(authOptions))?.user?.id,
+      userId: (await getAuthSession())?.user?.id,
       error: error instanceof Error ? error.message : error,
       duration
     })
     
     return handleDashboardError(error, {
       route: '/api/therapy-insights',
-      userId: (await getServerSession(authOptions))?.user?.id,
+      userId: (await getAuthSession())?.user?.id,
       action: 'generateDynamicInsights',
     })
   }

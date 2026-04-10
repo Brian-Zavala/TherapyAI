@@ -1,7 +1,6 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/dashboard/metrics/v2/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma-optimized';
 import { z } from "zod";
 import { cache } from "react";
@@ -160,7 +159,7 @@ class MetricCalculator {
 export async function GET(request: NextRequest) {
   try {
     // 1. Authentication
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

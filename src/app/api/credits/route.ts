@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { vapiSessionManager } from '@/lib/services/vapi-session-manager';
 import { prisma } from '@/lib/prisma';
@@ -8,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/credits - Get current credit balance and usage
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
 // POST /api/credits/purchase - Purchase additional credits (one-time)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -113,7 +112,7 @@ export async function POST(request: NextRequest) {
 // GET /api/credits/usage - Get detailed usage history
 export async function GET_USAGE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -142,8 +141,8 @@ export async function GET_USAGE(request: NextRequest) {
         session: {
           select: {
             id: true,
-            therapyType: true,
-            sessionDate: true,
+            theme: true,
+            date: true,
           },
         },
       },
@@ -169,7 +168,7 @@ export async function GET_USAGE(request: NextRequest) {
         balance: t.balance,
         description: t.description,
         sessionId: t.sessionId,
-        therapyType: t.session?.therapyType,
+        therapyType: t.session?.theme,
         date: t.createdAt,
       })),
       alerts: alerts.map(a => ({

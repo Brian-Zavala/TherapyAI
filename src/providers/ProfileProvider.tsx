@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import { useRouter } from 'next/navigation'
 
 interface UserProfile {

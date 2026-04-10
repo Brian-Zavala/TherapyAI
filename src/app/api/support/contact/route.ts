@@ -1,7 +1,6 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/support/contact/route.ts
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { Resend } from 'resend';
 
 // Initialize Resend with API key
@@ -13,7 +12,7 @@ export async function POST(request: Request) {
   try {
     console.log('Getting session');
     // Get the current session (optional, can allow unauthenticated messages)
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     console.log('Session:', session ? 'Found' : 'Not found');
     
     // Parse request body

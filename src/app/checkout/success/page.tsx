@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CheckCircleIcon, SparklesIcon, ClockIcon, CalendarIcon, CreditCardIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/hooks/useClerkSession'
 
 interface SubscriptionDetails {
   planName: string;

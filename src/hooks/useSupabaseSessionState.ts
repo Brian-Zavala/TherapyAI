@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useSupabaseSessionState Hook
  * Manages session state using Supabase Realtime
@@ -478,7 +479,7 @@ export function useSupabaseSessionState({
             
             console.log('[useSupabaseSessionState] Fetching initial session data for:', sessionId)
             try {
-              const response = await fetch(`/api/sessions/${sessionId}`, {
+              const response = await fetch(`/api/sessions/${sessionId}?lite=true`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {

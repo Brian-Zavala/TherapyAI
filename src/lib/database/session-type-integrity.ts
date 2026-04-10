@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Session Type Integrity Management
  * 

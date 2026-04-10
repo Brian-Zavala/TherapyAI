@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import SessionTranscriptSMS from '@/components/SessionTranscriptSMS'
 import SessionsLoadingSpinner from '@/components/sessions/SessionsLoadingSpinner'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import { useRouter } from 'next/navigation'
 import CreditDisplay from '@/components/CreditDisplay'
 

@@ -127,7 +127,7 @@ export function useVapiMetricsBridge({
                 return
               }
               // Add to metrics calculator and get updated metrics
-              lastMetrics = await metricsCalculatorRef.current.addTranscriptEntry(transcriptEntry)
+              lastMetrics = await metricsCalculatorRef.current.addTranscriptEntry(transcriptEntry as any)
             } catch (error) {
               console.error('[VapiMetricsBridge] Error processing transcript:', error)
             }

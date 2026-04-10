@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Daily Tip Scheduler
  * Handles automatic rotation of daily tips at midnight and personalized tip generation

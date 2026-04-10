@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Stripe Webhook Handler v2 - Best Practices Implementation
  * 

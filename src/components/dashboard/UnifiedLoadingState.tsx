@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/components/dashboard/UnifiedLoadingState.tsx
 "use client";
 

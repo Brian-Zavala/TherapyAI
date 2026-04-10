@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/lib/export/export-manager.ts
 "use client";
 

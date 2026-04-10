@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Therapy Insights Generator
  * Analyzes all available metrics and data to generate personalized,

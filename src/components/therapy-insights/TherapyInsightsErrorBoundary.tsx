@@ -104,7 +104,7 @@ export function PartialInsights({
   if (missingInsights.length === 0) return null;
   
   return (
-    <Alert variant="warning" className="mb-4">
+    <Alert variant={"warning" as any} className="mb-4">
       <AlertCircle className="h-4 w-4" />
       <div className="ml-2">
         <AlertDescription>

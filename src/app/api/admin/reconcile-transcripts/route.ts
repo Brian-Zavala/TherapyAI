@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { 
   findSessionsNeedingReconciliation,
   reconcileMultipleSessions,
@@ -15,7 +14,7 @@ import { getTranscriptStrategy } from '@/lib/vapi/transcript-strategy'
 export async function GET(request: NextRequest) {
   try {
     // Validate admin session
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Validate admin session
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -134,7 +133,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Validate admin session
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },

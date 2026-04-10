@@ -54,7 +54,7 @@ async function main() {
     console.log('  ✅ Database indexes applied successfully')
     
   } catch (error) {
-    await indexTimer({ error: true })
+    await indexTimer()
     results.push({
       step: 'Database Indexes',
       status: 'error',
@@ -91,7 +91,7 @@ async function main() {
     console.log(`  ✅ Redis pool warmed up (${redisLatency}ms for 10 connections)`)
     
   } catch (error) {
-    await redisTimer({ error: true })
+    await redisTimer()
     results.push({
       step: 'Redis Connection Pool',
       status: 'error',
@@ -145,7 +145,7 @@ async function main() {
     }
     
   } catch (error) {
-    await queryTimer({ error: true })
+    await queryTimer()
     results.push({
       step: 'Optimized Queries',
       status: 'error',
@@ -177,7 +177,7 @@ async function main() {
     }
     
   } catch (error) {
-    await healthTimer({ error: true })
+    await healthTimer()
     results.push({
       step: 'Health Check',
       status: 'error',
@@ -210,7 +210,7 @@ async function main() {
     console.log(`  ✅ API route optimization completed`)
     
   } catch (error) {
-    await apiTimer({ error: true })
+    await apiTimer()
     results.push({
       step: 'API Routes',
       status: 'error',

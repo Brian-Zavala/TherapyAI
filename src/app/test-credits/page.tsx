@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession } from '@/hooks/useClerkSession'
 import CreditDisplay from "@/components/CreditDisplay";
 import { useEffect } from "react";
 

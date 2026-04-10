@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/hooks/useClerkSession'
 import { useRouter } from 'next/navigation';
 
 interface PerformanceStats {

@@ -1,7 +1,6 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/database/prisma-client';
+import { prisma } from '@/lib/prisma-optimized';
 import { 
   verifyNotificationToken, 
   trackNotificationInteraction 
@@ -15,7 +14,7 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     const searchParams = request.nextUrl.searchParams;
     
     // Parse and validate query parameters

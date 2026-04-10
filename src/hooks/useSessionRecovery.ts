@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import { toast } from 'sonner'
 
 interface RecoveryData {
@@ -37,7 +37,7 @@ export function useSessionRecovery(options: UseSessionRecoveryOptions = {}) {
   const [recoveryData, setRecoveryData] = useState<RecoveryData | null>(null)
   const [hasChecked, setHasChecked] = useState(false)
   const [isRecovering, setIsRecovering] = useState(false)
-  const checkTimeoutRef = useRef<NodeJS.Timeout>()
+  const checkTimeoutRef = useRef<NodeJS.Timeout>(undefined as any)
   const hasAttemptedRecoveryRef = useRef(false)
 
   const checkForRecoverableSession = useCallback(async () => {

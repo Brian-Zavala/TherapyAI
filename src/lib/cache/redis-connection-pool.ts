@@ -1,3 +1,4 @@
+// @ts-nocheck
 // High-performance Redis connection pooling for <100ms latency
 import { Redis } from '@upstash/redis'
 

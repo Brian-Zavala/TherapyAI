@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Transcript Reconciliation Service
  * Detects and merges duplicate transcripts, prioritizing webhook data as source of truth

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import { useProfile } from '@/providers/ProfileProvider'
 
 export default function IntroClientWrapper({ children }: { children: React.ReactNode }) {

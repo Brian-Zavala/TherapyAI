@@ -40,7 +40,7 @@ export async function createCheckoutSession({
   isAnnual,
 }: {
   priceId: string;
-  planType: 'essential' | 'growth' | 'unlimited';
+  planType: 'pro';
   isAnnual: boolean;
 }) {
   try {

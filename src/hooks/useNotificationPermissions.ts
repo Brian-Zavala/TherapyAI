@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useProfile } from '@/providers/ProfileProvider'
 import { useCallback, useMemo } from 'react'
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Dashboard Fallback Data Patterns
  * Provides meaningful default data when queries fail

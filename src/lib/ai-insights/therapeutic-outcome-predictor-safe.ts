@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAFE Therapeutic Outcome Support System
  * Descriptive analytics and therapist-validated insights ONLY

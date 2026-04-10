@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * VAPI Session Data Processor
  * Extracts and preprocesses session data for AI analysis

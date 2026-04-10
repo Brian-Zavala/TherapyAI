@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getSupabaseClient } from '@/lib/supabase-singleton'
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import { toast } from 'sonner'
 
 interface DashboardMetrics {
@@ -54,7 +54,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
   
   const supabase = getSupabaseClient()
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map())
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined as any)
 
   // Load initial metrics
   const loadMetrics = useCallback(async () => {

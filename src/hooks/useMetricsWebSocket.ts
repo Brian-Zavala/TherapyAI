@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/hooks/useClerkSession'
 
 export interface MetricsUpdate {
   type: 'metrics_update' | 'session_update';

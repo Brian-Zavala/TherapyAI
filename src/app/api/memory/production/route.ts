@@ -1,11 +1,10 @@
+import { getAuthSession } from '@/lib/auth'
 /**
  * Production API Route for MCP Memory operations
  * This uses the actual MCP server instead of mock data
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { mcpMemoryOps } from '@/lib/mcp-memory-server';
 import { 
   formatMemoriesForPrompt
@@ -35,7 +34,7 @@ function calculateRelevance(keywords: string[], entity: any) {
 // GET /api/memory/production - Search real MCP memory
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -111,7 +110,7 @@ export async function GET(req: NextRequest) {
 // POST /api/memory/production - Save to real MCP memory
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -171,7 +170,7 @@ export async function POST(req: NextRequest) {
 // PATCH /api/memory/production - Add observations to existing entity
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

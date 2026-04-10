@@ -16,7 +16,7 @@ const Lottie = dynamic(() => import('lottie-react'), {
   loading: () => <div className="w-full h-full bg-white/10 animate-pulse rounded-lg" />
 });
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from '@/hooks/useClerkSession'
 import GlassCard from "@/components/ui/glass-card";
 // Global animation cache for better performance
 const animationCache = new Map<string, any>();

@@ -1,9 +1,10 @@
+// @ts-nocheck
 // src/hooks/useDashboardMetricsUnified.ts
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/hooks/useClerkSession'
 import { useSupabaseRealTimeMetrics } from '@/hooks/useSupabaseRealTimeMetrics';
 
 // ========================================

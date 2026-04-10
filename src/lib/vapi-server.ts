@@ -1,7 +1,6 @@
 // Server-side Vapi integration for managing assistants programmatically
 
 import { COUPLE_THERAPY_ASSISTANT_CONFIG } from './vapi';
-import jwt from 'jsonwebtoken';
 
 const VAPI_API_URL = 'https://api.vapi.ai';
 const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || process.env.VAPI_API_KEY;
@@ -154,9 +153,10 @@ export async function generateClientToken(userId: string) {
     };
     
     try {
-      const token = jwt.sign(payload, privateKey, { 
+      const jwt = (await import('jsonwebtoken')).default;
+      const token = jwt.sign(payload, privateKey, {
         algorithm: 'RS256',
-        expiresIn: '1h' 
+        expiresIn: '1h'
       });
       
       console.log(`Generated JWT token for user ${userId} with expiry of 1 hour`);

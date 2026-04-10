@@ -1,7 +1,6 @@
+import { getAuthSession } from '@/lib/auth'
 // Optimized credits API for <500ms response time
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptionsOptimized } from "@/lib/auth-optimized"
 import { getCurrentCreditsOptimized } from "@/lib/database/optimized-queries"
 import { getCached } from "@/lib/cache/redis-connection-pool"
 
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     // Fast session check with timeout
     const session = await Promise.race([
-      getServerSession(authOptionsOptimized),
+      getAuthSession(),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Session timeout')), 3000)
       )
@@ -63,20 +62,20 @@ export async function GET(request: NextRequest) {
       const usageStats = await creditManager.getUsageStats(userId)
       
       return {
-        available: credits.creditsRemaining,
+        available: credits.totalCredits - credits.usedCredits,
         total: credits.totalCredits,
-        used: credits.totalCredits - credits.creditsRemaining,
+        used: credits.totalCredits - credits.totalCredits - credits.usedCredits,
         planType: credits.planType,
         billingPeriod: {
           start: credits.billingPeriodStart,
           end: credits.billingPeriodEnd
         },
         usage: {
-          thisMonth: usageStats.totalMinutes,
+          thisMonth: usageStats.totalUsed,
           sessionCount: usageStats.sessionCount,
           averageLength: usageStats.averageSessionLength
         },
-        status: credits.creditsRemaining > 0 ? 'active' : 'depleted'
+        status: credits.totalCredits - credits.usedCredits > 0 ? 'active' : 'depleted'
       }
     }, 120) // 2 minute cache
 

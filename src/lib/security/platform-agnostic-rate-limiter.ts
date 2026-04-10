@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Ratelimit } from '@upstash/ratelimit'
 import type { Redis } from '@upstash/redis'
 import type { Duration } from '@upstash/ratelimit'

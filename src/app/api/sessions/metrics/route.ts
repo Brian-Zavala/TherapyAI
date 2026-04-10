@@ -1,18 +1,17 @@
+import { getAuthSession } from '@/lib/auth'
 /**
  * API Route: Session Metrics Persistence
  * Saves aggregated metrics to the database periodically
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import type { IncrementalMetrics } from '@/lib/real-time-metrics-optimized'
 
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },

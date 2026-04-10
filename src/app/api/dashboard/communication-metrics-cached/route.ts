@@ -1,8 +1,7 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/dashboard/communication-metrics/route.ts
 // This is an optimized version with caching for immediate performance improvement
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma-optimized';
 import { 
   handleDashboardError, 
@@ -20,7 +19,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const therapyType = searchParams.get('type') || 'couple';
 
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     const { email } = await validateDashboardAuth(session);
 
     // Find the user in the database
@@ -67,7 +66,7 @@ export async function GET(request: Request) {
   } catch (error) {
     return handleDashboardError(error, {
       route: '/api/dashboard/communication-metrics',
-      userId: (await getServerSession(authOptions))?.user?.id,
+      userId: (await getAuthSession())?.user?.id,
       action: 'fetchCommunicationMetrics',
     });
   }

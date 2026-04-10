@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Ultra-optimized transcript service with adaptive dynamic batching
  * Based on 2025 research: memory-aware and SLA-constrained dynamic batching

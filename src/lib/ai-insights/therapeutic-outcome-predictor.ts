@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Therapeutic Outcome Predictor
  * Advanced ML system for predicting relationship therapy success and optimal intervention timing

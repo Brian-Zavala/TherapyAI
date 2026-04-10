@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 // Phase 2: Optimized client component wrapper

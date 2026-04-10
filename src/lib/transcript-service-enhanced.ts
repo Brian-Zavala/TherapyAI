@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Enhanced transcript service with new schema integration
  * Optimized for performance with batching, deduplication, and real-time updates

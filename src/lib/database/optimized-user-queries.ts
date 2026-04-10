@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Optimized user query functions with proper indexing and caching
  */

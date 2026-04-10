@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/hooks/useClerkSession'
 import { createClient } from '@/utils/supabase/client';
 import { IncrementalMetrics } from '@/lib/real-time-metrics-optimized';
 import { logger } from '@/lib/logger';

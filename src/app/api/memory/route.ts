@@ -1,11 +1,10 @@
+import { getAuthSession } from '@/lib/auth'
 /**
  * API Route for MCP Memory operations
  * Provides a REST interface to the MCP memory system
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { 
   getRelevantMemories, 
   saveConversationToMemory,
@@ -15,7 +14,7 @@ import {
 // GET /api/memory - Search for relevant memories
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -61,7 +60,7 @@ export async function GET(req: NextRequest) {
 // POST /api/memory - Save conversation to memory
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

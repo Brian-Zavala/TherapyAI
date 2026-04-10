@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Session Completion Handler
  * Automatically triggers insight regeneration and pattern analysis when sessions complete

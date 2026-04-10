@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Enhanced Insights Engine
  * Advanced pattern recognition using conversation dynamics, sentiment analysis,

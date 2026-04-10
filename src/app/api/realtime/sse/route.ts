@@ -1,11 +1,10 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/realtime/sse/route.ts
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 // SSE endpoint for real-time updates fallback
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthSession();
   
   if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });

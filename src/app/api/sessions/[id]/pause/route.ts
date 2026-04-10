@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 
 export async function POST(
@@ -11,7 +10,7 @@ export async function POST(
     console.log('📍 POST /api/sessions/[id]/pause - Starting pause request')
     
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     if (!session?.user?.id) {
       console.log('❌ Pause request failed: Unauthorized')
       return NextResponse.json(
@@ -158,7 +157,7 @@ export async function POST(
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       sessionId: (await params).id,
-      userId: (await getServerSession(authOptions))?.user?.id
+      userId: (await getAuthSession())?.user?.id
     })
     return NextResponse.json(
       { 

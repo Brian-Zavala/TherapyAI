@@ -10,6 +10,7 @@ datasource db {
 
 model User {
   id                   String                 @id @default(cuid())
+  clerkId              String?                @unique
   email                String                 @unique
   name                 String?
   password             String?
@@ -28,29 +29,32 @@ model User {
   subscriptionStatus   String?                @default("free")
   subscriptionId       String?
   billingEmail         String?
-  stripeCustomerId     String?
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
-  accounts             Account[]
+  stripeCustomerId     String?
+  concurrentSessions   Int?                   @default(1)
+  maxSessionDuration   Int?                   @default(30)
+  AIInsight            AIInsight[]
   auditLogs            AuditLog[]
-  authSessions         AuthSession[]
   calendarIntegrations CalendarIntegration[]
   communicationMetrics CommunicationMetric[]
+  creditReservations   CreditReservation[]
+  DailyTip             DailyTip[]
+  DynamicGoal          DynamicGoal[]
   familyMembers        FamilyMember[]
+  InsightPattern       InsightPattern[]
+  notificationTracking NotificationTracking[]
   progressTracking     ProgressTracking[]
   smsOptOuts           SMSOptOut[]
   sessions             Session[]
   sessionMetrics       SessionMetrics[]
   therapyInsights      TherapyInsight[]
-  profile              UserProfile?
-  notificationTracking NotificationTracking[]
-  maxSessionDuration   Int?                   @default(30)
-  concurrentSessions   Int?                   @default(1)
+  usageAlerts          UsageAlert[]
   usageCredits         UsageCredits[]
   usageTransactions    UsageTransaction[]
-  usageAlerts          UsageAlert[]
-  creditReservations   CreditReservation[]
+  profile              UserProfile?
 
+  @@index([clerkId])
   @@index([email])
   @@index([createdAt])
   @@index([isDeleted, deletedAt])
@@ -87,6 +91,7 @@ model UserProfile {
   aiDisclaimerDate     DateTime?
   aiDisclaimerVersion  String?
   timezone             String?   @default("UTC")
+  version              Int       @default(0)
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -142,22 +147,24 @@ model Session {
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @updatedAt
   sessionType             SessionType            @default(SOLO)
+  notificationStartedAt   DateTime?
   notificationToken       String?
   notificationTokenExpiry DateTime?
   startedViaNotification  Boolean                @default(false)
-  notificationStartedAt   DateTime?
   creditsAllocated        Int?                   @default(0)
   creditsUsed             Int?                   @default(0)
+  AIInsight               AIInsight[]
   communicationMetrics    CommunicationMetric[]
+  notificationTracking    NotificationTracking[]
   progressTracking        ProgressTracking[]
   user                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionFamilyMembers    SessionFamilyMember[]
   sessionMetrics          SessionMetrics?
+  SessionSummary          SessionSummary?
   therapyInsights         TherapyInsight[]
   transcriptEntries       TranscriptEntry[]
-  conversationState       ConversationState?
-  notificationTracking    NotificationTracking[]
   usageTransactions       UsageTransaction[]
+  conversationState       ConversationState?
 
   @@index([userId, status])
   @@index([userId, startTime])
@@ -207,24 +214,34 @@ model CommunicationMetric {
 }
 
 model SessionMetrics {
-  id                String   @id @default(cuid())
-  sessionId         String   @unique
-  userId            String
-  duration          Int
-  totalMessages     Int
-  userMessages      Int
-  assistantMessages Int
-  engagementScore   Float
-  sentimentScore    Float
-  sentimentTrend    String
-  topicsCovered     String[]
-  emotionalInsights Json?
-  completionRate    Float    @default(1.0)
-  qualityScore      Float
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String   @id @default(cuid())
+  sessionId             String   @unique
+  userId                String
+  duration              Int      @default(0)
+  totalMessages         Int      @default(0)
+  userMessages          Int      @default(0)
+  assistantMessages     Int      @default(0)
+  engagementScore       Float    @default(0)
+  sentimentScore        Float    @default(0)
+  sentimentTrend        String   @default("neutral")
+  topicsCovered         String[]
+  emotionalInsights     Json?
+  completionRate        Float    @default(1.0)
+  qualityScore          Float    @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  activeListening       Float    @default(0)
+  clarity               Float    @default(0)
+  emotionalPatterns     String[]
+  empathy               Float    @default(0)
+  keyTopics             String[]
+  respect               Float    @default(0)
+  therapistSpeakingTime Int      @default(0)
+  therapistWordCount    Int      @default(0)
+  userSpeakingTime      Int      @default(0)
+  userWordCount         Int      @default(0)
+  session               Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
@@ -308,44 +325,6 @@ model ConversationMessage {
   @@map("conversation_messages")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
-}
-
-model AuthSession {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("AuthSession")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@index([expires])
-}
 
 model SMSOptOut {
   id          String    @id @default(cuid())
@@ -372,11 +351,6 @@ model AuditLog {
   userId          String?
   sessionId       String?
   action          String
-  entityType      String
-  entityId        String?
-  oldValues       Json?
-  newValues       Json?
-  changedFields   String[]
   ipAddress       String?
   userAgent       String?
   requestId       String?
@@ -386,6 +360,11 @@ model AuditLog {
   isLegalHold     Boolean   @default(false)
   legalHoldUntil  DateTime?
   createdAt       DateTime  @default(now())
+  changedFields   String[]
+  entityId        String?
+  entityType      String
+  newValues       Json?
+  oldValues       Json?
   user            User?     @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt])
@@ -559,6 +538,296 @@ model TherapySession {
   @@index([status])
 }
 
+model NotificationTracking {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  type      String
+  action    String
+  token     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([token])
+}
+
+model UsageCredits {
+  id                 String              @id @default(cuid())
+  userId             String
+  totalCredits       Int                 @default(0)
+  usedCredits        Int                 @default(0)
+  bonusCredits       Int                 @default(0)
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  planType           String
+  subscriptionId     String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  version            Int                 @default(0)
+  reservations       CreditReservation[]
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions       UsageTransaction[]
+
+  @@index([userId, billingPeriodStart, billingPeriodEnd])
+  @@index([userId, createdAt])
+  @@index([planType])
+  @@index([userId, billingPeriodStart, billingPeriodEnd], map: "UsageCredits_userId_billingPeriod_idx")
+}
+
+model UsageTransaction {
+  id          String          @id @default(cuid())
+  userId      String
+  creditId    String
+  type        TransactionType
+  amount      Int
+  balance     Int
+  sessionId   String?
+  vapiCallId  String?
+  description String
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  credit      UsageCredits    @relation(fields: [creditId], references: [id], onDelete: Cascade)
+  session     Session?        @relation(fields: [sessionId], references: [id])
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([sessionId])
+  @@index([vapiCallId])
+  @@index([creditId, type])
+}
+
+model UsageAlert {
+  id           String    @id @default(cuid())
+  userId       String
+  alertType    AlertType
+  threshold    Int
+  message      String
+  acknowledged Boolean   @default(false)
+  sentAt       DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, acknowledged])
+  @@index([sentAt])
+  @@index([alertType, threshold])
+}
+
+model CreditReservation {
+  id        String            @id @default(cuid())
+  userId    String
+  sessionId String            @unique
+  minutes   Int
+  creditId  String
+  expiresAt DateTime
+  status    ReservationStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  credit    UsageCredits      @relation(fields: [creditId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([creditId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model AIInsight {
+  id                 String    @id
+  sessionId          String
+  userId             String
+  type               String
+  title              String
+  description        String
+  importance         String    @default("medium")
+  actionable         Boolean   @default(false)
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime
+  confidence         Float     @default(60.0)
+  confidenceFactors  Json?
+  disclaimerAccepted DateTime?
+  disclaimerShown    Boolean   @default(false)
+  enhancedConfidence Float?
+  evidenceCount      Int       @default(0)
+  therapistValidated Boolean   @default(false)
+  userFeedbackScore  Float?
+  Session            Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  User               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([confidence])
+  @@index([createdAt])
+  @@index([disclaimerShown])
+  @@index([sessionId])
+  @@index([therapistValidated])
+  @@index([type])
+  @@index([userId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model DailyTip {
+  id              String    @id
+  userId          String
+  content         String
+  category        String
+  scheduledDate   DateTime
+  isActive        Boolean   @default(true)
+  isPersonalized  Boolean   @default(false)
+  basedOnInsights String[]
+  lastShownAt     DateTime?
+  showCount       Int       @default(0)
+  clickCount      Int       @default(0)
+  helpfulRating   Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  User            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledDate])
+  @@index([userId, category])
+  @@index([userId, isActive, scheduledDate])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model DynamicGoal {
+  id              String     @id
+  userId          String
+  title           String
+  description     String
+  category        String
+  goalType        String
+  targetDate      DateTime
+  status          GoalStatus @default(ACTIVE)
+  progress        Int        @default(0)
+  milestones      Json?
+  basedOnInsights String[]
+  aiGenerated     Boolean    @default(true)
+  completedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime
+  User            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetDate])
+  @@index([userId, category, status])
+  @@index([userId, status, targetDate])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model EmotionalMilestone {
+  id            String   @id
+  userId        String
+  sessionId     String?
+  milestoneType String
+  emotionType   String
+  intensity     Float    @default(0.5)
+  description   String
+  context       String?
+  progressValue Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([userId, milestoneType])
+  @@index([userId, sessionId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model InsightPattern {
+  id              String   @id
+  userId          String
+  patternType     String
+  title           String
+  description     String
+  frequency       Int      @default(1)
+  lastObservedAt  DateTime @default(now())
+  firstObservedAt DateTime @default(now())
+  isPositive      Boolean
+  confidence      Float    @default(0.5)
+  evidence        Json
+  relatedSessions String[]
+  severity        String   @default("medium")
+  actionable      Boolean  @default(true)
+  status          String   @default("active")
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  User            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([confidence])
+  @@index([lastObservedAt])
+  @@index([userId, patternType, status])
+  @@index([userId, status, isPositive])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model SessionSummary {
+  id                    String   @id
+  sessionId             String   @unique
+  userId                String
+  keyThemes             String[]
+  emotionalJourney      Json
+  breakthroughMoments   String[]
+  progressMarkers       String[]
+  challengeAreas        String[]
+  nextSessionFocus      String?
+  therapistNotes        String?
+  contextForNextSession String?
+  processingStatus      String   @default("pending")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime
+  Session               Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([userId, processingStatus])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model TherapeuticBreakthrough {
+  id               String   @id
+  sessionId        String
+  userId           String
+  breakthroughType String
+  intensity        Float    @default(0.5)
+  description      String
+  themes           String[]
+  emotionalState   Json?
+  context          String?
+  confidence       Float    @default(0.7)
+  aiGenerated      Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([userId, breakthroughType])
+  @@index([userId, sessionId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model TherapeuticRelationship {
+  id               String   @id
+  userId           String
+  relationshipType String
+  fromSessionId    String
+  toSessionId      String
+  connectionType   String
+  strength         Float    @default(0.5)
+  description      String?
+  evidence         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+
+  @@index([createdAt])
+  @@index([fromSessionId])
+  @@index([toSessionId])
+  @@index([userId, relationshipType])
+}
+
 enum SessionStatus {
   SCHEDULED
   ACTIVE
@@ -576,123 +845,16 @@ enum SessionType {
   FAMILY
 }
 
-model NotificationTracking {
-  id        String   @id @default(cuid())
-  sessionId String
-  userId    String
-  type      String // 'email' or 'sms'
-  action    String // 'sent', 'clicked', 'started', 'completed'
-  token     String?
-  metadata  Json?
-  createdAt DateTime @default(now())
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([sessionId])
-  @@index([userId])
-  @@index([token])
-}
-
-// ========================================
-// CREDIT & USAGE TRACKING
-// ========================================
-
-model UsageCredits {
-  id                 String   @id @default(cuid())
-  userId             String
-  totalCredits       Int      @default(0)
-  usedCredits        Int      @default(0)
-  bonusCredits       Int      @default(0)
-  billingPeriodStart DateTime
-  billingPeriodEnd   DateTime
-  planType           String // 'free', 'essential', 'growth', 'unlimited'
-  subscriptionId     String?
-  version            Int      @default(0) // For optimistic locking
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // Relations
-  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions UsageTransaction[]
-  reservations CreditReservation[]
-
-  @@index([userId, billingPeriodStart, billingPeriodEnd])
-  @@index([userId, createdAt])
-  @@index([planType])
-}
-
-model UsageTransaction {
-  id          String          @id @default(cuid())
-  userId      String
-  creditId    String
-  type        TransactionType
-  amount      Int // Minutes used/added/refunded
-  balance     Int // Remaining balance after transaction (-1 for unlimited)
-  sessionId   String?
-  vapiCallId  String?
-  description String
-  metadata    Json?
-  createdAt   DateTime        @default(now())
-
-  // Relations
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credit  UsageCredits @relation(fields: [creditId], references: [id], onDelete: Cascade)
-  session Session?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
-  @@index([sessionId])
-  @@index([vapiCallId])
-  @@index([creditId, type])
-}
-
-model UsageAlert {
-  id           String    @id @default(cuid())
-  userId       String
-  alertType    AlertType
-  threshold    Int // Percentage threshold (80, 90, 100)
-  message      String
-  acknowledged Boolean   @default(false)
-  sentAt       DateTime  @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, acknowledged])
-  @@index([sentAt])
-  @@index([alertType, threshold])
-}
-
 enum TransactionType {
-  DEBIT // Credits used for sessions
-  BONUS // Bonus credits added
-  REFUND // Credits refunded for technical issues
+  DEBIT
+  BONUS
+  REFUND
 }
 
 enum AlertType {
-  LOW_CREDITS // Warning when credits are low
-  CREDITS_EXHAUSTED // Alert when credits are fully used
-  BILLING_REMINDER // General billing reminders
-}
-
-model CreditReservation {
-  id        String            @id @default(cuid())
-  userId    String
-  sessionId String            @unique
-  minutes   Int
-  creditId  String
-  expiresAt DateTime
-  status    ReservationStatus @default(ACTIVE)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-
-  // Relations
-  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credit UsageCredits @relation(fields: [creditId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@index([sessionId])
-  @@index([expiresAt])
-  @@index([creditId])
+  LOW_CREDITS
+  CREDITS_EXHAUSTED
+  BILLING_REMINDER
 }
 
 enum ReservationStatus {
@@ -700,4 +862,12 @@ enum ReservationStatus {
   EXPIRED
   CONSUMED
   RELEASED
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  PAUSED
+  OVERDUE
 }

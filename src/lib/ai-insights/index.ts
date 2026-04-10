@@ -31,7 +31,7 @@ export {
 } from './clinical-disclaimer-service';
 
 // React hooks
-export { useRealTimeInsights, useInsightNotifications } from '../hooks/useRealTimeInsights';
+// export { useRealTimeInsights, useInsightNotifications } from '../hooks/useRealTimeInsights';
 
 // Types
 export type {

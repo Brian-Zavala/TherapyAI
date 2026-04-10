@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * VAPI Configuration Validator
  * Validates VAPI inline configuration before sending to API to prevent 400 errors

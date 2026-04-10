@@ -309,14 +309,12 @@ export async function GET(request: NextRequest) {
     const activeSessions = await prisma.therapySession.findMany({
       where: {
         userId,
-        status: { in: [SessionStatus.ACTIVE, SessionStatus.PAUSED] },
+        status: { in: ['ACTIVE', 'PAUSED'] as any },
       },
       select: {
         id: true,
         status: true,
-        maxDuration: true,
-        creditsUsed: true,
-        startTime: true,
+        duration: true,
       },
     });
     

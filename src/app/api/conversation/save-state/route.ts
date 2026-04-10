@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma-optimized'
 import { z } from 'zod'
 
@@ -32,7 +31,7 @@ const SaveStateSchema = z.object({
 )
 
 export async function POST(request: NextRequest) {
-  const authSession = await getServerSession(authOptions)
+  const authSession = await getAuthSession()
   
   try {
     // Authentication

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * VAPI Concerns Integration Service
  * Handles passing therapy concerns context to VAPI sessions

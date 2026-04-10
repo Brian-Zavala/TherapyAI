@@ -1,9 +1,7 @@
+import { getAuthSession } from '@/lib/auth'
 // route.ts for session transcript API endpoint
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma-optimized'
-import { authOptions } from '@/lib/auth'
-import type { Session as NextAuthSession } from 'next-auth'
 import { sessionCache, cacheKeys } from '@/lib/session-cache'
 
 // POST endpoint to add a new transcript entry to a session
@@ -11,7 +9,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions) as NextAuthSession | null
+  const session = await getAuthSession() as any | null
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 } as { status: number })
@@ -183,7 +181,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions) as NextAuthSession | null
+  const session = await getAuthSession() as any | null
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 } as { status: number })
@@ -307,7 +305,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions) as NextAuthSession | null
+  const session = await getAuthSession() as any | null
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 } as { status: number })

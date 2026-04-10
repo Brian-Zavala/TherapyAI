@@ -359,10 +359,10 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
           status: activeSession.status,
           theme: activeSession.theme || activeSession.therapyType,
           therapyType: activeSession.therapyType,
-          isPaused: activeSession.isPaused
-        }
+          isPaused: activeSession.isPaused,
+        } as any,
       }
-      
+
       return recoveryData
       
     } catch (error) {

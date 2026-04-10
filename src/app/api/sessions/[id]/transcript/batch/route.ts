@@ -1,5 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedServerSession } from '@/lib/auth/session-optimized';
 import { prisma } from '@/lib/prisma-optimized';
 
 /**
@@ -19,7 +19,7 @@ export async function POST(
     // Start timer for performance monitoring
     const startTime = Date.now();
     
-    const authSession = await getCachedServerSession(req);
+    const authSession = await getAuthSession();
     if (debug) {
       console.log('🔐 BATCH ENDPOINT: Auth status', {
         hasSession: !!authSession,

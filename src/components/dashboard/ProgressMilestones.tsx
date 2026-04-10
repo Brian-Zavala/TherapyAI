@@ -255,7 +255,7 @@ function MilestoneCard({
               {isUnlocked ? (
                 <span className="text-green-400 flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  {new Date(milestone.unlockedAt).toLocaleDateString()}
+                  {new Date(milestone.unlockedAt as any).toLocaleDateString()}
                 </span>
               ) : isClose ? (
                 <span className="text-amber-400">Almost there!</span>

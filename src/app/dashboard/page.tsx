@@ -25,7 +25,7 @@ import { useDashboardDataUnified } from "@/hooks/useDashboardDataUnified";
 import { DashboardProvider } from "@/hooks/useDashboardContext";
 import { UnifiedLoadingState } from "@/components/dashboard/UnifiedLoadingState";
 import { DashboardErrorBoundary, DashboardErrorWrapper } from "@/components/dashboard/DashboardErrorBoundary";
-import { useSession } from "next-auth/react";
+import { useSession } from '@/hooks/useClerkSession'
 import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
 import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
 import { DashboardPermissionPrompt } from "@/components/DashboardPermissionPrompt";
@@ -99,7 +99,7 @@ export default function Dashboard() {
     includeInsights: true,
     staleTime: 2 * 60 * 1000, // 2 minutes - data is considered fresh for this duration
     gcTime: 30 * 60 * 1000, // 30 minutes - keep data in cache
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Dashboard error:', error);
     }
   }), []);

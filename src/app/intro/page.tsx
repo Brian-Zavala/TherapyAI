@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import IntroWelcomeScreen from '@/components/IntroWelcomeScreen'
 import { motion } from 'framer-motion'
 import { enhancedScrollToTop } from '@/lib/scroll-utils'

@@ -1,8 +1,7 @@
+import { getAuthSession } from '@/lib/auth'
 // app/api/sessions/[id]/route.ts
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma-optimized'
-import { authOptions } from '@/lib/auth'
 import { generateMetricsFromSession } from './metrics-helper'
 import { sessionCache, cacheKeys } from '@/lib/session-cache'
 
@@ -10,7 +9,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
+  const session = await getAuthSession()
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,77 +17,42 @@ export async function GET(
   
   try {
     const { id: sessionId } = await params
-    
-    console.log('Fetching session ID:', sessionId)
-    
+    const url = new URL(request.url)
+    const lite = url.searchParams.get('lite') === 'true'
+
+    console.log('Fetching session ID:', sessionId, lite ? '(lite)' : '')
+
     // Check cache first before any database queries
     const cacheKey = cacheKeys.sessionDetails(sessionId);
     const cachedSession = sessionCache.get<{userId: string, transcriptEntries: unknown[]}>(cacheKey);
-    
+
     // If we have a cached session, verify it belongs to the current user
     if (cachedSession && session.user.email) {
-      // Simple ownership check - the cached session should have userId that matches
-      // We'll verify this more thoroughly if cache miss
       console.log(`Returning cached session ${sessionId}`);
       return NextResponse.json(cachedSession);
     }
-    
-    // Cache miss - now do the database queries
-    // First, find the user by email
-    let user = await prisma.user.findUnique({
-      where: { 
-        email: session.user.email as string 
-      }
-    });
-    
-    // Auto-create user if they don't exist in Prisma but have a valid session
-    if (!user && session.user.email) {
-      console.log(`Auto-creating user in database for ${session.user.email}`);
-      
-      try {
-        user = await prisma.user.create({
-          data: {
-            email: session.user.email,
-            name: session.user.name || session.user.email.split('@')[0],
-            password: 'SESSION_CREATED_USER', // Placeholder password
-          }
-        });
-        console.log('User auto-created successfully:', user.id);
-      } catch (createError) {
-        console.error('Error auto-creating user:', createError);
-        return NextResponse.json({ error: 'Failed to create user record' }, { status: 500 });
-      }
-    }
-    
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-    
-    // Include ALL transcript entries with the session data
+
+    // Use user ID directly from auth session (already resolved from DB)
+    const userId = session.user.id
+
+    // Lite mode: just fetch session status without transcripts (for state hooks)
     const therapySession = await prisma.session.findUnique({
       where: {
         id: sessionId
       },
-      include: {
-        transcriptEntries: {
-          // Removed isFinal filter to include all entries
-          orderBy: {
-            timestamp: 'asc'
+      ...(lite ? {} : {
+        include: {
+          transcriptEntries: {
+            orderBy: {
+              timestamp: 'asc'
+            }
           }
         }
-      }
+      })
     })
     
-    if (therapySession?.transcriptEntries?.length) {
-      console.log(`Fetched session ${sessionId} with ${therapySession.transcriptEntries.length} transcript entries`);
-      console.log(`First entry: ${JSON.stringify(therapySession.transcriptEntries[0]).substring(0, 100)}...`);
-      console.log(`Last entry: ${JSON.stringify(therapySession.transcriptEntries[therapySession.transcriptEntries.length-1]).substring(0, 100)}...`);
-    } else {
-      console.log(`Fetched session ${sessionId} with NO transcript entries`);
-    }
-    
     // Verify the session belongs to this user
-    if (!therapySession || therapySession.userId !== user.id) {
+    if (!therapySession || therapySession.userId !== userId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
     
@@ -117,7 +81,7 @@ async function handleSessionUpdate(
   request: Request,
   params: Promise<{ id: string }>
 ) {
-  const session = await getServerSession(authOptions)
+  const session = await getAuthSession()
 
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,7 +50,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     queryFn: fetchCredits,
     refetchInterval: (data) => {
       // More frequent updates for low credits or during subscription changes
-      const credits = data?.credits;
+      const credits = (data as any)?.credits;
       if (!credits) return 5 * 60 * 1000; // 5 minutes default
       
       if (credits.percentageUsed > 90) return 30 * 1000; // 30 seconds if critical
@@ -94,6 +94,45 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     };
   }, [isAuthenticated, refetch]);
   
+  // Track elapsed session minutes for real-time credit countdown
+  const [sessionElapsedMinutes, setSessionElapsedMinutes] = useState(0);
+  const sessionStartRef = useRef<number | null>(null);
+  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleSessionStarted = () => {
+      sessionStartRef.current = Date.now();
+      setSessionElapsedMinutes(0);
+      // Update every 30 seconds
+      sessionTimerRef.current = setInterval(() => {
+        if (sessionStartRef.current) {
+          const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 60000);
+          setSessionElapsedMinutes(elapsed);
+        }
+      }, 30000);
+    };
+
+    const handleSessionEnd = () => {
+      sessionStartRef.current = null;
+      setSessionElapsedMinutes(0);
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+        sessionTimerRef.current = null;
+      }
+    };
+
+    window.addEventListener('sessionStarted', handleSessionStarted);
+    window.addEventListener('sessionEnd', handleSessionEnd);
+    window.addEventListener('sessionEnded', handleSessionEnd);
+
+    return () => {
+      window.removeEventListener('sessionStarted', handleSessionStarted);
+      window.removeEventListener('sessionEnd', handleSessionEnd);
+      window.removeEventListener('sessionEnded', handleSessionEnd);
+      if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
+    };
+  }, []);
+
   // Poll for credit updates with exponential backoff after mount
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -193,8 +232,12 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   if (!data) return null;
 
   const { credits } = data;
-  const isLowCredits = credits.percentageUsed >= 80;
-  const isOutOfCredits = credits.available <= 0 && !credits.isUnlimited;
+  // Subtract elapsed session time from available credits for real-time display
+  const displayAvailable = Math.max(0, credits.available - sessionElapsedMinutes);
+  const displayUsed = credits.used + sessionElapsedMinutes;
+  const displayPercentage = credits.total > 0 ? Math.round((displayUsed / credits.total) * 100) : 0;
+  const isLowCredits = displayPercentage >= 80;
+  const isOutOfCredits = displayAvailable <= 0 && !credits.isUnlimited;
 
   // Different positioning based on screen size to avoid navigation conflicts
   // Mobile: Below nav area (top-20) to avoid hamburger menu (z-50)
@@ -214,7 +257,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
       role="status"
-      aria-label={`Credit status: ${credits.available} of ${credits.total} minutes remaining`}
+      aria-label={`Credit status: ${displayAvailable} of ${credits.total} minutes remaining`}
       aria-live="polite"
     >
       {/* Credit Display Container */}
@@ -256,7 +299,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
                 isOutOfCredits ? "text-red-400" : isLowCredits ? "text-yellow-400" : "text-white"
               }`}
             >
-              {credits.isUnlimited ? "∞" : credits.available}
+              {credits.isUnlimited ? "∞" : displayAvailable}
             </span>
             {!credits.isUnlimited && (
               <span className="text-xs sm:text-sm text-white/60">
@@ -294,13 +337,13 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
               {!credits.isUnlimited && (
                 <div className="mb-3">
                   <div className="flex justify-between text-xs sm:text-sm text-white/70 mb-1">
-                    <span>Used: {credits.used} min</span>
-                    <span>{credits.percentageUsed}%</span>
+                    <span>Used: {displayUsed} min</span>
+                    <span>{displayPercentage}%</span>
                   </div>
                   <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${credits.percentageUsed}%` }}
+                      animate={{ width: `${displayPercentage}%` }}
                       transition={{ duration: 0.5, ease: "easeOut" }}
                       className={`h-full rounded-full ${
                         isOutOfCredits

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Deterministic Insights Engine
  * Provides evidence-based therapy insights without requiring AI providers

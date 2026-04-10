@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from '@/hooks/useClerkSession'
 import { motion } from "framer-motion";
 import { Spotlight } from "@/components/ui/spotlight-new";
 import GlassCard from "@/components/ui/glass-card";

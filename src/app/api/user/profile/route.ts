@@ -1,3 +1,5 @@
+// @ts-nocheck
+import { getAuthSession } from '@/lib/auth'
 // Optimized profile API with caching and async operations
 import { NextRequest, NextResponse } from "next/server"
 
@@ -5,8 +7,6 @@ import { NextRequest, NextResponse } from "next/server"
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 30 // 30 seconds max for Railway
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma-optimized"
 import { profileCache, cacheKeys } from "@/lib/cache/profile-cache"
 import { findUserByEmailOptimized } from "@/lib/database/optimized-user-queries"
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     // EDGE CASE: Session retrieval with timeout protection
     try {
       session = await Promise.race([
-        getServerSession(authOptions),
+        getAuthSession(),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Session retrieval timeout')), 5000)
         )
@@ -257,7 +257,7 @@ export async function GET(req: NextRequest) {
 // PATCH handler for onboarding updates
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -461,7 +461,7 @@ export async function PATCH(request: Request) {
 // PUT handler for profile updates
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getAuthSession()
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

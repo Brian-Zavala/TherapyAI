@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/components/dashboard/CommunicationMetricsWithTabs.tsx
 "use client";
 

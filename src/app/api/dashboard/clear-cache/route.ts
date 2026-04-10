@@ -1,13 +1,12 @@
+import { getAuthSession } from '@/lib/auth'
 // src/app/api/dashboard/clear-cache/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { dashboardCache } from '@/lib/cache/dashboard-cache';
 import { findUserByEmailOptimized } from '@/lib/database/optimized-user-queries';
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,7 +36,7 @@ export async function POST(request: Request) {
     ];
     
     for (const key of cacheKeysToDelete) {
-      await dashboardCache.delete(key);
+      await dashboardCache.invalidate(key);
     }
     
     console.log(`Cleared dashboard cache for user ${user.id}`);

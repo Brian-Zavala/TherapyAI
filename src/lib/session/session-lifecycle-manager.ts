@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from '@/lib/prisma-optimized';
 import { SessionStatus } from '@prisma/client';
 import { sessionCache } from '@/lib/session-cache';

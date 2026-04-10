@@ -1,6 +1,5 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma-optimized';
 import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
@@ -12,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -73,10 +72,9 @@ export async function POST(
           username: existingSession.user.name || 'Valued Client',
           sessionDate: sessionDate,
           duration: existingSession.duration,
-          theme: existingSession.theme,
           notes: existingSession.notes || undefined,
           baseUrl: process.env.NEXTAUTH_URL || 'https://therapyai.us',
-        }) as any,
+        } as any) as any,
       });
     } catch (emailError) {
       console.error('Error sending rescheduling confirmation email:', emailError);

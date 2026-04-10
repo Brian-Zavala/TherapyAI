@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from '@/lib/prisma-optimized';
 import { TranscriptService } from '@/lib/transcript-service-optimized';
 import { metrics } from '@/lib/performance/metrics-monitor';

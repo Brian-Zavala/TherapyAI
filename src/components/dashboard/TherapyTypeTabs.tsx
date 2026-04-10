@@ -166,7 +166,7 @@ export default function TherapyTypeTabs({
               <Icon className="h-4 w-4" />
               <span>{config.label}</span>
               
-              {showCounts && sessionCount > 0 && variant !== 'default' && (
+              {showCounts && sessionCount > 0 && (variant as string) !== 'default' && (
                 <Badge variant="secondary" className="ml-1 text-xs hidden sm:inline-flex">
                   {sessionCount}
                 </Badge>
@@ -209,13 +209,13 @@ export default function TherapyTypeTabs({
               <Icon className="h-4 w-4" />
               <span className={variant === 'compact' ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm truncate'}>{config.label}</span>
               
-              {config.badge && variant !== 'default' && (
+              {config.badge && (variant as string) !== 'default' && (
                 <Badge variant="outline" className="ml-1 text-xs border-white/30 text-white/70 hidden sm:inline-flex">
                   {config.badge}
                 </Badge>
               )}
               
-              {showCounts && sessionCount > 0 && variant !== 'default' && (
+              {showCounts && sessionCount > 0 && (variant as string) !== 'default' && (
                 <Badge variant="secondary" className="ml-1 text-xs hidden sm:inline-flex">
                   {sessionCount}
                 </Badge>

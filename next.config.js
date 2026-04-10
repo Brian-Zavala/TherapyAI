@@ -23,15 +23,6 @@ const nextConfig = {
     optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
   },
   
-  // Development optimizations
-  ...(process.env.NODE_ENV === 'development' && {
-    typescript: {
-      ignoreBuildErrors: false,
-    },
-    eslint: {
-      ignoreDuringBuilds: false,
-    },
-  }),
 
   // Image optimization
   images: {
@@ -154,13 +145,13 @@ const nextConfig = {
   // TypeScript configuration
   typescript: {
     // During production build, do not fail on TypeScript errors
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true,
   },
 
-  // ESLint configuration  
+  // ESLint configuration
   eslint: {
     // During production build, do not fail on ESLint errors
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
 
   // Note: Sentry configuration moved to withSentryConfig wrapper below

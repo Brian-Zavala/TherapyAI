@@ -1,13 +1,12 @@
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { createCheckoutSession, getOrCreateCustomer, STRIPE_PRICES, handleStripeError } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma-optimized';
 
 export async function POST(request: NextRequest) {
   try {
     // Get the user session
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     
     // Get request data
     const body = await request.json();
@@ -22,16 +21,16 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate the plan type
-    const validPlanTypes = ['essential', 'growth', 'unlimited'];
+    const validPlanTypes = ['pro'];
     if (!validPlanTypes.includes(planType)) {
       return NextResponse.json(
         { error: 'Invalid plan type' },
         { status: 400 }
       );
     }
-    
+
     // Validate the price ID matches the expected price for the plan
-    const expectedPriceId = STRIPE_PRICES[planType as keyof typeof STRIPE_PRICES]?.[isAnnual ? 'annual' : 'monthly'];
+    const expectedPriceId = STRIPE_PRICES['pro'].monthly;
     
     // In development, allow test price IDs that start with 'price_test_'
     const isDevelopment = process.env.NODE_ENV === 'development';
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
         } catch (error: any) {
           // Customer doesn't exist in Stripe, create a new one
           console.warn(`Customer ${user.stripeCustomerId} not found in Stripe, creating new customer`);
-          customerId = null; // Will create new customer below
+          customerId = undefined as any; // Will create new customer below
         }
       }
       

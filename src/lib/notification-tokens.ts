@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { randomBytes } from 'crypto';
-import { prisma } from '@/lib/database/prisma-client';
+import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
 
 /**

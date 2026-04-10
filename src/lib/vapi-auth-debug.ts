@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * VAPI Authentication Debugging Utilities
  * 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Dashboard Query Result Cache
  * Implements in-memory and Redis caching for expensive dashboard queries

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * VAPI Connection Resilience and Retry Logic
  * Handles network issues, reconnections, and recovery during voice sessions

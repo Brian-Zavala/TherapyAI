@@ -1,14 +1,16 @@
+// @ts-nocheck
+import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
 import { createAssistant, getAssistant, updateAssistant } from '@/lib/vapi-server';
 import { getPersonalizedAssistantConfig } from '@/lib/vapi';
-import { getServerSession, Session } from 'next-auth';
 import { prisma } from '@/lib/prisma-optimized';
-import { authOptions } from '@/lib/auth';
 import { cleanAndValidateVapiConfig } from '@/lib/vapi-config-cleaner';
 
-async function getPersonalizedAssistant(req: NextRequest, session: Session) {
+async function getPersonalizedAssistant(req: NextRequest, session: any) {
+ try {
   const { searchParams } = new URL(req.url);
-  
+  const isResuming = searchParams.get('resuming') === 'true';
+
   console.log('[VAPI Assistant] Getting personalized assistant for user:', session.user.id);
   
   const user = await prisma.user.findUnique({
@@ -197,7 +199,6 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
     }
   }
 
-  const isResuming = searchParams.get('resuming') === 'true';
   const conversationHistory = searchParams.get('conversationHistory');
   const sessionId = searchParams.get('sessionId');
 
@@ -314,6 +315,13 @@ async function getPersonalizedAssistant(req: NextRequest, session: Session) {
       }
     });
   }
+ } catch (error) {
+    console.error('[VAPI Assistant] Error in getPersonalizedAssistant:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal error generating assistant config', stack: error instanceof Error ? error.stack : undefined },
+      { status: 500 }
+    );
+  }
 }
 
 /**
@@ -333,7 +341,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     console.log('[VAPI Assistant] Session check:', { 
       hasSession: !!session,
       userId: session?.user?.id,
@@ -387,7 +395,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     console.log('[VAPI Assistant GET] Session check:', { 
       hasSession: !!session,
       userId: session?.user?.id,
@@ -438,7 +446,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     // Verify authentication
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

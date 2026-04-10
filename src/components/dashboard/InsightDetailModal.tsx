@@ -114,7 +114,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
       relationship: Users,
       progress: TrendingUp
     };
-    return icons[insight.category] || Brain;
+    return (icons as any)[insight.category] || Brain;
   };
 
   const InsightIcon = getInsightIcon();

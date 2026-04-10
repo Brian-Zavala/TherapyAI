@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from '@/hooks/useClerkSession'
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProfile } from "@/providers/ProfileProvider";
 import { motion, AnimatePresence } from "framer-motion";

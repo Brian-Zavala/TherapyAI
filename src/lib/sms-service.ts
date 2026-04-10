@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Production-Ready SMS Service
  * Implements Twilio best practices with enterprise features

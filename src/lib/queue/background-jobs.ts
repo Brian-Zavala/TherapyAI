@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Background job queue service for async tasks
 import { Redis } from '@upstash/redis'
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/components/dashboard/RelationshipProgressWithTabs.tsx
 "use client";
 

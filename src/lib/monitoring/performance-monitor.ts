@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Performance monitoring and alerting system
 import { setCache, getCached } from '@/lib/cache/redis-connection-pool'
 

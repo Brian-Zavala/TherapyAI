@@ -200,7 +200,7 @@ export function NotificationGlobalSetup() {
     setGlobalNotificationInstance(notifications);
     
     return () => {
-      setGlobalNotificationInstance(null);
+      setGlobalNotificationInstance(null as any);
     };
   }, [notifications]);
   

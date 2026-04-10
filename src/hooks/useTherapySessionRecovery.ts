@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/hooks/useClerkSession'
 import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 interface TherapySessionRecoveryState {
@@ -147,7 +147,7 @@ export function useTherapySessionRecovery() {
     safeSessionStorage.setItem('last-recovery-check-time', Date.now().toString())
 
     try {
-      const response = await fetch(`/api/sessions/active?userId=${session.user.id}`)
+      const response = await fetch(`/api/sessions/active`)
       
       if (response.ok) {
         const activeSession = await response.json()
@@ -201,11 +201,7 @@ export function useTherapySessionRecovery() {
                 duration: activeSession.duration,
                 status: activeSession.status,
                 theme: activeSession.theme,
-                conversationTimeSeconds: conversationTimeSeconds,
-                conversationTimeMinutes: conversationTimeMinutes,
-                remainingMinutes: remainingMinutes,
-                isOverTime: isOverTime
-              },
+              } as any,
               shouldAutoRestart: true
             })
 

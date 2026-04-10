@@ -1,7 +1,6 @@
+import { getAuthSession } from '@/lib/auth'
 // app/api/sessions/schedule/route.ts
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth'; 
 import { prisma } from '@/lib/prisma-optimized';
 import { logger } from '@/lib/logger';
 import { getPersonalizedAssistantConfig } from '@/lib/vapi';
@@ -25,7 +24,7 @@ const ScheduleSessionSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthSession();
   
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -225,7 +224,11 @@ export async function POST(request: Request) {
       await prisma.conversationState.create({
         data: {
           sessionId: therapySession.id,
-          state: vapiConfig as any,
+          userId: therapySession.userId,
+          assistantId: therapySession.assistantId || 'pending',
+          sessionStartTime: sessionDateTime,
+          lastActiveTime: sessionDateTime,
+          variableValues: vapiConfig as any,
           expiresAt: new Date(sessionDateTime.getTime() + 24 * 60 * 60 * 1000) // Expires 24 hours after session date
         }
       });
