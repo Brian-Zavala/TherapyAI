@@ -2357,7 +2357,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             hasFamilyMembers={familyMembers.length > 0}
             familyMembersLoading={familyMembersLoading}
             hasPartner={user?.hasPartner || false}
-            profileLoading={authLoading}
+            profileLoading={isAuthLoading}
             currentTherapyType={therapyType}
           />
         )}
