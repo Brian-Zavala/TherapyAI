@@ -15,12 +15,12 @@ export function useAuth() {
   const logout = async () => {
     try {
       sessionStorage.removeItem('db_user_id')
-      await signOut({ redirectUrl: '/auth/login' })
+      await signOut({ redirectUrl: '/sign-in' })
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Logout failed:', error)
       }
-      router.push('/auth/login')
+      router.push('/sign-in')
     }
   }
 

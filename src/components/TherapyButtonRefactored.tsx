@@ -219,14 +219,14 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }, [setSessionActive])
   
   const handleVapiError = useCallback((error: unknown) => {
-    console.error('[TherapyButton] VAPI error:', error)
-    setError(getUserFriendlyError(error))
-    
-    // Check if this is a "Meeting has ended" error
+    // Suppress Daily.co ejection errors — these are normal session ends triggered
+    // by VAPI's built-in endCall tool, not actual errors.
     if (error && typeof error === 'object') {
       const errorObj = error as Record<string, any>
-      if (errorObj.errorMsg === 'Meeting has ended' && errorObj.error?.type === 'no-room') {
-        // Mark session as ended to prevent recovery attempts
+      const msg: string = errorObj.message || errorObj.errorMsg || errorObj.error?.msg || ''
+      const isEjection = /ejection|Meeting has ended|no-room/i.test(msg) ||
+        errorObj.error?.type === 'no-room'
+      if (isEjection) {
         const currentSessionId = sessionRef.current?.sessionId
         if (currentSessionId) {
           safeSessionStorage.setItem('session-just-ended', JSON.stringify({
@@ -234,13 +234,14 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             timestamp: Date.now(),
             reason: 'vapi-room-ended'
           }))
-          console.log('🚫 VAPI room ended - marked session to prevent recovery')
-          
-          // Force cleanup
           cleanupSessionMetrics(currentSessionId)
         }
+        return // do not surface as an error
       }
     }
+
+    console.error('[TherapyButton] VAPI error:', error)
+    setError(getUserFriendlyError(error))
   }, [])
   
   // Create transcript ref for the callback

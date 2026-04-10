@@ -147,7 +147,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="flex-shrink-0 grid w-full grid-cols-2 sm:grid-cols-4 mx-6">
+          <TabsList className="flex-shrink-0 grid w-full grid-cols-2 sm:grid-cols-4 px-6">
             <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
             <TabsTrigger value="progress" className="text-xs sm:text-sm">Progress</TabsTrigger>
             <TabsTrigger value="patterns" className="hidden sm:inline-flex text-xs sm:text-sm">Patterns</TabsTrigger>

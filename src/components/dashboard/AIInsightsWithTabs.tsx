@@ -499,40 +499,41 @@ export default function AIInsightsWithTabs() {
 
         {/* Progress Summary */}
         {hasData && insights.summary && (
-          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white">
+          <div className="mt-4 p-4 sm:p-5 bg-white/5 border border-white/10 rounded-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm sm:text-base text-white">
                   {insights.summary.primaryFocus}
                 </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
                   Next milestone: {insights.summary.nextMilestone}
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {insights.summary.overallProgress}%
-                </div>
-                <div className="text-xs text-gray-500">Overall Health</div>
+              <div className="flex items-baseline gap-1.5 flex-shrink-0">
+                <span className="text-2xl sm:text-3xl font-bold text-blue-400">
+                  {insights.summary.overallProgress}
+                </span>
+                <span className="text-sm sm:text-base font-semibold text-blue-400/70">%</span>
+                <span className="text-xs text-gray-500 ml-1">Overall Health</span>
               </div>
             </div>
-            <Progress 
-              value={insights.summary.overallProgress} 
-              className="h-2 bg-white dark:bg-gray-700"
+            <Progress
+              value={insights.summary.overallProgress}
+              className="h-2 bg-white/10"
             />
-            <div className="flex items-center justify-between mt-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-2">
               <div className="flex items-center gap-2">
                 {insights.summary.isRealTime ? (
                   <>
-                    <Activity className="h-4 w-4 text-green-600 dark:text-green-400 animate-pulse" />
-                    <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                    <Activity className="h-4 w-4 text-green-400 animate-pulse" />
+                    <span className="text-sm text-green-400 font-medium">
                       Live Session Data
                     </span>
                   </>
                 ) : (
                   <>
-                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <TrendingUp className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-gray-400">
                       {insights.summary.improvementRate}% improvement this month
                     </span>
                   </>

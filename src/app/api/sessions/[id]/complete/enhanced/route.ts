@@ -169,13 +169,15 @@ export async function POST(
         .map(entry => `${entry.speaker}: ${entry.text}`)
         .join('\n')
       
-      // Determine therapy type and participants
-      let therapyType = 'couple'
+      // Determine therapy type — use stored sessionType as primary source (most reliable)
+      const storedType = (therapySession.sessionType || '').toLowerCase()
+      let therapyType = storedType === 'solo' ? 'solo' : storedType === 'family' ? 'family' : 'couple'
+
+      // Allow explicit overrides from request body (familyMemberIds / theme)
       const participantCount = validatedData.familyMemberIds?.length || 0
-      
       if (participantCount > 2 || therapySession.theme?.toLowerCase().includes('family')) {
         therapyType = 'family'
-      } else if (participantCount === 1 || therapySession.theme?.toLowerCase().includes('individual')) {
+      } else if (therapyType !== 'solo' && (participantCount === 1 || therapySession.theme?.toLowerCase().includes('individual'))) {
         therapyType = 'solo'
       }
       
@@ -203,7 +205,6 @@ export async function POST(
       
       return {
         session: updatedSession,
-        metric: finalMetric,
         transcriptCount: transcriptEntries.length,
         billing: {
           conversationTimeSeconds: finalConversationTimeSeconds,
@@ -218,11 +219,23 @@ export async function POST(
     try {
       const { cleanupSessionMetrics } = await import('@/lib/transcript-service-optimized')
       cleanupSessionMetrics(sessionId)
-      
+
       const { cleanupBroadcastChannels } = await import('@/lib/metrics-broadcaster')
       await cleanupBroadcastChannels(sessionId)
     } catch (cleanupError) {
       console.error('⚠️ Error during cleanup:', cleanupError)
+    }
+
+    // Bust server-side dashboard cache so fresh metrics appear immediately
+    try {
+      const { dashboardCache } = await import('@/lib/cache/dashboard-cache')
+      await dashboardCache.invalidateOnSessionComplete(
+        therapySession.userId,
+        therapySession.theme || '',
+        therapySession.sessionType || 'SOLO'
+      )
+    } catch (cacheError) {
+      console.warn('⚠️ Failed to bust dashboard cache after session completion:', cacheError)
     }
     
     // Send completion email with enhanced data
@@ -276,12 +289,6 @@ export async function POST(
             sessionId,
             userId: therapySession.userId,
             completedAt: new Date().toISOString(),
-            metrics: {
-              clarity: completionResult.metric.clarity,
-              empathy: completionResult.metric.empathy,
-              respect: completionResult.metric.respect,
-              overall: completionResult.metric.overall
-            },
             billing: completionResult.billing
           }
         })
@@ -296,12 +303,6 @@ export async function POST(
       sessionId,
       completedAt: new Date().toISOString(),
       billing: completionResult.billing,
-      metrics: {
-        clarity: completionResult.metric.clarity,
-        empathy: completionResult.metric.empathy,
-        respect: completionResult.metric.respect,
-        overall: completionResult.metric.overall
-      },
       transcriptCount: completionResult.transcriptCount
     })
     

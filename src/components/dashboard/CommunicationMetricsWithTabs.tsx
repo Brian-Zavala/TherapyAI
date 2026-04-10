@@ -92,7 +92,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
   const theme = getMetricTheme(type);
   const [displayValue, setDisplayValue] = useState(0);
   const [hasReachedTarget, setHasReachedTarget] = useState(false);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       const wasZero = displayValue === 0;
@@ -109,7 +109,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 
   // Get therapy-specific inspirational saying
   const getSaying = () => {
-    const sayings = THERAPY_INSPIRATIONAL_SAYINGS[therapyType]?.[type] || 
+    const sayings = THERAPY_INSPIRATIONAL_SAYINGS[therapyType]?.[type] ||
                    THERAPY_INSPIRATIONAL_SAYINGS.couple[type];
     if (value === 0) {
       return "Your journey begins with the first step";
@@ -118,44 +118,52 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
     return sayings[index];
   };
 
+  // Determine status color based on value
+  const getStatusColor = () => {
+    if (value >= 75) return 'text-emerald-400';
+    if (value >= 50) return 'text-blue-400';
+    if (value >= 25) return 'text-amber-400';
+    return 'text-gray-400';
+  };
+
   return (
-    <motion.div 
-      className={`bg-white/20 backdrop-blur-md rounded-2xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 border border-white/30 hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full box-border ${
+    <motion.div
+      className={`bg-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-5 md:p-6 border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex flex-col h-full box-border ${
         isAnimating ? 'breathing-glow breathing-glow-active' : 'breathing-glow'
       }`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -3, scale: 1.01 }}
     >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className={`p-2 rounded-lg ${theme.background} flex-shrink-0`}>
-            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${theme.text}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-gray-900 dark:text-white text-center">{name}</h4>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400 mt-1 text-center">{description}</p>
-          </div>
+      {/* Header: Icon + Title */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`p-2.5 rounded-xl ${theme.background} flex-shrink-0`}>
+          <Icon className={`h-5 w-5 ${theme.text}`} />
         </div>
-        
-        <div className="text-center w-full">
-          <motion.div 
-            className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 dark:text-white"
-            animate={hasReachedTarget ? { 
-              scale: [1, 1.2, 1], 
-              color: ['#000', theme.primary, '#000'] 
-            } : {}}
-            transition={{ duration: 0.6 }}
-          >
-            {displayValue}%
-          </motion.div>
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm sm:text-base text-white leading-tight">{name}</h4>
+          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 leading-snug">{description}</p>
         </div>
       </div>
 
+      {/* Percentage Display */}
+      <div className="flex items-baseline gap-1 mb-4">
+        <motion.span
+          className={`text-3xl sm:text-4xl md:text-5xl font-bold ${getStatusColor()}`}
+          animate={hasReachedTarget ? {
+            scale: [1, 1.15, 1],
+          } : {}}
+          transition={{ duration: 0.6 }}
+        >
+          {displayValue}
+        </motion.span>
+        <span className={`text-lg sm:text-xl font-semibold ${getStatusColor()} opacity-70`}>%</span>
+      </div>
+
       {/* Progress Bar */}
-      <div className="mb-3">
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+      <div className="mb-4 mt-auto">
+        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
           <motion.div
             className={getProgressBarClasses(type)}
             initial={{ width: 0 }}
@@ -166,9 +174,9 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       </div>
 
       {/* Inspirational Message */}
-      <div className="text-xs text-gray-600 dark:text-gray-300 italic leading-relaxed text-center mt-auto">
+      <p className="text-xs text-gray-500 italic leading-relaxed">
         "{getSaying()}"
-      </div>
+      </p>
     </motion.div>
   );
 }

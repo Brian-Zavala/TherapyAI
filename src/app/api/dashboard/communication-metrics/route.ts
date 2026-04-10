@@ -149,116 +149,80 @@ export async function GET(request: Request) {
       }
     }
     
+    // Detect if stored metrics are all-zero (legacy bad data from therapyType bug)
+    const metricsAreAllZero = metrics &&
+      !metrics.listening && !metrics.expression && !metrics.respect && !metrics.empathy
+
+    // Treat all-zero DB records the same as "no metrics" so we fall back to transcript analysis
+    const effectiveMetrics = metricsAreAllZero ? null : metrics
+
     let responseData;
-    
-    // If we have transcript analysis, use it to influence the most recent metrics
-    if (transcriptAnalysis && metrics) {
-      // Create a weighted blend: 70% from metrics, 30% from recent transcript analysis
-      const blendedMetrics = {
-        listening: Math.round((metrics.listening || 0) * 0.7 + transcriptAnalysis.activeListeningScore * 0.3),
-        expression: Math.round((metrics.expression || 0) * 0.7 + transcriptAnalysis.expressingNeedsScore * 0.3),
-        respect: Math.round((metrics.respect || 0) * 0.7 + transcriptAnalysis.conflictResolutionScore * 0.3),
-        empathy: Math.round((metrics.empathy || 0) * 0.7 + transcriptAnalysis.emotionalSupportScore * 0.3)
-      };
-      
-      // Return the blended metrics
-      responseData = [
-        { name: "Active Listening", value: blendedMetrics.listening },
-        { name: "Expressing Needs", value: blendedMetrics.expression },
-        { name: "Conflict Resolution", value: blendedMetrics.respect },
-        { name: "Emotional Support", value: blendedMetrics.empathy }
-      ];
-    } else if (!metrics) {
-      // If no metrics found, check if there are completed sessions
+
+    // Build metric names based on therapy type (used in multiple branches below)
+    const metricNames = therapyType === 'solo'
+      ? ['Self-awareness', 'Emotional Regulation', 'Personal Growth', 'Coping Skills']
+      : therapyType === 'family'
+        ? ['Family Communication', 'Role Definition', 'Conflict Management', 'Family Bonding']
+        : ['Active Listening', 'Expressing Needs', 'Conflict Resolution', 'Emotional Support']
+
+    const transcriptScores = transcriptAnalysis
+      ? [
+          transcriptAnalysis.activeListeningScore,
+          transcriptAnalysis.expressingNeedsScore,
+          transcriptAnalysis.conflictResolutionScore,
+          transcriptAnalysis.emotionalSupportScore,
+        ]
+      : null
+
+    if (transcriptAnalysis && effectiveMetrics) {
+      // Blend: 70% stored metrics + 30% live transcript analysis
+      const dbScores = [
+        effectiveMetrics.listening || 0,
+        effectiveMetrics.expression || 0,
+        effectiveMetrics.respect || 0,
+        effectiveMetrics.empathy || 0,
+      ]
+      responseData = metricNames.map((name, i) => ({
+        name,
+        value: Math.round(dbScores[i] * 0.7 + transcriptScores![i] * 0.3),
+      }))
+    } else if (transcriptAnalysis && !effectiveMetrics) {
+      // No DB metrics (or all-zero legacy records) — use transcript analysis directly
+      responseData = metricNames.map((name, i) => ({
+        name,
+        value: transcriptScores![i],
+      }))
+    } else if (effectiveMetrics) {
+      // DB metrics exist and no recent transcript — use DB values
+      const dbScores = [
+        effectiveMetrics.listening || 0,
+        effectiveMetrics.expression || 0,
+        effectiveMetrics.respect || 0,
+        effectiveMetrics.empathy || 0,
+      ]
+      responseData = metricNames.map((name, i) => ({ name, value: dbScores[i] }))
+    } else {
+      // No metrics and no transcript data — return empty state
       const completedSessionsCount = await withRetry(
         () => prisma.session.count({
-          where: {
-            userId: user.id,
-            status: 'COMPLETED',
-            sessionType: sessionTypeValue
-          }
+          where: { userId: user.id, status: 'COMPLETED', sessionType: sessionTypeValue }
         })
-      );
-      
-      // If there are no completed sessions, return empty state with 0 values
-      if (completedSessionsCount === 0) {
-        const emptyMetrics = therapyType === 'solo' ? [
-          { name: "Self-awareness", value: 0 },
-          { name: "Emotional Regulation", value: 0 },
-          { name: "Personal Growth", value: 0 },
-          { name: "Coping Skills", value: 0 }
-        ] : therapyType === 'family' ? [
-          { name: "Family Communication", value: 0 },
-          { name: "Role Definition", value: 0 },
-          { name: "Conflict Management", value: 0 },
-          { name: "Family Bonding", value: 0 }
-        ] : [
-          { name: "Active Listening", value: 0 },
-          { name: "Expressing Needs", value: 0 },
-          { name: "Conflict Resolution", value: 0 },
-          { name: "Emotional Support", value: 0 }
-        ];
-        
-        responseData = { 
-          metrics: emptyMetrics, 
-          isEmpty: true, 
-          message: "Complete your first session to see communication metrics" 
-        };
-      } else {
-        // If there are completed sessions but no stored metrics, 
-        // we still return empty state since we want real data only
-        const emptyMetrics = therapyType === 'solo' ? [
-          { name: "Self-awareness", value: 0 },
-          { name: "Emotional Regulation", value: 0 },
-          { name: "Personal Growth", value: 0 },
-          { name: "Coping Skills", value: 0 }
-        ] : therapyType === 'family' ? [
-          { name: "Family Communication", value: 0 },
-          { name: "Role Definition", value: 0 },
-          { name: "Conflict Management", value: 0 },
-          { name: "Family Bonding", value: 0 }
-        ] : [
-          { name: "Active Listening", value: 0 },
-          { name: "Expressing Needs", value: 0 },
-          { name: "Conflict Resolution", value: 0 },
-          { name: "Emotional Support", value: 0 }
-        ];
-        
-        responseData = { 
-          metrics: emptyMetrics, 
-          isEmpty: true, 
-          message: "Complete a session with conversation to see detailed metrics" 
-        };
-      }
-    } else {
-      // Use existing metrics from database
-      if (therapyType === 'solo') {
-        responseData = [
-          { name: "Self-awareness", value: metrics.listening || 0 },
-          { name: "Emotional Regulation", value: metrics.expression || 0 },
-          { name: "Personal Growth", value: metrics.respect || 0 },
-          { name: "Coping Skills", value: metrics.empathy || 0 }
-        ];
-      } else if (therapyType === 'family') {
-        responseData = [
-          { name: "Family Communication", value: metrics.listening || 0 },
-          { name: "Role Definition", value: metrics.expression || 0 },
-          { name: "Conflict Management", value: metrics.respect || 0 },
-          { name: "Family Bonding", value: metrics.empathy || 0 }
-        ];
-      } else {
-        // Default 'couple' metrics
-        responseData = [
-          { name: "Active Listening", value: metrics.listening || 0 },
-          { name: "Expressing Needs", value: metrics.expression || 0 },
-          { name: "Conflict Resolution", value: metrics.respect || 0 },
-          { name: "Emotional Support", value: metrics.empathy || 0 }
-        ];
+      )
+      const msg = completedSessionsCount === 0
+        ? 'Complete your first session to see communication metrics'
+        : 'Complete a session with conversation to see detailed metrics'
+      responseData = {
+        metrics: metricNames.map(name => ({ name, value: 0 })),
+        isEmpty: true,
+        message: msg,
       }
     }
-    
-    // Cache the response
-    await dashboardCache.set(cacheKey, responseData);
+
+    // Only cache non-empty results to avoid persisting stale zero data
+    const shouldCache = Array.isArray(responseData) && responseData.some((m: any) => m.value > 0)
+    if (shouldCache) {
+      await dashboardCache.set(cacheKey, responseData)
+    }
     
     const duration = Date.now() - startTime;
     console.log(`[CommunicationMetrics] Query completed for ${therapyType} in ${duration}ms`);

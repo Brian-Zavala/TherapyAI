@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma-optimized'
 
 // Helper function to generate metrics from the session
 export async function generateMetricsFromSession(userId: string, duration: number, sessionId?: string, transcript?: string, therapyType: string = 'couple', assistantId?: string) {
+  // Normalize therapy type to lowercase so callers can pass DB enums like 'SOLO'/'COUPLE'/'FAMILY'
+  therapyType = therapyType.toLowerCase();
   // Validate the userId exists first
   try {
     const userExists = await prisma.user.findUnique({
@@ -147,6 +149,7 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
 
 // Helper function to analyze transcript and extract metrics
 export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60, variability = 10, therapyType: string = 'couple') {
+  therapyType = therapyType.toLowerCase();
   // For solo therapy, generate minimal metrics even without transcript
   if (!transcript) {
     if (therapyType === 'solo') {

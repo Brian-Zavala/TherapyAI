@@ -109,10 +109,24 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
     })
 
     vapiInstance.on('error', (error: any) => {
+      // Daily.co fires an "ejection" error when VAPI ends the call server-side via endCall tool.
+      // This is a normal session end, not a real error — suppress it entirely.
+      const msg: string = error?.message || error?.errorMsg || error?.error?.msg || ''
+      const isEjection = /ejection|Meeting has ended|no-room/i.test(msg) ||
+        error?.error?.type === 'no-room'
+      if (isEjection) {
+        console.log('[VAPI] Call ended by server (ejection) — treating as normal call-end')
+        setIsConnected(false)
+        setIsConnecting(false)
+        config.onCallEnd?.()
+        cleanupVolumeMonitoring()
+        return
+      }
+
       console.error('[VAPI] Error:', error)
       setIsConnecting(false)
       config.onError?.(error)
-      
+
       // Handle specific error types
       if (error.code === 'CONNECTION_FAILED') {
         handleConnectionError()

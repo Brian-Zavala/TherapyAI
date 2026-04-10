@@ -172,7 +172,7 @@ interface ProgressMetricProps {
 function ProgressMetric({ label, value, icon, metricType, description }: ProgressMetricProps) {
   const theme = getMetricTheme(metricType);
   const [displayValue, setDisplayValue] = React.useState(0);
-  
+
   React.useEffect(() => {
     const timer = setTimeout(() => setDisplayValue(value), 100);
     return () => clearTimeout(timer);
@@ -180,93 +180,103 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
 
   // Determine achievement level
   const getAchievementBadge = (val: number) => {
-    if (val >= 90) return { label: 'Excellent', icon: Award, color: 'text-yellow-600' };
-    if (val >= 75) return { label: 'Strong', icon: Sparkles, color: 'text-purple-600' };
-    if (val >= 60) return { label: 'Good', icon: TrendingUp, color: 'text-blue-600' };
+    if (val >= 90) return { label: 'Excellent', icon: Award, color: 'text-yellow-400' };
+    if (val >= 75) return { label: 'Strong', icon: Sparkles, color: 'text-purple-400' };
+    if (val >= 60) return { label: 'Good', icon: TrendingUp, color: 'text-blue-400' };
     return null;
+  };
+
+  const getStatusColor = () => {
+    if (value >= 75) return 'text-emerald-400';
+    if (value >= 50) return 'text-blue-400';
+    if (value >= 25) return 'text-amber-400';
+    return 'text-gray-400';
   };
 
   const achievement = getAchievementBadge(value);
 
   return (
-    <motion.div 
+    <motion.div
       className="relative group h-full"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.02, y: -2 }}
     >
-      <div 
-        className={`h-full flex flex-col gap-3 p-4 rounded-xl border transition-all duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:${theme.shadow} hover:border-opacity-60 cursor-pointer min-h-[140px]`}
+      <div
+        className="h-full flex flex-col gap-3 p-4 sm:p-5 rounded-xl border transition-all duration-300 bg-white/5 border-white/10 hover:border-white/25 hover:bg-white/10 cursor-pointer"
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <motion.div 
-              className={`p-3 rounded-xl bg-gradient-to-br ${theme.gradient} ${theme.shadow}`}
-              whileHover={{ rotate: [0, -5, 5, 0] }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="text-white">
-                {icon}
-              </div>
-            </motion.div>
-            
-            <div>
-              <span className={`${dashboardTheme.typography.label} text-gray-800 dark:text-gray-200`}>
-                {label}
-              </span>
-              {description && (
-                <p className={`${dashboardTheme.typography.caption} text-gray-600 dark:text-gray-400 mt-0.5`}>
-                  {description}
-                </p>
-              )}
+        {/* Header: Icon + Label */}
+        <div className="flex items-center gap-3">
+          <motion.div
+            className={`p-2.5 rounded-xl bg-gradient-to-br ${theme.gradient} flex-shrink-0`}
+            whileHover={{ rotate: [0, -5, 5, 0] }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-white">
+              {icon}
             </div>
+          </motion.div>
+
+          <div className="min-w-0 flex-1">
+            <span className="text-sm sm:text-base font-semibold text-white block leading-tight">
+              {label}
+            </span>
+            {description && (
+              <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">
+                {description}
+              </p>
+            )}
           </div>
-          
-          <div className="flex items-center gap-2">
-            <motion.span 
-              className="text-lg font-bold text-gray-900 dark:text-gray-100 min-w-[3rem] text-right"
+        </div>
+
+        {/* Value + Achievement */}
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline gap-1">
+            <motion.span
+              className={`text-2xl sm:text-3xl font-bold ${getStatusColor()}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              {displayValue}%
+              {displayValue}
             </motion.span>
-            
-            {achievement && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                className="flex items-center gap-1"
-              >
-                <achievement.icon className={`h-4 w-4 ${achievement.color}`} />
-                <span className={`text-xs font-medium ${achievement.color}`}>
-                  {achievement.label}
-                </span>
-              </motion.div>
-            )}
+            <span className={`text-sm font-semibold ${getStatusColor()} opacity-70`}>%</span>
           </div>
+
+          {achievement && (
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-center gap-1"
+            >
+              <achievement.icon className={`h-3.5 w-3.5 ${achievement.color}`} />
+              <span className={`text-xs font-medium ${achievement.color}`}>
+                {achievement.label}
+              </span>
+            </motion.div>
+          )}
         </div>
-        
-        {/* Progress bar visualization - pushed to bottom with mt-auto */}
+
+        {/* Progress bar */}
         <div className="relative mt-auto">
-          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full h-3" />
-          <motion.div
-            className={`absolute inset-y-0 left-0 h-3 rounded-full ${getProgressBarClasses(value)}`}
-            initial={{ width: 0 }}
-            animate={{ width: `${displayValue}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-          >
-            {/* Pulse effect for high values */}
-            {value >= 80 && (
-              <motion.div
-                className="absolute inset-0 rounded-full bg-white/30"
-                animate={{ opacity: [0, 0.5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-            )}
-          </motion.div>
+          <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+            <motion.div
+              className={getProgressBarClasses(value)}
+              initial={{ width: 0 }}
+              animate={{ width: `${displayValue}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+            >
+              {value >= 80 && (
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-white/30"
+                  animate={{ opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              )}
+            </motion.div>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -511,29 +521,32 @@ export default function RelationshipProgressWithTabs() {
               className="space-y-6 flex-1 flex flex-col"
             >
               {/* Overall Progress */}
-              <div className="text-center pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-center gap-3 mb-3">
-                  <motion.div 
-                    className={`w-12 h-12 rounded-full bg-gradient-to-br ${healthIconColors.background} flex items-center justify-center`}
-                    animate={{ 
+              <div className="text-center pb-5 border-b border-white/10">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <motion.div
+                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${healthIconColors.background} flex items-center justify-center`}
+                    animate={{
                       scale: [1, 1.05, 1],
                       rotate: [0, 5, -5, 0]
                     }}
-                    transition={{ 
-                      duration: 2, 
-                      repeat: Infinity, 
-                      repeatDelay: 3 
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatDelay: 3
                     }}
                   >
-                    <TrendingUp className={`h-6 w-6 ${healthIconColors.icon}`} />
+                    <TrendingUp className={`h-5 w-5 ${healthIconColors.icon}`} />
                   </motion.div>
-                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-800 dark:text-gray-200">{overallScore}%</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{overallScore}</span>
+                    <span className="text-lg sm:text-xl font-semibold text-white/60">%</span>
+                  </div>
                 </div>
-                <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <h3 className="text-sm font-semibold text-gray-300 mb-1">
                   Overall {activeType === 'family' ? 'Family' : 'Relationship'} Health
                 </h3>
                 {therapeuticSaying && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 italic max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-500 italic max-w-sm mx-auto leading-relaxed">
                     "{therapeuticSaying}"
                   </p>
                 )}

@@ -153,13 +153,8 @@ export default function Home() {
       document.documentElement.classList.remove('smooth-scroll');
     };
   }, []);
-  // Initialize with window check if available, otherwise default to mobile
-  const [isMobileView, setIsMobileView] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth < MOBILE_BREAKPOINT;
-    }
-    return true; // Default to mobile for SSR
-  });
+  // Always initialize as false (desktop) to match SSR — useEffect updates after hydration
+  const [isMobileView, setIsMobileView] = useState(false);
 
   // Track mounted state to prevent hydration mismatches
   const [mounted, setMounted] = useState(false);
