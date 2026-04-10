@@ -5,6 +5,7 @@ import { memo, useEffect } from 'react'
 interface PausedOverlayProps {
   isPaused: boolean
   totalPausedMinutes: number
+  onResume?: () => void
 }
 
 /**
@@ -14,9 +15,10 @@ interface PausedOverlayProps {
  * - Performance optimized with will-change and memo
  * - Accessible with proper focus management
  */
-export const PausedOverlayOptimized = memo(function PausedOverlayOptimized({ 
-  isPaused, 
-  totalPausedMinutes 
+export const PausedOverlayOptimized = memo(function PausedOverlayOptimized({
+  isPaused,
+  totalPausedMinutes,
+  onResume
 }: PausedOverlayProps) {
   // Lock body scroll when overlay is visible
   useEffect(() => {
@@ -257,17 +259,28 @@ export const PausedOverlayOptimized = memo(function PausedOverlayOptimized({
                 )}
               </AnimatePresence>
               
+              {/* Resume Button */}
+              {onResume && (
+                <motion.button
+                  variants={itemVariants}
+                  onClick={onResume}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="mt-5 sm:mt-6 w-full max-w-[220px] py-3 px-6 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-semibold text-sm sm:text-base shadow-lg shadow-green-500/25 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-400/50 focus:ring-offset-2 focus:ring-offset-gray-900"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Resume Session
+                  </span>
+                </motion.button>
+              )}
+
               {/* Billing Note */}
-              <motion.p 
+              <motion.p
                 variants={itemVariants}
-                className={`
-                  ${/* Typography */''}
-                  text-gray-500 text-xs sm:text-sm
-                  ${/* Margin */''}
-                  mt-4 sm:mt-6
-                  ${/* Text alignment */''}
-                  text-center
-                `}
+                className="text-gray-500 text-xs sm:text-sm mt-3 sm:mt-4 text-center"
               >
                 You are not billed during paused time
               </motion.p>

@@ -2222,6 +2222,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           <PausedOverlay
             isPaused={sessionState.isPaused}
             totalPausedMinutes={Math.floor((session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0) / 60)}
+            onResume={handlePauseResume}
           />
 
             {/* Home indicator bar */}
