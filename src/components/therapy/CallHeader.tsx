@@ -14,9 +14,9 @@ export function CallHeader({ therapistName, isPaused, isVisible }: CallHeaderPro
   if (!isVisible) return null
 
   return (
-    <div className="px-4 sm:px-6 pt-4 pb-2 flex flex-col items-center justify-center relative">
-      <div className="text-white text-center bg-black px-6 py-2 rounded-t-[28px] w-full">
-        <h3 className="text-base sm:text-lg font-semibold text-white mb-0.5">
+    <div className="px-4 sm:px-6 pt-1 pb-1 flex flex-col items-center justify-center relative bg-black">
+      <div className="text-white text-center px-6 py-1 w-full">
+        <h3 className="text-sm sm:text-base font-semibold text-white mb-0.5">
           {therapistName}
         </h3>
         <p className="text-xs font-medium flex items-center justify-center">

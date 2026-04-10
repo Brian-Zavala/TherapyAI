@@ -1893,18 +1893,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         position: 'relative',
         zIndex: 10000
       }}>
-        {/* Phone container sized to fit viewport */}
+        {/* iPhone chassis wrapper */}
         <motion.div
-          className="w-full max-w-[300px] xs:max-w-[85vw] sm:max-w-[340px] rounded-[28px] overflow-hidden relative mx-auto border-zinc-700"
-          animate={{
-            y: 0,
-            opacity: 1,
-            scale: 1,
-          }}
-          initial={{
-            opacity: 0,
-            scale: 0.9,
-          }}
+          className="relative mx-auto"
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.9 }}
           transition={{
             duration: 0.8,
             type: "spring",
@@ -1913,20 +1906,55 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             delay: isRecoveredSession ? 0.5 : 0
           }}
           style={{
+            width: '320px',
+            maxWidth: '90vw',
             height: 'calc(100vh - 80px)',
-            maxHeight: '700px',
-            minHeight: '400px',
-            boxShadow: '0 0 50px rgba(0, 0, 0, 0.5)',
-            background: 'rgba(0, 0, 0, 0.95)',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '28px',
-            zIndex: 9999,
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column' as const,
-            visibility: 'visible'
+            maxHeight: '720px',
+            minHeight: '420px',
           }}
         >
+          {/* Side buttons - Left (Silent switch + Volume) */}
+          <div className="absolute -left-[3px] top-[80px] w-[3px] h-[20px] rounded-l-sm bg-gradient-to-r from-zinc-500 to-zinc-600" />
+          <div className="absolute -left-[3px] top-[120px] w-[3px] h-[36px] rounded-l-sm bg-gradient-to-r from-zinc-500 to-zinc-600" />
+          <div className="absolute -left-[3px] top-[164px] w-[3px] h-[36px] rounded-l-sm bg-gradient-to-r from-zinc-500 to-zinc-600" />
+          {/* Side button - Right (Power) */}
+          <div className="absolute -right-[3px] top-[140px] w-[3px] h-[48px] rounded-r-sm bg-gradient-to-l from-zinc-500 to-zinc-600" />
+
+          {/* Phone frame (titanium-style bezel) */}
+          <div
+            className="absolute inset-0 rounded-[44px] pointer-events-none"
+            style={{
+              background: 'linear-gradient(145deg, #3a3a3c, #2c2c2e, #1c1c1e)',
+              padding: '3px',
+              boxShadow: `
+                0 0 0 1px rgba(255,255,255,0.08),
+                0 20px 60px rgba(0,0,0,0.6),
+                0 8px 20px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.1)
+              `,
+            }}
+          >
+            <div className="w-full h-full rounded-[41px] bg-black" />
+          </div>
+
+          {/* Screen area (inside the bezel) */}
+          <div
+            className="absolute rounded-[41px] overflow-hidden flex flex-col"
+            style={{
+              top: '3px',
+              left: '3px',
+              right: '3px',
+              bottom: '3px',
+              zIndex: 9999,
+            }}
+        >
+            {/* Dynamic Island */}
+            <div className="flex justify-center pt-2 pb-1 bg-black relative z-20">
+              <div className="w-[90px] h-[24px] sm:w-[100px] sm:h-[26px] bg-black rounded-full border border-zinc-800/50 flex items-center justify-center gap-2">
+                <div className="w-[8px] h-[8px] rounded-full bg-zinc-900 ring-1 ring-zinc-700/50" />
+              </div>
+            </div>
+
           {/* Call Header */}
           <CallHeader
             therapistName={getTherapistName()}
@@ -1939,7 +1967,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           {/* For recovered sessions, show UI immediately even if VAPI is still initializing */}
           {(isLoading || vapi.isConnecting) && !isRecoveredSession ? (
             <motion.div 
-              className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-gradient-to-b from-black/90 via-black/95 to-black rounded-[28px] backdrop-blur-sm"
+              className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-gradient-to-b from-black/90 via-black/95 to-black rounded-[41px] backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -2089,7 +2117,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           ) : (
             <>
               {/* Main Content */}
-              <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-col items-center justify-between flex-1 overflow-y-auto rounded-b-[28px] bg-black">
+              <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-col items-center justify-between flex-1 overflow-y-auto bg-black">
                 {/* Security Notice */}
                 <div className="text-center py-1 text-gray-300 text-xs">
                   <span>End-to-end encrypted</span>
@@ -2191,11 +2219,17 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           )}
           
           {/* Paused Overlay */}
-          <PausedOverlay 
+          <PausedOverlay
             isPaused={sessionState.isPaused}
             totalPausedMinutes={Math.floor((session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0) / 60)}
           />
-        </motion.div>
+
+            {/* Home indicator bar */}
+            <div className="flex justify-center py-2 bg-black mt-auto">
+              <div className="w-[100px] h-[4px] rounded-full bg-zinc-600" />
+            </div>
+          </div>{/* End screen area */}
+        </motion.div>{/* End iPhone chassis */}
         
         {/* Session status message */}
         {(vapi.isConnected || sessionState.isPaused) && (
