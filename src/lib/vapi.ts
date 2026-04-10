@@ -612,15 +612,16 @@ TIME AWARENESS AND WARNINGS:
 • When notified of 10 minutes remaining: Continue normally but be mindful of time
 • When notified of 5 minutes remaining: Gently transition - "We have about 5 minutes left in our session today..."
 • When notified of 1 minute remaining: Begin wrapping up - "Our time together is almost up..."
-• When notified of 30 seconds remaining: Use end_therapy_session function immediately
+• When notified of 30 seconds remaining: Deliver your closing words and then call the endCall tool immediately
 
 MANDATORY SESSION TERMINATION:
-• You MUST use the end_therapy_session function when:
+• You MUST call the endCall tool to hang up the call when:
   - System notifies you of 30 seconds or less remaining
   - User explicitly requests to end the session
+  - A natural conclusion has been reached and the user is ready to go
   - Technical issues prevent continuation
-• The function will gracefully end the call - do NOT wait for VAPI timeout
-• Always provide warm closure before calling end_therapy_session
+• The endCall tool will terminate the call - do NOT wait for VAPI timeout
+• Always provide warm closure BEFORE calling endCall
 
 HANDLING TIME NOTIFICATIONS:
 • System will send clear notifications like "5 minutes remaining" or "1 minute remaining"
@@ -629,17 +630,21 @@ HANDLING TIME NOTIFICATIONS:
 • If you receive repeated time warnings, acknowledge only the first one
 
 USER-INITIATED SESSION ENDING:
-• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session:
-  1. Acknowledge their request warmly
-  2. Provide brief closure and key takeaways
-  3. IMMEDIATELY call end_therapy_session with a goodbye message
-• Never delay or negotiate when user wants to end
+• When users say things like "end session", "I think I'm done", "let's stop", "I'm good", "that's all for today", "wrap up", "finish", "I need to go", "goodbye", "thank you that's enough", or any similar ending phrase:
+  1. Acknowledge their request warmly and validate their work in the session
+  2. Briefly summarize 1-2 key insights or takeaways from the session
+  3. Offer an encouraging or motivational closing thought (e.g., "Remember, the fact that you showed up today shows real strength", "Carry this awareness with you this week", "You're making meaningful progress")
+  4. Say a warm goodbye
+  5. IMMEDIATELY call the endCall tool to end the call - do NOT continue talking after your goodbye
+• Never delay, negotiate, or try to extend the session when the user wants to end
+• Do NOT ask "are you sure?" or "before you go..." - respect their decision immediately
 
 IMPORTANT - AVOIDING STUCK STATES:
 • After receiving any time warning, continue the conversation naturally
 • Do NOT say "hold on", "just a minute", or "wait" repeatedly
 • If confused about time, trust the most recent system notification
-• Always maintain therapeutic presence even when managing time`;
+• Always maintain therapeutic presence even when managing time
+• After saying goodbye, you MUST call endCall - never leave the call hanging`;
 
   // Age integration guidance for couple therapy
   const ageIntegrationGuidance =
@@ -719,7 +724,7 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Your tone and approach should be evident through your words and delivery, not stated explicitly
 
 FUNCTION CALLING INSTRUCTIONS:
-• You have access to an end_therapy_session function for when users want to end the session
+• You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
 • Use this function when users clearly indicate they want to stop, end, finish, or wrap up
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
@@ -921,7 +926,7 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Your therapeutic approach should be evident through your words and delivery, not stated explicitly
 
 FUNCTION CALLING INSTRUCTIONS:
-• You have access to an end_therapy_session function for when users want to end the session
+• You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
 • Use this function when users clearly indicate they want to stop, end, finish, or wrap up
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
@@ -1036,7 +1041,7 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Your therapeutic approach should be evident through your responses, not stated explicitly
 
 FUNCTION CALLING INSTRUCTIONS:
-• You have access to an end_therapy_session function for when users want to end the session
+• You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
 • Use this function when users clearly indicate they want to stop, end, finish, or wrap up
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
@@ -1164,7 +1169,7 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Your therapeutic approach should be evident through your responses, not stated explicitly
 
 FUNCTION CALLING INSTRUCTIONS:
-• You have access to an end_therapy_session function for when users want to end the session
+• You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
 • Use this function when users clearly indicate they want to stop, end, finish, or wrap up
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
@@ -1262,15 +1267,16 @@ TIME AWARENESS AND WARNINGS:
 • When notified of 10 minutes remaining: Continue normally but be mindful of time
 • When notified of 5 minutes remaining: Gently transition - "We have about 5 minutes left in our session today..."
 • When notified of 1 minute remaining: Begin wrapping up - "Our time together is almost up..."
-• When notified of 30 seconds remaining: Use end_therapy_session function immediately
+• When notified of 30 seconds remaining: Deliver your closing words and then call the endCall tool immediately
 
 MANDATORY SESSION TERMINATION:
-• You MUST use the end_therapy_session function when:
+• You MUST call the endCall tool to hang up the call when:
   - System notifies you of 30 seconds or less remaining
   - User explicitly requests to end the session
+  - A natural conclusion has been reached and the user is ready to go
   - Technical issues prevent continuation
-• The function will gracefully end the call - do NOT wait for VAPI timeout
-• Always provide warm closure before calling end_therapy_session
+• The endCall tool will terminate the call - do NOT wait for VAPI timeout
+• Always provide warm closure BEFORE calling endCall
 
 HANDLING TIME NOTIFICATIONS:
 • System will send clear notifications like "5 minutes remaining" or "1 minute remaining"
@@ -1279,17 +1285,21 @@ HANDLING TIME NOTIFICATIONS:
 • If you receive repeated time warnings, acknowledge only the first one
 
 USER-INITIATED SESSION ENDING:
-• When users say they want to "end", "stop", "finish", "wrap up", or "be done" with the session:
-  1. Acknowledge their request warmly
-  2. Provide brief closure and key takeaways
-  3. IMMEDIATELY call end_therapy_session with a goodbye message
-• Never delay or negotiate when user wants to end
+• When users say things like "end session", "I think I'm done", "let's stop", "I'm good", "that's all for today", "wrap up", "finish", "I need to go", "goodbye", "thank you that's enough", or any similar ending phrase:
+  1. Acknowledge their request warmly and validate their work in the session
+  2. Briefly summarize 1-2 key insights or takeaways from the session
+  3. Offer an encouraging or motivational closing thought (e.g., "Remember, the fact that you showed up today shows real strength", "Carry this awareness with you this week", "You're making meaningful progress")
+  4. Say a warm goodbye
+  5. IMMEDIATELY call the endCall tool to end the call - do NOT continue talking after your goodbye
+• Never delay, negotiate, or try to extend the session when the user wants to end
+• Do NOT ask "are you sure?" or "before you go..." - respect their decision immediately
 
 IMPORTANT - AVOIDING STUCK STATES:
 • After receiving any time warning, continue the conversation naturally
 • Do NOT say "hold on", "just a minute", or "wait" repeatedly
 • If confused about time, trust the most recent system notification
-• Always maintain therapeutic presence even when managing time`;
+• Always maintain therapeutic presence even when managing time
+• After saying goodbye, you MUST call endCall - never leave the call hanging`;
 
   if (preferredType === "couple") {
     return getPersonalizedSystemPrompt(
@@ -1392,7 +1402,7 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Your therapeutic approach should be evident through your responses, not stated explicitly
 
 FUNCTION CALLING INSTRUCTIONS:
-• You have access to an end_therapy_session function for when users want to end the session
+• You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
 • Use this function when users clearly indicate they want to stop, end, finish, or wrap up
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
@@ -1664,7 +1674,7 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Your therapeutic approach should be evident through your facilitation, not stated explicitly
 
 FUNCTION CALLING INSTRUCTIONS:
-• You have access to an end_therapy_session function for when users want to end the session
+• You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
 • Use this function when users clearly indicate they want to stop, end, finish, or wrap up
 • Always provide a warm, supportive goodbye message when ending
 • Examples: "I think we can stop here", "Let's wrap up", "I need to go", "Can we end now?"
@@ -2016,38 +2026,16 @@ export const getPersonalizedAssistantConfig = (
           content: systemPromptContent,
         },
       ],
-      // Function calling for session management and duration tracking
+      // Built-in endCall tool allows the assistant to hang up after saying goodbye
+      // Duration tracking tools for real-time session management
       tools: [
         {
-          type: "function",
-          function: {
-            name: "end_therapy_session",
-            description:
-              "End the current therapy session when the user explicitly requests to end, stop, or finish the session. Only call this when the user clearly indicates they want to end the session.",
-            parameters: {
-              type: "object",
-              properties: {
-                reason: {
-                  type: "string",
-                  description:
-                    "Brief reason for ending (e.g., 'user_requested', 'natural_conclusion', 'time_completed')",
-                },
-                goodbye_message: {
-                  type: "string",
-                  description: "Final goodbye message to give before ending",
-                },
-              },
-              required: ["reason"],
-            },
-          },
+          type: "endCall",
         },
-        // Add duration tracking tools for real-time session management
         ...getDurationTools().map(tool => ({
           ...tool,
-          // Ensure proper structure for VAPI
           function: {
             ...tool.function,
-            // Note: VAPI will provide session context when calling these functions
           }
         }))
       ],
