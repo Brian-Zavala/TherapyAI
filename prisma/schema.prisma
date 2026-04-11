@@ -874,3 +874,24 @@ enum GoalStatus {
   PAUSED
   OVERDUE
 }
+
+model Resource {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  type         String   // article | exercise | technique | book | worksheet
+  categories   String[] // communication | emotional | behavioral | mental-health | relationship | progress
+  sessionTypes String[] // SOLO | COUPLE | FAMILY — empty means all types
+  concerns     String[] // anxiety | depression | communication | trust | anger | grief | stress | self-esteem
+  difficulty   String   @default("beginner") // beginner | intermediate | advanced
+  source       String   // e.g. "NAMI", "Psychology Today", "GoodTherapy"
+  url          String?
+  duration     String?  // e.g. "10 minutes", "Daily"
+  isExternal   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([categories])
+  @@index([sessionTypes])
+  @@index([concerns])
+  @@index([type])
+}
