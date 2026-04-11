@@ -222,6 +222,16 @@ Comprehensive multi-tiered insights system providing deep, evidence-based therap
 - `enhanced-insights-engine.ts`: 6 advanced patterns + exercises  
 - `comprehensive-insights-service.ts`: Full analysis integration
 - `ai-insight-generator.ts`: Main entry point
+- `dynamic-insights-service.ts`: Main dashboard insights generator — stores extras in `metadata` JSON (see `prisma/CLAUDE.md` for AIInsight schema)
+- `daily-tip-scheduler.ts`: Rotates daily tips from recent insights — reads `category`/`actionItems` from `metadata`
+- `session-completion-handler.ts`: Triggers insight regeneration + milestone detection on session complete
+
+### Personalized Resources
+- `resources/resource-matcher.service.ts`: Matches resources to users by topic, session type, and progress
+- `resources/resource-seed-data.ts`: 32 curated resources with real URLs (Therapist Aid, GoodTherapy)
+- `resources/open-library-client.ts`: Fetches book data from Open Library API
+- `resources/seed-resources.ts`: Seeds resources into database
+- `/api/resources/route.ts`: GET endpoint — returns matched resources for authenticated user
 
 ### Configuration
 ```env
@@ -341,3 +351,8 @@ try {
 - **Error**: VAPI had no memory of previous sessions despite rich DB data
 - **FIX**: Fetch last 3 `SessionSummary` records in `/api/vapi/assistant`, inject as `previousSessionContext`
 - **LESSON**: Check that data written at session END is READ at session START — write-only pipelines are invisible bugs
+
+**MISTAKE**: `dynamic-insights-service.ts`, `daily-tip-scheduler.ts`, `session-completion-handler.ts` used nonexistent fields on `AIInsight` (`status`, `priority`, `category`, `actionItems`, `basedOn`, `evidence`) and `DynamicGoal` (`type` instead of `goalType`, lowercase `'active'` instead of `'ACTIVE'`)
+- **Error**: `Unknown argument 'status'` Prisma runtime error — insights always fell back to generic hardcoded content
+- **FIX**: Map to real schema fields (`type`, `importance`, `actionable`), store extras in `metadata` JSON. Use `goalType` and uppercase `GoalStatus` enum. Anchor dynamic insights to user's most recent completed session for valid `sessionId` FK.
+- **LESSON**: `@ts-nocheck` hides schema mismatches. Always verify Prisma field names against `schema.prisma` — the TypeScript compiler can't catch errors when type checking is disabled.

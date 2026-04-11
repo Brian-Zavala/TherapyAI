@@ -16,7 +16,7 @@ Therapy progress insights, session management, real-time analytics. Next.js 15 A
 **Static**: DB → API → SWR → Components  
 **Updates**: Actions → API → DB → Supabase → Real-time
 
-**Components**: `CommunicationMetrics`, `RelationshipProgressCard`, `SessionTimeChart`, `UpcomingSessions`
+**Components**: `AIInsightsWithTabs`, `CommunicationMetricsWithTabs`, `RelationshipProgressWithTabs`, `UpcomingSessions`
 
 ## State & Design
 
@@ -95,6 +95,20 @@ Advanced analytics, goal tracking, PDF exports, notification center, PWA feature
 - Use `dashboard-error-handler.ts` for consistent error handling
 - Number safety with `sanitizeNumber()` and `sanitizePercentage()` from `dashboard-schemas.ts`
 - Zod schemas for all dashboard data validation
+
+## AI Insights Data Flow (April 2026)
+
+`/api/therapy-insights` returns `ComprehensiveInsights` with:
+- `insights[]` — Individual insight cards (rendered as expandable cards)
+- `summary.weeklyGoals[]`, `summary.focusAreas[]`, `summary.topStrengths[]` — Action Plan + Strengths collapsibles
+- `personalizedTips.daily[]`, `personalizedTips.weekly[]`, `personalizedTips.exercises[]` — Daily Tips collapsible
+- `trends.communication`, `trends.emotional`, `trends.consistency` — Progress overview bar
+
+`AIInsightsWithTabs` renders all of this via the `useTherapyTypeData` hook. The collapsible "Dive Deeper" sections (Action Plan, Strengths, Daily Tips) are accordion-style — only one open at a time. They only render when the API returns data for that section.
+
+## Personalized Resources
+
+`/api/resources` matches curated resources to users by topic, session type, and therapy progress. Seeded via `scripts/seed-resources.mjs` or `/api/admin/seed-resources`. Resources link to Therapist Aid, GoodTherapy, and Open Library.
 
 ## 📚 Mistakes — Dashboard & Metrics
 

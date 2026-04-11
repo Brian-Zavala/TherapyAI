@@ -23,6 +23,13 @@ UI components: sessions, modals, dashboard, animations. TypeScript + Framer Moti
 
 `CommunicationMetrics`, `RelationshipProgressCard`, `SessionTimeChart`, `UpcomingSessions`
 
+**`AIInsightsWithTabs`** — Primary insights component on dashboard. Therapy type tabs (Solo/Couple/Family) + insight cards + collapsible "Dive Deeper" sections:
+- **Action Plan** (green) — Weekly goals (numbered) + focus areas (badge pills). Accordion toggle.
+- **Your Strengths** (purple) — Identified therapy strengths as animated badges.
+- **Daily Tips & Exercises** (blue) — Daily practices, weekly recommendations, therapeutic exercises.
+- Data comes from `personalizedTips` and `summary` in `/api/therapy-insights` response.
+- `ComprehensiveTherapyInsightsUnified` exists but is NOT used — `AIInsightsWithTabs` is the active component.
+
 ## Animation
 
 `SpiralPathAnimation`, `SpiralTextAnimation`, `TypewriterText`, `VoiceWaveform`, `ScrollDownArrow`
