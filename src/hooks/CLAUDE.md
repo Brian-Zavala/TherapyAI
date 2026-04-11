@@ -20,7 +20,7 @@ Custom hooks for auth, sessions, real-time metrics, VAPI integration. Refactored
 
 **`useVapiSession`** - VAPI voice AI lifecycle, supports assistant IDs + inline configs, Dec 2024: fixed init order, memoized callbacks
 
-**`useVapiToken`** ⚠️ - JWT management, auto-refresh, rate limiting (20/15min, 5/min burst), user switch protection
+**`useVapiToken`** ⚠️ - JWT management, auto-refresh, rate limiting (20/15min, 5/min burst), user switch protection. Token fetch starts on component mount when session is authenticated. By the time a user selects a session duration, the token should already be loaded — the polling fallback in `startVAPISession` is for edge cases only.
 
 **`useSessionManagement`** - High-level orchestration across VAPI/DB/UI
 

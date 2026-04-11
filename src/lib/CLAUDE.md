@@ -12,7 +12,7 @@ Authentication, database, real-time metrics, VAPI integration, WebSocket communi
 
 ## VAPI Integration
 
-**`vapi.ts`** - SDK config, transcriber, ICE servers, reconnection, token auth, WebSocket
+**`vapi.ts`** - SDK config, transcriber, ICE servers, reconnection, token auth, WebSocket. Contains `getPersonalizedSystemPromptForType()` which builds system prompts for solo/couple/family therapy. Injects `previousSessionContext` from `userProfile` into all three prompts as a `PREVIOUS SESSION MEMORY` block when prior `SessionSummary` records exist.
 
 **`vapi-server.ts`** - Server API calls, webhooks, API key mgmt, dynamic assistants
 
@@ -21,6 +21,10 @@ Authentication, database, real-time metrics, VAPI integration, WebSocket communi
 **`vapi-config-cleaner.ts`** - Removes invalid VAPI fields, ensures providers, validates configs
 
 **`vapi-message-validator.ts`** - Message sanitization, role validation, conversation formatting
+
+**`therapeutic-insight-engine.ts`** - Generates `SessionSummary` after each session (keyThemes, emotionalJourney, breakthroughMoments, challengeAreas, nextSessionFocus, contextForNextSession). These are read at session START by `/api/vapi/assistant` to populate `previousSessionContext`. The `getTherapeuticContext()` method exists but is unused — context is fetched directly in the API route for simpler control.
+
+**`services/vapi-instance-manager.ts`** - Singleton managing VAPI SDK instance lifecycle. `getOrCreateInstance(token)` is now called eagerly when JWT first becomes available (in `TherapyButtonRefactored`) so instance construction is off the critical path at session start.
 
 ## Real-time & Supabase
 
@@ -162,6 +166,14 @@ const lockAcquired = await redis.set(dedupKey, '1', {
 - Splits User.findUnique into parallel queries
 - Selective field loading
 - Efficient relationship loading
+
+## Session Memory Architecture (April 2026)
+
+**Write path** (end of session): `TherapeuticInsightEngine.processSession()` → creates `SessionSummary` with `processingStatus: 'completed'`
+
+**Read path** (start of next session): `/api/vapi/assistant` fetches last 3 completed `SessionSummary` records in the same `Promise.all` as session count + last session queries. Builds `previousSessionContext` string from `contextForNextSession`, `nextSessionFocus`, `breakthroughMoments`, `challengeAreas`. Passes via `userProfile.previousSessionContext` → `getPersonalizedAssistantConfig()` → `getPersonalizedSystemPromptForType()` → injected as `PREVIOUS SESSION MEMORY` block in system prompt.
+
+**Critical**: Prisma relation in `SessionSummary` is `Session` (capital S) — always use capital in `select`/`include` queries. Verified against `SessionSummaryInclude` generated type.
 
 ## 🧠 Enhanced Insights System (EXPANDED - Jan 2025)
 

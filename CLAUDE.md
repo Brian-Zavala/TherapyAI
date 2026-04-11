@@ -62,7 +62,7 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 
 ### Key Points
 - Free tier: 45 credits (45 minutes) per month
-- Essential: 160 credits, Growth: 400 credits, Unlimited: 1200 credits
+- Pro tier: Unlimited credits (unlimited sessions, 30 min/session)
 - No SSE/WebSocket - Upstash Redis doesn't support traditional pub/sub
 - Exponential backoff polling reduces API calls by 70%
 - **Real-time countdown**: Credits decrement every 30s during active VAPI sessions (local timer, syncs on session end)
@@ -114,6 +114,27 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 - **Error**: Users with active subscriptions showed only 45 free credits instead of plan credits
 - **FIX**: Modified test webhook to include proper plan metadata in mock subscription (webhook/route.ts:213-229)
 - **LESSON**: Always ensure test/mock data structures match production data format exactly
+
+### Session Memory & VAPI Performance (April 2026)
+**MISTAKE**: Used `session` (lowercase) as Prisma relation field name for `SessionSummary → Session`
+- **Error**: Prisma silently returned `undefined` — session dates showed as "session 1", "session 2" fallbacks
+- **FIX**: Use `Session` (capital S) matching the schema field name; verified via `SessionSummaryInclude` generated type
+- **LESSON**: Always verify Prisma relation field names against generated `node_modules/.prisma/client/index.d.ts` types, not just the schema — schema field names are case-sensitive in queries
+
+**MISTAKE**: `sessionsCompleted: sessions.length` used array length (always 0 or 1) instead of real session count
+- **Error**: Milestone detection (`% 5 === 0`), `Session #N` numbering, and behavior switches (`> 3`, `> 10`) were all broken for returning users
+- **FIX**: Hoist `completedSessionCount` variable outside try block, assign from the DB count inside, use it in `userProfile`
+- **LESSON**: When building `userProfile` from data fetched inside a try block, hoist result variables before the try so they're accessible in the outer scope
+
+**MISTAKE**: `lastSessionDate: sessions[0]?.date` was never populated — `sessions` array only stored `{ length: count }`, never a date
+- **Error**: "Since our last session on [date]" never showed a real date in first messages
+- **FIX**: Hoist `lastCompletedSession` variable, assign from the already-fetched `lastSession` parallel query result
+- **LESSON**: When you have the data from a parallel fetch, use it directly — don't reconstruct it through an intermediate structure that drops fields
+
+**MISTAKE**: `SessionSummary` context was stored after every session (via `TherapeuticInsightEngine`) but never read when starting the next session
+- **Error**: VAPI assistant had no memory of previous sessions despite rich data in the database
+- **FIX**: Fetch last 3 `SessionSummary` records in parallel with session count in `/api/vapi/assistant`, build `previousSessionContext` string, inject into all three therapy system prompts (solo/couple/family)
+- **LESSON**: Check that data written at session END is actually READ at session START — write-only pipelines are invisible bugs
 
 ### Critical Development Process Lessons (Credit System Implementation)
 ❌ **Implementation Order Mistakes**: Should start with timing foundation FIRST, then unified architecture, then individual routes - timing provides foundation for accurate billing
@@ -272,22 +293,20 @@ git commit -m "docs: update profile system architecture"
 
 ## 💰 Pricing & Credit System
 
-**ALWAYS refer to [PRICING-STRATEGY-ANALYSIS.md](./PRICING-STRATEGY-ANALYSIS.md) for pricing details!**
+### Subscription Tiers
+| Tier | Price | Sessions | Minutes/Session | Total Minutes |
+|------|-------|----------|-----------------|---------------|
+| **Free** | $0 | 3/month | 15 min | 45 min |
+| **Pro** | $5/month (or $48/year) | Unlimited | 30 min | Unlimited |
 
-### Subscription Tiers (Per PRICING-STRATEGY-ANALYSIS.md)
-| Tier | Price | Sessions | Minutes/Session | Total Minutes | Concurrent |
-|------|-------|----------|-----------------|---------------|------------|
-| **Free** | $0 | 3/month | 15 min | 45 min | 1 |
-| **Essential** | $12.99 | 8/month | 20 min | 160 min | 1 |
-| **Growth** | $24.99 | 16/month | 25 min | 400 min | 2 |
-| **Unlimited** | $44.99 | 40/month | 30 min | 1200 min* | 3 |
-
-*Soft cap to prevent abuse
+### Stripe Price IDs
+- Monthly: `STRIPE_PRICE_PRO_MONTHLY` + `NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID`
+- Annual: `STRIPE_PRICE_PRO_ANNUAL` + `NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID`
+- Both vars hold the same value — server var for validation, `NEXT_PUBLIC_` for client-side checkout
 
 ### VAPI Costs
 - **Confirmed Rate**: $0.0203/minute (from actual dashboard data)
-- **Overage Charge**: $0.15/minute for Essential/Growth tiers
-- **Margins**: 60-70% gross margin across all tiers
+- **Margins**: Strong margin at $5/month given typical session usage
 
 ### Credit System Implementation
 
@@ -688,6 +707,14 @@ export async function POST(request: NextRequest) {
 18. **Session Fetch Timeout (15s)**: Use `?lite=true` param on `/api/sessions/[id]` to skip transcript loading
 19. **Credits Showing 0/0**: Check `ensureCreditsExist()` is called in all paths of `findOrCreateUser()` in `src/lib/auth.ts`
 20. **Infinite Re-renders in VAPI hooks**: Use `session?.user?.id` as deps, not the session object (new reference each render)
+21. **Communication Metrics always 0%**: Check `sessionType` field is set on session record; check `dashboardCache.invalidateOnSessionComplete()` is called after all completion paths; check `metricsAreAllZero` guard in communication-metrics route
+22. **Session status comparisons fail silently**: Supabase `postgres_changes` and Prisma return uppercase enums — always use `?.toUpperCase() === 'COMPLETED'` not `=== 'completed'`
+23. **Session recovery resumes wrong therapy type**: `handleContinueActiveSession` uses `sessionType` DB field as primary — ensure it's saved on session creation
+24. **VAPI ejection errors after session ends**: Expected behavior from Daily.co when `endCall` tool fires — handled in `useVapiSession.ts` and `TherapyButtonRefactored.tsx`
+21. **VAPI assistant has no memory of previous sessions**: Check `SessionSummary.processingStatus = 'completed'` records exist; `previousSessionContext` must be built in `/api/vapi/assistant` and injected into system prompt
+22. **Prisma relation field returns undefined silently**: Verify field name casing against generated `SessionSummaryInclude` type — schema `Session Session @relation(...)` means query key is `Session` not `session`
+23. **Session #N always shows Session #2 / milestones never trigger**: `sessionsCompleted` was broken; now reads from `completedSessionCount` (actual DB count)
+24. **Slow session start (>500ms before VAPI)**: `create-with-credits` and `GET /api/vapi/assistant` now run in parallel; VAPI instance pre-warms on JWT token ready
 
 ### Debug Checklist
 
@@ -771,6 +798,23 @@ VAPI: Any VAPI code → VAPI-COMPLETE-GUIDE.md (MANDATORY REFERENCE)
 - ✅ Fixed `AIInsightsWithTabs` null access after session end (`/api/sessions/active` returns direct object, not wrapped)
 - ✅ Fixed stale closure in TherapyButton VAPI message handler (use `sessionRef.current`)
 - ✅ Updated `@vapi-ai/web` from 2.2.4 to 2.5.2 (daily-js 0.75.2 no longer supported)
+- ✅ **Implemented cross-session memory** — `SessionSummary` context injected into all three therapy system prompts (solo/couple/family) via `previousSessionContext` field in `userProfile`
+- ✅ Fixed Prisma relation field name `session` → `Session` (capital) in `SessionSummary` queries — lowercase was silently returning undefined
+- ✅ Fixed `sessionsCompleted` always being 0 or 1 (was using `sessions.length` array length, not actual DB count) — milestones, Session #N and behavior switches now work correctly for returning users
+- ✅ Fixed `lastSessionDate` always being null (was `sessions[0]?.date` which was never populated)
+- ✅ **Parallelized session start** — `create-with-credits` + `GET /api/vapi/assistant` now fire simultaneously, saving ~200-300ms per session start
+- ✅ **VAPI instance pre-warm** — `vapiInstanceManager.getOrCreateInstance()` called eagerly when JWT token first becomes available, not on-demand at session start
+- ✅ **Fixed VAPI ejection errors on session end** — Daily.co fires "ejection" error when built-in `endCall` tool terminates the room; now treated as normal call-end in `useVapiSession.ts` and `TherapyButtonRefactored.tsx`
+- ✅ **Fixed Communication Metrics showing 0%** — multi-root-cause fix:
+  - `therapyType` defaulted to 'couple' in enhanced completion route → now uses `sessionType` DB field
+  - Case: `'SOLO' !== 'solo'` → `.toLowerCase()` normalization in `metrics-helper.ts`
+  - `mapSessionToTherapyType` in `dashboard-cache.ts` missing `lowerType === 'solo'` → fixed
+  - Non-enhanced route missing `dashboardCache.invalidateOnSessionComplete()` → added
+  - API cached zero values → `shouldCache` guard + `metricsAreAllZero` fallback added
+  - Duplicate metric writes → `generateMetricsFromSession` made upsert-aware
+- ✅ **Fixed SessionStatus case-sensitivity (8 files)** — Supabase `postgres_changes` and Prisma return uppercase enums; lowercase comparisons silently always failed. Affected: session-completed toast, modal auto-close, recovery safeguard, AI session history, therapy insights, PATCH metrics trigger. **Rule: always use `?.toUpperCase() === 'COMPLETED'` not `=== 'completed'` for DB/Supabase values.**
+- ✅ **Fixed session recovery resuming with wrong therapist** — `handleContinueActiveSession` in `therapy/client.tsx` now uses `sessionType` DB field as primary source (not theme text which defaulted to 'couple')
+- ✅ **Fixed `/api/sessions/active` missing PAUSED sessions** — now queries `status: { in: ['ACTIVE', 'PAUSED'] }`
 
 ### Previous Fixes (Jan 2025)
 - ✅ Fixed Prisma SessionStatus enum case sensitivity (use UPPERCASE)
