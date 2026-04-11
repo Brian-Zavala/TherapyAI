@@ -34,9 +34,17 @@ Authentication, database, real-time metrics, VAPI integration, WebSocket communi
 
 ## Session & Transcripts
 
-**`transcript-service-optimized.ts`** - Real-time processing, batch ops, deduplication, transactions, recovery
+**`transcript-service-optimized.ts`** - Real-time processing, batch ops, deduplication, transactions, recovery. `getPreviousSessionsTranscript()` fetches `/api/sessions` and filters by `status?.toUpperCase() === 'COMPLETED'` (API returns uppercase Prisma enums).
+
+**`transcript-service.ts`** - Same as above (legacy version). Same uppercase fix applies.
 
 **`session-cache.ts`** - In-memory cache, TTL expiration, Redis-compatible interface
+
+**`sessions/[id]/metrics-helper.ts`** - `generateMetricsFromSession()` and `analyzeTranscriptForMetrics()`. Both normalize `therapyType` with `.toLowerCase()` on entry. `generateMetricsFromSession` is upsert-aware: skips existing non-zero `CommunicationMetric`/`ProgressTracking` records (keeps `calculateMetrics()` result), repairs all-zero legacy records, creates if absent.
+
+**`cache/dashboard-cache.ts`** - Server-side dashboard cache. `mapSessionToTherapyType()` uses `lowerType === 'solo'` (not just theme text) to map `SOLO` sessions to the 'solo' cache bucket. `invalidateOnSessionComplete()` must be called after ALL session completion paths.
+
+**`utils/session-status.ts`** - Normalization helpers: `normalizeSessionStatus()`, `isSessionCompleted()`, `isSessionActive()`. Use these instead of raw string comparisons when dealing with session status values from mixed sources (API vs Supabase realtime).
 
 ## Utilities
 

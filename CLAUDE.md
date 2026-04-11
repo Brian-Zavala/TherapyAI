@@ -136,6 +136,22 @@ This ensures consistency, builds accumulated project knowledge, and prevents rep
 - **FIX**: Fetch last 3 `SessionSummary` records in parallel with session count in `/api/vapi/assistant`, build `previousSessionContext` string, inject into all three therapy system prompts (solo/couple/family)
 - **LESSON**: Check that data written at session END is actually READ at session START — write-only pipelines are invisible bugs
 
+### Dashboard Metrics & Session Completion (April 2026)
+**MISTAKE**: `therapyType` defaulted to 'couple' in `complete/enhanced/route.ts`, and `generateMetricsFromSession` compared Prisma uppercase enum `'SOLO'` against lowercase `'solo'`
+- **Error**: Communication Metrics always showed 0% for solo and family therapy sessions
+- **FIX**: Use `.toLowerCase()` on DB enum before all comparisons; use `sessionType` DB field (not theme text) as primary source; added `metricsAreAllZero` detection to fall back to transcript analysis
+- **LESSON**: Prisma enums are uppercase (`SOLO`, `COUPLE`, `FAMILY`, `COMPLETED`, `ACTIVE`). Always normalize with `.toLowerCase()` before comparing, or use `.toUpperCase()` when comparing against DB values.
+
+**MISTAKE**: Supabase `postgres_changes` payloads compared with lowercase status strings in 8 files
+- **Error**: Session-completed toast never fired, modal never auto-closed, AI had no session history context, therapy insights always showed 0 completed sessions
+- **FIX**: Changed all comparisons to `?.toUpperCase() === 'COMPLETED'` (or 'ACTIVE' etc.)
+- **LESSON**: Supabase realtime `postgres_changes` delivers raw PostgreSQL row data — enum values come through as uppercase strings matching Prisma enum definitions. Never compare them against lowercase without normalizing first.
+
+**MISTAKE**: Session recovery's `handleContinueActiveSession` detected therapy type from theme string ("AI Therapy Session" doesn't contain 'solo', 'couple', or 'family' → fell through to default 'couple')
+- **Error**: Users who had solo or family sessions and then paused/refreshed would resume with the couple therapist (wrong voice, wrong system prompt)
+- **FIX**: Use `sessionData.sessionType || currentSessionData.sessionType` DB field as primary source in `therapy/client.tsx`
+- **LESSON**: Theme text is user-visible and can be anything. Always use the authoritative DB enum field (`sessionType`) for program logic, not derived text fields.
+
 ### Critical Development Process Lessons (Credit System Implementation)
 ❌ **Implementation Order Mistakes**: Should start with timing foundation FIRST, then unified architecture, then individual routes - timing provides foundation for accurate billing
 ❌ **Code Review Timing**: Should use code-reviewer agents EARLIER to catch syntax issues before deep implementation

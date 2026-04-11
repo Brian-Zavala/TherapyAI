@@ -8,7 +8,7 @@ Custom hooks for auth, sessions, real-time metrics, VAPI integration. Refactored
 
 **`useClerkSession`** - Drop-in replacement for `useSession()` from next-auth/react. Uses `useMemo` for stable object references. Returns `{ data: session, status }`.
 
-**`useTherapySessionRecovery`** - Detects/recovers interrupted sessions, conversation-time based validation, deduplication logic
+**`useTherapySessionRecovery`** - Detects/recovers interrupted sessions on mount (500ms delay). Calls `/api/sessions/active`, stores recovery info in `sessionStorage['session-recovery-pending']`, dispatches `session-recovery-ready` event. Deduplication via `hasCheckedThisSession` flag + 5s cooldown.
 
 **`useSupabaseRealTimeMetrics`** - Real-time metrics via Supabase channels, provider/consumer roles
 
@@ -40,7 +40,9 @@ Realtime: `useVapiMetricsBridge` → `useSupabaseRealTimeMetrics` ← `useSupaba
 
 ## Patterns
 
-**Session Recovery**: Mount → Check active sessions → Validate conversation time → Auto-restart if valid → Deduplication
+**Session Recovery**: Mount (500ms delay) → `/api/sessions/active` (returns ACTIVE or PAUSED sessions) → store in sessionStorage → dispatch `session-recovery-ready` → `therapy/client.tsx` listens → opens `UnifiedSessionModal` in recovery mode → user clicks Continue → `handleContinueActiveSession` sets type from `sessionType` DB field → dispatches `sessionRecoveryComplete` event → `TherapyButtonRefactored` auto-starts VAPI
+
+**Status comparisons in hooks**: Supabase `postgres_changes` returns uppercase enums — always use `?.toUpperCase() === 'COMPLETED'` not `=== 'completed'`
 
 **Supabase Realtime**: Broadcast (ephemeral), Database (persistent), Presence (tracking) - Auto-reconnect, proper cleanup
 
@@ -94,3 +96,19 @@ Realtime: `useVapiMetricsBridge` → `useSupabaseRealTimeMetrics` ← `useSupaba
 **Solution**: Removed duplicate call in TherapyButtonRefactored.tsx:1563-1565
 **Idempotent Endpoint**: `/api/sessions/[id]/pause` now returns success if already paused
 **Pause Flow**: Client → sessionState.pauseSession() → VAPI pause → DB update → Broadcast
+
+## Session Recovery Architecture (April 2026)
+
+**How pause/recovery persists state:**
+- Pause route sets `isPaused: true`, `pausedAt`, `conversationTimeSeconds`, `lastConversationStart: null`
+- Status remains `ACTIVE` (not changed to PAUSED) — so `/api/sessions/active` finds it
+- On return, recovery hook fires → modal opens → user clicks Continue → new VAPI call starts, same DB session record
+
+**Common recovery failures:**
+- Wrong therapist on resume → check `sessionType` field is saved at session creation
+- Modal doesn't appear → check `session-just-ended` sessionStorage not blocking (cleared after 10s)
+- Recovery data expires → `UnifiedSessionModal` clears data older than 60s, but hook will re-check on next mount
+- Recovery only triggers on `/dashboard/therapy` page — navigating back from other pages is required
+
+**VAPI ejection on session end (April 2026):**
+Daily.co fires an "ejection" error when the VAPI `endCall` tool terminates the room server-side. This is expected behavior — handled in `useVapiSession.ts` error handler and `handleVapiError` in `TherapyButtonRefactored.tsx` by detecting `/ejection|Meeting has ended|no-room/i` and treating it as a normal `call-end`.

@@ -71,6 +71,18 @@ Advanced analytics, goal tracking, PDF exports, notification center, PWA feature
 - **Permission page only shows if**: User hasn't accepted in DB AND clicked "Review Later"
 - **Disclaimer modal never shows if**: Already accepted in database
 
+## Communication Metrics Fix (April 2026)
+
+**Root causes of 0% metrics after completed sessions:**
+
+1. **`therapyType` wrong in completion routes** — enhanced route defaulted to 'couple'; non-enhanced didn't invalidate dashboard cache → use `sessionType` DB field, call `dashboardCache.invalidateOnSessionComplete()` in all completion paths
+2. **Case sensitivity** — `generateMetricsFromSession` compared uppercase Prisma enum `'SOLO'` against lowercase `'solo'` → always normalize with `.toLowerCase()`
+3. **`mapSessionToTherapyType` in `dashboard-cache.ts`** — missing `lowerType === 'solo'` check → SOLO sessions never invalidated the right cache bucket
+4. **API caching zero values** — communication-metrics route cached results even when all values were 0 → added `shouldCache` guard and `metricsAreAllZero` fallback to transcript analysis
+5. **Duplicate metric records** — `calculateMetrics()` (good values, runs first) then `generateMetricsFromSession()` (zero values, wrong type, runs second) → `findFirst(DESC)` picked the second one → made `generateMetricsFromSession` upsert-aware: skip if non-zero exists, repair zero records, create if absent
+
+**Key files:** `src/app/api/dashboard/communication-metrics/route.ts`, `src/lib/cache/dashboard-cache.ts`, `src/app/api/sessions/[id]/metrics-helper.ts`, `src/app/api/sessions/[id]/complete/enhanced/route.ts`
+
 ## Dashboard API Optimization (Jan 2025)
 
 ### Performance Improvements
