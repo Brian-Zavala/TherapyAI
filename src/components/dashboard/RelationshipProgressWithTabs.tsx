@@ -213,7 +213,7 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
             whileHover={{ rotate: [0, -5, 5, 0] }}
             transition={{ duration: 0.5 }}
           >
-            <div className="text-white">
+            <div className="text-white [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-5 sm:[&>svg]:w-5 lg:[&>svg]:h-6 lg:[&>svg]:w-6 xl:[&>svg]:h-7 xl:[&>svg]:w-7">
               {icon}
             </div>
           </motion.div>
@@ -234,14 +234,14 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
         <div className="flex items-baseline justify-between">
           <div className="flex items-baseline gap-0.5 sm:gap-1">
             <motion.span
-              className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold ${getStatusColor()}`}
+              className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold ${getStatusColor()}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
               {displayValue}
             </motion.span>
-            <span className={`text-xs sm:text-sm md:text-base lg:text-lg font-semibold ${getStatusColor()} opacity-70`}>%</span>
+            <span className={`text-sm sm:text-base md:text-lg lg:text-xl font-semibold ${getStatusColor()} opacity-70`}>%</span>
           </div>
 
           {achievement && (
@@ -434,7 +434,7 @@ export default function RelationshipProgressWithTabs() {
 
   return (
     <Card className="bg-white/10 backdrop-blur-lg border border-white/20 sm:border-2 sm:border-white/30 shadow-xl min-h-[400px] sm:min-h-[500px] flex flex-col">
-      <CardHeader>
+      <CardHeader className="pb-2 sm:pb-3 md:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">
             <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white">
@@ -490,7 +490,7 @@ export default function RelationshipProgressWithTabs() {
         )}
       </CardHeader>
 
-      <CardContent className="space-y-6 flex-1 flex flex-col">
+      <CardContent className="space-y-4 sm:space-y-6 flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <UnifiedLoadingState 
@@ -518,7 +518,7 @@ export default function RelationshipProgressWithTabs() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="space-y-6 flex-1 flex flex-col"
+              className="space-y-4 sm:space-y-6 flex-1 flex flex-col"
             >
               {/* Overall Progress */}
               <div className="text-center pb-4 sm:pb-5 lg:pb-6 border-b border-white/10">
@@ -571,8 +571,8 @@ export default function RelationshipProgressWithTabs() {
 
         {/* Session Count Badge */}
         {sessionCount > 0 && (
-          <div className="text-center mt-auto">
-            <Badge variant="secondary" className="text-xs">
+          <div className="mt-auto pt-4 text-center">
+            <Badge variant="secondary" className="text-xs sm:text-sm">
               Based on {sessionCount} completed {activeType} session{sessionCount > 1 ? 's' : ''}
             </Badge>
           </div>

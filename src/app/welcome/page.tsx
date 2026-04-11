@@ -560,7 +560,7 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen((o) => !o)}
-        className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-left flex items-center justify-between transition-all focus:outline-none ${
+        className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-left flex items-center justify-between transition-all focus:outline-none cursor-pointer ${
           isOpen
             ? "border-blue-400 shadow-lg shadow-blue-500/20"
             : "border-white/20 hover:border-white/40 focus:border-blue-400"
@@ -602,7 +602,7 @@ function CustomSelect({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-2 transition-colors duration-100 ${
+                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-2 transition-colors duration-100 cursor-pointer ${
                       isSelected
                         ? "bg-blue-600/30 text-white"
                         : "text-white/75 hover:bg-white/10 hover:text-white"
@@ -1756,7 +1756,7 @@ function WelcomePageInner() {
                                         option.value
                                       )
                                     }
-                                    className={`relative px-4 py-2 rounded-xl border transition-all ${
+                                    className={`relative px-4 py-2 rounded-xl border transition-all cursor-pointer overflow-hidden ${
                                       isSelected
                                         ? "bg-blue-500/30 border-blue-400 text-white"
                                         : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
@@ -1764,17 +1764,17 @@ function WelcomePageInner() {
                                   >
                                     <span className="relative z-10 flex items-center justify-center">
                                       {option.label}
-                                      {isSelected && (
-                                        <motion.div
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          transition={{ duration: 0.1 }}
-                                          className="ml-2"
-                                        >
-                                          <CheckCircleIcon className="w-5 h-5 text-green-400" />
-                                        </motion.div>
-                                      )}
                                     </span>
+                                    {isSelected && (
+                                      <motion.div
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ duration: 0.15, type: "spring", stiffness: 300 }}
+                                        className="absolute top-1 right-1 z-20"
+                                      >
+                                        <CheckCircleIcon className="w-4 h-4 text-green-400" />
+                                      </motion.div>
+                                    )}
                                   </motion.button>
                                 );
                               })}
@@ -1865,7 +1865,7 @@ function WelcomePageInner() {
                                               : sentence;
                                             handleInputChange(field.name, newText);
                                           }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
                                         >
                                           {sentence}
                                         </motion.button>
@@ -1892,7 +1892,7 @@ function WelcomePageInner() {
                                               : sentence;
                                             handleInputChange(field.name, newText);
                                           }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
                                         >
                                           {sentence}
                                         </motion.button>
@@ -1919,7 +1919,7 @@ function WelcomePageInner() {
                                               : sentence;
                                             handleInputChange(field.name, newText);
                                           }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
                                         >
                                           {sentence}
                                         </motion.button>
@@ -1946,7 +1946,7 @@ function WelcomePageInner() {
                                               : sentence;
                                             handleInputChange(field.name, newText);
                                           }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
                                         >
                                           {sentence}
                                         </motion.button>
@@ -1973,7 +1973,7 @@ function WelcomePageInner() {
                                               : sentence;
                                             handleInputChange(field.name, newText);
                                           }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all"
+                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
                                         >
                                           {sentence}
                                         </motion.button>
@@ -2055,7 +2055,7 @@ function WelcomePageInner() {
                   assessmentResults.length === 0 && (
                     <ButtonWithSound
                       onClick={handleSkipAssessment}
-                      className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-red-500 hover:bg-red-600 order-last"
+                      className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-red-500 hover:bg-red-600 order-last cursor-pointer"
                     >
                       Not in a relationship
                     </ButtonWithSound>

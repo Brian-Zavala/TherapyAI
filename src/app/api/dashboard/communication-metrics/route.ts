@@ -33,7 +33,11 @@ export async function GET(request: Request) {
   
   try {
     const { searchParams } = new URL(request.url);
-    const therapyType = searchParams.get('type') || 'couple';
+    const rawType = (searchParams.get('type') || 'couple').toLowerCase();
+    // Sanitize to known values to prevent cache key pollution
+    const therapyType = (['solo', 'couple', 'family'] as const).includes(rawType as any)
+      ? rawType
+      : 'couple';
 
     // Use cached session to reduce auth overhead
     const session = await getAuthSession();

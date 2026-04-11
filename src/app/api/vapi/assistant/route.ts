@@ -30,6 +30,8 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
           currentConcerns: true,
           communicationStyle: true,
           sessionPreference: true,
+          sessionFrequency: true,
+          recurringSession: true,
           additionalNotes: true
         }
       },
@@ -148,6 +150,8 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
     currentConcerns: user.profile?.currentConcerns || [],
     communicationStyle: user.profile?.communicationStyle || 'balanced',
     sessionPreference: user.profile?.sessionPreference || 'flexible',
+    sessionFrequency: user.profile?.sessionFrequency || 'as-needed',
+    recurringSession: user.profile?.recurringSession || 'no',
     additionalNotes: user.profile?.additionalNotes || '',
     sessionHistory: sessionHistory,
     onboardingCompleted: user.onboardingCompleted,

@@ -236,7 +236,7 @@ export default function Dashboard() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6">
           {/* AI Insights - Full Width */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -267,7 +267,7 @@ export default function Dashboard() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="insights" className="space-y-6">
+        <TabsContent value="insights" className="space-y-4 sm:space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -277,7 +277,7 @@ export default function Dashboard() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="progress" className="space-y-6">
+        <TabsContent value="progress" className="space-y-4 sm:space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -292,7 +292,7 @@ export default function Dashboard() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="sessions" className="space-y-6">
+        <TabsContent value="sessions" className="space-y-4 sm:space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

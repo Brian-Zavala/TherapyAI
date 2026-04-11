@@ -110,36 +110,75 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
       }
     }
     
-    // Create progress tracking data
-    await prisma.progressTracking.create({
-      data: {
-        userId,
-        closenessScore: metrics.closenessScore,
-        communicationScore: metrics.communicationScore,
-        notes,
-        sessionId,
-        assistantId // Include the assistant ID in progress tracking
+    // ─── ProgressTracking: upsert to avoid duplicates ───────────────────────
+    if (sessionId) {
+      const existingProgress = await prisma.progressTracking.findFirst({
+        where: { sessionId }
+      });
+      if (existingProgress) {
+        // Only overwrite if the existing record has all-zero scores (legacy bad data)
+        if (!existingProgress.closenessScore && !existingProgress.communicationScore) {
+          await prisma.progressTracking.update({
+            where: { id: existingProgress.id },
+            data: {
+              closenessScore: metrics.closenessScore,
+              communicationScore: metrics.communicationScore,
+              notes,
+              assistantId: assistantId || existingProgress.assistantId
+            }
+          });
+        }
+        // Otherwise keep the existing record (calculateMetrics ran first)
+      } else {
+        await prisma.progressTracking.create({
+          data: { userId, closenessScore: metrics.closenessScore, communicationScore: metrics.communicationScore, notes, sessionId, assistantId }
+        });
       }
-    });
-    
-    // Create communication metrics data using the new schema
-    await prisma.communicationMetric.create({
-      data: {
-        userId,
-        sessionId: sessionId || null,
-        clarity: metrics.activeListeningScore,
-        empathy: metrics.emotionalSupportScore,
-        respect: metrics.conflictResolutionScore,
-        overall: Math.round((metrics.closenessScore + metrics.communicationScore) / 2),
-        listening: metrics.activeListeningScore,
-        expression: metrics.expressingNeedsScore,
-        metricType: 'final',
-        calculatedAt: new Date()
+    } else {
+      await prisma.progressTracking.create({
+        data: { userId, closenessScore: metrics.closenessScore, communicationScore: metrics.communicationScore, notes, sessionId: null, assistantId }
+      });
+    }
+
+    // ─── CommunicationMetric: upsert to avoid duplicates ────────────────────
+    const metricPayload = {
+      clarity: metrics.activeListeningScore,
+      empathy: metrics.emotionalSupportScore,
+      respect: metrics.conflictResolutionScore,
+      overall: Math.round((metrics.closenessScore + metrics.communicationScore) / 2),
+      listening: metrics.activeListeningScore,
+      expression: metrics.expressingNeedsScore,
+      metricType: 'final' as const,
+      calculatedAt: new Date()
+    };
+
+    if (sessionId) {
+      const existingMetric = await prisma.communicationMetric.findFirst({
+        where: { sessionId, metricType: 'final' }
+      });
+      if (existingMetric) {
+        // Overwrite only if existing values are all zero (legacy bad data from therapyType bug)
+        const allZero = !existingMetric.listening && !existingMetric.expression &&
+          !existingMetric.respect && !existingMetric.empathy;
+        if (allZero) {
+          await prisma.communicationMetric.update({
+            where: { id: existingMetric.id },
+            data: metricPayload
+          });
+          console.log(`Repaired zero-value CommunicationMetric for session ${sessionId}`);
+        }
+        // Otherwise keep the existing record — calculateMetrics already ran
+      } else {
+        await prisma.communicationMetric.create({
+          data: { userId, sessionId, ...metricPayload }
+        });
       }
-    });
-    
-    // Family therapy type has been handled by CommunicationMetric
-    
+    } else {
+      await prisma.communicationMetric.create({
+        data: { userId, sessionId: null, ...metricPayload }
+      });
+    }
+
     console.log(`Successfully generated ${therapyType} metrics for user ${userId} based on session transcript analysis`);
   } catch (error) {
     console.error('Error in generateMetricsFromSession:', error);

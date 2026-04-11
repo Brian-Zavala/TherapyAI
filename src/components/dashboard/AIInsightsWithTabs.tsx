@@ -457,8 +457,8 @@ export default function AIInsightsWithTabs() {
   };
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border-2 border-white/30 shadow-xl h-full flex flex-col">
-      <CardHeader className="pb-3 sm:pb-4">
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 sm:border-2 sm:border-white/30 shadow-xl h-full flex flex-col">
+      <CardHeader className="pb-2 sm:pb-3 md:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">
             <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white">
@@ -549,7 +549,7 @@ export default function AIInsightsWithTabs() {
         )}
       </CardHeader>
 
-      <CardContent className="flex-1">
+      <CardContent className="flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <UnifiedLoadingState 
@@ -595,8 +595,8 @@ export default function AIInsightsWithTabs() {
 
         {/* Session Count Badge */}
         {sessionCount > 0 && (
-          <div className="mt-6 text-center">
-            <Badge variant="secondary" className="text-xs">
+          <div className="mt-auto pt-4 text-center">
+            <Badge variant="secondary" className="text-xs sm:text-sm">
               Based on {sessionCount} completed {activeType} session{sessionCount > 1 ? 's' : ''}
             </Badge>
           </div>

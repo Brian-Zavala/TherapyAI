@@ -128,7 +128,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 
   return (
     <motion.div
-      className={`bg-white/5 backdrop-blur-md rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex flex-col h-full box-border ${
+      className={`bg-white/5 backdrop-blur-md rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex flex-col h-full box-border ${
         isAnimating ? 'breathing-glow breathing-glow-active' : 'breathing-glow'
       }`}
       initial={{ opacity: 0, y: 20 }}
@@ -356,7 +356,7 @@ function CommunicationMetricsContent() {
         {/* Session Count Badge */}
         {sessionCount > 0 && (
           <div className="mt-auto pt-4 text-center">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs sm:text-sm">
               Based on {sessionCount} completed {activeType} session{sessionCount > 1 ? 's' : ''}
             </Badge>
           </div>
