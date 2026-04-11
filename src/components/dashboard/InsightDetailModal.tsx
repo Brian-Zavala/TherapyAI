@@ -151,7 +151,6 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
     const sessionType = therapyType?.toUpperCase() === 'COUPLE' ? 'COUPLE'
       : therapyType?.toUpperCase() === 'FAMILY' ? 'FAMILY' : 'SOLO';
 
-    // Pull topics from insight if available
     const topics = insight.basedOn?.join(',') || '';
     const params = new URLSearchParams({
       category: insight.category || 'communication',
@@ -168,7 +167,9 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
       })
       .catch(() => setResourcesError(true))
       .finally(() => setResourcesLoading(false));
-  }, [activeTab, insight, therapyType, resources.length, resourcesLoading]);
+  // Intentionally excludes resources.length — always re-fetch fresh data per tab open
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, insight?.id, therapyType]);
 
   // Reset resources when a different insight is opened
   useEffect(() => {
@@ -706,21 +707,20 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                                 </div>
                               </div>
 
-                              {/* "How to do this" toggle — only for exercises/techniques with steps */}
-                              {hasSteps && !hasUrl && (
+                              {/* Show/hide steps toggle — shown for any resource that has step data */}
+                              {hasSteps && (
                                 <button
                                   onClick={() => setExpandedResourceId(isExpanded ? null : resource.id)}
-                                  className="mt-3 ml-11 flex items-center gap-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 transition-colors"
+                                  className="mt-3 ml-11 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/60 transition-colors text-xs font-semibold"
                                 >
-                                  <Zap className="h-3.5 w-3.5" />
-                                  {isExpanded ? 'Hide steps' : 'How to do this'}
-                                  <ArrowRight className={`h-3 w-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                                  <Zap className="h-3.5 w-3.5 flex-shrink-0" />
+                                  {isExpanded ? 'Hide steps' : 'How to do this →'}
                                 </button>
                               )}
                             </div>
 
                             {/* Expandable steps panel */}
-                            {hasSteps && !hasUrl && isExpanded && (
+                            {hasSteps && isExpanded && (
                               <div className="border-t bg-purple-50 dark:bg-purple-900/20 px-4 sm:px-5 py-4">
                                 <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-3">
                                   Step-by-step
