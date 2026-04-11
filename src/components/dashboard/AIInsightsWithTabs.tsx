@@ -41,7 +41,10 @@ import {
   ExternalLink,
   BookOpen,
   Zap,
-  Star
+  Star,
+  Calendar,
+  Lightbulb,
+  Dumbbell
 } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -272,14 +275,16 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
             </p>
           </div>
 
-          {/* Expand toggle */}
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
-            className="flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
-            aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
-          >
-            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+          {/* Expand toggle — only show if there's an exercise (action steps moved to Action Plan section) */}
+          {insight.exercise && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+              className="flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+              aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
+            >
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          )}
         </div>
 
         {/* Metrics strip */}
@@ -300,55 +305,32 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
           </div>
         )}
 
-        {/* Expanded content */}
+        {/* Expanded content — exercise only (action steps live in the Action Plan section below) */}
         <AnimatePresence>
-          {isExpanded && (
+          {isExpanded && insight.exercise && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25 }}
-              className="mt-3 space-y-3 overflow-hidden"
+              className="mt-3 overflow-hidden"
             >
-              {/* Action items */}
-              {insight.actionItems && insight.actionItems.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2 flex items-center gap-1.5">
-                    <Target className="h-3 w-3" />
-                    Action Steps
-                  </p>
-                  <ul className="space-y-1.5">
-                    {insight.actionItems.slice(0, 3).map((item: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-white/70 bg-white/5 rounded-lg px-3 py-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-white/15 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">
-                          {i + 1}
-                        </span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs font-semibold text-blue-300 mb-1 flex items-center gap-1.5">
+                  <Zap className="h-3 w-3" />
+                  Recommended Exercise
+                </p>
+                <p className="text-sm font-medium text-white">{insight.exercise.name}</p>
+                <p className="text-xs text-white/60 mt-0.5">{insight.exercise.description}</p>
+                <div className="flex gap-2 mt-1.5">
+                  <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+                    {insight.exercise.duration}
+                  </span>
+                  <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+                    {insight.exercise.frequency}
+                  </span>
                 </div>
-              )}
-
-              {/* Exercise */}
-              {insight.exercise && (
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <p className="text-xs font-semibold text-blue-300 mb-1 flex items-center gap-1.5">
-                    <Zap className="h-3 w-3" />
-                    Recommended Exercise
-                  </p>
-                  <p className="text-sm font-medium text-white">{insight.exercise.name}</p>
-                  <p className="text-xs text-white/60 mt-0.5">{insight.exercise.description}</p>
-                  <div className="flex gap-2 mt-1.5">
-                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
-                      {insight.exercise.duration}
-                    </span>
-                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
-                      {insight.exercise.frequency}
-                    </span>
-                  </div>
-                </div>
-              )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -402,6 +384,309 @@ function EmptyState({ therapyType }: { therapyType: TherapyType }) {
       >
         {config.emptyState.cta}
       </Button>
+    </motion.div>
+  );
+}
+
+// ─── Collapsible Section ─────────────────────────────────────────────────────
+
+interface CollapsibleSectionProps {
+  icon: React.ComponentType<any>;
+  title: string;
+  subtitle: string;
+  gradient: string;
+  accentColor: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  badge?: string;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({
+  icon: Icon,
+  title,
+  subtitle,
+  gradient,
+  accentColor,
+  isOpen,
+  onToggle,
+  badge,
+  children
+}: CollapsibleSectionProps) {
+  return (
+    <div className="rounded-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-200">
+      <button
+        onClick={onToggle}
+        className={`w-full flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer transition-all duration-200 ${
+          isOpen ? 'bg-white/10' : 'bg-white/5 hover:bg-white/8'
+        }`}
+      >
+        <div className={`flex-shrink-0 p-2 sm:p-2.5 rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm sm:text-base font-semibold text-white leading-tight">{title}</h4>
+            {badge && (
+              <Badge className={`text-[10px] border px-1.5 py-0 ${accentColor}`}>
+                {badge}
+              </Badge>
+            )}
+          </div>
+          <p className="text-[11px] sm:text-xs text-white/45 mt-0.5 leading-relaxed">{subtitle}</p>
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.25 }}
+          className="flex-shrink-0 p-1.5 rounded-lg text-white/40"
+        >
+          <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
+        </motion.div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-3.5 sm:px-4 pb-4 pt-1">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Insights Extras (Action Plan, Strengths, Tips) ──────────────────────────
+
+interface InsightsExtrasProps {
+  summary: any;
+  personalizedTips: any;
+  trends: any;
+}
+
+function InsightsExtras({ summary, personalizedTips, trends }: InsightsExtrasProps) {
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  const toggle = (section: string) => {
+    setOpenSection(openSection === section ? null : section);
+  };
+
+  const hasGoals = summary?.weeklyGoals?.length > 0;
+  const hasFocusAreas = summary?.focusAreas?.length > 0;
+  const hasStrengths = summary?.topStrengths?.length > 0;
+  const hasDailyTips = personalizedTips?.daily?.length > 0;
+  const hasWeeklyTips = personalizedTips?.weekly?.length > 0;
+  const hasExercises = personalizedTips?.exercises?.length > 0;
+  const hasTipsSection = hasDailyTips || hasWeeklyTips || hasExercises;
+
+  if (!hasGoals && !hasFocusAreas && !hasStrengths && !hasTipsSection) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2, duration: 0.3 }}
+      className="space-y-2.5 sm:space-y-3"
+    >
+      {/* Divider label */}
+      <div className="flex items-center gap-2 pt-1">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-white/30 flex items-center gap-1.5">
+          <Lightbulb className="h-3 w-3" />
+          Dive Deeper
+        </span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      </div>
+
+      {/* Action Plan */}
+      {(hasGoals || hasFocusAreas) && (
+        <CollapsibleSection
+          icon={Target}
+          title="Action Plan"
+          subtitle="Weekly goals and focus areas from your sessions"
+          gradient="from-emerald-500 to-teal-600"
+          accentColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+          isOpen={openSection === 'action-plan'}
+          onToggle={() => toggle('action-plan')}
+          badge={hasGoals ? `${summary.weeklyGoals.length} goals` : undefined}
+        >
+          <div className="space-y-4">
+            {/* Weekly Goals */}
+            {hasGoals && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2.5 flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3" />
+                  This Week's Goals
+                </p>
+                <div className="space-y-2">
+                  {summary.weeklyGoals.map((goal: string, i: number) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-lg bg-emerald-500/8 border border-emerald-500/15"
+                    >
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5 shadow-sm">
+                        {i + 1}
+                      </span>
+                      <p className="text-xs sm:text-sm text-white/75 leading-relaxed">{goal}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Focus Areas */}
+            {hasFocusAreas && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2.5 flex items-center gap-1.5">
+                  <AlertCircle className="h-3 w-3" />
+                  Areas to Focus On
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {summary.focusAreas.map((area: string, i: number) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.08 }}
+                    >
+                      <Badge className="px-3 py-1.5 text-xs bg-amber-500/10 text-amber-400 border border-amber-500/25 hover:bg-amber-500/15 transition-colors">
+                        <AlertCircle className="h-3 w-3 mr-1.5" />
+                        {area}
+                      </Badge>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Your Strengths */}
+      {hasStrengths && (
+        <CollapsibleSection
+          icon={Award}
+          title="Your Strengths"
+          subtitle="Positive patterns identified from your therapy journey"
+          gradient="from-purple-500 to-pink-600"
+          accentColor="bg-purple-500/15 text-purple-400 border-purple-500/30"
+          isOpen={openSection === 'strengths'}
+          onToggle={() => toggle('strengths')}
+          badge={`${summary.topStrengths.length} identified`}
+        >
+          <div className="flex flex-wrap gap-2">
+            {summary.topStrengths.map((strength: string, i: number) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1, type: 'spring', stiffness: 400, damping: 20 }}
+              >
+                <Badge className="px-3 py-2 text-xs sm:text-sm bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/15 transition-colors">
+                  <Star className="h-3 w-3 mr-1.5 text-purple-400" />
+                  {strength}
+                </Badge>
+              </motion.div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Daily Tips & Exercises */}
+      {hasTipsSection && (
+        <CollapsibleSection
+          icon={Sparkles}
+          title="Daily Tips & Exercises"
+          subtitle="Personalised practices to reinforce your progress"
+          gradient="from-blue-500 to-cyan-600"
+          accentColor="bg-blue-500/15 text-blue-400 border-blue-500/30"
+          isOpen={openSection === 'tips'}
+          onToggle={() => toggle('tips')}
+        >
+          <div className="space-y-4">
+            {/* Daily Tips */}
+            {hasDailyTips && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2.5 flex items-center gap-1.5">
+                  <Lightbulb className="h-3 w-3" />
+                  Daily Practices
+                </p>
+                <div className="space-y-2">
+                  {personalizedTips.daily.map((tip: string, i: number) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-lg bg-blue-500/8 border border-blue-500/15"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs sm:text-sm text-white/75 leading-relaxed">{tip}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Weekly Tips */}
+            {hasWeeklyTips && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2.5 flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3" />
+                  Weekly Recommendations
+                </p>
+                <div className="space-y-2">
+                  {personalizedTips.weekly.map((tip: string, i: number) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-lg bg-cyan-500/8 border border-cyan-500/15"
+                    >
+                      <ArrowRight className="h-3.5 w-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs sm:text-sm text-white/75 leading-relaxed">{tip}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Exercises */}
+            {hasExercises && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2.5 flex items-center gap-1.5">
+                  <Dumbbell className="h-3 w-3" />
+                  Therapeutic Exercises
+                </p>
+                <div className="space-y-2">
+                  {personalizedTips.exercises.map((exercise: string, i: number) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-lg bg-indigo-500/8 border border-indigo-500/15"
+                    >
+                      <Zap className="h-3.5 w-3.5 text-indigo-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs sm:text-sm text-white/75 leading-relaxed">{exercise}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
     </motion.div>
   );
 }
@@ -465,10 +750,12 @@ export default function AIInsightsWithTabs() {
           improvementRate: 15,
           sessionsAnalyzed: sessionCount || 0,
           isRealTime: true
-        }
+        },
+        personalizedTips: null,
+        trends: null
       };
     }
-    return aiInsights || { insights: [], summary: null };
+    return aiInsights || { insights: [], summary: null, personalizedTips: null, trends: null };
   };
 
   const insights = generateInsights();
@@ -575,6 +862,13 @@ export default function AIInsightsWithTabs() {
                   index={i}
                 />
               ))}
+
+              {/* Collapsible extras: Action Plan, Strengths, Tips & Exercises */}
+              <InsightsExtras
+                summary={insights.summary}
+                personalizedTips={insights.personalizedTips}
+                trends={insights.trends}
+              />
             </motion.div>
           )}
         </AnimatePresence>

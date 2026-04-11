@@ -106,7 +106,6 @@ export class DailyTipScheduler {
       const recentInsights = await prisma.aIInsight.findMany({
         where: {
           userId,
-          status: 'active',
           createdAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
           }
@@ -190,7 +189,10 @@ export class DailyTipScheduler {
    * Generate a specific tip based on an insight
    */
   private generateTipFromInsight(insight: any): string | null {
-    const { category, priority, actionItems } = insight;
+    // Extra fields are stored in metadata JSON; fall back to top-level for compatibility
+    const meta = insight.metadata || {};
+    const category = meta.category || insight.type || 'progress';
+    const actionItems = meta.actionItems || [];
 
     // Use the first action item as a daily tip if it's actionable
     if (actionItems && actionItems.length > 0) {

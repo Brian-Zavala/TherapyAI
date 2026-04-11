@@ -261,7 +261,7 @@ export class SessionCompletionHandler {
         await this.storeMilestoneAchievements(context.userId, milestones);
 
         // Create celebratory insights for achieved milestones
-        await this.createMilestoneCelebrations(context.userId, milestones);
+        await this.createMilestoneCelebrations(context.userId, context.sessionId, milestones);
 
         logger.info('Detected milestone achievements', { 
           userId: context.userId,
@@ -435,13 +435,13 @@ export class SessionCompletionHandler {
             title: milestone.title,
             description: milestone.description,
             category: 'milestone',
-            type: milestone.type,
+            goalType: milestone.type,
             targetDate: new Date(),
-            status: 'completed',
+            status: 'COMPLETED',
             progress: 100,
             completedAt: new Date(),
             aiGenerated: false,
-            confidence: 100
+            metadata: { confidence: 100 }
           }
         });
       } catch (error) {
@@ -457,28 +457,33 @@ export class SessionCompletionHandler {
   /**
    * Create celebratory insights for milestones
    */
-  private static async createMilestoneCelebrations(userId: string, milestones: any[]): Promise<void> {
+  private static async createMilestoneCelebrations(userId: string, sessionId: string, milestones: any[]): Promise<void> {
     for (const milestone of milestones) {
       try {
         await prisma.aIInsight.create({
           data: {
             userId,
+            sessionId,
+            type: 'progress',
             title: `🎉 ${milestone.title}`,
             description: milestone.description + ' This shows your dedication to improving your relationship.',
-            category: 'progress',
-            priority: 'low', // Celebrations are positive/low priority
-            timeframe: 'immediate',
-            actionItems: [
-              'Celebrate this achievement with your partner',
-              'Reflect on how far you\'ve come',
-              'Share this success with someone you trust'
-            ],
-            basedOn: [`Milestone: ${milestone.type} = ${milestone.value}`],
-            evidence: [],
+            importance: 'low',
+            actionable: true,
             confidence: 100,
-            aiModel: 'milestone-detection',
-            status: 'active',
-            isPersonalized: true
+            metadata: {
+              category: 'progress',
+              priority: 'low',
+              timeframe: 'immediate',
+              actionItems: [
+                'Celebrate this achievement with your partner',
+                'Reflect on how far you\'ve come',
+                'Share this success with someone you trust'
+              ],
+              basedOn: [`Milestone: ${milestone.type} = ${milestone.value}`],
+              evidence: [],
+              aiModel: 'milestone-detection',
+              isPersonalized: true
+            }
           }
         });
       } catch (error) {

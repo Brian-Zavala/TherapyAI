@@ -150,7 +150,6 @@ export class DynamicInsightsService {
     const recentInsights = await prisma.aIInsight.findMany({
       where: {
         userId,
-        status: 'active',
         createdAt: {
           gte: new Date(Date.now() - 6 * 60 * 60 * 1000) // Last 6 hours
         }
@@ -162,18 +161,22 @@ export class DynamicInsightsService {
     if (recentInsights.length === 0) return null;
 
     // Reconstruct GeneratedInsights from database records
-    const insights = recentInsights.map(insight => ({
-      id: insight.id,
-      title: insight.title,
-      description: insight.description,
-      category: insight.category as any,
-      priority: insight.priority as any,
-      actionItems: insight.actionItems,
-      basedOn: insight.basedOn,
-      evidence: insight.evidence,
-      timeframe: insight.timeframe as any,
-      confidence: insight.confidence
-    }));
+    // Extra fields (category, priority, actionItems, etc.) are stored in metadata JSON
+    const insights = recentInsights.map(insight => {
+      const meta = (insight.metadata as any) || {};
+      return {
+        id: insight.id,
+        title: insight.title,
+        description: insight.description,
+        category: (meta.category || 'progress') as any,
+        priority: (meta.priority || insight.importance || 'medium') as any,
+        actionItems: meta.actionItems || [],
+        basedOn: meta.basedOn || [],
+        evidence: meta.evidence || [],
+        timeframe: (meta.timeframe || 'this-week') as any,
+        confidence: insight.confidence
+      };
+    });
 
     // Get additional data for complete insights
     const weeklyGoals = await this.getActiveGoals(userId, 'weekly');
@@ -207,24 +210,43 @@ export class DynamicInsightsService {
    * Store generated insights in database
    */
   private async storeInsights(userId: string, insights: GeneratedInsights): Promise<void> {
+    // AIInsight requires a valid sessionId (FK to Session).
+    // Use the user's most recent completed session as the anchor.
+    const recentSession = await prisma.session.findFirst({
+      where: { userId, status: 'COMPLETED' },
+      orderBy: { startTime: 'desc' },
+      select: { id: true }
+    });
+
+    if (!recentSession) {
+      logger.warn('No completed sessions to anchor insights', { userId });
+      return;
+    }
+
     // Store individual insights
     for (const insight of insights.insights) {
+      // Store extra fields in metadata JSON since AIInsight schema
+      // only has: type, title, description, importance, actionable, metadata, confidence
       await prisma.aIInsight.create({
         data: {
           userId,
-          sessionIds: [], // TODO: Extract from basedOn
+          sessionId: recentSession.id,
+          type: insight.category || 'progress',
           title: insight.title,
           description: insight.description,
-          category: insight.category,
-          priority: insight.priority,
-          timeframe: insight.timeframe,
-          actionItems: insight.actionItems,
-          basedOn: insight.basedOn,
-          evidence: insight.evidence,
+          importance: insight.priority || 'medium',
+          actionable: (insight.actionItems?.length || 0) > 0,
           confidence: insight.confidence,
-          aiModel: 'claude-3-sonnet',
-          status: 'active',
-          isPersonalized: true
+          metadata: {
+            category: insight.category,
+            priority: insight.priority,
+            timeframe: insight.timeframe,
+            actionItems: insight.actionItems,
+            basedOn: insight.basedOn,
+            evidence: insight.evidence,
+            aiModel: 'claude-3-sonnet',
+            isPersonalized: true
+          }
         }
       });
     }
@@ -238,12 +260,13 @@ export class DynamicInsightsService {
         data: {
           userId,
           title: goal,
+          description: goal,
           category: 'weekly',
-          type: 'relationship',
+          goalType: 'relationship',
           targetDate,
           basedOnInsights: insights.insights.map(i => i.id),
           aiGenerated: true,
-          confidence: insights.confidence
+          metadata: { confidence: insights.confidence }
         }
       });
     }
@@ -493,7 +516,7 @@ export class DynamicInsightsService {
       where: {
         userId,
         category,
-        status: 'active',
+        status: 'ACTIVE',
         targetDate: { gte: new Date() }
       },
       take: 5
@@ -501,27 +524,28 @@ export class DynamicInsightsService {
   }
 
   private async getActiveFocusAreas(userId: string): Promise<string[]> {
-    const highPriorityInsights = await prisma.aIInsight.findMany({
+    // AIInsight uses 'importance' (not 'priority') and has no 'status' field
+    const highImportanceInsights = await prisma.aIInsight.findMany({
       where: {
         userId,
-        priority: 'high',
-        status: 'active'
+        importance: 'high'
       },
       select: { title: true },
+      orderBy: { createdAt: 'desc' },
       take: 3
     });
 
-    return highPriorityInsights.map(i => i.title);
+    return highImportanceInsights.map(i => i.title);
   }
 
   private async getIdentifiedStrengths(userId: string): Promise<string[]> {
-    const lowPriorityInsights = await prisma.aIInsight.findMany({
+    const lowImportanceInsights = await prisma.aIInsight.findMany({
       where: {
         userId,
-        priority: 'low',
-        status: 'active'
+        importance: 'low'
       },
       select: { title: true },
+      orderBy: { createdAt: 'desc' },
       take: 3
     });
 

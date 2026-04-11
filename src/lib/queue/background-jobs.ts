@@ -162,7 +162,7 @@ async function processQueue() {
         await processJob(job)
         
         // Mark as completed
-        job.status = 'COMPLETED'
+        job.status = 'completed'
         await removeJob(job)
         console.log(`[JobQueue] Completed job ${job.id}`)
       } catch (error) {
@@ -207,17 +207,31 @@ async function processQueue() {
 async function getNextJob(): Promise<Job | null> {
   try {
     if (redis) {
+      // Peek at the next job first to check if it's ready
       const results = await redis.zrange('job_queue', 0, 0, { withScores: false })
       if (results.length > 0) {
-        // Upstash Redis might return the data as an object or a string
         const jobData = results[0]
-        const job = typeof jobData === 'string' 
-          ? JSON.parse(jobData) as Job 
+        const job = typeof jobData === 'string'
+          ? JSON.parse(jobData) as Job
           : jobData as Job
+
+        // If the job isn't ready yet, don't claim it
+        if (job.nextRunAt > Date.now()) {
+          return job // Return it so the caller sees nextRunAt and breaks
+        }
+
+        // Atomically remove the original member from Redis before processing
+        // This prevents the re-processing loop caused by mutated objects failing zrem
+        const removed = await redis.zrem('job_queue', results[0])
+        if (!removed) {
+          // Another worker already claimed it
+          return null
+        }
+
         return job
       }
     }
-    
+
     // Fallback to memory queue
     return memoryQueue[0] || null
   } catch (error) {
@@ -228,11 +242,8 @@ async function getNextJob(): Promise<Job | null> {
 
 async function removeJob(job: Job) {
   try {
-    if (redis) {
-      await redis.zrem('job_queue', JSON.stringify(job))
-    }
-    
-    // Also remove from memory queue
+    // Redis jobs are already removed atomically in getNextJob(),
+    // so we only need to clean up the memory queue here.
     const index = memoryQueue.findIndex(j => j.id === job.id)
     if (index !== -1) {
       memoryQueue.splice(index, 1)
@@ -245,8 +256,7 @@ async function removeJob(job: Job) {
 async function updateJob(job: Job) {
   try {
     if (redis) {
-      // Remove old entry and add updated one
-      await redis.zrem('job_queue', JSON.stringify(job))
+      // Original was already removed in getNextJob(), just re-add with updated state
       await redis.zadd('job_queue', {
         score: job.nextRunAt,
         member: JSON.stringify(job)
