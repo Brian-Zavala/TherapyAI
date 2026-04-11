@@ -70,17 +70,31 @@ export default function Navigation() {
   useEffect(() => {
     if (isMenuOpen) {
       document.addEventListener("keydown", handleEscape, { passive: false });
-      // Prevent body scroll when menu is open
+      // Lock body scroll on mobile (position:fixed approach works on iOS Safari)
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
     } else {
       document.removeEventListener("keydown", handleEscape);
-      // Restore body scroll
-      document.body.style.overflow = 'unset';
+      // Restore body scroll and position
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = 'unset';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
     };
   }, [isMenuOpen, handleEscape]);
 
@@ -89,7 +103,13 @@ export default function Navigation() {
     isActive ? "text-white font-bold" : "text-gray-100 hover:text-white";
 
   // Don't show navbar on auth pages, intro, or during onboarding - moved after all hook calls
-  if (pathname?.startsWith("/auth/") || pathname?.startsWith("/welcome") || pathname === "/intro") {
+  if (
+    pathname?.startsWith("/auth/") ||
+    pathname?.startsWith("/welcome") ||
+    pathname?.startsWith("/sign-in") ||
+    pathname?.startsWith("/sign-up") ||
+    pathname === "/intro"
+  ) {
     return null;
   }
 
@@ -377,7 +397,7 @@ export default function Navigation() {
         {isMenuOpen && (
           <motion.div
             ref={mobileMenuRef}
-            className="lg:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto pointer-events-auto"
+            className="lg:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto overscroll-contain pointer-events-auto"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -666,27 +686,6 @@ export default function Navigation() {
               </>
             ) : (
               <>
-                <Link
-                  href="/pricing"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/pricing")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <svg
-                    className="w-7 h-7 mr-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Pricing
-                </Link>
                 <Link
                   href="/auth/login"
                   className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/auth/login")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
