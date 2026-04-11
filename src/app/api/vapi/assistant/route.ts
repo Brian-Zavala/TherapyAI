@@ -65,7 +65,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
   let previousSessionContext = "";
 
   try {
-    const [sessionCount, recentSummaries] = await Promise.all([
+    const [sessionCount, recentSummaries, lastSession] = await Promise.all([
       prisma.session.count({
         where: { userId: user.id, status: 'COMPLETED' }
       }),
@@ -78,19 +78,17 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
           nextSessionFocus: true,
           breakthroughMoments: true,
           challengeAreas: true,
-          keyThemes: true,
-          session: { select: { completedAt: true, theme: true } }
+          Session: { select: { completedAt: true, theme: true } }
         }
+      }),
+      prisma.session.findFirst({
+        where: { userId: user.id, status: 'COMPLETED' },
+        orderBy: { date: 'desc' },
+        select: { date: true, theme: true }
       })
     ]);
 
     if (sessionCount > 0) {
-      const lastSession = await prisma.session.findFirst({
-        where: { userId: user.id, status: 'COMPLETED' },
-        orderBy: { date: 'desc' },
-        select: { date: true, theme: true }
-      });
-
       if (lastSession) {
         const lastDate = new Date(lastSession.date).toLocaleDateString();
         sessionHistory = `Client has ${sessionCount} previous sessions. Last session: ${lastDate}.${
@@ -102,8 +100,8 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
       if (recentSummaries.length > 0) {
         const memoryLines: string[] = [];
         recentSummaries.forEach((summary, i) => {
-          const date = summary.session?.completedAt
-            ? new Date(summary.session.completedAt).toLocaleDateString()
+          const date = summary.Session?.completedAt
+            ? new Date(summary.Session.completedAt).toLocaleDateString()
             : `session ${i + 1}`;
           if (summary.contextForNextSession) {
             memoryLines.push(`[${date}] ${summary.contextForNextSession}`);
