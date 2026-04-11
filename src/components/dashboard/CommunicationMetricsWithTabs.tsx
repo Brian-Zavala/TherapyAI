@@ -143,7 +143,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
         </div>
         <div className="min-w-0 flex-1">
           <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-white leading-tight">{name}</h4>
-          <p className="text-xs sm:text-sm lg:text-base text-gray-400 mt-0.5 sm:mt-1 leading-snug">{description}</p>
+          <p className="text-xs sm:text-sm lg:text-base text-white/70 mt-0.5 sm:mt-1 leading-snug">{description}</p>
         </div>
       </div>
 
@@ -165,7 +165,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       <div className="mb-3 sm:mb-4 mt-auto">
         <div className="w-full bg-white/10 rounded-full h-1.5 sm:h-2 lg:h-2.5 overflow-hidden">
           <motion.div
-            className={getProgressBarClasses(type)}
+            className={`h-full rounded-full ${getProgressBarClasses(displayValue)}`}
             initial={{ width: 0 }}
             animate={{ width: `${displayValue}%` }}
             transition={{ duration: 1.2, ease: "easeOut" }}
@@ -174,7 +174,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       </div>
 
       {/* Inspirational Message */}
-      <p className="text-xs sm:text-sm lg:text-base text-gray-500 italic leading-relaxed">
+      <p className="text-xs sm:text-sm lg:text-base text-white/55 italic leading-relaxed">
         "{getSaying()}"
       </p>
     </motion.div>

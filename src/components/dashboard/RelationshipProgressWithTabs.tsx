@@ -223,7 +223,7 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
               {label}
             </span>
             {description && (
-              <p className="text-xs sm:text-sm lg:text-base text-gray-400 mt-0.5 sm:mt-1 leading-snug line-clamp-2">
+              <p className="text-xs sm:text-sm lg:text-base text-white/70 mt-0.5 sm:mt-1 leading-snug line-clamp-2">
                 {description}
               </p>
             )}
@@ -263,7 +263,7 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
         <div className="relative mt-auto">
           <div className="w-full bg-white/10 rounded-full h-1.5 sm:h-2 lg:h-2.5 overflow-hidden">
             <motion.div
-              className={getProgressBarClasses(value)}
+              className={`h-full rounded-full ${getProgressBarClasses(displayValue)}`}
               initial={{ width: 0 }}
               animate={{ width: `${displayValue}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
@@ -546,7 +546,7 @@ export default function RelationshipProgressWithTabs() {
                   Overall {activeType === 'family' ? 'Family' : 'Relationship'} Health
                 </h3>
                 {therapeuticSaying && (
-                  <p className="text-xs sm:text-sm lg:text-base text-gray-500 italic max-w-xs sm:max-w-sm lg:max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs sm:text-sm lg:text-base text-white/55 italic max-w-xs sm:max-w-sm lg:max-w-md mx-auto leading-relaxed">
                     "{therapeuticSaying}"
                   </p>
                 )}
