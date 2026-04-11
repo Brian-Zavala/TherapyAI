@@ -2,7 +2,7 @@
 import { prisma } from '@/lib/prisma-optimized';
 import { UsageCredits, UsageTransaction, TransactionType, AlertType } from '@prisma/client';
 import { sendEmail } from '@/lib/email';
-import { redis } from '@/lib/cache/redis-client';
+import { redis, safeParseRedis } from '@/lib/cache/redis-client';
 import crypto from 'crypto';
 import { 
   toUTCMidnight, 
@@ -118,7 +118,7 @@ export class CreditManager {
     // Check if operation already completed
     const existingResult = await redis.get(resultKey);
     if (existingResult) {
-      return JSON.parse(existingResult);
+      return safeParseRedis<T>(existingResult);
     }
     
     // Acquire lock for this operation
@@ -131,7 +131,7 @@ export class CreditManager {
       // Double-check result after acquiring lock
       const doubleCheckResult = await redis.get(resultKey);
       if (doubleCheckResult) {
-        return JSON.parse(doubleCheckResult);
+        return safeParseRedis<T>(doubleCheckResult);
       }
       
       // Execute operation
@@ -515,7 +515,7 @@ export class CreditManager {
             
             if (userReservations) {
               try {
-                const reservationList = JSON.parse(userReservations) as Array<{sessionId: string, minutes: number, expiresAt: string}>;
+                const reservationList = safeParseRedis<Array<{sessionId: string, minutes: number, expiresAt: string}>>(userReservations) || [];
                 const now = new Date();
                 
                 // Filter out expired reservations and sum active ones

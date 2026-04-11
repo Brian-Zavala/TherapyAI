@@ -2,7 +2,7 @@
 import { prisma } from '@/lib/prisma-optimized';
 import { SessionStatus } from '@prisma/client';
 import { CreditManager, creditManager } from './credit-manager.service';
-import { redis } from '@/lib/cache/redis-client';
+import { redis, safeParseRedis } from '@/lib/cache/redis-client';
 import { sendEmail } from '@/lib/email';
 import Vapi from '@vapi-ai/web';
 import { convertToBillableMinutes } from '@/lib/utils/billing-utils';
@@ -321,7 +321,11 @@ export class VapiSessionManager {
       return { success: false, error: 'Session not found' };
     }
 
-    const sessionConfig = JSON.parse(config);
+    const sessionConfig = safeParseRedis<any>(config);
+    if (!sessionConfig) {
+      console.error('Failed to parse session config:', sessionId);
+      return { success: false, error: 'Invalid session config' };
+    }
     const elapsedMinutes = duration ? Math.ceil(duration / 60) : 0;
 
     switch (event) {
@@ -580,9 +584,11 @@ export class VapiSessionManager {
     const configKey = `session:config:${sessionId}`;
     const config = await redis.get(configKey);
     if (config) {
-      const sessionConfig = JSON.parse(config);
-      sessionConfig.maxMinutes = newMaxDuration;
-      await redis.set(configKey, JSON.stringify(sessionConfig), 'EX', 7200);
+      const sessionConfig = safeParseRedis<any>(config);
+      if (sessionConfig) {
+        sessionConfig.maxMinutes = newMaxDuration;
+        await redis.set(configKey, JSON.stringify(sessionConfig), 'EX', 7200);
+      }
     }
 
     return { extended: true, newMaxDuration };

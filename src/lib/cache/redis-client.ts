@@ -283,3 +283,21 @@ class RedisClient {
 
 // Export singleton instance
 export const redis = new RedisClient();
+
+/**
+ * Safely parse a value returned by Upstash Redis.
+ * Upstash auto-deserializes JSON, so the value may already be an object.
+ * Calling JSON.parse() on an object produces "[object Object]" or throws.
+ */
+export function safeParseRedis<T>(value: unknown): T | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'object') return value as T;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  }
+  return value as T;
+}

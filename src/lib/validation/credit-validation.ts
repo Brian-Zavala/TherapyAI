@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { redis } from '@/lib/cache/redis-client';
+import { redis, safeParseRedis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-optimized';
 
 // PostgreSQL INTEGER max value for overflow protection
@@ -224,8 +224,11 @@ export async function validateGracePeriodCredits(
       return { canUse: true }; // No grace period, normal credit usage
     }
     
-    const grace: GracePeriodData = JSON.parse(graceData);
-    
+    const grace = safeParseRedis<GracePeriodData>(graceData);
+    if (!grace) {
+      return { canUse: false, reason: 'Failed to parse grace period data' };
+    }
+
     // Check if grace period has expired
     if (new Date(grace.endTime) < new Date()) {
       // Grace period expired, clear it
@@ -251,10 +254,13 @@ export async function validateGracePeriodCredits(
     
     // Update grace period data with new usage
     try {
+      const currentTTL = await redis.ttl(`payment:grace:${userId}`);
+      const ttl = currentTTL > 0 ? currentTTL : 86400; // Default 24h if TTL unknown
       await redis.set(
         `payment:grace:${userId}`,
         JSON.stringify(grace),
-        'KEEPTTL' // Keep existing TTL
+        'EX',
+        ttl
       );
     } catch (e) {
       console.error('Failed to update grace period credit usage:', e);
@@ -331,7 +337,10 @@ export async function canSessionContinueDuringGrace(
       return { canContinue: true }; // No grace period
     }
     
-    const grace: GracePeriodData = JSON.parse(graceData);
+    const grace = safeParseRedis<GracePeriodData>(graceData);
+    if (!grace) {
+      return { canContinue: false, reason: 'Failed to parse grace period data' };
+    }
     const gracePeriodEnd = new Date(grace.endTime);
     
     // Check if grace period is still active

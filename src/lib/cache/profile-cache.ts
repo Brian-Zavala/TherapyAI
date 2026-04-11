@@ -93,10 +93,7 @@ export const profileCache = {
       
       if (redis && isRedisHealthy()) {
         try {
-          // Non-blocking Redis delete
-          redis.del(key).catch(err => 
-            console.warn('[ProfileCache] Redis delete error:', err)
-          )
+          await redis.del(key)
         } catch (redisError) {
           console.warn('[ProfileCache] Redis delete error:', redisError)
         }

@@ -7,6 +7,9 @@ const bunnyConfig = require('./config/bunny-cdn.config');
 
 const nextConfig = {
   reactStrictMode: true,
+
+  // Allow ngrok tunnels for mobile testing
+  allowedDevHosts: ['.ngrok-free.app', '.ngrok.io'],
   
   // Railway-specific optimizations
   output: 'standalone',

@@ -9,7 +9,7 @@
  * Prevents billing discrepancies and ensures users are charged correctly.
  */
 
-import { redis } from '@/lib/cache/redis-client';
+import { redis, safeParseRedis } from '@/lib/cache/redis-client';
 import { prisma } from '@/lib/prisma-optimized';
 import { convertToBillableMinutes } from '@/lib/utils/billing-utils';
 
@@ -85,7 +85,8 @@ export class CreditTimingReconciliation {
       return;
     }
     
-    const timingData: TimingData = JSON.parse(data);
+    const timingData = safeParseRedis<TimingData>(data);
+    if (!timingData) return;
     timingData.clientTime = clientMilliseconds;
     
     await redis.set(key, JSON.stringify(timingData), 'EX', 7200);
@@ -106,7 +107,8 @@ export class CreditTimingReconciliation {
       return;
     }
     
-    const timingData: TimingData = JSON.parse(data);
+    const timingData = safeParseRedis<TimingData>(data);
+    if (!timingData) return;
     timingData.vapiTime = vapiDurationSeconds * 1000; // Convert to milliseconds
     
     await redis.set(key, JSON.stringify(timingData), 'EX', 7200);
@@ -124,7 +126,8 @@ export class CreditTimingReconciliation {
       return;
     }
     
-    const timingData: TimingData = JSON.parse(data);
+    const timingData = safeParseRedis<TimingData>(data);
+    if (!timingData) return;
     const now = new Date();
     
     if (timingData.startTime) {
@@ -150,7 +153,8 @@ export class CreditTimingReconciliation {
       return;
     }
     
-    const timingData: TimingData = JSON.parse(data);
+    const timingData = safeParseRedis<TimingData>(data);
+    if (!timingData) return;
     timingData.pausedTime += pauseMilliseconds;
     
     await redis.set(key, JSON.stringify(timingData), 'EX', 7200);
@@ -198,7 +202,10 @@ export class CreditTimingReconciliation {
         };
       }
       
-      const timingData: TimingData = JSON.parse(data);
+      const timingData = safeParseRedis<TimingData>(data);
+      if (!timingData) {
+        throw new Error(`Failed to parse timing data for session ${sessionId}`);
+      }
       const warnings: string[] = [];
       
       // Convert all to seconds for comparison
