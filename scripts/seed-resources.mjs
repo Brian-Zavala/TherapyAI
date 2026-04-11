@@ -10,8 +10,8 @@ const SEED_RESOURCES = [
     description: 'Learn the core techniques of active listening — reflecting, paraphrasing, and validating — to improve how you hear and respond to others.',
     type: 'article',
     categories: ['communication'], sessionTypes: [], concerns: ['communication', 'conflict', 'trust'],
-    difficulty: 'beginner', source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/blog/in-it-together/201803/active-listening', duration: '8 min read',
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-worksheet/active-listening', duration: '8 min read',
     steps: [],
   },
   {
@@ -81,8 +81,8 @@ const SEED_RESOURCES = [
     description: 'A 4-count breathing technique that activates the parasympathetic nervous system to reduce stress and anxiety in the moment.',
     type: 'exercise',
     categories: ['emotional'], sessionTypes: [], concerns: ['anxiety', 'stress', 'anger'],
-    difficulty: 'beginner', source: 'Verywell Mind',
-    url: 'https://www.verywellmind.com/the-benefits-of-deep-breathing-5208001', duration: '5 minutes',
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-worksheet/deep-breathing-worksheet', duration: '5 minutes',
     steps: [
       'Sit upright in a comfortable position. Relax your shoulders.',
       'Exhale completely to empty your lungs.',
@@ -99,8 +99,8 @@ const SEED_RESOURCES = [
     description: "Expand your emotional vocabulary using Plutchik's wheel of emotions — essential for communicating clearly with a partner or family.",
     type: 'article',
     categories: ['emotional', 'communication'], sessionTypes: [], concerns: ['communication', 'depression', 'anxiety'],
-    difficulty: 'beginner', source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/blog/social-instincts/202405/2-ways-the-wheel-of-emotions-can-emotionally-empower-you', duration: '10 min read', steps: [],
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-worksheet/wheel-of-emotions', duration: '10 min read', steps: [],
   },
   {
     title: 'STOP Technique for Emotional Flooding',
@@ -123,8 +123,8 @@ const SEED_RESOURCES = [
     description: 'Identify automatic negative thoughts and replace them with more balanced perspectives using the ABC model.',
     type: 'technique',
     categories: ['emotional', 'behavioral', 'mental-health'], sessionTypes: [], concerns: ['anxiety', 'depression', 'stress', 'self-esteem'],
-    difficulty: 'intermediate', source: 'Verywell Mind',
-    url: 'https://www.verywellmind.com/reframing-thoughts-to-deal-with-difficult-emotions-425562', duration: '12 min read',
+    difficulty: 'intermediate', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-guide/cognitive-restructuring', duration: '12 min read',
     steps: [
       'A — Activating Event: Write down the situation that triggered you.',
       'B — Belief: Write the thought that immediately followed (e.g., "They\'re ignoring me because I\'m not important").',
@@ -140,7 +140,8 @@ const SEED_RESOURCES = [
     description: 'Systematically tense and release each muscle group. Reduces physiological stress arousal and builds body awareness.',
     type: 'exercise',
     categories: ['emotional'], sessionTypes: [], concerns: ['anxiety', 'stress'],
-    difficulty: 'beginner', source: 'NAMI', duration: '15 minutes',
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-worksheet/progressive-muscle-relaxation-script', duration: '15 minutes',
     steps: [
       'Find a quiet, comfortable place to lie down or sit. Close your eyes.',
       'Take three slow, deep breaths to begin.',
@@ -156,8 +157,8 @@ const SEED_RESOURCES = [
     description: 'A structured journaling approach for processing difficult emotions. 10 minutes daily builds significant self-awareness.',
     type: 'exercise',
     categories: ['emotional', 'mental-health'], sessionTypes: [], concerns: ['depression', 'anxiety', 'grief', 'stress'],
-    difficulty: 'beginner', source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/blog/conquering-codependency/202408/how-to-journal-for-mental-health', duration: '10 minutes/day',
+    difficulty: 'beginner', source: 'GoodTherapy',
+    url: 'https://www.goodtherapy.org/learn-about-therapy/types/journal-therapy', duration: '10 minutes/day',
     steps: [
       'Set a timer for 10 minutes. Open a notebook or blank document.',
       'Write: "What happened today that is sitting with me?" Describe it factually.',
@@ -294,8 +295,8 @@ const SEED_RESOURCES = [
     description: 'A core CBT technique for depression: schedule small, achievable activities that provide accomplishment or pleasure.',
     type: 'exercise',
     categories: ['behavioral', 'mental-health'], sessionTypes: ['SOLO'], concerns: ['depression'],
-    difficulty: 'beginner', source: 'Verywell Mind',
-    url: 'https://www.verywellmind.com/behavioral-activation-for-depression-2797671', duration: '15 minutes/day',
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-guide/behavioral-activation-guide', duration: '15 minutes/day',
     steps: [
       'On a piece of paper, make three columns: Activity, Mood Before (0–10), Mood After (0–10).',
       'List 10 activities that used to bring you pleasure or a sense of accomplishment — even small ones (shower, walk around the block, call one friend).',
@@ -319,8 +320,8 @@ const SEED_RESOURCES = [
     description: 'Bring attention to the present moment and interrupt anxiety spirals using your five senses.',
     type: 'technique',
     categories: ['mental-health', 'emotional'], sessionTypes: [], concerns: ['anxiety', 'stress'],
-    difficulty: 'beginner', source: 'Verywell Mind',
-    url: 'https://www.verywellmind.com/5-4-3-2-1-grounding-technique-8639390', duration: '2–5 minutes',
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-worksheet/grounding-techniques', duration: '2–5 minutes',
     steps: [
       'Pause and take one slow, deep breath.',
       '5 — Look around and name FIVE things you can see. Say them out loud or in your head.',
@@ -338,14 +339,15 @@ const SEED_RESOURCES = [
     type: 'article',
     categories: ['mental-health', 'relationship', 'behavioral'], sessionTypes: [], concerns: ['self-esteem', 'stress', 'communication'],
     difficulty: 'intermediate', source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/blog/the-addiction-connection/202210/5-steps-to-creating-and-maintaining-healthy-boundaries', duration: '12 min read', steps: [],
+    url: 'https://www.therapistaid.com/therapy-worksheet/setting-boundaries', duration: '12 min read', steps: [],
   },
   {
     title: 'Grief Processing: The Non-Linear Path',
     description: 'Grief does not follow five neat stages. This guide covers contemporary understanding and concrete daily practices.',
     type: 'article',
     categories: ['mental-health', 'emotional'], sessionTypes: [], concerns: ['grief', 'depression'],
-    difficulty: 'beginner', source: 'NAMI', duration: '10 min read', steps: [],
+    difficulty: 'beginner', source: 'GoodTherapy',
+    url: 'https://www.goodtherapy.org/learn-about-therapy/issues/grief', duration: '10 min read', steps: [],
   },
 
   // ── BEHAVIORAL ────────────────────────────────────────────────────────────
@@ -438,8 +440,8 @@ const SEED_RESOURCES = [
     description: "The brain's negativity bias causes us to overlook progress. Learn to notice, record, and celebrate incremental gains.",
     type: 'article',
     categories: ['progress', 'mental-health'], sessionTypes: [], concerns: ['depression', 'self-esteem'],
-    difficulty: 'beginner', source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/blog/possibilitizing/202410/why-we-should-cheer-for-lifes-wobbles', duration: '6 min read', steps: [],
+    difficulty: 'beginner', source: 'Therapist Aid',
+    url: 'https://www.therapistaid.com/therapy-worksheet/positive-experiences', duration: '6 min read', steps: [],
   },
 ]
 
