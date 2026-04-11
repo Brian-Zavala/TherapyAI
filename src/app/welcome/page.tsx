@@ -457,7 +457,7 @@ const formSteps: FormStep[] = [
     subtitle: "Help your AI therapist understand you better",
     fields: [
       {
-        name: "aboutYourself",
+        name: "additionalNotes",
         label: "What would you like your AI therapist to know about you?",
         type: "enhanced_textarea",
         placeholder: "Share anything that helps us understand you better - your background, experiences, hopes, or what brings you here...",
@@ -495,12 +495,6 @@ const formSteps: FormStep[] = [
           "I've been feeling disconnected from myself and don't know who I am anymore.",
           "I want to heal from my past so it stops affecting my present and future relationships.",
         ],
-      },
-      {
-        name: "additionalNotes",
-        label: "Anything else you'd like us to know?",
-        type: "textarea",
-        placeholder: "Feel free to share any additional information...",
       },
     ],
   },
@@ -647,6 +641,8 @@ function WelcomePageInner() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showSplashScreen, setShowSplashScreen] = useState(false);
+  const [selectedSentences, setSelectedSentences] = useState<Set<string>>(new Set());
+  const [flashingSentence, setFlashingSentence] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect immediately if unauthenticated
@@ -765,6 +761,32 @@ function WelcomePageInner() {
 
   const handleInputChange = (name: string, value: string) => {
     setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSentenceToggle = (fieldName: string, sentence: string) => {
+    const isSelected = selectedSentences.has(sentence);
+
+    // Flash animation feedback
+    setFlashingSentence(sentence);
+    setTimeout(() => setFlashingSentence(null), 400);
+
+    if (isSelected) {
+      // Remove from selected set and from textarea
+      setSelectedSentences((prev) => {
+        const next = new Set(prev);
+        next.delete(sentence);
+        return next;
+      });
+      const current = formData[fieldName] || "";
+      const blocks = current.split("\n\n").filter((block: string) => block.trim() !== sentence.trim());
+      handleInputChange(fieldName, blocks.join("\n\n"));
+    } else {
+      // Add to selected set and append with blank line separator
+      setSelectedSentences((prev) => new Set(prev).add(sentence));
+      const current = formData[fieldName] || "";
+      const newText = current.trim() ? `${current.trim()}\n\n${sentence}` : sentence;
+      handleInputChange(fieldName, newText);
+    }
   };
 
   const handleMultiSelectChange = (name: string, value: string) => {
@@ -1841,160 +1863,88 @@ function WelcomePageInner() {
                               <div className="space-y-4">
                                 <div className="text-white/70 text-xs sm:text-sm space-y-1">
                                   <p className="font-medium text-sm sm:text-base">Click any sentence that resonates with you:</p>
-                                  <p className="text-white/50 text-xs sm:text-sm">These can help you find the words to express yourself. Feel free to use them as-is or modify them.</p>
+                                  <p className="text-white/50 text-xs sm:text-sm">Each sentence you select gets added to your story below. Click again to remove it.</p>
                                 </div>
                                 
                                 {/* Categorized helper sentences */}
                                 <div className="space-y-4 sm:space-y-6">
                                   {/* Initial Concerns */}
-                                  <div className="space-y-2">
-                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Starting Points</h4>
-                                    <div className="space-y-2">
-                                      {(field as any).helperWords?.slice(0, 4).map((sentence: string, index: number) => (
-                                        <motion.button
-                                          key={index}
-                                          type="button"
-                                          whileHover={{ scale: 1.01 }}
-                                          whileTap={{ scale: 0.99 }}
-                                          onClick={() => {
-                                            const currentText = formData[field.name] || "";
-                                            const newText = currentText
-                                              ? currentText.trim().endsWith(".")
-                                                ? currentText + " " + sentence
-                                                : currentText + ". " + sentence
-                                              : sentence;
-                                            handleInputChange(field.name, newText);
-                                          }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
-                                        >
-                                          {sentence}
-                                        </motion.button>
-                                      ))}
+                                  {[
+                                    { label: "Starting Points", slice: [0, 4] as [number, number] },
+                                    { label: "Current Struggles", slice: [4, 8] as [number, number] },
+                                    { label: "Life Events", slice: [8, 12] as [number, number] },
+                                    { label: "Goals & Growth", slice: [12, 17] as [number, number] },
+                                    { label: "Personal Challenges", slice: [17, undefined] as [number, undefined] },
+                                  ].map(({ label, slice }) => (
+                                    <div key={label} className="space-y-2">
+                                      <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">{label}</h4>
+                                      <div className="space-y-2">
+                                        {(field as any).helperWords?.slice(...slice).map((sentence: string, index: number) => {
+                                          const isActive = selectedSentences.has(sentence);
+                                          const isFlashing = flashingSentence === sentence;
+                                          return (
+                                            <motion.button
+                                              key={index}
+                                              type="button"
+                                              whileHover={{ scale: 1.01 }}
+                                              whileTap={{ scale: 0.97 }}
+                                              animate={isFlashing ? { scale: [1, 1.02, 1] } : {}}
+                                              transition={{ duration: 0.25 }}
+                                              onClick={() => handleSentenceToggle(field.name, sentence)}
+                                              className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-all cursor-pointer flex items-start gap-2 ${
+                                                isActive
+                                                  ? "bg-emerald-500/20 border border-emerald-400/60 text-white shadow-[0_0_10px_rgba(52,211,153,0.15)]"
+                                                  : "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white"
+                                              }`}
+                                            >
+                                              <span className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                                                isActive
+                                                  ? "bg-emerald-400 border-emerald-400"
+                                                  : "border-white/30"
+                                              }`}>
+                                                {isActive && (
+                                                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10">
+                                                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                  </svg>
+                                                )}
+                                              </span>
+                                              <span className="flex-1">{sentence}</span>
+                                            </motion.button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  </div>
-
-                                  {/* Mental Health */}
-                                  <div className="space-y-2">
-                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Current Struggles</h4>
-                                    <div className="space-y-2">
-                                      {(field as any).helperWords?.slice(4, 8).map((sentence: string, index: number) => (
-                                        <motion.button
-                                          key={index + 4}
-                                          type="button"
-                                          whileHover={{ scale: 1.01 }}
-                                          whileTap={{ scale: 0.99 }}
-                                          onClick={() => {
-                                            const currentText = formData[field.name] || "";
-                                            const newText = currentText
-                                              ? currentText.trim().endsWith(".")
-                                                ? currentText + " " + sentence
-                                                : currentText + ". " + sentence
-                                              : sentence;
-                                            handleInputChange(field.name, newText);
-                                          }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
-                                        >
-                                          {sentence}
-                                        </motion.button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Life Events */}
-                                  <div className="space-y-2">
-                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Life Events</h4>
-                                    <div className="space-y-2">
-                                      {(field as any).helperWords?.slice(8, 12).map((sentence: string, index: number) => (
-                                        <motion.button
-                                          key={index + 8}
-                                          type="button"
-                                          whileHover={{ scale: 1.01 }}
-                                          whileTap={{ scale: 0.99 }}
-                                          onClick={() => {
-                                            const currentText = formData[field.name] || "";
-                                            const newText = currentText
-                                              ? currentText.trim().endsWith(".")
-                                                ? currentText + " " + sentence
-                                                : currentText + ". " + sentence
-                                              : sentence;
-                                            handleInputChange(field.name, newText);
-                                          }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
-                                        >
-                                          {sentence}
-                                        </motion.button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Goals */}
-                                  <div className="space-y-2">
-                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Goals & Growth</h4>
-                                    <div className="space-y-2">
-                                      {(field as any).helperWords?.slice(12, 17).map((sentence: string, index: number) => (
-                                        <motion.button
-                                          key={index + 12}
-                                          type="button"
-                                          whileHover={{ scale: 1.01 }}
-                                          whileTap={{ scale: 0.99 }}
-                                          onClick={() => {
-                                            const currentText = formData[field.name] || "";
-                                            const newText = currentText
-                                              ? currentText.trim().endsWith(".")
-                                                ? currentText + " " + sentence
-                                                : currentText + ". " + sentence
-                                              : sentence;
-                                            handleInputChange(field.name, newText);
-                                          }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
-                                        >
-                                          {sentence}
-                                        </motion.button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Personal Challenges */}
-                                  <div className="space-y-2">
-                                    <h4 className="text-white/60 text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Personal Challenges</h4>
-                                    <div className="space-y-2">
-                                      {(field as any).helperWords?.slice(17).map((sentence: string, index: number) => (
-                                        <motion.button
-                                          key={index + 17}
-                                          type="button"
-                                          whileHover={{ scale: 1.01 }}
-                                          whileTap={{ scale: 0.99 }}
-                                          onClick={() => {
-                                            const currentText = formData[field.name] || "";
-                                            const newText = currentText
-                                              ? currentText.trim().endsWith(".")
-                                                ? currentText + " " + sentence
-                                                : currentText + ". " + sentence
-                                              : sentence;
-                                            handleInputChange(field.name, newText);
-                                          }}
-                                          className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white/80 hover:text-white text-xs sm:text-sm transition-all cursor-pointer"
-                                        >
-                                          {sentence}
-                                        </motion.button>
-                                      ))}
-                                    </div>
-                                  </div>
+                                  ))}
                                 </div>
                               </div>
                               
                               {/* Textarea */}
                               <div className="space-y-2">
-                                <label className="text-white/60 text-xs sm:text-sm">Your story (feel free to edit or write your own):</label>
+                                <label className="text-white/60 text-xs sm:text-sm flex items-center gap-2">
+                                  Your story
+                                  {selectedSentences.size > 0 && (
+                                    <span className="text-emerald-400 text-[10px] sm:text-xs font-medium bg-emerald-400/10 px-2 py-0.5 rounded-full">
+                                      {selectedSentences.size} selected
+                                    </span>
+                                  )}
+                                </label>
                                 <motion.textarea
                                   name={field.name}
                                   placeholder={field.placeholder}
                                   style={{ fontSize: 'inherit' }}
                                   value={formData[field.name] || ""}
-                                  onChange={(e) =>
-                                    handleInputChange(field.name, e.target.value)
-                                  }
-                                  rows={6}
+                                  onChange={(e) => {
+                                    handleInputChange(field.name, e.target.value);
+                                    // Sync selected state: deselect sentences no longer in textarea
+                                    setSelectedSentences((prev) => {
+                                      const next = new Set(prev);
+                                      next.forEach((s) => {
+                                        if (!e.target.value.includes(s)) next.delete(s);
+                                      });
+                                      return next;
+                                    });
+                                  }}
+                                  rows={Math.max(6, (formData[field.name] || "").split("\n\n").length * 2 + 1)}
                                   className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all resize-none text-sm sm:text-base"
                                 />
                               </div>

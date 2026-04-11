@@ -153,8 +153,8 @@ const scenario = TestScenarios.zeroMinuteSession();
 // Browser crash simulation
 const scenario = TestScenarios.browserCrashSession();
 
-// Unlimited plan user
-const scenario = TestScenarios.unlimitedPlanSession();
+// Pro plan user
+const scenario = TestScenarios.proPlanSession();
 ```
 
 ### Validation Helpers

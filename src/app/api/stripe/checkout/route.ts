@@ -29,21 +29,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate the price ID matches the expected price for the plan
-    const expectedPriceId = STRIPE_PRICES['pro'].monthly;
-    
+    // Validate the price ID matches one of the expected Pro prices
+    const validPriceIds = [STRIPE_PRICES['pro'].monthly, STRIPE_PRICES['pro'].annual];
+
     // In development, allow test price IDs that start with 'price_test_'
     const isDevelopment = process.env.NODE_ENV === 'development';
     const isTestPriceId = priceId.startsWith('price_test_');
-    
-    if (!isDevelopment && priceId !== expectedPriceId) {
+
+    if (!isDevelopment && !validPriceIds.includes(priceId)) {
       return NextResponse.json(
         { error: 'Invalid price ID for selected plan' },
         { status: 400 }
       );
     }
-    
-    if (isDevelopment && !isTestPriceId && priceId !== expectedPriceId) {
+
+    if (isDevelopment && !isTestPriceId && !validPriceIds.includes(priceId)) {
       console.warn(`⚠️ Using non-standard price ID in development: ${priceId}`);
     }
     

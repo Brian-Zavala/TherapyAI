@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 
 type Question = {
   id: number
@@ -14,11 +15,19 @@ type AssessmentResult = {
   average: number
 }
 
-// Props for the component to allow external components to access the results
 type RelationshipAssessmentProps = {
   onResultsSubmit?: (results: AssessmentResult[]) => void
   onClose?: () => void
 }
+
+const CATEGORY_META: Record<string, { label: string; color: string; bar: string }> = {
+  communication: { label: 'Communication', color: 'text-blue-400',   bar: 'bg-blue-500'   },
+  conflict:      { label: 'Conflict',       color: 'text-orange-400', bar: 'bg-orange-500' },
+  intimacy:      { label: 'Intimacy',       color: 'text-pink-400',   bar: 'bg-pink-500'   },
+  trust:         { label: 'Trust',          color: 'text-emerald-400',bar: 'bg-emerald-500'},
+}
+
+const ANSWER_LABELS = ['Strongly\nDisagree', 'Disagree', 'Neutral', 'Agree', 'Strongly\nAgree']
 
 export default function RelationshipAssessment({ onResultsSubmit, onClose }: RelationshipAssessmentProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -26,332 +35,276 @@ export default function RelationshipAssessment({ onResultsSubmit, onClose }: Rel
   const [isCompleted, setIsCompleted] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  
+  const [direction, setDirection] = useState<1 | -1>(1)
+
   const questions: Question[] = [
-    // Communication questions
-    { id: 1, text: "We communicate openly about our feelings", category: 'communication' },
-    { id: 2, text: "I feel heard and understood when I speak", category: 'communication' },
-    { id: 3, text: "We can discuss difficult topics without significant tension", category: 'communication' },
-    { id: 4, text: "We make decisions together through effective communication", category: 'communication' },
-    { id: 5, text: "We express appreciation and gratitude to each other regularly", category: 'communication' },
-    
-    // Conflict resolution questions
-    { id: 6, text: "We resolve conflicts without lasting resentment", category: 'conflict' },
-    { id: 7, text: "We can disagree respectfully without it damaging our relationship", category: 'conflict' },
-    { id: 8, text: "We find compromises that work for both of us", category: 'conflict' },
-    { id: 9, text: "We avoid blaming each other when discussing problems", category: 'conflict' },
-    { id: 10, text: "We can repair our relationship quickly after arguments", category: 'conflict' },
-    
-    // Intimacy questions
-    { id: 11, text: "I feel emotionally connected to my partner", category: 'intimacy' },
-    { id: 12, text: "We regularly show affection toward each other", category: 'intimacy' },
-    { id: 13, text: "We make time to nurture our relationship", category: 'intimacy' },
-    { id: 14, text: "I feel comfortable being vulnerable with my partner", category: 'intimacy' },
-    { id: 15, text: "We maintain a satisfying level of physical intimacy", category: 'intimacy' },
-    
-    // Trust questions
-    { id: 16, text: "I trust my partner completely", category: 'trust' },
-    { id: 17, text: "My partner follows through on commitments", category: 'trust' },
-    { id: 18, text: "I feel secure in our relationship", category: 'trust' },
-    { id: 19, text: "We are honest with each other, even when it's difficult", category: 'trust' },
-    { id: 20, text: "I can rely on my partner for support when needed", category: 'trust' }
+    { id: 1,  text: "We communicate openly about our feelings",                    category: 'communication' },
+    { id: 2,  text: "I feel heard and understood when I speak",                    category: 'communication' },
+    { id: 3,  text: "We can discuss difficult topics without significant tension", category: 'communication' },
+    { id: 4,  text: "We make decisions together through effective communication",  category: 'communication' },
+    { id: 5,  text: "We express appreciation and gratitude to each other regularly", category: 'communication' },
+    { id: 6,  text: "We resolve conflicts without lasting resentment",             category: 'conflict' },
+    { id: 7,  text: "We can disagree respectfully without it damaging our relationship", category: 'conflict' },
+    { id: 8,  text: "We find compromises that work for both of us",                category: 'conflict' },
+    { id: 9,  text: "We avoid blaming each other when discussing problems",        category: 'conflict' },
+    { id: 10, text: "We can repair our relationship quickly after arguments",      category: 'conflict' },
+    { id: 11, text: "I feel emotionally connected to my partner",                  category: 'intimacy' },
+    { id: 12, text: "We regularly show affection toward each other",               category: 'intimacy' },
+    { id: 13, text: "We make time to nurture our relationship",                    category: 'intimacy' },
+    { id: 14, text: "I feel comfortable being vulnerable with my partner",         category: 'intimacy' },
+    { id: 15, text: "We maintain a satisfying level of physical intimacy",         category: 'intimacy' },
+    { id: 16, text: "I trust my partner completely",                               category: 'trust' },
+    { id: 17, text: "My partner follows through on commitments",                   category: 'trust' },
+    { id: 18, text: "I feel secure in our relationship",                           category: 'trust' },
+    { id: 19, text: "We are honest with each other, even when it's difficult",     category: 'trust' },
+    { id: 20, text: "I can rely on my partner for support when needed",            category: 'trust' },
   ]
-  
+
   const handleAnswer = (value: number) => {
-    setAnswers({ ...answers, [questions[currentQuestion].id]: value })
-    
+    const updated = { ...answers, [questions[currentQuestion].id]: value }
+    setAnswers(updated)
+    setDirection(1)
+
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1)
     } else {
       setIsCompleted(true)
     }
   }
-  
+
+  const handleBack = () => {
+    if (currentQuestion > 0) {
+      setDirection(-1)
+      setCurrentQuestion(currentQuestion - 1)
+    }
+  }
+
   const reset = () => {
     setCurrentQuestion(0)
     setAnswers({})
     setIsCompleted(false)
     setSaveSuccess(false)
+    setDirection(1)
   }
-  
-  // Calculate scores by category
-  const calculateResults = () => {
-    const results: Record<string, { score: number, count: number }> = {
+
+  const calculateResults = (): AssessmentResult[] => {
+    const totals: Record<string, { score: number; count: number }> = {
       communication: { score: 0, count: 0 },
-      trust: { score: 0, count: 0 },
-      intimacy: { score: 0, count: 0 },
-      conflict: { score: 0, count: 0 }
+      trust:         { score: 0, count: 0 },
+      intimacy:      { score: 0, count: 0 },
+      conflict:      { score: 0, count: 0 },
     }
-    
-    questions.forEach(question => {
-      if (answers[question.id] !== undefined) {
-        results[question.category].score += answers[question.id]
-        results[question.category].count += 1
+    questions.forEach(q => {
+      if (answers[q.id] !== undefined) {
+        totals[q.category].score += answers[q.id]
+        totals[q.category].count += 1
       }
     })
-    
-    return Object.entries(results).map(([category, data]) => ({
+    return Object.entries(totals).map(([category, data]) => ({
       category,
-      average: data.count > 0 ? data.score / data.count : 0
+      average: data.count > 0 ? data.score / data.count : 0,
     }))
   }
-  
-  // Function to save assessment results to the database
+
   const saveResults = async () => {
     setIsSaving(true)
-    
     try {
       const results = calculateResults()
-      
-      // Convert results to the format expected by the API
       const assessmentData = {
         date: new Date().toISOString(),
         results: results.reduce((acc, item) => {
-          acc[`${item.category}Score`] = Math.round(item.average * 20) // Scale to 0-100
+          acc[`${item.category}Score`] = Math.round(item.average * 20)
           return acc
-        }, {} as Record<string, number>)
+        }, {} as Record<string, number>),
       }
-      
       try {
-        // Save to database
         const response = await fetch('/api/dashboard/save-assessment', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(assessmentData),
         })
-        
-        if (!response.ok) {
-          console.warn('Assessment API returned non-200 status:', response.status)
-          // Continue despite API error
-        }
+        if (!response.ok) console.warn('Assessment API returned non-200:', response.status)
       } catch (apiError) {
         console.warn('Error calling assessment API:', apiError)
-        // Continue despite API error
       }
-      
-      // Mark as successful even if API call failed
       setSaveSuccess(true)
-      
-      // If parent component provided a callback, send results to it
-      if (onResultsSubmit) {
-        onResultsSubmit(results)
-      }
+      if (onResultsSubmit) onResultsSubmit(results)
     } catch (error) {
       console.error('Error saving assessment results:', error)
-      
-      // Even if there's an error, still pass the results to the parent component
-      // This ensures onboarding can continue
       if (onResultsSubmit) {
-        try {
-          const results = calculateResults()
-          onResultsSubmit(results)
-        } catch (e) {
-          console.error('Failed to calculate results after error:', e)
-        }
+        try { onResultsSubmit(calculateResults()) } catch (e) { console.error(e) }
       }
     } finally {
       setIsSaving(false)
     }
   }
-  
-  // Effect to save results when completed
+
   useEffect(() => {
     if (isCompleted && Object.keys(answers).length === questions.length) {
-      // Auto-save when all questions are answered
       saveResults()
     }
   }, [isCompleted])
-  
+
+  const progress = (currentQuestion / questions.length) * 100
+  const currentQ = questions[currentQuestion]
+  const meta = CATEGORY_META[currentQ?.category]
+
+  const scoreColor = (avg: number) => {
+    if (avg >= 4) return 'bg-emerald-500'
+    if (avg >= 3) return 'bg-blue-500'
+    if (avg >= 2) return 'bg-yellow-500'
+    return 'bg-red-500'
+  }
+
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4 text-white">Relationship Assessment</h2>
-      <p className="text-sm text-white/70 mb-4">This assessment helps us understand your relationship dynamics. If you're not currently in a relationship, you can skip this step.</p>
-      
+    <div className="space-y-4">
       {!isCompleted ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="mb-6">
-            <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-              <motion.div 
-                className="h-2 bg-blue-500 rounded-full" 
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+          {/* Progress bar */}
+          <div className="mb-5">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className={`text-xs font-semibold uppercase tracking-wider ${meta.color}`}>
+                {meta.label}
+              </span>
+              <span className="text-xs text-white/50">{currentQuestion + 1} / {questions.length}</span>
+            </div>
+            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-1.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${(currentQuestion / questions.length) * 100}%` }}
-                transition={{ duration: 0.5 }}
-              ></motion.div>
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.4 }}
+              />
             </div>
-            <p className="text-sm text-white/70 mt-1">{currentQuestion + 1} of {questions.length}</p>
           </div>
-          
-          {/* Each question has its own container with a key to ensure complete remounting */}
-          <motion.div 
-            key={`question-${questions[currentQuestion].id}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.p 
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-4 font-medium text-white"
-            >
-              {questions[currentQuestion].text}
-            </motion.p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-            {/* Prefix each button key with the current question ID to reset UI state between questions */}
-            {[1, 2, 3, 4, 5].map(value => (
-              <motion.button
-                key={`q${questions[currentQuestion].id}-v${value}`}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 * value }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleAnswer(value)}
-                className="py-2 px-2 sm:px-1 md:px-2 border border-white/20 bg-white/10 backdrop-blur-md rounded-xl hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white"
-                style={{ 
-                  transform: 'none',
-                  minHeight: '44px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
-                <span className="text-sm sm:text-xs md:text-sm">
-                  {value === 1 && 'Strongly Disagree'}
-                  {value === 2 && 'Disagree'}
-                  {value === 3 && 'Neutral'}
-                  {value === 4 && 'Agree'}
-                  {value === 5 && 'Strongly Agree'}
-                </span>
-              </motion.button>
-            ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          {isSaving ? (
-            <div className="text-center py-4">
-              <motion.div 
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="mx-auto w-10 h-10 border-4 border-white/20 border-t-blue-500 rounded-full"
-              ></motion.div>
-              <p className="mt-4 text-blue-400 font-medium">Saving your assessment...</p>
-            </div>
-          ) : saveSuccess ? (
+
+          {/* Question */}
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-4"
+              key={`q-${currentQ.id}`}
+              initial={{ opacity: 0, x: direction * 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -30 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
             >
-              <div className="mx-auto w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center mb-3">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="font-medium text-lg text-white mb-2">Assessment Saved!</h3>
-              <p className="text-sm text-white/70 mb-4">
-                Your assessment has been saved and will be used to personalize your therapy experience.
+              <p className="text-sm sm:text-base font-normal text-white/90 leading-relaxed">
+                {currentQ.text}
               </p>
-              <div className="space-y-4 mt-6 mb-6 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl">
-                <h4 className="font-medium text-sm text-white">Your Assessment Results</h4>
-                {calculateResults().map(result => (
-                  <div key={result.category}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="capitalize text-sm text-white/90">{result.category}</span>
-                      <span className="text-sm font-medium text-white">{result.average.toFixed(1)}/5</span>
-                    </div>
-                    <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(result.average / 5) * 100}%` }}
-                        transition={{ duration: 0.8, delay: 0.1 }}
-                        className="h-2 bg-blue-500 rounded-full" 
-                      ></motion.div>
-                    </div>
-                  </div>
-                ))}
+
+              {/* Answer buttons — vertical on mobile, 5-col on sm+ */}
+              <div className="flex flex-col sm:grid sm:grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map((value) => {
+                  const isSelected = answers[currentQ.id] === value
+                  const label = ANSWER_LABELS[value - 1].replace('\n', ' ')
+                  return (
+                    <motion.button
+                      key={`q${currentQ.id}-v${value}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleAnswer(value)}
+                      className={`cursor-pointer flex sm:flex-col items-center sm:justify-center gap-3 sm:gap-1 px-3 sm:px-1 py-3 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[44px] sm:min-h-[72px] ${
+                        isSelected
+                          ? 'bg-blue-500/30 border-blue-400/80 text-white shadow-[0_0_12px_rgba(59,130,246,0.3)]'
+                          : 'bg-white/5 border-white/15 text-white/70 hover:bg-white/10 hover:border-white/30 hover:text-white'
+                      }`}
+                    >
+                      <span className={`text-base sm:text-lg font-bold leading-none flex-shrink-0 w-6 sm:w-auto text-center ${isSelected ? 'text-blue-300' : 'text-white/40'}`}>
+                        {value}
+                      </span>
+                      <span className="text-xs sm:text-[10px] text-left sm:text-center leading-snug">
+                        {label}
+                      </span>
+                    </motion.button>
+                  )
+                })}
               </div>
-              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => onClose && onClose()}
-                  className="px-4 py-2 border border-white/20 bg-white/10 backdrop-blur-md rounded-xl text-white text-sm hover:bg-white/20 transition-all w-full sm:w-auto"
-                >
-                  Close
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={reset}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition-all w-full sm:w-auto"
-                >
-                  Take New Assessment
-                </motion.button>
+
+              {/* Scale hint — hidden on mobile since labels are visible */}
+              <div className="hidden sm:flex justify-between text-[10px] text-white/30 px-0.5">
+                <span>← Not at all</span>
+                <span>Very much →</span>
               </div>
             </motion.div>
+          </AnimatePresence>
+
+          {/* Back button */}
+          {currentQuestion > 0 && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={handleBack}
+              className="cursor-pointer mt-4 flex items-center gap-1.5 text-xs sm:text-sm text-white/50 hover:text-white/80 transition-colors"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+              Previous question
+            </motion.button>
+          )}
+        </motion.div>
+      ) : (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+          {isSaving ? (
+            <div className="text-center py-8">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                className="mx-auto w-10 h-10 border-4 border-white/20 border-t-blue-500 rounded-full mb-4"
+              />
+              <p className="text-blue-400 font-medium">Saving your assessment...</p>
+            </div>
           ) : (
-            <>
-              <h3 className="font-medium mb-4 text-white">Your Assessment Results</h3>
-              
-              <div className="space-y-4 mb-6">
-                {calculateResults().map(result => (
-                  <div key={result.category}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="capitalize text-white">{result.category}</span>
-                      <span className="text-sm text-white">{result.average.toFixed(1)}/5</span>
-                    </div>
-                    <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(result.average / 5) * 100}%` }}
-                        transition={{ duration: 0.8 }}
-                        className="h-2 bg-blue-500 rounded-full" 
-                      ></motion.div>
-                    </div>
-                  </div>
-                ))}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-5"
+            >
+              {/* Success header */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-xs sm:text-sm md:text-base">Assessment complete</h3>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-white/60">Your results will personalize your sessions</p>
+                </div>
               </div>
-              
-              <p className="text-sm text-white/70 mb-4">
-                Based on your responses, consider focusing on the areas with lower scores
-                for potential growth in your relationship.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={saveResults}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition-all w-full sm:w-auto"
-                >
-                  Save Results
-                </motion.button>
-                
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={reset}
-                  className="text-blue-400 hover:text-blue-300 text-sm font-medium px-4 py-2 transition-all w-full sm:w-auto border border-white/10 bg-white/5 rounded-xl"
-                >
-                  Take Again
-                </motion.button>
+
+              {/* Results bars */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                {calculateResults().map((result, i) => {
+                  const m = CATEGORY_META[result.category]
+                  const pct = Math.round((result.average / 5) * 100)
+                  return (
+                    <div key={result.category}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-xs sm:text-sm font-medium ${m.color}`}>{m.label}</span>
+                        <span className="text-xs text-white/60">{result.average.toFixed(1)} / 5</span>
+                      </div>
+                      <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.7, delay: i * 0.1 }}
+                          className={`h-2 rounded-full ${scoreColor(result.average)}`}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </>
+
+              {/* Actions */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={reset}
+                className="cursor-pointer w-full px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/25 text-white/70 hover:text-white rounded-xl text-sm transition-all"
+              >
+                Retake Assessment
+              </motion.button>
+            </motion.div>
           )}
         </motion.div>
       )}

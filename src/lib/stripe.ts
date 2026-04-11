@@ -36,23 +36,31 @@ const isValidPriceId = (priceId: string | undefined): boolean => {
   return priceId.startsWith('price_') && priceId.length > 10;
 };
 
-// Validate pro price ID
+// Validate pro price IDs
 const validateEnvironmentVariables = () => {
   if (!isValidPriceId(process.env.STRIPE_PRICE_PRO_MONTHLY)) {
     console.warn('⚠️ STRIPE_PRICE_PRO_MONTHLY is not set or invalid (should start with "price_")');
-    console.warn('1. Go to https://dashboard.stripe.com/products and create a Pro product at $5/month');
-    console.warn('2. Copy the price ID and add it to your .env as STRIPE_PRICE_PRO_MONTHLY\n');
+    console.warn('1. Go to https://dashboard.stripe.com/products and open your Pro product');
+    console.warn('2. Copy the monthly price ID (starts with price_) and set STRIPE_PRICE_PRO_MONTHLY\n');
+  }
+  if (!isValidPriceId(process.env.STRIPE_PRICE_PRO_ANNUAL)) {
+    console.warn('⚠️ STRIPE_PRICE_PRO_ANNUAL is not set or invalid (should start with "price_")');
+    console.warn('1. In the same Pro product, click "Add another price" → Annual → $48/year');
+    console.warn('2. Copy that price ID and set STRIPE_PRICE_PRO_ANNUAL\n');
   }
 };
 
 validateEnvironmentVariables();
 
-// Stripe price IDs — single Pro plan at $5/month
+// Stripe price IDs — Pro plan, monthly and annual
 export const STRIPE_PRICES = {
   pro: {
     monthly: isValidPriceId(process.env.STRIPE_PRICE_PRO_MONTHLY)
       ? process.env.STRIPE_PRICE_PRO_MONTHLY!
-      : 'price_test_pro',
+      : 'price_test_pro_monthly',
+    annual: isValidPriceId(process.env.STRIPE_PRICE_PRO_ANNUAL)
+      ? process.env.STRIPE_PRICE_PRO_ANNUAL!
+      : 'price_test_pro_annual',
   },
 };
 

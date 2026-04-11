@@ -17,22 +17,19 @@ Comprehensive pricing component system with subscription status integration.
 - **Response**: Current tier info + all tier definitions based on PRICING-STRATEGY-ANALYSIS.md
 - **Authentication**: Requires valid session
 
-## Pricing Tiers (from PRICING-STRATEGY-ANALYSIS.md)
+## Pricing Tiers
 
 | Tier | Price | Sessions | Minutes/Session | Total Minutes |
 |------|-------|----------|-----------------|---------------|
 | **Free** | $0 | 3/month | 15 min | 45 min |
-| **Essential** | $12.99 | 8/month | 20 min | 160 min |
-| **Growth** | $24.99 | 16/month | 25 min | 400 min |
-| **Unlimited** | $44.99 | 40/month | 30 min | 1200 min |
+| **Pro** | $5/mo or $48/yr | Unlimited | 30 min | Unlimited |
 
 ## Responsive Design Features
 
 ✅ **Mobile-First**: Uses responsive text sizing (`text-sm sm:text-base lg:text-lg`)
 ✅ **Glassmorphism**: `bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl`
-✅ **Flexible Grid**: `grid-cols-1 md:grid-cols-2 xl:grid-cols-4`
-✅ **Progressive Spacing**: `gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10`
-✅ **Max-Width Control**: `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px]`
+✅ **Flexible Grid**: `grid-cols-1 md:grid-cols-2 max-w-3xl mx-auto`
+✅ **Progressive Spacing**: `gap-4 sm:gap-6`
 ✅ **Touch Targets**: Minimum 44px button heights
 ✅ **Text Centering**: All card content centered for consistency
 
