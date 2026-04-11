@@ -304,6 +304,15 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       });
     }
   }, [vapiApiKey, vapiToken, tokenLoading, tokenError]);
+
+  // Eagerly create VAPI instance as soon as the JWT token is available
+  // so instance construction is off the critical path when the user clicks Start
+  useEffect(() => {
+    if (!vapiToken || vapiInstanceManager.isReady()) return;
+    vapiInstanceManager.getOrCreateInstance(vapiToken)
+      .then(() => console.log('[TherapyButton] VAPI instance pre-warmed'))
+      .catch((err) => console.warn('[TherapyButton] VAPI pre-warm failed (non-fatal):', err));
+  }, [vapiToken]);
   
   const vapi = useVapiSession({
     apiKey: vapiApiKey,
@@ -1092,21 +1101,31 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     setShowDurationModal(false);
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Use atomic session creation endpoint that handles credit validation
-      const response = await fetch('/api/sessions/create-with-credits', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          duration,
-          therapyType: therapyType || 'couple',
-          familyMembers: familyMembersOverride || selectedFamilyMembers,
+      // Fire both requests in parallel — assistant config doesn't need the session ID
+      const familyMembersToUse = familyMembersOverride || selectedFamilyMembers;
+      const familyMembersParam = therapyType === 'family' && familyMembersToUse?.length > 0
+        ? `&selectedFamilyMembers=${encodeURIComponent(JSON.stringify(familyMembersToUse))}`
+        : '';
+      const startTime = new Date().toISOString();
+
+      const [sessionResponse, configResponse] = await Promise.all([
+        fetch('/api/sessions/create-with-credits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            duration,
+            therapyType: therapyType || 'couple',
+            familyMembers: familyMembersToUse,
+          }),
         }),
-      });
-      
+        fetch(
+          `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${duration}&startTime=${encodeURIComponent(startTime)}${familyMembersParam}`
+        ).catch(() => null), // non-fatal — startVAPISession will re-fetch if needed
+      ]);
+
+      const response = sessionResponse;
       const result = await response.json();
       
       if (!response.ok || !result.success) {
@@ -1154,8 +1173,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // Update session management hook with external session data
       session.setExternalSession(sessionId, duration);
       
+      // Pass pre-fetched config to avoid a second network round-trip
+      const prefetchedConfig = configResponse?.ok ? await configResponse.json().catch(() => null) : null;
+
       // Now start VAPI with the created session
-      await startVAPISession(sessionId, duration, familyMembersOverride);
+      await startVAPISession(sessionId, duration, familyMembersOverride, prefetchedConfig);
     } catch (error) {
       console.error('Error in session creation:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
@@ -1164,29 +1186,33 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }, [therapyType, selectedFamilyMembers]);
   
   // Start VAPI session after successful creation
-  const startVAPISession = useCallback(async (sessionId: string, duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
+  const startVAPISession = useCallback(async (sessionId: string, duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>, prefetchedConfig?: any) => {
     console.log('🚀 Starting VAPI for session:', sessionId);
-    
+
     try {
       setIsLoading(true);
       setError(null);
-      
-      // 1. Fetch personalized assistant configuration
-      const familyMembersToUse = familyMembersOverride || selectedFamilyMembers;
-      const familyMembersParam = therapyType === 'family' && familyMembersToUse?.length > 0 
-        ? `&selectedFamilyMembers=${encodeURIComponent(JSON.stringify(familyMembersToUse))}`
-        : '';
-      
-      const assistantResponse = await fetch(
-        `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${duration}&startTime=${encodeURIComponent(new Date().toISOString())}${familyMembersParam}`
-      );
-      
-      if (!assistantResponse.ok) {
-        throw new Error('Failed to fetch personalized assistant configuration');
+
+      // 1. Use pre-fetched assistant config if available, otherwise fetch now
+      let personalizedConfig = prefetchedConfig ?? null;
+
+      if (!personalizedConfig) {
+        const familyMembersToUse = familyMembersOverride || selectedFamilyMembers;
+        const familyMembersParam = therapyType === 'family' && familyMembersToUse?.length > 0
+          ? `&selectedFamilyMembers=${encodeURIComponent(JSON.stringify(familyMembersToUse))}`
+          : '';
+
+        const assistantResponse = await fetch(
+          `/api/vapi/assistant?personalized=true&therapyType=${therapyType}&duration=${duration}&startTime=${encodeURIComponent(new Date().toISOString())}${familyMembersParam}`
+        );
+
+        if (!assistantResponse.ok) {
+          throw new Error('Failed to fetch personalized assistant configuration');
+        }
+
+        personalizedConfig = await assistantResponse.json();
       }
-      
-      const personalizedConfig = await assistantResponse.json();
-      console.log('📋 Got personalized assistant configuration');
+      console.log('📋 Got personalized assistant configuration', prefetchedConfig ? '(pre-fetched)' : '(on-demand)');
       
       // 2. Clean the configuration for inline use
       const inlineConfig = { ...personalizedConfig };
