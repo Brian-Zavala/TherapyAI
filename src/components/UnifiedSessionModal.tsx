@@ -373,7 +373,7 @@ export default function UnifiedSessionModal({
         
         if (response.ok) {
           const latestSession = await response.json()
-          if (latestSession.status === 'active' && latestSession.conversationTimeSeconds !== undefined) {
+          if (latestSession.status?.toUpperCase() === 'ACTIVE' && latestSession.conversationTimeSeconds !== undefined) {
             setElapsedTimeSeconds(latestSession.conversationTimeSeconds)
           }
         } else if (response.status === 404) {
@@ -404,11 +404,11 @@ export default function UnifiedSessionModal({
           console.log('Real-time session update received:', payload)
           const updatedSession = payload.new
           
-          if (updatedSession.status === 'active' && updatedSession.conversationTimeSeconds !== undefined) {
+          if (updatedSession.status?.toUpperCase() === 'ACTIVE' && updatedSession.conversationTimeSeconds !== undefined) {
             setElapsedTimeSeconds(updatedSession.conversationTimeSeconds)
           }
-          
-          if (updatedSession.status === 'completed' || updatedSession.status === 'error') {
+
+          if (updatedSession.status?.toUpperCase() === 'COMPLETED' || updatedSession.status?.toUpperCase() === 'ERROR') {
             console.log('Session completed or errored, closing modal')
             setShowModal(false)
           }

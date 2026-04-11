@@ -112,7 +112,7 @@ export function useDashboardRealTimeEnhanced(): UseDashboardRealTimeReturn {
             // Show notification for specific events
             if (payload.eventType === 'INSERT') {
               toast.success('New session created')
-            } else if (payload.eventType === 'UPDATE' && payload.new?.status === 'completed') {
+            } else if (payload.eventType === 'UPDATE' && payload.new?.status?.toUpperCase() === 'COMPLETED') {
               toast.success('Session completed')
             }
           }
@@ -315,7 +315,7 @@ export function useSessionRealTimeEnhanced(sessionId: string | null) {
           (payload: RealtimePostgresChangesPayload<any>) => {
             console.log('Session update:', payload)
             setSessionData(payload.new)
-            setIsActive(payload.new?.status === 'active')
+            setIsActive(payload.new?.status?.toUpperCase() === 'ACTIVE')
           }
         )
         .on(
@@ -369,7 +369,7 @@ export function useSessionRealTimeEnhanced(sessionId: string | null) {
       if (transcriptResp.data) setTranscript(transcriptResp.data)
       if (metricsResp.data?.[0]) setMetrics(metricsResp.data[0])
       
-      setIsActive(sessionResp.data?.status === 'active')
+      setIsActive(sessionResp.data?.status?.toUpperCase() === 'ACTIVE')
     }
 
     setupSessionSubscription()

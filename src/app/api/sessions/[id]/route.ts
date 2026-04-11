@@ -178,9 +178,10 @@ async function handleSessionUpdate(
     
     // Update status if provided
     if (status) {
-      updateData.status = status
+      // Normalize to uppercase for Prisma enum (callers may send 'completed' or 'COMPLETED')
+      updateData.status = status.toUpperCase()
       // Set startTime when session becomes active
-      if (status === 'active' && !existingSession.startTime) {
+      if (status.toUpperCase() === 'ACTIVE' && !existingSession.startTime) {
         updateData.startTime = new Date()
       }
     }
@@ -417,7 +418,7 @@ async function handleSessionUpdate(
     sessionCache.invalidate(cacheKeys.sessionTranscript(sessionId));
 
     // Generate metrics if session was completed
-    if (status === 'completed') {
+    if (status?.toUpperCase() === 'COMPLETED') {
       try {
         // CRITICAL FIX: Use stored sessionType instead of guessing from theme
         const therapyType = existingSession.sessionType || 'solo';

@@ -536,7 +536,7 @@ export async function getPreviousSessionsTranscript(userId?: string, currentSess
     const sessions = await response.json();
     
     const previousSessions = sessions
-      .filter((s: any) => s.status === 'completed' && s.id !== currentSessionId)
+      .filter((s: any) => s.status?.toUpperCase() === 'COMPLETED' && s.id !== currentSessionId)
       .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, maxSessions);
     

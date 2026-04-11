@@ -156,7 +156,7 @@ export function useTherapySessionRecovery() {
           console.log('🎯 Active therapy session found:', activeSession.id)
           
           // CRITICAL SAFEGUARD: Double-check session status to prevent completed sessions from being recovered
-          if (activeSession.status === 'completed') {
+          if (activeSession.status?.toUpperCase() === 'COMPLETED') {
             console.log('🚫 Session status is "completed" - cannot recover completed sessions')
             setRecoveryState(prev => ({ 
               ...prev, 

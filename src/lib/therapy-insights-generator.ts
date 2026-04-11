@@ -258,7 +258,7 @@ export class TherapyInsightsGenerator {
   private generateSessionPatternInsights(sessions: any[]): TherapyInsight[] {
     const insights: TherapyInsight[] = [];
     
-    const completedSessions = sessions.filter(s => s.status === 'completed');
+    const completedSessions = sessions.filter(s => s.status?.toUpperCase() === 'COMPLETED');
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const recentSessions = completedSessions.filter(s => new Date(s.startTime) > lastMonth);
@@ -528,7 +528,7 @@ export class TherapyInsightsGenerator {
       else if (recentEmotionalAvg < olderEmotionalAvg - 5) emotionalTrend = 'declining';
     }
 
-    const completedSessions = sessions.filter(s => s.status === 'completed');
+    const completedSessions = sessions.filter(s => s.status?.toUpperCase() === 'COMPLETED');
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const recentSessions = completedSessions.filter(s => new Date(s.startTime) > lastMonth);

@@ -335,7 +335,7 @@ export const formatSessionHistory = (sessions: any[] = []) => {
 
   // Get the most recent 3 completed sessions
   const recentSessions = sessions
-    .filter((s) => s.status === "completed")
+    .filter((s) => s.status?.toUpperCase() === "COMPLETED")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
 
