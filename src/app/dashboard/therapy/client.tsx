@@ -518,76 +518,55 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
         throw new Error(`Session is ${currentSessionData.status}, cannot continue`)
       }
       
-          // CRITICAL FIX: Use theme as primary source, assistant ID as secondary
-      // Theme is more reliable for session recovery since it reflects actual session content
-      let detectedType = null
-      let themeDetectedType = null
-      let assistantDetectedType = null
-      
-      // First, try to detect from theme (most reliable for recovery)
-      if (sessionData.theme || currentSessionData.theme) {
-        const theme = sessionData.theme || currentSessionData.theme
-        console.log(`🔍 Primary: Detecting session type from theme: "${theme}"`);
-        
-        if (theme.toLowerCase().includes('individual') || theme.toLowerCase().includes('solo')) {
-          themeDetectedType = 'solo'
-          console.log(`✅ Theme indicates Solo therapy`);
-        } else if (theme.toLowerCase().includes('family')) {
-          themeDetectedType = 'family'
-          console.log(`✅ Theme indicates Family therapy`);
-        } else if (theme.toLowerCase().includes('couple')) {
-          themeDetectedType = 'couple'
-          console.log(`✅ Theme indicates Couple therapy`);
-        }
+      // PRIMARY: Use sessionType DB field (authoritative source — set at session creation)
+      const dbSessionType = (sessionData.sessionType || currentSessionData.sessionType || '').toUpperCase()
+      let detectedType: string | null = null
+
+      if (dbSessionType === 'SOLO') {
+        detectedType = 'solo'
+        console.log(`✅ Primary: sessionType DB field indicates Solo therapy`)
+      } else if (dbSessionType === 'FAMILY') {
+        detectedType = 'family'
+        console.log(`✅ Primary: sessionType DB field indicates Family therapy`)
+      } else if (dbSessionType === 'COUPLE') {
+        detectedType = 'couple'
+        console.log(`✅ Primary: sessionType DB field indicates Couple therapy`)
       }
-      
-      // Secondary: Check assistant ID for validation
-      if (sessionData.assistantId || currentSessionData.assistantId) {
-        const assistantId = sessionData.assistantId || currentSessionData.assistantId
-        console.log(`🔍 Secondary: Validating with assistantId: "${assistantId}"`)
-        console.log(`🔍 Available assistant IDs:`);
-        console.log(`  - Individual: "${INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id}"`);
-        console.log(`  - Family: "${FAMILY_THERAPY_ASSISTANT_CONFIG.id}"`);
-        console.log(`  - Couple: "${COUPLE_THERAPY_ASSISTANT_CONFIG.id}"`);
-        
-        if (assistantId === INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id) {
-          assistantDetectedType = 'solo'
-          console.log(`✅ Assistant ID matches Individual therapy`);
-        } else if (assistantId === FAMILY_THERAPY_ASSISTANT_CONFIG.id) {
-          assistantDetectedType = 'family'
-          console.log(`✅ Assistant ID matches Family therapy`);
-        } else if (assistantId === COUPLE_THERAPY_ASSISTANT_CONFIG.id) {
-          assistantDetectedType = 'couple'
-          console.log(`✅ Assistant ID matches Couple therapy`);
-        } else {
-          console.log(`⚠️ AssistantId "${assistantId}" did not match any known assistant configs`);
-        }
-      } else {
-        console.log(`⚠️ No assistantId found in session data`);
-      }
-      
-      // Decision logic: Theme takes priority, but validate against assistant ID
-      if (themeDetectedType && assistantDetectedType) {
-        if (themeDetectedType === assistantDetectedType) {
-          detectedType = themeDetectedType
-          console.log(`✅ Theme and Assistant ID agree: ${detectedType}`)
-        } else {
-          // MISMATCH: Theme wins for session recovery
-          detectedType = themeDetectedType
-          console.log(`⚠️ MISMATCH: Theme says "${themeDetectedType}", Assistant ID says "${assistantDetectedType}". Using theme for recovery.`)
-        }
-      } else if (themeDetectedType) {
-        detectedType = themeDetectedType
-        console.log(`✅ Using theme detection: ${detectedType}`)
-      } else if (assistantDetectedType) {
-        detectedType = assistantDetectedType
-        console.log(`✅ Using assistant ID detection: ${detectedType}`)
-      }
-      
-      // Final fallback if no type detected
+
+      // SECONDARY: Theme text matching (fallback when sessionType is missing/null)
       if (!detectedType) {
-        console.log(`⚠️ Could not detect session type, defaulting to 'couple'`);
-        detectedType = 'couple';
+        const theme = sessionData.theme || currentSessionData.theme || ''
+        console.log(`🔍 Secondary: Detecting session type from theme: "${theme}"`)
+        if (theme.toLowerCase().includes('individual') || theme.toLowerCase().includes('solo')) {
+          detectedType = 'solo'
+        } else if (theme.toLowerCase().includes('family')) {
+          detectedType = 'family'
+        } else if (theme.toLowerCase().includes('couple') || theme.toLowerCase().includes('relationship')) {
+          detectedType = 'couple'
+        }
+        if (detectedType) console.log(`✅ Theme detection: ${detectedType}`)
+      }
+
+      // TERTIARY: Assistant ID matching
+      if (!detectedType) {
+        const assistantId = sessionData.assistantId || currentSessionData.assistantId
+        if (assistantId) {
+          console.log(`🔍 Tertiary: Detecting session type from assistantId: "${assistantId}"`)
+          if (assistantId === INDIVIDUAL_THERAPY_ASSISTANT_CONFIG.id) {
+            detectedType = 'solo'
+          } else if (assistantId === FAMILY_THERAPY_ASSISTANT_CONFIG.id) {
+            detectedType = 'family'
+          } else if (assistantId === COUPLE_THERAPY_ASSISTANT_CONFIG.id) {
+            detectedType = 'couple'
+          }
+          if (detectedType) console.log(`✅ AssistantId detection: ${detectedType}`)
+        }
+      }
+
+      // Final fallback
+      if (!detectedType) {
+        console.log(`⚠️ Could not detect session type, defaulting to 'couple'`)
+        detectedType = 'couple'
       }
       
       console.log(`🎯 Detected session type: ${detectedType}`)

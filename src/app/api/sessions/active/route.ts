@@ -11,11 +11,11 @@ export async function GET(request: Request) {
 
     const userId = session.user.id;
 
-    // Find the most recent active session for this user
+    // Find the most recent active or paused session for this user
     const activeSession = await prisma.session.findFirst({
       where: {
         userId: userId,
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'PAUSED'] },
         NOT: {
           notes: {
             contains: 'Session completed'
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       }
     });
 
-    if (!activeSession || activeSession.status !== 'ACTIVE') {
+    if (!activeSession || !['ACTIVE', 'PAUSED'].includes(activeSession.status)) {
       return NextResponse.json(null);
     }
 
