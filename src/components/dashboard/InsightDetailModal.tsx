@@ -143,7 +143,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
   // Fetch personalized resources when the Resources tab is opened
   useEffect(() => {
     if (activeTab !== 'resources' || !insight) return;
-    if (resources.length > 0 || resourcesLoading) return;
+    if (resourcesLoading) return;
 
     setResourcesLoading(true);
     setResourcesError(false);

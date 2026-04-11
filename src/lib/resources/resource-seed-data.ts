@@ -50,6 +50,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['communication', 'conflict', 'anger'],
     difficulty: 'beginner',
     source: 'PACT Institute',
+    url: 'https://www.thepactinstitute.com/blog/communication-101-listen-and-understand-part-2',
     duration: '20–30 minutes',
   },
   {
@@ -99,6 +100,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['communication', 'depression', 'anxiety'],
     difficulty: 'beginner',
     source: 'Psychology Today',
+    url: 'https://www.psychologytoday.com/us/blog/social-instincts/202405/2-ways-the-wheel-of-emotions-can-emotionally-empower-you',
     duration: '10 min read',
   },
   {
@@ -110,6 +112,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['anger', 'anxiety', 'stress', 'conflict'],
     difficulty: 'beginner',
     source: 'DBT Self Help',
+    url: 'https://dbtselfhelp.com/stop/',
     duration: '2 minutes',
   },
   {
@@ -145,6 +148,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['depression', 'anxiety', 'grief', 'stress'],
     difficulty: 'beginner',
     source: 'Psychology Today',
+    url: 'https://www.psychologytoday.com/us/blog/conquering-codependency/202408/how-to-journal-for-mental-health',
     duration: '10 minutes/day',
   },
 
@@ -170,6 +174,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['communication', 'trust', 'conflict'],
     difficulty: 'beginner',
     source: 'Gottman Institute',
+    url: 'https://www.gottman.com/blog/how-to-have-a-state-of-the-union-meeting/',
     duration: '10 minutes/day',
   },
   {
@@ -193,6 +198,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['conflict', 'anger', 'communication'],
     difficulty: 'intermediate',
     source: 'Gottman Institute',
+    url: 'https://www.gottman.com/blog/r-is-for-repair/',
     duration: '8 min read',
   },
   {
@@ -218,6 +224,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['communication', 'conflict'],
     difficulty: 'beginner',
     source: 'GoodTherapy',
+    url: 'https://www.goodtherapy.org/learn-about-therapy/modes/family-therapy',
     duration: '45–60 minutes/week',
   },
   {
@@ -291,6 +298,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['anxiety', 'stress'],
     difficulty: 'beginner',
     source: 'Verywell Mind',
+    url: 'https://www.verywellmind.com/5-4-3-2-1-grounding-technique-8639390',
     duration: '2–5 minutes',
   },
   {
@@ -302,7 +310,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['self-esteem', 'stress', 'communication'],
     difficulty: 'intermediate',
     source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/basics/boundaries',
+    url: 'https://www.psychologytoday.com/us/blog/the-addiction-connection/202210/5-steps-to-creating-and-maintaining-healthy-boundaries',
     duration: '12 min read',
   },
   {
@@ -328,6 +336,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['conflict', 'communication', 'anger'],
     difficulty: 'intermediate',
     source: 'Gottman Institute',
+    url: 'https://www.gottman.com/blog/the-four-horsemen-recognizing-criticism-contempt-defensiveness-and-stonewalling/',
     duration: '8 min read',
   },
   {
@@ -351,6 +360,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['stress', 'anxiety', 'depression'],
     difficulty: 'beginner',
     source: 'Verywell Mind',
+    url: 'https://jamesclear.com/habit-stacking',
     duration: '5 min read',
   },
   {
@@ -399,6 +409,7 @@ export const SEED_RESOURCES: SeedResource[] = [
     concerns: ['depression', 'self-esteem'],
     difficulty: 'beginner',
     source: 'Psychology Today',
+    url: 'https://www.psychologytoday.com/us/blog/possibilitizing/202410/why-we-should-cheer-for-lifes-wobbles',
     duration: '6 min read',
   },
 ]

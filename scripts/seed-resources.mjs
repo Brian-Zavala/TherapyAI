@@ -36,7 +36,8 @@ const SEED_RESOURCES = [
     description: 'A structured method where one person speaks uninterrupted while the other listens, then roles switch. Proven to reduce escalation during disagreements.',
     type: 'technique',
     categories: ['communication', 'relationship'], sessionTypes: ['COUPLE', 'FAMILY'], concerns: ['communication', 'conflict', 'anger'],
-    difficulty: 'beginner', source: 'PACT Institute', duration: '20–30 minutes',
+    difficulty: 'beginner', source: 'PACT Institute',
+    url: 'https://www.thepactinstitute.com/blog/communication-101-listen-and-understand-part-2', duration: '20–30 minutes',
     steps: [
       'Agree on a topic to discuss. Start with something of moderate difficulty — not your biggest conflict.',
       'Decide who will be the Speaker first and who will be the Listener.',
@@ -98,14 +99,16 @@ const SEED_RESOURCES = [
     description: "Expand your emotional vocabulary using Plutchik's wheel of emotions — essential for communicating clearly with a partner or family.",
     type: 'article',
     categories: ['emotional', 'communication'], sessionTypes: [], concerns: ['communication', 'depression', 'anxiety'],
-    difficulty: 'beginner', source: 'Psychology Today', duration: '10 min read', steps: [],
+    difficulty: 'beginner', source: 'Psychology Today',
+    url: 'https://www.psychologytoday.com/us/blog/social-instincts/202405/2-ways-the-wheel-of-emotions-can-emotionally-empower-you', duration: '10 min read', steps: [],
   },
   {
     title: 'STOP Technique for Emotional Flooding',
     description: 'When emotions overwhelm rational thinking, use this DBT skill to interrupt the cycle.',
     type: 'technique',
     categories: ['emotional', 'behavioral'], sessionTypes: [], concerns: ['anger', 'anxiety', 'stress', 'conflict'],
-    difficulty: 'beginner', source: 'DBT Self Help', duration: '2 minutes',
+    difficulty: 'beginner', source: 'DBT Self Help',
+    url: 'https://dbtselfhelp.com/stop/', duration: '2 minutes',
     steps: [
       'S — STOP: Freeze. Do not act on what you\'re feeling right now.',
       'T — Take a breath: One slow, deep breath. In through the nose, out through the mouth.',
@@ -153,7 +156,8 @@ const SEED_RESOURCES = [
     description: 'A structured journaling approach for processing difficult emotions. 10 minutes daily builds significant self-awareness.',
     type: 'exercise',
     categories: ['emotional', 'mental-health'], sessionTypes: [], concerns: ['depression', 'anxiety', 'grief', 'stress'],
-    difficulty: 'beginner', source: 'Psychology Today', duration: '10 minutes/day',
+    difficulty: 'beginner', source: 'Psychology Today',
+    url: 'https://www.psychologytoday.com/us/blog/conquering-codependency/202408/how-to-journal-for-mental-health', duration: '10 minutes/day',
     steps: [
       'Set a timer for 10 minutes. Open a notebook or blank document.',
       'Write: "What happened today that is sitting with me?" Describe it factually.',
@@ -179,7 +183,8 @@ const SEED_RESOURCES = [
     description: 'A 10-minute daily practice for couples: share one appreciation, one feeling from the day, and one request. Builds emotional attunement.',
     type: 'exercise',
     categories: ['relationship', 'communication'], sessionTypes: ['COUPLE'], concerns: ['communication', 'trust', 'conflict'],
-    difficulty: 'beginner', source: 'Gottman Institute', duration: '10 minutes/day',
+    difficulty: 'beginner', source: 'Gottman Institute',
+    url: 'https://www.gottman.com/blog/how-to-have-a-state-of-the-union-meeting/', duration: '10 minutes/day',
     steps: [
       'Choose a consistent time — after dinner, before bed, or over morning coffee.',
       'Sit facing each other without phones or screens.',
@@ -216,7 +221,8 @@ const SEED_RESOURCES = [
     description: '20 research-backed repair attempts that de-escalate tension during conflict.',
     type: 'technique',
     categories: ['relationship', 'communication'], sessionTypes: ['COUPLE'], concerns: ['conflict', 'anger', 'communication'],
-    difficulty: 'intermediate', source: 'Gottman Institute', duration: '8 min read',
+    difficulty: 'intermediate', source: 'Gottman Institute',
+    url: 'https://www.gottman.com/blog/r-is-for-repair/', duration: '8 min read',
     steps: [
       'A repair attempt is any statement or action that prevents conflict from escalating further.',
       'Examples you can use RIGHT NOW during an argument:',
@@ -244,7 +250,8 @@ const SEED_RESOURCES = [
     description: 'A structured template for productive family meetings: agenda-setting, rotating facilitator, feelings round, problem-solving, appreciation circle.',
     type: 'technique',
     categories: ['communication', 'relationship'], sessionTypes: ['FAMILY'], concerns: ['communication', 'conflict'],
-    difficulty: 'beginner', source: 'GoodTherapy', duration: '45–60 minutes/week',
+    difficulty: 'beginner', source: 'GoodTherapy',
+    url: 'https://www.goodtherapy.org/learn-about-therapy/modes/family-therapy', duration: '45–60 minutes/week',
     steps: [
       'Schedule a weekly 45-minute family meeting at the same time each week.',
       'OPEN (5 min): One person facilitates (rotate each week). Start with a brief positive — one good thing from the past week.',
@@ -312,7 +319,8 @@ const SEED_RESOURCES = [
     description: 'Bring attention to the present moment and interrupt anxiety spirals using your five senses.',
     type: 'technique',
     categories: ['mental-health', 'emotional'], sessionTypes: [], concerns: ['anxiety', 'stress'],
-    difficulty: 'beginner', source: 'Verywell Mind', duration: '2–5 minutes',
+    difficulty: 'beginner', source: 'Verywell Mind',
+    url: 'https://www.verywellmind.com/5-4-3-2-1-grounding-technique-8639390', duration: '2–5 minutes',
     steps: [
       'Pause and take one slow, deep breath.',
       '5 — Look around and name FIVE things you can see. Say them out loud or in your head.',
@@ -330,7 +338,7 @@ const SEED_RESOURCES = [
     type: 'article',
     categories: ['mental-health', 'relationship', 'behavioral'], sessionTypes: [], concerns: ['self-esteem', 'stress', 'communication'],
     difficulty: 'intermediate', source: 'Psychology Today',
-    url: 'https://www.psychologytoday.com/us/basics/boundaries', duration: '12 min read', steps: [],
+    url: 'https://www.psychologytoday.com/us/blog/the-addiction-connection/202210/5-steps-to-creating-and-maintaining-healthy-boundaries', duration: '12 min read', steps: [],
   },
   {
     title: 'Grief Processing: The Non-Linear Path',
@@ -346,7 +354,8 @@ const SEED_RESOURCES = [
     description: 'Explains how criticism triggers defensiveness. Includes the "soft startup" technique for beginning conversations without accusation.',
     type: 'technique',
     categories: ['behavioral', 'communication', 'relationship'], sessionTypes: ['COUPLE', 'FAMILY'], concerns: ['conflict', 'communication', 'anger'],
-    difficulty: 'intermediate', source: 'Gottman Institute', duration: '8 min read',
+    difficulty: 'intermediate', source: 'Gottman Institute',
+    url: 'https://www.gottman.com/blog/the-four-horsemen-recognizing-criticism-contempt-defensiveness-and-stonewalling/', duration: '8 min read',
     steps: [
       'Recognize the pattern: Criticism → Defensiveness → Contempt → Stonewalling. Notice where you enter.',
       'Soft Startup rule: Begin conversations about problems with "I" — never "You always" or "You never."',
@@ -378,7 +387,8 @@ const SEED_RESOURCES = [
     description: "Attach a new positive habit to an existing one. James Clear's technique applied to mental health practices.",
     type: 'technique',
     categories: ['behavioral', 'mental-health'], sessionTypes: [], concerns: ['stress', 'anxiety', 'depression'],
-    difficulty: 'beginner', source: 'Verywell Mind', duration: '5 min read',
+    difficulty: 'beginner', source: 'Verywell Mind',
+    url: 'https://jamesclear.com/habit-stacking', duration: '5 min read',
     steps: [
       'Choose ONE mental wellness habit you want to build (e.g., 2-minute breathing exercise, writing one gratitude).',
       'Identify an existing daily habit you already do reliably (morning coffee, brushing teeth, getting in the car).',
@@ -428,7 +438,8 @@ const SEED_RESOURCES = [
     description: "The brain's negativity bias causes us to overlook progress. Learn to notice, record, and celebrate incremental gains.",
     type: 'article',
     categories: ['progress', 'mental-health'], sessionTypes: [], concerns: ['depression', 'self-esteem'],
-    difficulty: 'beginner', source: 'Psychology Today', duration: '6 min read', steps: [],
+    difficulty: 'beginner', source: 'Psychology Today',
+    url: 'https://www.psychologytoday.com/us/blog/possibilitizing/202410/why-we-should-cheer-for-lifes-wobbles', duration: '6 min read', steps: [],
   },
 ]
 
