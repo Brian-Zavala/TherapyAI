@@ -62,28 +62,33 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
 
   let sessionHistory = "No previous sessions found.";
   let sessions: { length: number; date?: Date }[] = [];
+  let previousSessionContext = "";
 
   try {
-    const sessionCount = await prisma.session.count({
-      where: {
-        userId: user.id,
-        status: 'COMPLETED'
-      }
-    });
+    const [sessionCount, recentSummaries] = await Promise.all([
+      prisma.session.count({
+        where: { userId: user.id, status: 'COMPLETED' }
+      }),
+      prisma.sessionSummary.findMany({
+        where: { userId: user.id, processingStatus: 'completed' },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        select: {
+          contextForNextSession: true,
+          nextSessionFocus: true,
+          breakthroughMoments: true,
+          challengeAreas: true,
+          keyThemes: true,
+          session: { select: { completedAt: true, theme: true } }
+        }
+      })
+    ]);
 
     if (sessionCount > 0) {
       const lastSession = await prisma.session.findFirst({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED'
-        },
-        orderBy: {
-          date: 'desc'
-        },
-        select: {
-          date: true,
-          theme: true
-        }
+        where: { userId: user.id, status: 'COMPLETED' },
+        orderBy: { date: 'desc' },
+        select: { date: true, theme: true }
       });
 
       if (lastSession) {
@@ -91,6 +96,30 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
         sessionHistory = `Client has ${sessionCount} previous sessions. Last session: ${lastDate}.${
           lastSession.theme ? ` Theme: ${lastSession.theme}.` : ""
         }`;
+      }
+
+      // Build compact previous-session memory for system prompt injection
+      if (recentSummaries.length > 0) {
+        const memoryLines: string[] = [];
+        recentSummaries.forEach((summary, i) => {
+          const date = summary.session?.completedAt
+            ? new Date(summary.session.completedAt).toLocaleDateString()
+            : `session ${i + 1}`;
+          if (summary.contextForNextSession) {
+            memoryLines.push(`[${date}] ${summary.contextForNextSession}`);
+          }
+          if (summary.nextSessionFocus) {
+            memoryLines.push(`→ Recommended focus: ${summary.nextSessionFocus}`);
+          }
+          if (summary.breakthroughMoments?.length) {
+            memoryLines.push(`→ Breakthroughs: ${(summary.breakthroughMoments as string[]).slice(0, 2).join("; ")}`);
+          }
+          if (summary.challengeAreas?.length) {
+            memoryLines.push(`→ Ongoing challenges: ${(summary.challengeAreas as string[]).slice(0, 2).join("; ")}`);
+          }
+        });
+        previousSessionContext = memoryLines.join("\n");
+        console.log(`[VAPI Assistant] Loaded session memory: ${recentSummaries.length} summaries, ${memoryLines.length} memory lines`);
       }
     }
     sessions = [{ length: sessionCount }];
@@ -154,6 +183,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
     recurringSession: user.profile?.recurringSession || 'no',
     additionalNotes: user.profile?.additionalNotes || '',
     sessionHistory: sessionHistory,
+    previousSessionContext: previousSessionContext || undefined,
     onboardingCompleted: user.onboardingCompleted,
     sessionsCompleted: sessions.length,
     lastSessionDate: sessions[0]?.date || null,

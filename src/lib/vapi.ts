@@ -565,6 +565,29 @@ export const getPersonalizedSystemPrompt = (
   const communicationStyle = (userProfile?.communicationStyle || "balanced").toLowerCase();
   const currentConcerns = userProfile?.currentConcerns || [];
   const additionalNotes = userProfile?.additionalNotes || "";
+  const sessionPreferenceCF = (userProfile?.sessionPreference || "flexible").toLowerCase();
+  const sessionFrequencyCF = (userProfile?.sessionFrequency || "as-needed").toLowerCase();
+  const recurringSessionCF = (userProfile?.recurringSession || "no").toLowerCase();
+
+  // Session continuity context from user preferences
+  const _freqMapCF: Record<string, string> = {
+    daily:       "This client engages daily — acknowledge their consistent commitment and build on recent momentum.",
+    weekly:      "This client meets weekly — acknowledge what's happened in their week and carry threads forward.",
+    biweekly:    "This client meets every two weeks — check what has changed or unfolded since last session.",
+    monthly:     "This client meets monthly — sessions span significant time; invite reflection on the full month.",
+    "as-needed": "This client schedules sessions as needed — they sought support proactively today.",
+  };
+  const _timeMapCF: Record<string, string> = { morning: "morning", afternoon: "afternoon", evening: "evening", flexible: "" };
+  const _freqLineCF = _freqMapCF[sessionFrequencyCF] || _freqMapCF["as-needed"];
+  const _timeLabelCF = _timeMapCF[sessionPreferenceCF] || "";
+  const _closingLineCF = recurringSessionCF === "yes"
+    ? "When wrapping up, acknowledge their ongoing commitment and suggest continuing progress in their next scheduled session."
+    : "When wrapping up, warmly invite them to return whenever they feel ready.";
+  const sessionContinuityContextCF = [
+    _freqLineCF,
+    _timeLabelCF ? `Client prefers ${_timeLabelCF} sessions — match your tone and energy accordingly.` : "",
+    _closingLineCF,
+  ].filter(Boolean).join("\n• ");
 
   // Get session context for enhanced personalization
   const sessionCount = userProfile?.sessionsCompleted || 0;
@@ -680,11 +703,12 @@ SESSION CONTEXT:
 ${sessionContext}
 ${milestoneNote}
 ${hasPreviousSessions ? "• Returning clients with established therapeutic relationship" : "• New clients - building initial rapport and trust"}
-
+${userProfile?.previousSessionContext ? `\nPREVIOUS SESSION MEMORY:\nYou have seen this couple before. Use these notes to provide continuity — weave past insights naturally into the conversation:\n${userProfile.previousSessionContext}\n` : ""}
 ${sessionTimingInstructions}
 
 APPROACH:
 • Communication style: ${communicationGuidance}
+• ${sessionContinuityContextCF}
 • Begin sessions with genuine warmth and check-ins about their current state
 • Start conversations casually and organically, sharing light personal connection
 • Allow natural transitions from casual chat to therapeutic exploration
@@ -1248,8 +1272,36 @@ export const getPersonalizedSystemPromptForType = (
   const pronouns = userProfile?.pronouns || null;
   const communicationStyle = (userProfile?.communicationStyle || "balanced").toLowerCase();
   const currentConcerns = userProfile?.currentConcerns || [];
-  // const sessionPreference = userProfile?.sessionPreference || "flexible";
+  const sessionPreference = (userProfile?.sessionPreference || "flexible").toLowerCase();
+  const sessionFrequency = (userProfile?.sessionFrequency || "as-needed").toLowerCase();
+  const recurringSession = (userProfile?.recurringSession || "no").toLowerCase();
   const additionalNotes = userProfile?.additionalNotes || "";
+
+  // Build session continuity context from preferences
+  const sessionFrequencyContext: Record<string, string> = {
+    daily:     "This client engages daily — acknowledge their consistent commitment and build naturally on momentum from recent sessions.",
+    weekly:    "This client meets weekly — acknowledge what's happened in their week, track weekly progress, and carry threads forward.",
+    biweekly:  "This client meets every two weeks — check what has changed or unfolded since their last session.",
+    monthly:   "This client meets monthly — sessions span significant time; invite reflection on the full month.",
+    "as-needed": "This client schedules sessions as needed — they sought support proactively today, honor that initiative.",
+  };
+  const sessionPreferenceContext: Record<string, string> = {
+    morning:   "morning",
+    afternoon: "afternoon",
+    evening:   "evening",
+    flexible:  "",
+  };
+  const frequencyLine = sessionFrequencyContext[sessionFrequency] || sessionFrequencyContext["as-needed"];
+  const timePrefLabel = sessionPreferenceContext[sessionPreference] || "";
+  const closingLine = recurringSession === "yes"
+    ? "When wrapping up, acknowledge their ongoing commitment and suggest continuing progress in their next scheduled session."
+    : "When wrapping up, warmly invite them to return whenever they feel ready for more support.";
+
+  const sessionContinuityContext = [
+    frequencyLine,
+    timePrefLabel ? `Client prefers ${timePrefLabel} sessions — match your energy and tone to that time of day.` : "",
+    closingLine,
+  ].filter(Boolean).join("\n• ");
 
   // Session timing instructions for all therapy types
   const sessionDurationMinutes = sessionOptions?.duration || 60;
@@ -1351,18 +1403,23 @@ AGE INTEGRATION INSTRUCTIONS:
 • Avoid meta-observational language like "I find" or "I notice"`
       : "";
 
+    const previousSessionMemoryBlock = userProfile?.previousSessionContext
+      ? `\nPREVIOUS SESSION MEMORY:\nYou have seen this client before. Use these notes to provide continuity — reference past insights naturally, not as if reading from a list:\n${userProfile.previousSessionContext}\n`
+      : "";
+
     return `You are Dr. Elliot Mackaphy, therapist specializing in CBT, ACT, and mindfulness.
 
 CLIENT INFO: ${userName}${pronounStr}${userProfile?.userAge ? ` (${userProfile.userAge})` : ""}
 ${concernsList ? `Concerns: ${concernsList}` : ""}
 ${additionalNotes ? `Context: ${additionalNotes}` : ""}
 ${userProfile?.partnerName ? `Partner: ${userProfile.partnerName}${userProfile?.partnerAge ? ` (${userProfile.partnerAge})` : ""}` : ""}
-
+${previousSessionMemoryBlock}
 ${sessionTimingInstructions}
 
 APPROACH:
 • Communication style: ${communicationGuidance}
 ${hasPreviousSessions ? "• Returning client with established therapeutic relationship" : "• New client - building initial therapeutic rapport"}
+• ${sessionContinuityContext}
 • Begin sessions with genuine warmth and authentic check-ins
 • Start conversations casually and follow their natural lead and energy
 • Use ${userName}'s name naturally throughout conversations
@@ -1628,11 +1685,12 @@ SESSION CONTEXT:
 ${sessionContext}
 ${milestoneNote}
 ${hasPreviousSessions ? "• Returning family with established therapeutic relationship" : "• New family - building initial rapport and trust"}${sessionMemberNote}
-
+${userProfile?.previousSessionContext ? `\nPREVIOUS SESSION MEMORY:\nYou have seen this family before. Use these notes to provide continuity — reference past progress naturally:\n${userProfile.previousSessionContext}\n` : ""}
 ${sessionTimingInstructions}
 
 APPROACH:
 • Communication style: ${communicationGuidance}
+• ${sessionContinuityContextCF}
 • Begin sessions with warm, inclusive check-ins for all family members
 • Start conversations casually and check in with each member naturally
 • Observe family dynamics and interaction patterns through natural conversation
