@@ -38,21 +38,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Determine plan type based on subscription status
-    let planType: 'free' | 'essential' | 'growth' | 'unlimited' = 'free';
-    
+    let planType: 'free' | 'pro' = 'free';
+
     if (user.subscriptionStatus === 'active' && user.subscriptionId) {
-      // Check if subscription ID contains plan hints
-      const subId = user.subscriptionId.toLowerCase();
-      if (subId.includes('unlimited')) {
-        planType = 'unlimited';
-      } else if (subId.includes('growth')) {
-        planType = 'growth';
-      } else if (subId.includes('essential')) {
-        planType = 'essential';
-      } else {
-        // Default to essential for active subscriptions
-        planType = 'essential';
-      }
+      planType = 'pro';
     }
     
     console.log(`[Credit Sync] User ${user.email}: ${user.subscriptionStatus} → ${planType}`);

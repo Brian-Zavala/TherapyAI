@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -24,20 +24,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Map database subscription status to our tier system
-    const subscriptionTier = user.subscriptionStatus || 'free';
-    
+    // Map database subscription status to plan tier
+    // subscriptionStatus is 'active'/'past_due'/'canceled'/null — NOT 'free'/'pro'
+    const isProUser = user.subscriptionStatus === 'active' && !!user.subscriptionId;
+    const planSlug = isProUser ? 'pro' : 'free';
+
     // Two-tier plan info
     const tierInfo = {
       free: {
         name: 'Free',
         slug: 'free',
         price: 0,
-        sessionsPerMonth: 3,
+        sessionsPerMonth: 2,
         minutesPerSession: 15,
-        totalMinutes: 45,
+        totalMinutes: 30,
         features: [
-          '3 therapy sessions per month',
+          '2 therapy sessions per month',
           '15 minutes per session',
           'Analytics dashboard',
           'Crisis detection & support',
@@ -47,28 +49,30 @@ export async function GET(request: NextRequest) {
       pro: {
         name: 'Pro',
         slug: 'pro',
-        price: 5,
-        sessionsPerMonth: 4,
+        price: 10,
+        sessionsPerMonth: 'Unlimited',
         minutesPerSession: 30,
-        totalMinutes: 120,
+        totalMinutes: 'Unlimited',
         features: [
-          '4 therapy sessions per month',
+          'Unlimited sessions per month',
           '30 minutes per session',
           'Full analytics dashboard',
-          'Progress tracking',
-          'Email & SMS notifications',
-          'Session transcripts'
+          'Session transcripts',
+          'Advanced CBT modules',
+          'Personalized therapy plans',
+          'Priority support',
         ]
       },
     };
 
-    const currentTier = tierInfo[subscriptionTier as keyof typeof tierInfo] || tierInfo.free;
+    const currentTier = tierInfo[planSlug];
 
     return NextResponse.json({
       currentTier: {
         ...currentTier,
         isActive: true,
-        hasSubscription: subscriptionTier !== 'free'
+        subscriptionStatus: user.subscriptionStatus || 'free',
+        hasSubscription: isProUser,
       },
       allTiers: tierInfo
     });

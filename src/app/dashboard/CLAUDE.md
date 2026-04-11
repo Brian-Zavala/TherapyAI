@@ -95,3 +95,20 @@ Advanced analytics, goal tracking, PDF exports, notification center, PWA feature
 - Use `dashboard-error-handler.ts` for consistent error handling
 - Number safety with `sanitizeNumber()` and `sanitizePercentage()` from `dashboard-schemas.ts`
 - Zod schemas for all dashboard data validation
+
+## 📚 Mistakes — Dashboard & Metrics
+
+**MISTAKE**: `therapyType` defaulted to 'couple' in `complete/enhanced/route.ts`; `generateMetricsFromSession` compared uppercase `'SOLO'` against lowercase `'solo'`
+- **Error**: Communication Metrics always 0% for solo/family sessions
+- **FIX**: `.toLowerCase()` normalization on all DB enum comparisons; use `sessionType` DB field not theme text
+- **LESSON**: Prisma enums are uppercase. Always normalize with `.toLowerCase()` before comparing.
+
+**MISTAKE**: Supabase `postgres_changes` payloads compared with lowercase status strings
+- **Error**: Session-completed toast never fired, modal never auto-closed
+- **FIX**: `?.toUpperCase() === 'COMPLETED'` in all 8 affected files
+- **LESSON**: Supabase realtime delivers raw PostgreSQL row data — enums come as uppercase. Never compare lowercase without normalizing.
+
+**MISTAKE**: `handleContinueActiveSession` detected therapy type from theme string
+- **Error**: Solo/family sessions resumed with couple therapist (wrong voice + system prompt)
+- **FIX**: Use `sessionData.sessionType` DB field as primary source in `therapy/client.tsx`
+- **LESSON**: Theme text is user-visible and unreliable. Always use authoritative DB enum field for program logic.

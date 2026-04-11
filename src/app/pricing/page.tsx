@@ -8,6 +8,7 @@ import { CheckIcon, XMarkIcon, SparklesIcon, ShieldCheckIcon, HeartIcon, BoltIco
 import { createCheckoutSession } from '@/lib/stripe-client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import CreditDisplay from '@/components/CreditDisplay';
 
 const PricingPage = () => {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -92,8 +93,8 @@ const PricingPage = () => {
       id: 'pro',
       name: 'Pro',
       icon: <BoltIcon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />,
-      monthlyPrice: 5,
-      annualPrice: 48,
+      monthlyPrice: 10,
+      annualPrice: 96,
       monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || '',
       annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID || '',
       tagline: 'Everything you need',
@@ -119,6 +120,7 @@ const PricingPage = () => {
 
   return (
     <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 overflow-y-auto">
+      <CreditDisplay />
       {/* Background */}
       <div className="fixed inset-0 w-full h-full pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900/30 via-transparent to-transparent" />
@@ -283,7 +285,7 @@ const PricingPage = () => {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">$5</span>
+                            <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">$10</span>
                             <span className="text-sm sm:text-base text-white/60 ml-1">/month</span>
                           </motion.div>
                         ) : (
@@ -294,10 +296,10 @@ const PricingPage = () => {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">$4</span>
+                            <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">$8</span>
                             <span className="text-sm sm:text-base text-white/60 ml-1">/month</span>
                             <div className="text-xs sm:text-sm text-green-400 mt-1 text-center">
-                              Billed $48 yearly — save $12
+                              Billed $96 yearly — save $24
                             </div>
                           </motion.div>
                         )}

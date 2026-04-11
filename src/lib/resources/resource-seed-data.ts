@@ -12,6 +12,7 @@ export interface SeedResource {
   source: string
   url?: string
   duration?: string
+  steps?: string[]         // step-by-step instructions for exercises/techniques without external URLs
 }
 
 export const SEED_RESOURCES: SeedResource[] = [

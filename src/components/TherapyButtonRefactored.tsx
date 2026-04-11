@@ -110,6 +110,18 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
   // Ref to handleEndSession so handleVapiCallEnd can trigger it without stale closures
   const handleEndSessionRef = useRef<(() => void) | null>(null)
+
+  // Silence detection refs — trigger reassurance when user goes quiet
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const silenceCheckCountRef = useRef(0)
+
+  const SILENCE_REASSURANCE = [
+    "Take your time... I'm here whenever you're ready.",
+    "No rush at all — I'm listening whenever you feel comfortable sharing.",
+    "It's okay to take a moment. I'm still right here with you.",
+    "Whenever you're ready, I'm here. There's no pressure.",
+    "Are you still there? I'm here whenever you'd like to continue.",
+  ]
   
   // Centralized function to manage session-active class
   const setSessionActive = useCallback((active: boolean) => {
@@ -181,6 +193,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   const handleVapiCallEnd = useCallback((reason?: string) => {
     console.log('[TherapyButton] VAPI call ended:', reason)
+
+    // Clear silence detection on call end
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current)
+      silenceTimerRef.current = null
+    }
+    silenceCheckCountRef.current = 0
 
     // CRITICAL: Save conversation time when VAPI unexpectedly ends
     // This ensures we don't lose billing data if connection drops
@@ -257,6 +276,38 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     // Log function calls for debugging (endCall tool is handled natively by VAPI)
     if (message?.type === 'function-call' && message?.functionCall) {
       console.log('🔧 VAPI Function Call detected:', message.functionCall.name);
+    }
+
+    // Silence detection: check in with user when they go quiet
+    if (message?.type === 'speech-update') {
+      if (message.role === 'user' && message.status === 'stopped') {
+        // User stopped speaking — schedule a check-in after 20s
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
+        silenceCheckCountRef.current = 0
+
+        const scheduleCheckIn = (delayMs: number) => {
+          silenceTimerRef.current = setTimeout(() => {
+            const vapiInst = vapiInstanceRef.current
+            if (!vapiInst || typeof vapiInst.say !== 'function') return
+            const msg = SILENCE_REASSURANCE[silenceCheckCountRef.current % SILENCE_REASSURANCE.length]
+            silenceCheckCountRef.current++
+            vapiInst.say(msg, false)
+            // After first check-in, repeat every 60s if still silent
+            scheduleCheckIn(60_000)
+          }, delayMs)
+        }
+        scheduleCheckIn(10_000)
+      } else if (
+        (message.role === 'user' && message.status === 'started') ||
+        (message.role === 'assistant' && message.status === 'started')
+      ) {
+        // Any speech started — cancel pending check-in
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current)
+          silenceTimerRef.current = null
+        }
+        silenceCheckCountRef.current = 0
+      }
     }
 
     // Forward VAPI messages to transcript handler
@@ -392,8 +443,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             
             // Send system notification with the exact message VAPI should speak
             systemMessage = `[SYSTEM NOTIFICATION] 5 minutes remaining in session. Please announce to the client: "${userNotification}"`;
+          } else if (remainingMinutes === 3) {
+            systemMessage = '[SYSTEM NOTIFICATION] 3 minutes remaining in session. You MUST begin winding down NOW. Stop exploring new topics. Start transitioning toward a summary of today\'s key insights and any action steps. Tell the client you have about 3 minutes left.';
+          } else if (remainingMinutes === 2) {
+            systemMessage = '[SYSTEM NOTIFICATION] 2 minutes remaining in session. Deliver your session summary NOW. Briefly reflect on what was discussed, highlight one key takeaway, and offer an encouraging thought. Prepare your goodbye.';
           } else if (remainingMinutes === 1) {
-            systemMessage = '[SYSTEM NOTIFICATION] 1 minute remaining in session. Begin wrapping up immediately. Offer brief closing remarks and prepare to end.';
+            systemMessage = '[SYSTEM NOTIFICATION] 1 minute remaining in session. Begin wrapping up immediately. Deliver your final closing words - acknowledge their work today, give one affirming thought, and say a warm goodbye. Then call the endCall tool.';
           } else if (remainingMinutes === 0.5) { // 30 seconds
             systemMessage = '[SYSTEM NOTIFICATION] 30 seconds remaining. Deliver a brief warm goodbye with an encouraging thought, then IMMEDIATELY call the endCall tool to end the call. Do not wait any longer.';
           }

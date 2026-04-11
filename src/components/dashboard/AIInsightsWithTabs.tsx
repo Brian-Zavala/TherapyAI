@@ -13,81 +13,101 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { UnifiedLoadingState } from './UnifiedLoadingState';
-import { dashboardTheme, getMetricTheme, getProgressBarClasses } from '@/lib/dashboard-theme';
 import { emptyStateTheme, getEmptyStateClasses } from '@/lib/dashboard-empty-state-theme';
 import { DashboardAPIError } from './DashboardAPIErrorBoundary';
-import TherapyTypeTabs, { 
-  useTherapyTypeTabs, 
-  TherapyType, 
-  THERAPY_TYPE_CONFIGS 
+import TherapyTypeTabs, {
+  useTherapyTypeTabs,
+  TherapyType,
+  THERAPY_TYPE_CONFIGS
 } from './TherapyTypeTabs';
 import { useTherapyTypeData } from '@/hooks/useDashboardDataWithTherapyTypes';
-import { 
-  Brain, 
-  Heart, 
-  Target, 
-  TrendingUp, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  Brain,
+  Heart,
+  Target,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
   Sparkles,
-  Calendar,
-  BookOpen,
   Activity,
   Award,
   MessageSquare,
   Users,
-  Lightbulb,
   ArrowRight,
   Clock,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   RefreshCw,
-  User
+  ExternalLink,
+  BookOpen,
+  Zap,
+  Star
 } from 'lucide-react';
 
-// Therapy-specific insight categories and priorities
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Convert string trend ("moderate", "good", …) or number to 0-100 */
+function getProgressScore(progress: string | number): number {
+  if (typeof progress === 'number') return Math.min(100, Math.max(0, Math.round(progress)));
+  const map: Record<string, number> = {
+    excellent: 90, very_good: 85, good: 75, improving: 65,
+    moderate: 50, stable: 50, 'needs-attention': 35,
+    'needs-improvement': 30, declining: 25, poor: 20
+  };
+  const key = String(progress ?? '').toLowerCase().replace(/-/g, '_');
+  return map[key] ?? 50;
+}
+
+function getProgressLabel(progress: string | number): string {
+  if (typeof progress === 'number') {
+    if (progress >= 80) return 'Excellent';
+    if (progress >= 65) return 'Good';
+    if (progress >= 45) return 'Moderate';
+    return 'Needs Work';
+  }
+  const s = String(progress ?? '');
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ');
+}
+
+function getScoreColor(score: number) {
+  if (score >= 75) return { text: 'text-emerald-400', bar: 'bg-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' };
+  if (score >= 50) return { text: 'text-amber-400', bar: 'bg-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30' };
+  return { text: 'text-red-400', bar: 'bg-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' };
+}
+
+// ─── Therapy configs ─────────────────────────────────────────────────────────
+
 const THERAPY_INSIGHT_CONFIGS = {
   solo: {
     categories: ['mental-health', 'emotional', 'behavioral', 'progress'],
-    priorities: {
-      high: 'Self-care urgency',
-      medium: 'Growth opportunity', 
-      low: 'Personal enhancement'
-    },
+    priorities: { high: 'Needs Attention', medium: 'Growth Opportunity', low: 'Nice to Improve' },
     emptyState: {
-      title: "Your Personal Growth Journey Awaits",
-      description: "Complete individual therapy sessions to receive personalized insights about your mental health and personal development.",
-      cta: "Start Individual Session"
+      title: 'Your Personal Growth Journey Awaits',
+      description: 'Complete individual therapy sessions to receive personalised insights about your mental health and personal development.',
+      cta: 'Start Individual Session'
     }
   },
   couple: {
     categories: ['relationship', 'communication', 'emotional', 'progress'],
-    priorities: {
-      high: 'Relationship priority',
-      medium: 'Strengthen bond',
-      low: 'Enhance connection'
-    },
+    priorities: { high: 'Relationship Priority', medium: 'Strengthen Bond', low: 'Enhance Connection' },
     emptyState: {
-      title: "Strengthen Your Relationship Together",
-      description: "Complete couples therapy sessions to receive insights about your communication patterns and relationship dynamics.",
-      cta: "Start Couples Session"
+      title: 'Strengthen Your Relationship Together',
+      description: 'Complete couples therapy sessions to receive insights about your communication patterns and relationship dynamics.',
+      cta: 'Start Couples Session'
     }
   },
   family: {
     categories: ['relationship', 'communication', 'behavioral', 'progress'],
-    priorities: {
-      high: 'Family harmony focus',
-      medium: 'Family improvement',
-      low: 'Family enhancement'
-    },
+    priorities: { high: 'Family Harmony Focus', medium: 'Family Improvement', low: 'Family Enhancement' },
     emptyState: {
-      title: "Build Stronger Family Bonds",
-      description: "Complete family therapy sessions to receive insights about family dynamics and communication patterns.",
-      cta: "Start Family Session"
+      title: 'Build Stronger Family Bonds',
+      description: 'Complete family therapy sessions to receive insights about family dynamics and communication patterns.',
+      cta: 'Start Family Session'
     }
   }
 };
 
-const categoryIcons = {
+const categoryIcons: Record<string, React.ComponentType<any>> = {
   communication: MessageSquare,
   emotional: Heart,
   behavioral: Activity,
@@ -96,253 +116,288 @@ const categoryIcons = {
   progress: TrendingUp
 };
 
-const categoryMapping = {
-  communication: 'communication',
-  emotional: 'empathy',
-  behavioral: 'support',
-  'mental-health': 'progress',
-  relationship: 'empathy',
-  progress: 'progress'
-} as const;
-
-const priorityConfig = {
+const priorityStyles = {
   high: {
-    background: 'bg-red-50 dark:bg-red-900/20',
-    text: 'text-red-700 dark:text-red-400',
-    border: 'border-red-200 dark:border-red-800',
+    leftBar: 'bg-red-500',
+    badge: 'bg-red-500/15 text-red-400 border-red-500/30',
     icon: AlertCircle
   },
   medium: {
-    background: 'bg-amber-50 dark:bg-amber-900/20',
-    text: 'text-amber-700 dark:text-amber-400',
-    border: 'border-amber-200 dark:border-amber-800',
+    leftBar: 'bg-amber-500',
+    badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     icon: Clock
   },
   low: {
-    background: 'bg-green-50 dark:bg-green-900/20',
-    text: 'text-green-700 dark:text-green-400',
-    border: 'border-green-200 dark:border-green-800',
+    leftBar: 'bg-emerald-500',
+    badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     icon: CheckCircle2
   }
 };
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+interface ProgressOverviewProps {
+  summary: any;
+}
+
+function ProgressOverview({ summary }: ProgressOverviewProps) {
+  const score = getProgressScore(summary.overallProgress);
+  const label = getProgressLabel(summary.overallProgress);
+  const colors = getScoreColor(score);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`mt-4 rounded-xl border p-4 sm:p-5 ${colors.bg} ${colors.border}`}
+    >
+      {/* Score row */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-0.5">
+            Overall Health Score
+          </p>
+          <h4 className="text-sm sm:text-base md:text-lg font-semibold text-white leading-snug">
+            {summary.primaryFocus || 'Your Progress'}
+          </h4>
+          {summary.nextMilestone && (
+            <p className="text-xs sm:text-sm text-white/60 mt-0.5 leading-relaxed">
+              Next: {summary.nextMilestone}
+            </p>
+          )}
+        </div>
+
+        {/* Big score */}
+        <div className="flex-shrink-0 text-right">
+          <div className="flex items-baseline gap-1">
+            <span className={`text-3xl sm:text-4xl md:text-5xl font-extrabold ${colors.text}`}>
+              {score}
+            </span>
+            <span className={`text-lg font-bold ${colors.text}/70`}>%</span>
+          </div>
+          <span className={`text-xs sm:text-sm font-semibold ${colors.text}`}>{label}</span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2.5 sm:h-3 w-full bg-white/10 rounded-full overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${colors.bar}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${score}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        />
+      </div>
+
+      {/* Footer */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2.5 gap-1.5">
+        <div className="flex items-center gap-1.5">
+          {summary.isRealTime ? (
+            <>
+              <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span className="text-xs text-emerald-400 font-medium">Live Session Data</span>
+            </>
+          ) : (
+            <>
+              <TrendingUp className="h-3.5 w-3.5 text-white/50" />
+              <span className="text-xs text-white/50">
+                {summary.improvementRate ? `↑ ${summary.improvementRate}% improvement this month` : 'Based on your sessions'}
+              </span>
+            </>
+          )}
+        </div>
+        {summary.sessionsAnalyzed > 0 && (
+          <span className="text-xs text-white/40">
+            {summary.sessionsAnalyzed} session{summary.sessionsAnalyzed !== 1 ? 's' : ''} analysed
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Insight Card ─────────────────────────────────────────────────────────────
 
 interface InsightCardProps {
   insight: any;
   therapyType: TherapyType;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onViewDetails: () => void;
+  index: number;
 }
 
-function MetricDisplay({ label, value, unit, trend }: { label: string; value: number; unit?: string; trend?: string }) {
-  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '';
-  const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : '';
-  
-  return (
-    <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 border border-white/30">
-      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{label}</p>
-      <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white text-center">
-        {value}{unit || '%'} <span className={`text-xs sm:text-sm ${trendColor}`}>{trendIcon}</span>
-      </p>
-    </div>
-  );
-}
-
-function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewDetails }: InsightCardProps & { onViewDetails: () => void }) {
+function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewDetails, index }: InsightCardProps) {
   const CategoryIcon = categoryIcons[insight.category] || Brain;
-  const priorityStyles = priorityConfig[insight.priority] || priorityConfig.medium;
-  const PriorityIcon = priorityStyles.icon;
+  const pStyle = priorityStyles[insight.priority as keyof typeof priorityStyles] || priorityStyles.medium;
+  const PriorityIcon = pStyle.icon;
   const config = THERAPY_INSIGHT_CONFIGS[therapyType];
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className={`rounded-xl border p-3 sm:p-4 transition-all duration-200 hover:shadow-md cursor-pointer ${priorityStyles.background} ${priorityStyles.border}`}
-      onClick={onViewDetails}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ delay: index * 0.07, duration: 0.3 }}
+      className="relative flex rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/8 transition-all duration-200"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg bg-white dark:bg-gray-800 shadow-sm`}>
-            <CategoryIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+      {/* Priority left bar */}
+      <div className={`w-1 flex-shrink-0 ${pStyle.leftBar}`} />
+
+      <div className="flex-1 min-w-0 p-3 sm:p-4">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 p-2 rounded-lg bg-white/10 mt-0.5">
+            <CategoryIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white/80" />
           </div>
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-white">{insight.title}</h4>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className={`text-xs ${priorityStyles.text} border-current`}>
-                <PriorityIcon className="h-3 w-3 mr-1" />
-                {config.priorities[insight.priority]}
+
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+              <Badge className={`text-[10px] sm:text-xs border px-1.5 py-0 ${pStyle.badge}`}>
+                <PriorityIcon className="h-2.5 w-2.5 mr-0.5" />
+                {config.priorities[insight.priority as keyof typeof config.priorities] || insight.priority}
               </Badge>
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="outline" className="text-[10px] sm:text-xs border-white/20 text-white/50 px-1.5 py-0">
                 {insight.category.replace('-', ' ')}
               </Badge>
             </div>
+
+            <h4 className="text-sm sm:text-base font-semibold text-white leading-snug">
+              {insight.title}
+            </h4>
+            <p className="text-xs sm:text-sm text-white/60 mt-1 leading-relaxed">
+              {insight.description}
+            </p>
           </div>
-        </div>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleExpand();
-          }}
-          className="h-8 w-8 p-0"
-        >
-          <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-        </Button>
-      </div>
 
-      <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-        {insight.description}
-      </p>
-
-      {/* Display metrics if available */}
-      {insight.metrics && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-          {Object.entries(insight.metrics).map(([key, value]) => {
-            if (typeof value === 'number') {
-              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              return (
-                <MetricDisplay 
-                  key={key}
-                  label={label}
-                  value={value}
-                  trend={key === 'improvement' || key === 'improvementRate' ? 'up' : undefined}
-                />
-              );
-            }
-            return null;
-          })}
-        </div>
-      )}
-
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-3"
+          {/* Expand toggle */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+            className="flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+            aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
           >
-            {insight.actionItems && insight.actionItems.length > 0 && (
-              <div>
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Personalized Action Plan
-                </h5>
-                <ul className="space-y-2">
-                  {insight.actionItems.map((item: string, index: number) => (
-                    <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2 p-2 bg-white/10 backdrop-blur-sm rounded-lg">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </div>
 
-            {insight.exercise && (
-              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Recommended Exercise
-                </h5>
-                <p className="font-semibold text-sm text-blue-700 dark:text-blue-300">{insight.exercise.name}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{insight.exercise.description}</p>
-                <div className="flex gap-4 mt-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {insight.exercise.duration}
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    {insight.exercise.frequency}
-                  </Badge>
+        {/* Metrics strip */}
+        {insight.metrics && Object.keys(insight.metrics).some(k => typeof insight.metrics[k] === 'number') && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {Object.entries(insight.metrics).map(([key, value]) => {
+              if (typeof value !== 'number') return null;
+              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+              const score = Math.min(100, Math.max(0, value));
+              const c = getScoreColor(score);
+              return (
+                <div key={key} className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1.5 border border-white/10">
+                  <span className="text-xs text-white/50">{label}</span>
+                  <span className={`text-sm font-bold ${c.text}`}>{score}%</span>
                 </div>
-              </div>
-            )}
-
-            {insight.resources && insight.resources.length > 0 && (
-              <div>
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Recommended Resources
-                </h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {insight.resources.map((resource: any, index: number) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      className="p-3 h-auto flex flex-col items-start text-left hover:bg-gray-50 dark:hover:bg-gray-800"
-                      onClick={() => {
-                        // Handle resource click
-                        if (resource.link) {
-                          window.location.href = resource.link;
-                        }
-                      }}
-                    >
-                      <div className="w-full">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">{resource.title}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{resource.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {resource.type}
-                          </Badge>
-                          {resource.duration && (
-                            <Badge variant="outline" className="text-xs">
-                              {resource.duration}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
+              );
+            })}
+          </div>
         )}
-      </AnimatePresence>
+
+        {/* Expanded content */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 space-y-3 overflow-hidden"
+            >
+              {/* Action items */}
+              {insight.actionItems && insight.actionItems.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2 flex items-center gap-1.5">
+                    <Target className="h-3 w-3" />
+                    Action Steps
+                  </p>
+                  <ul className="space-y-1.5">
+                    {insight.actionItems.slice(0, 3).map((item: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-white/70 bg-white/5 rounded-lg px-3 py-2">
+                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-white/15 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">
+                          {i + 1}
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Exercise */}
+              {insight.exercise && (
+                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs font-semibold text-blue-300 mb-1 flex items-center gap-1.5">
+                    <Zap className="h-3 w-3" />
+                    Recommended Exercise
+                  </p>
+                  <p className="text-sm font-medium text-white">{insight.exercise.name}</p>
+                  <p className="text-xs text-white/60 mt-0.5">{insight.exercise.description}</p>
+                  <div className="flex gap-2 mt-1.5">
+                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+                      {insight.exercise.duration}
+                    </span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+                      {insight.exercise.frequency}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Footer: View Full Analysis */}
+        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+          <span className="text-[10px] sm:text-xs text-white/30">
+            Based on: {(insight.basedOn || []).join(', ') || 'session data'}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 sm:h-8 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5 px-2.5"
+            onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+          >
+            <ExternalLink className="h-3 w-3" />
+            Full Analysis
+          </Button>
+        </div>
+      </div>
     </motion.div>
   );
 }
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
 
 function EmptyState({ therapyType }: { therapyType: TherapyType }) {
   const config = THERAPY_INSIGHT_CONFIGS[therapyType];
   const typeConfig = THERAPY_TYPE_CONFIGS[therapyType];
   const Icon = typeConfig.icon;
-  const classes = getEmptyStateClasses();
 
   return (
     <motion.div
-      initial={emptyStateTheme.animations.container.initial}
-      animate={emptyStateTheme.animations.container.animate}
-      transition={emptyStateTheme.animations.container.transition}
-      className={classes.container}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center justify-center text-center py-10 sm:py-14 px-4"
     >
-      <div className="mb-8">
-        <motion.div 
-          className={classes.iconWrapper}
-          whileHover={emptyStateTheme.animations.icon.hover}
-          transition={emptyStateTheme.animations.icon.transition}
-        >
-          <Icon className={classes.icon} />
-        </motion.div>
-        <h3 className={classes.title}>
-          {config.emptyState.title}
-        </h3>
-        <p className={classes.description}>
-          {config.emptyState.description}
-        </p>
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-5">
+        <Icon className="h-8 w-8 sm:h-10 sm:w-10 text-white/60" />
       </div>
-      
-      <Button 
-        className={classes.button}
+      <h3 className="text-base sm:text-lg md:text-xl font-bold text-white mb-2">
+        {config.emptyState.title}
+      </h3>
+      <p className="text-sm sm:text-base text-white/50 leading-relaxed max-w-xs sm:max-w-sm mb-6">
+        {config.emptyState.description}
+      </p>
+      <Button
+        className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm sm:text-base"
         onClick={() => window.location.href = '/dashboard/therapy'}
       >
         {config.emptyState.cta}
@@ -350,6 +405,8 @@ function EmptyState({ therapyType }: { therapyType: TherapyType }) {
     </motion.div>
   );
 }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function AIInsightsWithTabs() {
   const { availableTypes, activeType, setActiveType } = useTherapyTypeTabs('insights');
@@ -359,77 +416,51 @@ export default function AIInsightsWithTabs() {
   const [realTimeInsights, setRealTimeInsights] = useState<any[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const { data: session } = useSession();
-  
-  // Get data for the active therapy type
-  const { 
-    aiInsights, 
-    sessionCount, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useTherapyTypeData(activeType, activeSessionId);
-  
-  // Subscribe to real-time insights updates
+
+  const { aiInsights, sessionCount, isLoading, error, refetch } = useTherapyTypeData(activeType, activeSessionId);
+
+  // Real-time insights subscription
   useEffect(() => {
     if (!activeSessionId) return;
-    
     const supabase = getSupabaseClient();
     const channel = supabase
       .channel(`insights-${activeSessionId}`)
       .on('broadcast', { event: 'insights-update' }, (payload) => {
-        logger.info('Received real-time insights update', {
-          sessionId: activeSessionId,
-          insightCount: payload.payload.insights?.length
-        });
         setRealTimeInsights(payload.payload.insights || []);
       })
       .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [activeSessionId]);
-  
-  // Check for active session
+
+  // Active session check
   useEffect(() => {
     const checkActiveSession = async () => {
       if (!session?.user?.id) return;
-      
       try {
-        const response = await fetch(`/api/sessions/active`);
-        if (response.ok) {
-          const data = await response.json();
-          const sessionId = data?.session?.id || data?.id;
-          setActiveSessionId(sessionId || null);
+        const res = await fetch('/api/sessions/active');
+        if (res.ok) {
+          const data = await res.json();
+          setActiveSessionId(data?.session?.id || data?.id || null);
         }
-      } catch (error) {
-        console.error('Failed to check active session:', error);
-      }
+      } catch { /* silently ignore */ }
     };
-    
     checkActiveSession();
-    // Check every 30 seconds
     const interval = setInterval(checkActiveSession, 30000);
-    
     return () => clearInterval(interval);
   }, [session?.user?.id]);
 
-  // Use real-time insights if available, otherwise use API data
+  // Derive displayable insights
   const generateInsights = () => {
-    // If we have real-time insights, use those
     if (realTimeInsights.length > 0) {
-      const avgProgress = realTimeInsights.reduce((acc, insight) => {
-        const metrics = insight.metrics || {};
-        const score = metrics.score || metrics.overallScore || 
-                      metrics.currentStressLevel || metrics.cohesionScore || 75;
-        return acc + score;
+      const avgProgress = realTimeInsights.reduce((acc, ins) => {
+        const m = ins.metrics || {};
+        return acc + (m.score || m.overallScore || 75);
       }, 0) / realTimeInsights.length;
-      
       return {
         insights: realTimeInsights,
         summary: {
           overallProgress: Math.round(avgProgress),
-          primaryFocus: realTimeInsights[0]?.title.split(':')[0] || 'Personal Growth',
+          primaryFocus: realTimeInsights[0]?.title?.split(':')[0] || 'Personal Growth',
           nextMilestone: `Continue progress in ${realTimeInsights.find(i => i.priority === 'high')?.category || 'all areas'}`,
           improvementRate: 15,
           sessionsAnalyzed: sessionCount || 0,
@@ -437,46 +468,40 @@ export default function AIInsightsWithTabs() {
         }
       };
     }
-    
-    // CRITICAL: Return API data directly, no fallback data
     return aiInsights || { insights: [], summary: null };
   };
 
   const insights = generateInsights();
-
-  const hasData = insights && insights.insights && insights.insights.length > 0;
-
-  // Get session counts for tab badges
-  const sessionCounts = availableTypes.reduce((acc, type) => {
-    acc[type] = 0; // This would come from the session counts query
-    return acc;
-  }, {} as Record<TherapyType, number>);
-
-  const handleInsightToggle = (insightId: string) => {
-    setExpandedInsight(expandedInsight === insightId ? null : insightId);
-  };
+  const hasData = insights?.insights?.length > 0;
+  const sessionCounts = availableTypes.reduce((acc, t) => ({ ...acc, [t]: 0 }), {} as Record<TherapyType, number>);
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 sm:border-2 sm:border-white/30 shadow-xl h-full flex flex-col">
-      <CardHeader className="pb-2 sm:pb-3 md:pb-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="w-full text-center">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white">
-              AI-Powered Therapy Analytics
-            </CardTitle>
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
-              Data-driven insights to accelerate your growth and strengthen relationships
-            </p>
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl flex flex-col">
+      {/* ── Header ── */}
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
+              <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-base sm:text-xl md:text-2xl font-bold text-white leading-tight">
+                AI Therapy Analytics
+              </CardTitle>
+              <p className="text-xs sm:text-sm text-white/50 mt-0.5 leading-relaxed">
+                Personalised insights to support your journey
+              </p>
+            </div>
           </div>
-          
+
           {error && (
             <Button
               variant="outline"
               size="sm"
               onClick={refetch}
-              className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+              className="gap-1.5 text-red-400 border-red-400/30 hover:bg-red-400/10 flex-shrink-0"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-3.5 w-3.5" />
               Retry
             </Button>
           )}
@@ -497,69 +522,24 @@ export default function AIInsightsWithTabs() {
           />
         </div>
 
-        {/* Progress Summary */}
+        {/* Progress Overview — only when data is present */}
         {hasData && insights.summary && (
-          <div className="mt-3 sm:mt-4 lg:mt-5 p-3 sm:p-4 md:p-5 lg:p-6 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4">
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-white">
-                  {insights.summary.primaryFocus}
-                </h4>
-                <p className="text-xs sm:text-sm lg:text-base text-gray-400 mt-0.5 sm:mt-1">
-                  Next milestone: {insights.summary.nextMilestone}
-                </p>
-              </div>
-              <div className="flex items-baseline gap-0.5 sm:gap-1 lg:gap-1.5 flex-shrink-0">
-                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-blue-400">
-                  {insights.summary.overallProgress}
-                </span>
-                <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-blue-400/70">%</span>
-                <span className="text-xs sm:text-sm text-gray-500 ml-1 lg:ml-2">Overall Health</span>
-              </div>
-            </div>
-            <Progress
-              value={insights.summary.overallProgress}
-              className="h-1.5 sm:h-2 lg:h-2.5 bg-white/10"
-            />
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 sm:mt-3 lg:mt-4 gap-2">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                {insights.summary.isRealTime ? (
-                  <>
-                    <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-green-400 animate-pulse" />
-                    <span className="text-xs sm:text-sm lg:text-base text-green-400 font-medium">
-                      Live Session Data
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-green-400" />
-                    <span className="text-xs sm:text-sm lg:text-base text-gray-400">
-                      {insights.summary.improvementRate}% improvement this month
-                    </span>
-                  </>
-                )}
-              </div>
-              {insights.summary.sessionsAnalyzed > 0 && (
-                <Badge variant="secondary" className="text-xs sm:text-sm">
-                  {insights.summary.isRealTime ? 'Real-time' : `Based on ${insights.summary.sessionsAnalyzed} sessions`}
-                </Badge>
-              )}
-            </div>
-          </div>
+          <ProgressOverview summary={insights.summary} />
         )}
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col">
+      {/* ── Body ── */}
+      <CardContent className="flex-1 flex flex-col pt-0">
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <UnifiedLoadingState 
+            <UnifiedLoadingState
               key="loading"
-              type="insights" 
-              message={`Analyzing your ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} therapy insights...`}
+              type="insights"
+              message={`Analysing your ${THERAPY_TYPE_CONFIGS[activeType].label.toLowerCase()} therapy insights…`}
               variant="inline"
             />
           ) : error ? (
-            <DashboardAPIError 
+            <DashboardAPIError
               key="error"
               error={error}
               onRetry={refetch}
@@ -570,46 +550,49 @@ export default function AIInsightsWithTabs() {
           ) : (
             <motion.div
               key={`insights-${activeType}`}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.3 }}
-              className="space-y-4"
+              className="space-y-3 sm:space-y-4"
             >
-              {insights.insights.map((insight: any) => (
+              {/* Section label */}
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
+                  Your Personalised Insights
+                </p>
+              </div>
+
+              {insights.insights.map((insight: any, i: number) => (
                 <InsightCard
                   key={insight.id}
                   insight={insight}
                   therapyType={activeType}
                   isExpanded={expandedInsight === insight.id}
-                  onToggleExpand={() => handleInsightToggle(insight.id)}
-                  onViewDetails={() => {
-                    setSelectedInsight(insight);
-                    setIsModalOpen(true);
-                  }}
+                  onToggleExpand={() => setExpandedInsight(expandedInsight === insight.id ? null : insight.id)}
+                  onViewDetails={() => { setSelectedInsight(insight); setIsModalOpen(true); }}
+                  index={i}
                 />
               ))}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Session Count Badge */}
-        {sessionCount > 0 && (
-          <div className="mt-auto pt-4 text-center">
-            <Badge variant="secondary" className="text-xs sm:text-sm">
-              Based on {sessionCount} completed {activeType} session{sessionCount > 1 ? 's' : ''}
-            </Badge>
+        {/* Session count footer */}
+        {sessionCount > 0 && !isLoading && (
+          <div className="mt-4 pt-4 border-t border-white/10 text-center">
+            <span className="text-xs text-white/30">
+              Based on {sessionCount} completed {activeType} session{sessionCount !== 1 ? 's' : ''}
+            </span>
           </div>
         )}
       </CardContent>
-      
+
       {/* Insight Detail Modal */}
       <InsightDetailModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedInsight(null);
-        }}
+        onClose={() => { setIsModalOpen(false); setSelectedInsight(null); }}
         insight={selectedInsight}
         therapyType={activeType}
       />

@@ -21,6 +21,7 @@ export async function seedResources() {
       source: r.source,
       url: r.url ?? null,
       duration: r.duration ?? null,
+      steps: r.steps ?? [],
       isExternal: false,
     })),
   })

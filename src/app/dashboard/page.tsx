@@ -29,7 +29,6 @@ import { useSession } from '@/hooks/useClerkSession'
 import { ClinicalDisclaimerModal } from "@/components/ClinicalDisclaimerModal";
 import { useDisclaimerCheck } from "@/hooks/useDisclaimerCheck";
 import { DashboardPermissionPrompt } from "@/components/DashboardPermissionPrompt";
-import CreditDisplay from "@/components/CreditDisplay";
 import "@/styles/dashboard-scoped.css";
 import "@/styles/dashboard-viewport-fix.css";
 import "@/styles/dashboard-colors.css";
@@ -84,11 +83,11 @@ export default function Dashboard() {
   // Generate tab classes with proper frosted glass effect
   const getTabClasses = (tabValue: string) => {
     const isActive = activeTab === tabValue;
-    const baseClasses = "gap-2 cursor-pointer transition-all duration-200 text-sm rounded-md flex items-center justify-center relative";
-    const activeClasses = isActive 
-      ? "text-white bg-white/25 backdrop-blur-sm shadow-lg border border-white/40 font-medium -m-2 px-5 py-4 z-10"
-      : "text-white/60 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20 px-3 py-2.5";
-    
+    const baseClasses = "flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-200 rounded-lg px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium flex-1 min-w-0 select-none";
+    const activeClasses = isActive
+      ? "text-white bg-white/25 backdrop-blur-sm shadow-lg border border-white/40 font-semibold"
+      : "text-white/60 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20";
+
     return `${baseClasses} ${activeClasses}`;
   };
   
@@ -157,12 +156,7 @@ export default function Dashboard() {
           }}
           resetKeys={[activeTab]}
         >
-        <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] pt-8 sm:pt-10 md:pt-12" data-page="dashboard">
-        
-        {/* Credit Display - positioned to avoid navigation coverage with error boundary */}
-        <DashboardErrorWrapper componentName="CreditDisplay">
-          <CreditDisplay />
-        </DashboardErrorWrapper>
+        <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] pt-20 sm:pt-22 md:pt-24" data-page="dashboard">
 
         {/* Error Alert */}
         {isError && (
@@ -205,34 +199,34 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="dashboard-main-tabs space-y-4">
-        <TabsList className="main-nav-tabs grid w-full grid-cols-2 md:grid-cols-4 max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-2 rounded-lg gap-2">
-          <TabsTrigger 
-            value="overview" 
+        <TabsList className="main-nav-tabs flex w-full max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm p-1.5 rounded-xl gap-1">
+          <TabsTrigger
+            value="overview"
             className={getTabClasses("overview")}
           >
-            <LayoutDashboard className="h-5 w-5" />
-            <span className="hidden sm:inline">Overview</span>
+            <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Overview</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="insights" 
+          <TabsTrigger
+            value="insights"
             className={getTabClasses("insights")}
           >
-            <Brain className="h-5 w-5" />
-            <span className="hidden sm:inline">Insights</span>
+            <Brain className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Insights</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="progress" 
+          <TabsTrigger
+            value="progress"
             className={getTabClasses("progress")}
           >
-            <TrendingUp className="h-5 w-5" />
-            <span className="hidden sm:inline">Progress</span>
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Progress</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="sessions" 
+          <TabsTrigger
+            value="sessions"
             className={getTabClasses("sessions")}
           >
-            <Calendar className="h-5 w-5" />
-            <span className="hidden sm:inline">Sessions</span>
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Sessions</span>
           </TabsTrigger>
         </TabsList>
 
@@ -253,7 +247,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10"
           >
             {/* Communication Metrics */}
             <DashboardErrorWrapper componentName="CommunicationMetrics">
@@ -282,7 +276,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8 xl:gap-10"
           >
             {/* Detailed Progress View */}
             <RelationshipProgressWithTabs />

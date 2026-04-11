@@ -98,13 +98,13 @@ export default function PricingCards() {
         name: 'Free',
         slug: 'free',
         price: 0,
-        sessionsPerMonth: 3,
+        sessionsPerMonth: 2,
         minutesPerSession: 15,
-        totalMinutes: 45,
+        totalMinutes: 30,
         features: [
-          'Basic mood tracking',
+          '2 therapy sessions per month',
+          '15 minutes per session',
           'Crisis detection & support',
-          'Email/text summaries',
           'AI-powered insights',
         ]
       },
@@ -116,7 +116,7 @@ export default function PricingCards() {
       data: {
         name: 'Pro',
         slug: 'pro',
-        price: 5,
+        price: 10,
         sessionsPerMonth: 'Unlimited',
         minutesPerSession: 30,
         totalMinutes: 'Unlimited',

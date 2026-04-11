@@ -50,7 +50,7 @@ export class CreditReservationManager {
         const credits = creditsResult[0];
 
         // Check if unlimited plan
-        if (credits.planType === 'unlimited') {
+        if (credits.planType === 'pro') {
           // Create tracking reservation but don't deduct
           const reservation = await this.createReservationRecord(tx, {
             userId,

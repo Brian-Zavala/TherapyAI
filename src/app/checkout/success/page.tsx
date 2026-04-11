@@ -67,30 +67,46 @@ export default function CheckoutSuccessPage() {
       });
     };
 
-    // Fetch subscription details
+    // Fetch subscription details from API
     const fetchSubscriptionDetails = async () => {
       try {
-        // For now, we'll use mock data based on URL params
-        // In production, this would fetch from the API
-        const mockDetails: SubscriptionDetails = {
-          planName: 'Essential Plan',
-          billingCycle: 'Monthly',
-          amount: '$12.99',
-          features: [
-            '8 sessions per month',
-            '20 minutes per session',
-            'Full analytics dashboard',
-            'Crisis detection & support',
-            'Session transcripts'
-          ],
-          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
-          })
-        };
-        
-        setSubscriptionDetails(mockDetails);
+        const response = await fetch('/api/user/subscription');
+        if (response.ok) {
+          const data = await response.json();
+          const tier = data.currentTier;
+          setSubscriptionDetails({
+            planName: `${tier.name} Plan`,
+            billingCycle: 'Monthly',
+            amount: tier.price === 0 ? 'Free' : `$${tier.price}`,
+            features: tier.features || [],
+            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
+            })
+          });
+        } else {
+          // Fallback to Pro plan defaults
+          setSubscriptionDetails({
+            planName: 'Pro Plan',
+            billingCycle: 'Monthly',
+            amount: '$10',
+            features: [
+              'Unlimited sessions per month',
+              '30 minutes per session',
+              'Full analytics dashboard',
+              'Session transcripts',
+              'Advanced CBT modules',
+              'Personalized therapy plans',
+              'Priority support',
+            ],
+            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
+            })
+          });
+        }
       } catch (error) {
         console.error('Error fetching subscription details:', error);
       }

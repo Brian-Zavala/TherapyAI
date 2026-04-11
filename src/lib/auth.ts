@@ -124,7 +124,7 @@ async function ensureCreditsExist(userId: string) {
       // Fix existing zero-credit row
       await prisma.usageCredits.update({
         where: { id: existingCredits.id },
-        data: { totalCredits: 45, planType: 'free' },
+        data: { totalCredits: 30, planType: 'free' },
       })
       console.log(`✓ Fixed zero-credit row for user: ${userId}`)
       return
@@ -133,14 +133,14 @@ async function ensureCreditsExist(userId: string) {
     // Try credit manager first
     try {
       await creditManager.initializeBillingPeriod(userId, 'free', billingStart, billingEnd)
-      console.log(`✓ Initialized free tier (45 credits) for user: ${userId}`)
+      console.log(`✓ Initialized free tier (30 credits) for user: ${userId}`)
     } catch (cmError) {
       // Direct DB fallback if credit manager fails (e.g. Redis idempotency issues)
       console.warn(`CreditManager failed, using direct DB insert for user ${userId}:`, cmError)
       await prisma.usageCredits.create({
         data: {
           userId,
-          totalCredits: 45,
+          totalCredits: 30,
           usedCredits: 0,
           bonusCredits: 0,
           billingPeriodStart: billingStart,
@@ -148,7 +148,7 @@ async function ensureCreditsExist(userId: string) {
           planType: 'free',
         },
       })
-      console.log(`✓ Direct DB: Initialized free tier (45 credits) for user: ${userId}`)
+      console.log(`✓ Direct DB: Initialized free tier (30 credits) for user: ${userId}`)
     }
   } catch (error) {
     console.error(`Failed to ensure credits for user ${userId}:`, error)

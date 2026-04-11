@@ -22,20 +22,10 @@ export const PLAN_DURATION_LIMITS = {
     max: 15,
     description: 'Free tier: 15-minute sessions only'
   },
-  essential: {
-    allowed: [15, 20] as const,
-    max: 20,
-    description: 'Essential tier: Up to 20-minute sessions'
-  },
-  growth: {
-    allowed: [15, 20, 25] as const,
-    max: 25,
-    description: 'Growth tier: Up to 25-minute sessions'
-  },
-  unlimited: {
+  pro: {
     allowed: [15, 20, 25, 30, 60] as const,
     max: 60,
-    description: 'Unlimited tier: All session durations available'
+    description: 'Pro tier: All session durations available'
   }
 } as const;
 
@@ -180,7 +170,7 @@ export function validateAndSanitizeDuration(
 // Export reusable Zod schemas
 export const durationValidationSchema = z.object({
   duration: strictDurationSchema,
-  planType: z.enum(['free', 'essential', 'growth', 'unlimited']).optional()
+  planType: z.enum(['free', 'pro']).optional()
 });
 
 // Schema for session creation with duration validation

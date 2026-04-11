@@ -12,6 +12,7 @@ export interface ResourceMatch {
   url?: string | null
   duration?: string | null
   difficulty: string
+  steps: string[]
   relevanceScore: number
   relevanceReasons: string[]
 }
@@ -183,6 +184,7 @@ export async function getMatchedResources(input: MatchInput): Promise<ResourceMa
         url: r.url,
         duration: r.duration,
         difficulty: r.difficulty,
+        steps: r.steps,
         relevanceScore: score,
         relevanceReasons: reasons,
       } as ResourceMatch

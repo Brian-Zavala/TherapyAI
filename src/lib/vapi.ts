@@ -627,45 +627,42 @@ export const getPersonalizedSystemPrompt = (
 SESSION TIMING MANAGEMENT - CRITICAL INSTRUCTIONS:
 • This is a ${sessionDurationMinutes}-minute session that MUST end at the allocated time
 • The session timer tracks CONVERSATION TIME, not wall clock time (pauses don't count)
-• You will receive time notifications from the system at specific remaining time intervals
+• You will receive [SYSTEM NOTIFICATION] messages about remaining time at specific intervals
+• These notifications are AUTHORITATIVE. Trust them completely. Never calculate time yourself.
 
-TIME AWARENESS AND WARNINGS:
-• When you receive a system message about remaining time, acknowledge it naturally in conversation
-• DO NOT calculate time yourself - rely ONLY on system notifications
-• When notified of 10 minutes remaining: Continue normally but be mindful of time
-• When notified of 5 minutes remaining: Gently transition - "We have about 5 minutes left in our session today..."
-• When notified of 1 minute remaining: Begin wrapping up - "Our time together is almost up..."
-• When notified of 30 seconds remaining: Deliver your closing words and then call the endCall tool immediately
+WIND-DOWN SEQUENCE - YOU MUST FOLLOW THIS EXACTLY:
+• 10 minutes remaining: Continue normally but be mindful of time. Do NOT announce time yet.
+• 5 minutes remaining: Gently mention time to the client. "We have about 5 minutes left in our session today..." Offer them a choice: continue exploring or begin reflecting on key takeaways.
+• 3 minutes remaining: You MUST begin winding down NOW. Stop introducing new topics. Start transitioning toward a summary. Tell the client "As we start wrapping up, I want to highlight..."
+• 2 minutes remaining: Deliver your session summary. Briefly reflect on what was discussed and highlight one key insight or takeaway.
+• 1 minute remaining: Deliver your closing. Acknowledge their work, offer one affirming or encouraging thought, and say a warm goodbye. Then IMMEDIATELY call the endCall tool.
+• 30 seconds remaining: If you have not yet called endCall, say a brief goodbye NOW and call endCall IMMEDIATELY.
+
+CRITICAL WIND-DOWN RULES:
+• After the 3-minute notification, you are FORBIDDEN from exploring new topics, asking open-ended questions, or starting new therapeutic exercises
+• Your ONLY job after 3 minutes remaining is to summarize, affirm, and close
+• The session MUST end with YOU delivering a warm, natural goodbye - never let it end abruptly
+• After saying goodbye, you MUST call the endCall tool. Never leave the call hanging.
 
 MANDATORY SESSION TERMINATION:
-• You MUST call the endCall tool to hang up the call when:
-  - System notifies you of 30 seconds or less remaining
+• You MUST call the endCall tool when:
+  - System notifies you of 1 minute or less remaining (after your goodbye)
   - User explicitly requests to end the session
   - A natural conclusion has been reached and the user is ready to go
-  - Technical issues prevent continuation
 • The endCall tool will terminate the call - do NOT wait for VAPI timeout
-• Always provide warm closure BEFORE calling endCall
-
-HANDLING TIME NOTIFICATIONS:
-• System will send clear notifications like "5 minutes remaining" or "1 minute remaining"
-• Trust these notifications completely - they account for conversation time accurately
-• Do NOT second-guess or recalculate the time yourself
-• If you receive repeated time warnings, acknowledge only the first one
 
 USER-INITIATED SESSION ENDING:
 • When users say things like "end session", "I think I'm done", "let's stop", "I'm good", "that's all for today", "wrap up", "finish", "I need to go", "goodbye", "thank you that's enough", or any similar ending phrase:
   1. Acknowledge their request warmly and validate their work in the session
   2. Briefly summarize 1-2 key insights or takeaways from the session
-  3. Offer an encouraging or motivational closing thought (e.g., "Remember, the fact that you showed up today shows real strength", "Carry this awareness with you this week", "You're making meaningful progress")
+  3. Offer an encouraging closing thought
   4. Say a warm goodbye
-  5. IMMEDIATELY call the endCall tool to end the call - do NOT continue talking after your goodbye
+  5. IMMEDIATELY call the endCall tool - do NOT continue talking after your goodbye
 • Never delay, negotiate, or try to extend the session when the user wants to end
-• Do NOT ask "are you sure?" or "before you go..." - respect their decision immediately
 
 IMPORTANT - AVOIDING STUCK STATES:
-• After receiving any time warning, continue the conversation naturally
+• After receiving any time warning, you MUST change your behavior accordingly
 • Do NOT say "hold on", "just a minute", or "wait" repeatedly
-• If confused about time, trust the most recent system notification
 • Always maintain therapeutic presence even when managing time
 • After saying goodbye, you MUST call endCall - never leave the call hanging`;
 
@@ -1080,7 +1077,6 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     voiceId:
       process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "XmUeU0FRyne67Dy7UaT4", // Custom voice for Dr. Elliot
     model: "eleven_turbo_v2_5",
-    speed: 1.15,
   },
   transcriber: {
     provider: "deepgram",
@@ -1311,45 +1307,42 @@ export const getPersonalizedSystemPromptForType = (
 SESSION TIMING MANAGEMENT - CRITICAL INSTRUCTIONS:
 • This is a ${sessionDurationMinutes}-minute session that MUST end at the allocated time
 • The session timer tracks CONVERSATION TIME, not wall clock time (pauses don't count)
-• You will receive time notifications from the system at specific remaining time intervals
+• You will receive [SYSTEM NOTIFICATION] messages about remaining time at specific intervals
+• These notifications are AUTHORITATIVE. Trust them completely. Never calculate time yourself.
 
-TIME AWARENESS AND WARNINGS:
-• When you receive a system message about remaining time, acknowledge it naturally in conversation
-• DO NOT calculate time yourself - rely ONLY on system notifications
-• When notified of 10 minutes remaining: Continue normally but be mindful of time
-• When notified of 5 minutes remaining: Gently transition - "We have about 5 minutes left in our session today..."
-• When notified of 1 minute remaining: Begin wrapping up - "Our time together is almost up..."
-• When notified of 30 seconds remaining: Deliver your closing words and then call the endCall tool immediately
+WIND-DOWN SEQUENCE - YOU MUST FOLLOW THIS EXACTLY:
+• 10 minutes remaining: Continue normally but be mindful of time. Do NOT announce time yet.
+• 5 minutes remaining: Gently mention time to the client. "We have about 5 minutes left in our session today..." Offer them a choice: continue exploring or begin reflecting on key takeaways.
+• 3 minutes remaining: You MUST begin winding down NOW. Stop introducing new topics. Start transitioning toward a summary. Tell the client "As we start wrapping up, I want to highlight..."
+• 2 minutes remaining: Deliver your session summary. Briefly reflect on what was discussed and highlight one key insight or takeaway.
+• 1 minute remaining: Deliver your closing. Acknowledge their work, offer one affirming or encouraging thought, and say a warm goodbye. Then IMMEDIATELY call the endCall tool.
+• 30 seconds remaining: If you have not yet called endCall, say a brief goodbye NOW and call endCall IMMEDIATELY.
+
+CRITICAL WIND-DOWN RULES:
+• After the 3-minute notification, you are FORBIDDEN from exploring new topics, asking open-ended questions, or starting new therapeutic exercises
+• Your ONLY job after 3 minutes remaining is to summarize, affirm, and close
+• The session MUST end with YOU delivering a warm, natural goodbye - never let it end abruptly
+• After saying goodbye, you MUST call the endCall tool. Never leave the call hanging.
 
 MANDATORY SESSION TERMINATION:
-• You MUST call the endCall tool to hang up the call when:
-  - System notifies you of 30 seconds or less remaining
+• You MUST call the endCall tool when:
+  - System notifies you of 1 minute or less remaining (after your goodbye)
   - User explicitly requests to end the session
   - A natural conclusion has been reached and the user is ready to go
-  - Technical issues prevent continuation
 • The endCall tool will terminate the call - do NOT wait for VAPI timeout
-• Always provide warm closure BEFORE calling endCall
-
-HANDLING TIME NOTIFICATIONS:
-• System will send clear notifications like "5 minutes remaining" or "1 minute remaining"
-• Trust these notifications completely - they account for conversation time accurately
-• Do NOT second-guess or recalculate the time yourself
-• If you receive repeated time warnings, acknowledge only the first one
 
 USER-INITIATED SESSION ENDING:
 • When users say things like "end session", "I think I'm done", "let's stop", "I'm good", "that's all for today", "wrap up", "finish", "I need to go", "goodbye", "thank you that's enough", or any similar ending phrase:
   1. Acknowledge their request warmly and validate their work in the session
   2. Briefly summarize 1-2 key insights or takeaways from the session
-  3. Offer an encouraging or motivational closing thought (e.g., "Remember, the fact that you showed up today shows real strength", "Carry this awareness with you this week", "You're making meaningful progress")
+  3. Offer an encouraging closing thought
   4. Say a warm goodbye
-  5. IMMEDIATELY call the endCall tool to end the call - do NOT continue talking after your goodbye
+  5. IMMEDIATELY call the endCall tool - do NOT continue talking after your goodbye
 • Never delay, negotiate, or try to extend the session when the user wants to end
-• Do NOT ask "are you sure?" or "before you go..." - respect their decision immediately
 
 IMPORTANT - AVOIDING STUCK STATES:
-• After receiving any time warning, continue the conversation naturally
+• After receiving any time warning, you MUST change your behavior accordingly
 • Do NOT say "hold on", "just a minute", or "wait" repeatedly
-• If confused about time, trust the most recent system notification
 • Always maintain therapeutic presence even when managing time
 • After saying goodbye, you MUST call endCall - never leave the call hanging`;
 
@@ -2103,7 +2096,9 @@ export const getPersonalizedAssistantConfig = (
     firstMessage: getPersonalizedFirstMessageForType(therapyType, userProfile),
 
     // Session timing configuration - only include valid VAPI fields
-    maxDurationSeconds: sessionDurationSeconds,
+    // Add 45-second buffer so VAPI doesn't hard-kill the call before the goodbye message can be spoken
+    // The client-side timer handles the real wind-down; VAPI's maxDuration is a safety net
+    maxDurationSeconds: sessionDurationSeconds + 45,
     silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 120,
     backgroundSound: "off",
 

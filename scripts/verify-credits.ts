@@ -27,9 +27,9 @@ async function verifyCredits() {
         console.log(`   📅 Plan: ${credits.planType}`);
         console.log(`   📅 Period: ${credits.billingPeriodStart.toISOString().split('T')[0]} → ${credits.billingPeriodEnd.toISOString().split('T')[0]}`);
         
-        // Verify free tier has exactly 45 credits
-        if (credits.planType === 'free' && credits.totalCredits !== 45) {
-          console.log(`   ⚠️  ISSUE: Free tier should have 45 credits, but has ${credits.totalCredits}`);
+        // Verify free tier has exactly 30 credits
+        if (credits.planType === 'free' && credits.totalCredits !== 30) {
+          console.log(`   ⚠️  ISSUE: Free tier should have 30 credits, but has ${credits.totalCredits}`);
         }
       } else {
         console.log(`   ❌ NO CREDITS FOUND`);

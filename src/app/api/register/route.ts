@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       billingEnd
     );
     
-    console.log(`✓ Initialized free tier (45 credits) for new user: ${user.email}`);
+    console.log(`✓ Initialized free tier (30 credits) for new user: ${user.email}`);
     
     // Return success response (excluding password)
     const { password: _, ...userWithoutPassword } = user

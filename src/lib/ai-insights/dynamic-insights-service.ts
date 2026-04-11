@@ -25,7 +25,8 @@ export class DynamicInsightsService {
   async generateComprehensiveInsights(
     userId: string,
     sessions?: any[],
-    userProfile?: any
+    userProfile?: any,
+    sessionType?: 'SOLO' | 'COUPLE' | 'FAMILY'
   ): Promise<ComprehensiveInsights> {
     logger.info('Generating dynamic comprehensive insights', { userId });
 
@@ -67,7 +68,7 @@ export class DynamicInsightsService {
       });
       
       // Fallback to basic insights if AI generation fails
-      return this.generateFallbackInsights(userId);
+      return this.generateFallbackInsights(userId, sessionType);
     }
   }
 
@@ -407,17 +408,25 @@ export class DynamicInsightsService {
   }
 
   /**
-   * Generate fallback insights when AI fails
+   * Generate fallback insights when AI fails.
+   * Always filters by sessionType to prevent cross-type data contamination.
    */
-  private async generateFallbackInsights(userId: string): Promise<ComprehensiveInsights> {
-    logger.warn('Using fallback insights generation', { userId });
+  private async generateFallbackInsights(
+    userId: string,
+    sessionType?: 'SOLO' | 'COUPLE' | 'FAMILY'
+  ): Promise<ComprehensiveInsights> {
+    logger.warn('Using fallback insights generation', { userId, sessionType });
 
-    // Get basic user data for context
+    // Get basic user data for context — ALWAYS filter by session type
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         sessions: {
-          where: { status: 'COMPLETED' },
+          where: {
+            status: 'COMPLETED',
+            // CRITICAL: only count sessions of this exact therapy type
+            ...(sessionType ? { sessionType } : {})
+          },
           orderBy: { startTime: 'desc' },
           take: 5
         },
@@ -427,6 +436,20 @@ export class DynamicInsightsService {
 
     const sessionCount = user?.sessions?.length || 0;
     const hasRecentSessions = sessionCount > 0;
+
+    // If no sessions exist for this type, return empty rather than generic content
+    if (!hasRecentSessions && sessionType) {
+      return {
+        insights: [],
+        summary: null as any,
+        trends: {
+          communication: 'stable' as const,
+          emotional: 'stable' as const,
+          consistency: 'needs-improvement' as const
+        },
+        personalizedTips: { daily: [], weekly: [], exercises: [] }
+      };
+    }
 
     return {
       insights: hasRecentSessions ? [{
@@ -536,17 +559,22 @@ export class DynamicInsightsService {
 }
 
 /**
- * Main export function that replaces generateTherapyInsights
+ * Main export function that replaces generateTherapyInsights.
+ * sessionType must match a Prisma SessionType enum value ('SOLO' | 'COUPLE' | 'FAMILY').
+ * When provided, all DB fallback queries are filtered to that type so analytics
+ * from one therapy mode never bleed into another.
  */
-export async function generateDynamicTherapyInsights({ 
-  userId, 
-  sessions, 
-  userProfile 
-}: { 
-  sessions?: any; 
-  userProfile?: any; 
-  userId: string 
+export async function generateDynamicTherapyInsights({
+  userId,
+  sessions,
+  userProfile,
+  sessionType
+}: {
+  sessions?: any;
+  userProfile?: any;
+  userId: string;
+  sessionType?: 'SOLO' | 'COUPLE' | 'FAMILY';
 }): Promise<ComprehensiveInsights> {
   const service = new DynamicInsightsService(userId);
-  return service.generateComprehensiveInsights(userId, sessions, userProfile);
+  return service.generateComprehensiveInsights(userId, sessions, userProfile, sessionType);
 }

@@ -7,7 +7,6 @@ import SessionTranscriptSMS from '@/components/SessionTranscriptSMS'
 import SessionsLoadingSpinner from '@/components/sessions/SessionsLoadingSpinner'
 import { useSession } from '@/hooks/useClerkSession'
 import { useRouter } from 'next/navigation'
-import CreditDisplay from '@/components/CreditDisplay'
 
 type TranscriptEntry = {
   id: string
@@ -127,7 +126,6 @@ export default function SessionsPage() {
   
   return (
     <div className="min-h-screen relative py-6 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-      <CreditDisplay />
       <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] mx-auto relative z-10">
       <motion.div 
         initial={{ opacity: 0, y: -10 }}

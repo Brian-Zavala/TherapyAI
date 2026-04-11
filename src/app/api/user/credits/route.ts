@@ -2,6 +2,7 @@ import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
 import { creditManager } from '@/lib/services/credit-manager.service';
 import { prisma } from '@/lib/prisma-optimized';
+import { PLAN_DURATION_LIMITS, type PlanType } from '@/lib/validation/duration-validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,13 +51,17 @@ export async function GET(request: NextRequest) {
     // Get credit status from credit manager
     const creditStatus = await creditManager.checkCredits(session.user.id);
     
-    // Calculate credits for each duration
+    // Calculate credits for each duration, factoring in plan restrictions
     const durations = [15, 20, 25, 30, 60];
+    const planType = (creditStatus.planType || 'free') as PlanType;
+    const planLimits = PLAN_DURATION_LIMITS[planType];
     const durationStatus = durations.map(duration => {
       const hasCredits = creditStatus.remainingCredits >= duration || creditStatus.isUnlimited;
+      const allowedByPlan = (planLimits.allowed as readonly number[]).includes(duration);
       return {
         duration,
-        canAfford: hasCredits,
+        canAfford: hasCredits && allowedByPlan,
+        allowedByPlan,
         creditsRequired: duration,
         creditsAfterSession: Math.max(0, creditStatus.remainingCredits - duration)
       };

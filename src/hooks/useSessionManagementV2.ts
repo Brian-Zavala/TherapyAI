@@ -170,6 +170,14 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
       console.log('⚠️ 5 minutes remaining')
       onTimeWarning?.(5)
     }, [onTimeWarning]),
+    onThreeMinuteWarning: useCallback(() => {
+      console.log('⚠️ 3 minutes remaining')
+      onTimeWarning?.(3)
+    }, [onTimeWarning]),
+    onTwoMinuteWarning: useCallback(() => {
+      console.log('⚠️ 2 minutes remaining')
+      onTimeWarning?.(2)
+    }, [onTimeWarning]),
     onOneMinuteWarning: useCallback(() => {
       console.log('⚠️ 1 minute remaining')
       onTimeWarning?.(1)

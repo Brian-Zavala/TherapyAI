@@ -54,6 +54,9 @@ const PRICE_TO_PLAN_MAP: Record<string, 'pro'> = {};
 if (process.env.STRIPE_PRICE_PRO_MONTHLY) {
   PRICE_TO_PLAN_MAP[process.env.STRIPE_PRICE_PRO_MONTHLY] = 'pro';
 }
+if (process.env.STRIPE_PRICE_PRO_ANNUAL) {
+  PRICE_TO_PLAN_MAP[process.env.STRIPE_PRICE_PRO_ANNUAL] = 'pro';
+}
 
 // Test price ID for development
 if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
         if (isTestWebhook) {
           console.log('🧪 Test webhook detected, using mock subscription data');
           // For test webhooks, create a mock subscription with plan info from metadata
-          const testPlanType = session.metadata?.planType || 'essential';
+          const testPlanType = session.metadata?.planType || 'pro';
           subscription = {
             id: session.subscription as string,
             status: 'active',
@@ -317,12 +320,12 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
-        
+
         // Get the customer
         const customer = await stripe.customers.retrieve(
           subscription.customer as string
         ) as Stripe.Customer;
-        
+
         // Update user subscription status
         if (customer.metadata?.userId) {
           await prisma.user.update({
@@ -332,20 +335,28 @@ export async function POST(request: NextRequest) {
               subscriptionId: subscription.id,
             },
           });
-          
-          // Initialize credits for new subscription
+
+          // Initialize credits for new subscription (use UTC dates for consistency with checkout handler)
           const planType = await getPlanTypeFromSubscription(subscription);
-          const billingStart = new Date(subscription.current_period_start * 1000);
-          const billingEnd = new Date(subscription.current_period_end * 1000);
-          
-          await creditManager.initializeBillingPeriod(
+          const billingStart = toUTCMidnight(parseStripeTimestamp(subscription.current_period_start));
+          const billingEnd = toUTCMidnight(parseStripeTimestamp(subscription.current_period_end));
+
+          await creditManager.initializeBillingPeriodWithNotification(
             customer.metadata.userId,
             planType,
             billingStart,
             billingEnd,
             subscription.id
           );
-          
+
+          // Invalidate cache for immediate UI update
+          try {
+            await broadcastCreditUpdate(customer.metadata.userId, 'subscription_created');
+            await redis.del(`credits:${customer.metadata.userId}:current`);
+          } catch (cacheError: any) {
+            console.error(`⚠️ Failed to invalidate cache: ${cacheError.message}`);
+          }
+
           console.log(`💳 Credits initialized for subscription.created: ${customer.metadata.userId} (${planType})`);
         }
         break;
@@ -374,22 +385,18 @@ export async function POST(request: NextRequest) {
           if (previousAttributes?.items) {
             const newPlanType = await getPlanTypeFromSubscription(subscription);
             
-            // Determine old plan type from previous attributes
+            // Determine old plan type from previous price ID
             const oldPriceId = previousAttributes.items?.data?.[0]?.price?.id;
-            let oldPlanType: 'free' | 'essential' | 'growth' | 'unlimited' = 'free';
-            
-            if (oldPriceId) {
-              if (oldPriceId.includes('unlimited')) oldPlanType = 'unlimited';
-              else if (oldPriceId.includes('growth')) oldPlanType = 'growth';
-              else if (oldPriceId.includes('essential')) oldPlanType = 'essential';
-            }
-            
+            const oldPlanType: 'free' | 'pro' = oldPriceId && PRICE_TO_PLAN_MAP[oldPriceId] === 'pro'
+              ? 'pro'
+              : 'free';
+
             const billingStart = parseStripeTimestamp(subscription.current_period_start);
             const billingEnd = parseStripeTimestamp(subscription.current_period_end);
-            
-            // Use upgrade handler if moving to higher tier
-            const planHierarchy = { free: 0, essential: 1, growth: 2, unlimited: 3 };
-            
+
+            // Use upgrade handler if moving to higher tier (free → pro)
+            const planHierarchy = { free: 0, pro: 1 };
+
             if (planHierarchy[newPlanType] > planHierarchy[oldPlanType]) {
               // Upgrade - preserve existing credits and add new tier credits
               await creditManager.handleSubscriptionUpgrade(

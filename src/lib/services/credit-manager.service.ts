@@ -32,10 +32,10 @@ export interface CreditManagerConfig {
   alertThresholds: number[];
 }
 
-// Two-tier pricing: Free and Pro ($5/month)
+// Two-tier pricing: Free and Pro ($10/month)
 const config: CreditManagerConfig = {
   plans: {
-    free: { credits: 45, maxSessionDuration: 15, concurrent: 1 },  // 3 sessions × 15 minutes
+    free: { credits: 30, maxSessionDuration: 15, concurrent: 1 },  // 2 sessions × 15 minutes
     pro:  { credits: 120, maxSessionDuration: 30, concurrent: 1 }, // 4 sessions × 30 minutes
   },
   overageRate: 0.15, // $0.15 per minute overage
@@ -382,7 +382,7 @@ export class CreditManager {
     const planConfig = this.config.plans[planType];
 
     // Handle unlimited plan
-    if (planType === 'unlimited') {
+    if (planType === 'pro') {
       return {
         hasCredits: true,
         availableMinutes: planConfig.maxSessionDuration,
@@ -485,7 +485,7 @@ export class CreditManager {
             const credits = creditsResult[0];
             const planType = credits.planType as keyof typeof config.plans;
             
-            if (planType === 'unlimited') {
+            if (planType === 'pro') {
               // Still create reservation for tracking
               const reservationData = {
                 userId,
@@ -657,7 +657,7 @@ export class CreditManager {
             const actualMinutes = Number.isInteger(minutesUsed) ? minutesUsed : Math.ceil(minutesUsed);
 
             // For unlimited plans, just track usage without deducting
-            if (credits.planType === 'unlimited') {
+            if (credits.planType === 'pro') {
               return await tx.usageTransaction.create({
                 data: {
                   userId,
@@ -904,7 +904,7 @@ export class CreditManager {
           }
 
           // Don't refund for unlimited plans
-          if (credits.planType === 'unlimited') {
+          if (credits.planType === 'pro') {
             return await tx.usageTransaction.create({
               data: {
                 userId,
@@ -964,7 +964,7 @@ export class CreditManager {
     currentBalance: number
   ): Promise<void> {
     // Don't send alerts for unlimited plans
-    if (credits.planType === 'unlimited') return;
+    if (credits.planType === 'pro') return;
 
     const percentageUsed = (credits.usedCredits / credits.totalCredits) * 100;
 

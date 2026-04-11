@@ -163,11 +163,30 @@ export async function GET(request: NextRequest) {
       ),
     ])
     
+    // CRITICAL: If no sessions of this type exist, return empty — never pollute
+    // one therapy type's analytics with data from a different type.
+    if (recentSessions.length === 0) {
+      const emptyInsights = {
+        insights: [],
+        summary: null,
+        trends: {
+          communication: 'stable' as const,
+          emotional: 'stable' as const,
+          consistency: 'needs-improvement' as const
+        },
+        personalizedTips: { daily: [], weekly: [], exercises: [] }
+      };
+      await dashboardCache.set(cacheKey, emptyInsights);
+      logger.info('No sessions for therapy type — returning empty insights', { userId, therapyType });
+      return NextResponse.json(emptyInsights);
+    }
+
     // Generate dynamic insights based on actual VAPI session data
     const insights = await generateDynamicTherapyInsights({
       sessions: recentSessions,
       userProfile,
       userId,
+      sessionType: sessionTypeValue,
     })
     
     // Cache the insights with longer TTL (5 minutes default)

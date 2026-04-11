@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Clock, CheckCircle, Star, Coins, AlertCircle, CreditCard, TrendingUp } from "lucide-react";
+import { X, Clock, CheckCircle, Star, Coins, AlertCircle, CreditCard, TrendingUp, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from '@tanstack/react-query';
@@ -297,8 +297,10 @@ export default function SessionDurationModal({
                       (d: any) => d.duration === option.duration
                     );
                     const canAfford = durationInfo?.canAfford ?? true; // Default to true if loading
-                    const isDisabled = !canAfford && !creditStatus?.credits?.isUnlimited;
-                    
+                    const allowedByPlan = durationInfo?.allowedByPlan ?? true; // Default to true if loading
+                    const isDisabled = (!canAfford && !creditStatus?.credits?.isUnlimited) || !allowedByPlan;
+                    const isPlanRestricted = !allowedByPlan;
+
                     return (
                     <motion.div
                       key={option.duration}
@@ -306,13 +308,18 @@ export default function SessionDurationModal({
                       whileTap={!isDisabled ? { scale: 0.99 } : {}}
                       className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
                         isDisabled
-                          ? "border-red-500/30 bg-red-900/10 cursor-not-allowed opacity-60"
+                          ? isPlanRestricted
+                            ? "border-purple-500/30 bg-purple-900/10 cursor-not-allowed opacity-50"
+                            : "border-red-500/30 bg-red-900/10 cursor-not-allowed opacity-60"
                           : selectedDuration === option.duration
                           ? "border-green-400/60 bg-green-600/20 shadow-lg cursor-pointer"
                           : "border-gray-600/40 bg-gray-800/60 hover:border-gray-500/60 cursor-pointer"
                       }`}
                       onClick={() => {
-                        if (isDisabled) {
+                        if (isPlanRestricted) {
+                          toast.error(`${option.duration}-minute sessions require a Pro plan. Upgrade to unlock all durations.`);
+                          setShowUpgradePrompt(true);
+                        } else if (isDisabled) {
                           toast.error(`Insufficient credits. You need ${option.duration} minutes but only have ${creditStatus?.credits?.remaining || 0} available.`);
                           setShowUpgradePrompt(true);
                         } else {
@@ -320,8 +327,18 @@ export default function SessionDurationModal({
                         }
                       }}
                     >
+                      {/* Pro Only Badge */}
+                      {isPlanRestricted && (
+                        <div className="absolute -top-2 right-4">
+                          <div className="flex items-center gap-1 px-2 py-1 bg-purple-500 text-white text-xs font-medium rounded-full shadow-md">
+                            <Lock className="w-3 h-3" />
+                            <span>Pro Only</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Insufficient Credits Badge */}
-                      {isDisabled && (
+                      {isDisabled && !isPlanRestricted && (
                         <div className="absolute -top-2 right-4">
                           <div className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded-full shadow-md">
                             <AlertCircle className="w-3 h-3" />

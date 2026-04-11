@@ -218,3 +218,56 @@ Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 - Letter wave animation for "Loading profile..."
 - Performance optimized with `will-change` and `translateZ(0)`
 - Full viewport coverage with `fixed inset-0 w-full h-full`
+
+## 💳 Credit Display System
+
+**`CreditDisplay.tsx`** — Shows available/total/used credits with visual indicators
+- **Position**: Fixed top-right, responsive (`top-20` mobile, `top-24` tablet, `top-4` desktop), `z-[35]`
+- **Integration**: Dashboard, therapy, and sessions pages with error boundary wrapper
+- **Data Fetching**: React Query with exponential backoff polling (5s → 10s → 20s) — reduces API calls 70%
+- **Real-time countdown**: Decrements every 30s during active VAPI sessions (local timer, syncs on end)
+- **Events**: Listens for `sessionStarted`/`sessionEnded` window events
+
+**Key Points:**
+- Free tier: 30 credits (30 min/month) | Pro tier: Unlimited
+- No SSE/WebSocket — Upstash Redis doesn't support pub/sub
+- Wrap in error boundary to prevent UI crashes from API failures
+- Stripe price IDs via env vars only — never hardcode
+
+## 🐛 Profile System Known Issues
+
+### Profile Update Flow
+1. `ProfileClient.tsx` → Form state with `isInitialized` flag
+2. `ProfileProvider.tsx` → React Query optimistic updates
+3. `/api/user/profile/route.ts` → Transaction-based updates (User, UserProfile, FamilyMember)
+4. Database → Run `npm run prisma:db:push` if schema mismatch errors
+
+### Critical Fixes Applied
+- **Variable Scope**: `familyMembersToCreate` used outside transaction → Added `familyMembersCreatedCount` tracker
+- **Loading Flicker**: Form showed empty before data → Added `isInitialized` flag + `ProfileLoadingSpinner`
+- **Array Fields**: `currentConcerns`/`preferredDays` need comma-separated input handling
+- **Error Handling**: Empty `{}` errors → Enhanced JSON/text parsing with user-friendly messages
+
+### Checklist
+✅ All form fields in `handleUpdate` spread  
+✅ Array fields handled specially (currentConcerns, preferredDays)  
+✅ Age fields parsed `string → integer`  
+✅ Transaction variables hoisted before transaction scope  
+✅ Loading waits for both `profile` data AND `isInitialized`  
+
+## 📚 Mistakes — Components & Credit Display
+
+**MISTAKE**: `useEffect` with `refetch` dependency placed before `useQuery` declaration
+- **Error**: `ReferenceError: Cannot access 'refetch' before initialization`
+- **FIX**: Move event listener `useEffect` AFTER `useQuery` hook
+- **LESSON**: Declare `useQuery` before any `useEffect` that uses its return values
+
+**MISTAKE**: Implemented SSE with Upstash Redis using `duplicate()` and `subscribe()`
+- **Error**: 500 — methods don't exist on Upstash Redis client
+- **FIX**: Use React Query polling + window events instead
+- **LESSON**: Upstash Redis ≠ traditional Redis. Verify library capabilities before implementation.
+
+**MISTAKE**: `useClerkSession` created new session object references every render
+- **Error**: Infinite re-render loops in hooks using session as dependency
+- **FIX**: Wrap session in `useMemo` with stable primitive deps (`clerkUser?.fullName`, `dbUserId`)
+- **LESSON**: Hooks returning objects must memoize them. Use `.user?.id` not the object as deps.

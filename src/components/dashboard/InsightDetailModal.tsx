@@ -104,6 +104,7 @@ interface ResourceItem {
   url?: string | null
   duration?: string | null
   difficulty: string
+  steps: string[]
   relevanceScore: number
   relevanceReasons: string[]
 }
@@ -137,6 +138,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
   const [books, setBooks] = useState<BookItem[]>([]);
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [resourcesError, setResourcesError] = useState(false);
+  const [expandedResourceId, setExpandedResourceId] = useState<string | null>(null);
 
   // Fetch personalized resources when the Resources tab is opened
   useEffect(() => {
@@ -173,6 +175,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
     setResources([]);
     setBooks([]);
     setResourcesError(false);
+    setExpandedResourceId(null);
     setActiveTab('overview');
   }, [insight?.id]);
 
@@ -413,7 +416,28 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                       )}
                     </div>
                   ) : (
-                    <NoDataState message="No metric scores are available yet. Complete more sessions to see your progress scores." />
+                    /* Session milestone roadmap — honest about what's needed */
+                    <div className="space-y-3">
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        Metric scores track your progress <strong>across sessions</strong> — here's what unlocks at each stage:
+                      </p>
+                      {[
+                        { sessions: 1, label: 'Baseline established', detail: 'Your first session sets the starting point.', done: true },
+                        { sessions: 2, label: 'Communication & emotional scores', detail: 'Scores appear once you have 2 sessions to compare.', done: false },
+                        { sessions: 3, label: 'Trend detection', detail: 'Improving vs. declining patterns become visible.', done: false },
+                        { sessions: 5, label: 'Detailed progress metrics', detail: 'Specific area scores and personalised benchmarks.', done: false },
+                      ].map((milestone, i) => (
+                        <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${milestone.done ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-700 opacity-60'}`}>
+                          <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${milestone.done ? 'bg-emerald-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}`}>
+                            {milestone.done ? '✓' : milestone.sessions}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs sm:text-sm font-semibold ${milestone.done ? 'text-emerald-800 dark:text-emerald-200' : 'text-gray-700 dark:text-gray-300'}`}>{milestone.label}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{milestone.detail}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -484,7 +508,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                 <CardHeader className="pb-2 sm:pb-3">
                   <CardTitle className="text-sm sm:text-base flex items-center gap-2">
                     <Activity className="h-4 w-4 text-purple-500" />
-                    Identified Patterns
+                    Patterns & Recommendations
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -517,12 +541,17 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                     </div>
                   ) : insight.actionItems && insight.actionItems.length > 0 ? (
                     <div className="space-y-3">
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                        Patterns identified from your session history:
-                      </p>
+                      {/* Honest label: with few sessions these are AI recommendations, not detected patterns */}
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                        <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                          These are AI-generated starting recommendations based on your sessions so far. Specific patterns unique to you emerge after 3+ sessions.
+                        </p>
+                      </div>
                       {insight.actionItems.slice(0, 3).map((item: string, i: number) => (
-                        <div key={i} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                          <p className="text-xs sm:text-sm">{item}</p>
+                        <div key={i} className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
+                          <Target className="h-4 w-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs sm:text-sm leading-relaxed">{item}</p>
                         </div>
                       ))}
                     </div>
@@ -622,54 +651,92 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                     <div className="space-y-3">
                       {resources.map(resource => {
                         const TypeIcon = TYPE_ICONS[resource.type] || BookOpen;
+                        const isExpanded = expandedResourceId === resource.id;
+                        const hasSteps = resource.steps?.length > 0;
+                        const hasUrl = !!resource.url;
+
                         return (
                           <div
                             key={resource.id}
-                            className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/60 transition-colors"
+                            className="border rounded-lg overflow-hidden transition-all duration-200"
                           >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                                <TypeIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h5 className="font-semibold text-sm sm:text-base leading-snug">{resource.title}</h5>
-                                  {resource.url && (
-                                    <a
-                                      href={resource.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex-shrink-0 text-blue-500 hover:text-blue-700 transition-colors"
-                                      aria-label={`Open ${resource.title}`}
-                                    >
-                                      <ExternalLink className="h-4 w-4" />
-                                    </a>
-                                  )}
+                            {/* Card header — always visible */}
+                            <div className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-900/60 transition-colors">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                                  <TypeIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{resource.description}</p>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                  <Badge variant="outline" className="text-[10px] sm:text-xs capitalize">{resource.type}</Badge>
-                                  {resource.duration && (
-                                    <Badge variant="outline" className="text-[10px] sm:text-xs">
-                                      <Clock className="h-3 w-3 mr-1" />{resource.duration}
-                                    </Badge>
-                                  )}
-                                  <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-medium ${DIFFICULTY_COLORS[resource.difficulty] || DIFFICULTY_COLORS.beginner}`}>
-                                    {resource.difficulty}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground ml-auto">{resource.source}</span>
-                                </div>
-                                {resource.relevanceReasons.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-2">
-                                    {resource.relevanceReasons.map((reason, i) => (
-                                      <span key={i} className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
-                                        {reason}
-                                      </span>
-                                    ))}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <h5 className="font-semibold text-sm sm:text-base leading-snug">{resource.title}</h5>
+                                    {hasUrl && (
+                                      <a
+                                        href={resource.url!}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-shrink-0 text-blue-500 hover:text-blue-700 transition-colors"
+                                        aria-label={`Open ${resource.title}`}
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    )}
                                   </div>
-                                )}
+                                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{resource.description}</p>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    <Badge variant="outline" className="text-[10px] sm:text-xs capitalize">{resource.type}</Badge>
+                                    {resource.duration && (
+                                      <Badge variant="outline" className="text-[10px] sm:text-xs">
+                                        <Clock className="h-3 w-3 mr-1" />{resource.duration}
+                                      </Badge>
+                                    )}
+                                    <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-medium ${DIFFICULTY_COLORS[resource.difficulty] || DIFFICULTY_COLORS.beginner}`}>
+                                      {resource.difficulty}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground ml-auto">{resource.source}</span>
+                                  </div>
+                                  {resource.relevanceReasons.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {resource.relevanceReasons.map((reason, i) => (
+                                        <span key={i} className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                          {reason}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+
+                              {/* "How to do this" toggle — only for exercises/techniques with steps */}
+                              {hasSteps && !hasUrl && (
+                                <button
+                                  onClick={() => setExpandedResourceId(isExpanded ? null : resource.id)}
+                                  className="mt-3 ml-11 flex items-center gap-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 transition-colors"
+                                >
+                                  <Zap className="h-3.5 w-3.5" />
+                                  {isExpanded ? 'Hide steps' : 'How to do this'}
+                                  <ArrowRight className={`h-3 w-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                                </button>
+                              )}
                             </div>
+
+                            {/* Expandable steps panel */}
+                            {hasSteps && !hasUrl && isExpanded && (
+                              <div className="border-t bg-purple-50 dark:bg-purple-900/20 px-4 sm:px-5 py-4">
+                                <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-3">
+                                  Step-by-step
+                                </p>
+                                <ol className="space-y-2.5">
+                                  {resource.steps.map((step, i) => (
+                                    <li key={i} className="flex items-start gap-3">
+                                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-100 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                        {i + 1}
+                                      </span>
+                                      <p className="text-xs sm:text-sm text-purple-900 dark:text-purple-100 leading-relaxed">{step}</p>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -720,11 +787,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
         </Tabs>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-4 sm:px-5 md:px-6 py-3 sm:py-4 border-t flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <Badge variant="outline" className="text-[10px] sm:text-xs">{insight.category.replace('-', ' ')}</Badge>
-            <Badge variant="outline" className="text-[10px] sm:text-xs">{insight.priority} priority</Badge>
-          </div>
+        <div className="flex-shrink-0 px-4 sm:px-5 md:px-6 py-3 sm:py-4 border-t flex items-center justify-end bg-gray-50 dark:bg-gray-900/50">
           <Button onClick={onClose} size="sm" className="text-xs sm:text-sm">Close</Button>
         </div>
       </DialogContent>

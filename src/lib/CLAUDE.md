@@ -234,3 +234,110 @@ USE_ENHANCED_INSIGHTS="true"  # Analyzes all available data
 # Optional: AI enhancement (not required)
 ANTHROPIC_API_KEY=""  # Only if you want AI fallback
 ```
+
+## 🔐 Authentication: Clerk
+
+**CRITICAL**: Uses Clerk, NOT NextAuth. All NextAuth code removed.
+
+- **`auth.ts`** — `getAuthSession()` is the drop-in for `getServerSession(authOptions)`. Resolves Clerk user → DB user via `clerkId` or email. Auto-creates users + initializes credits.
+- **`useClerkSession`** — `src/hooks/useClerkSession.ts` — drop-in for `useSession()` from next-auth/react. Uses `useMemo` for stable object references.
+- **Middleware** — `src/middleware.ts` uses `clerkMiddleware()` with rate limiting
+- **Webhook** — `/api/webhooks/clerk/route.ts` handles user sync events
+
+### Environment Variables
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/intro
+CLERK_WEBHOOK_SECRET=whsec_...
+```
+
+### Key Details
+- `getAuthSession()` calls Clerk `auth()` + `currentUser()`, then finds/creates DB user
+- User table has `clerkId` field for Clerk-to-DB linking
+- Credits auto-initialized for all users (free tier: 30 min)
+- `jsonwebtoken` MUST use lazy `import()` — top-level imports crash Turbopack
+
+### Removed Files (NextAuth)
+`next-auth-config.ts`, `auth-optimized.ts`, `custom-prisma-adapter.ts`, `auth/session-cache.ts`, `auth/session-optimized.ts`, `src/types/next-auth.d.ts`
+
+## 🚨 VAPI Session Critical Fixes
+
+**READ `/VAPI-COMPLETE-GUIDE.md` BEFORE any VAPI changes.**
+
+1. **JWT Expiration**: Must be < 3600s (use 3599) — `vapi-jwt-redis.service.ts`
+2. **Inline Config**: Pass clean config to `vapi.start()`:
+   ```typescript
+   vapi.start({
+     transcriber: { provider: 'deepgram', model: 'nova-3' },
+     model: { provider: 'anthropic', model: 'claude-3', tools: [...] },
+     voice: { provider: '11labs', voiceId: '...' },
+     firstMessage: "Hello...",
+   })
+   ```
+3. **Tools location**: Must be in `model.tools`, NOT at root level
+4. **Invalid fields** (cause 400): `variableValues`, `metadata`, `recordingEnabled`, `hipaaEnabled`, `responseDelaySeconds`, `llmRequestDelaySeconds`, `functions` (root), `backgroundDenoisingEnabled`
+5. **ElevenLabs Voice IDs** (April 2026):
+   - Dr. Elliot (solo): `XmUeU0FRyne67Dy7UaT4`
+   - Dr. Maya (couples): `0G7xjh2pNSLRvJSpklE4`
+   - Dr. Jada (family): `zQjGMGv0jjccPqAwHqqv`
+   - Set via: `NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID`, `NEXT_PUBLIC_VAPI_MAYA_VOICE_ID`, `NEXT_PUBLIC_VAPI_JADA_VOICE_ID`
+   - `pipeline-error-eleven-labs-voice-disabled-by-owner` = voice ID invalid/disabled
+6. **Model Names**: Use real models (`gpt-4o-mini`, not `gpt-5-mini`) — invalid model = Daily.co ejection
+7. **Prisma Enums**: Uppercase — `COMPLETED`, `ACTIVE`, `SOLO`, `COUPLE`, `FAMILY`, `PAUSED`
+8. **Ejection on session end**: Expected from Daily.co when `endCall` tool fires — treated as normal call-end in `useVapiSession.ts`
+
+### VAPI Success Indicators
+```
+✅ VAPI call started successfully
+📞 VAPI started, starting conversation timer
+📨 VAPI Message: speech-update → transcript → conversation-update
+📊 METRICS: Confidence: 20% → 40% → 80% → 95%
+```
+
+## 💳 Credit System Key Components
+
+- **`services/credit-manager.service.ts`** — core credit ops, Redis caching with robust error handling
+- **`services/vapi-session-manager.ts`** — session limit enforcement, grace period logic
+- **`services/vapi-instance-manager.ts`** — singleton VAPI SDK instance, pre-warmed on JWT ready
+
+### Redis Caching Pattern
+Always wrap `JSON.parse()` in try-catch in Redis ops — Upstash can return objects instead of strings:
+```typescript
+try {
+  const raw = await redis.get(key);
+  const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+} catch (e) {
+  await redis.del(key); // auto-clear invalid cache
+}
+```
+
+## 📚 Mistakes & Lessons — Auth & VAPI
+
+**MISTAKE**: Top-level `import jwt from 'jsonwebtoken'` in `vapi/token/route.ts`
+- **Error**: `TypeError: Cannot read properties of undefined (reading 'prototype')` — Turbopack crash
+- **FIX**: `const jwt = (await import('jsonwebtoken')).default`
+- **LESSON**: Always use lazy dynamic `import()` for `jsonwebtoken`
+
+**MISTAKE**: `findOrCreateUser` returned early without initializing credits
+- **Error**: Credits 0/0 for migrated users
+- **FIX**: `ensureCreditsExist(user.id)` in all 3 code paths (clerkId found, email found, new user)
+- **LESSON**: When migrating auth, run all init side effects in every code path
+
+**MISTAKE**: Used `session` (lowercase) as Prisma relation field in `SessionSummary` queries
+- **Error**: Prisma silently returned `undefined` — session dates showed as fallbacks
+- **FIX**: Use `Session` (capital S) — verify against `SessionSummaryInclude` generated type
+- **LESSON**: Always verify Prisma relation field names against `node_modules/.prisma/client/index.d.ts`
+
+**MISTAKE**: `sessionsCompleted: sessions.length` used array length instead of real count
+- **Error**: Milestone detection, Session #N numbering, behavior switches broken for returning users
+- **FIX**: Hoist `completedSessionCount` outside try block, assign from DB count inside
+- **LESSON**: Hoist result variables before try blocks when building objects from fetched data
+
+**MISTAKE**: `SessionSummary` context written at session end but never read at session start
+- **Error**: VAPI had no memory of previous sessions despite rich DB data
+- **FIX**: Fetch last 3 `SessionSummary` records in `/api/vapi/assistant`, inject as `previousSessionContext`
+- **LESSON**: Check that data written at session END is READ at session START — write-only pipelines are invisible bugs

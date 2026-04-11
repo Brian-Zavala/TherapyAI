@@ -250,56 +250,74 @@ export function useSessionTimeAlerts({
   remainingSeconds,
   onTenMinuteWarning,
   onFiveMinuteWarning,
+  onThreeMinuteWarning,
+  onTwoMinuteWarning,
   onOneMinuteWarning,
   onThirtySecondWarning,
 }: {
   remainingSeconds: number;
   onTenMinuteWarning?: () => void;
   onFiveMinuteWarning?: () => void;
+  onThreeMinuteWarning?: () => void;
+  onTwoMinuteWarning?: () => void;
   onOneMinuteWarning?: () => void;
   onThirtySecondWarning?: () => void;
 }) {
   const tenMinuteWarningShown = useRef(false);
   const fiveMinuteWarningShown = useRef(false);
+  const threeMinuteWarningShown = useRef(false);
+  const twoMinuteWarningShown = useRef(false);
   const oneMinuteWarningShown = useRef(false);
   const thirtySecondWarningShown = useRef(false);
   const previousRemainingSeconds = useRef(remainingSeconds);
-  
+
   useEffect(() => {
     // Track threshold crossings for precise warning triggers
     const prevSeconds = previousRemainingSeconds.current;
     const currSeconds = remainingSeconds;
-    
+
     // Reset warnings if time increases (session extended)
     if (currSeconds > prevSeconds) {
       if (currSeconds > 600) tenMinuteWarningShown.current = false;
       if (currSeconds > 300) fiveMinuteWarningShown.current = false;
+      if (currSeconds > 180) threeMinuteWarningShown.current = false;
+      if (currSeconds > 120) twoMinuteWarningShown.current = false;
       if (currSeconds > 60) oneMinuteWarningShown.current = false;
       if (currSeconds > 30) thirtySecondWarningShown.current = false;
     }
-    
+
     // Check for threshold crossings - trigger when we cross from above to at/below threshold
     if (prevSeconds > 600 && currSeconds <= 600 && !tenMinuteWarningShown.current) {
       tenMinuteWarningShown.current = true;
       onTenMinuteWarning?.();
     }
-    
+
     if (prevSeconds > 300 && currSeconds <= 300 && !fiveMinuteWarningShown.current) {
       fiveMinuteWarningShown.current = true;
       onFiveMinuteWarning?.();
     }
-    
+
+    if (prevSeconds > 180 && currSeconds <= 180 && !threeMinuteWarningShown.current) {
+      threeMinuteWarningShown.current = true;
+      onThreeMinuteWarning?.();
+    }
+
+    if (prevSeconds > 120 && currSeconds <= 120 && !twoMinuteWarningShown.current) {
+      twoMinuteWarningShown.current = true;
+      onTwoMinuteWarning?.();
+    }
+
     if (prevSeconds > 60 && currSeconds <= 60 && !oneMinuteWarningShown.current) {
       oneMinuteWarningShown.current = true;
       onOneMinuteWarning?.();
     }
-    
+
     if (prevSeconds > 30 && currSeconds <= 30 && !thirtySecondWarningShown.current) {
       thirtySecondWarningShown.current = true;
       onThirtySecondWarning?.();
     }
-    
+
     // Update previous value for next render
     previousRemainingSeconds.current = currSeconds;
-  }, [remainingSeconds, onTenMinuteWarning, onFiveMinuteWarning, onOneMinuteWarning, onThirtySecondWarning]);
+  }, [remainingSeconds, onTenMinuteWarning, onFiveMinuteWarning, onThreeMinuteWarning, onTwoMinuteWarning, onOneMinuteWarning, onThirtySecondWarning]);
 }

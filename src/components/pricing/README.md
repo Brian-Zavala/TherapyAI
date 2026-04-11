@@ -21,8 +21,8 @@ Comprehensive pricing component system with subscription status integration.
 
 | Tier | Price | Sessions | Minutes/Session | Total Minutes |
 |------|-------|----------|-----------------|---------------|
-| **Free** | $0 | 3/month | 15 min | 45 min |
-| **Pro** | $5/mo or $48/yr | Unlimited | 30 min | Unlimited |
+| **Free** | $0 | 2/month | 15 min | 30 min |
+| **Pro** | $10/mo or $96/yr | Unlimited | 30 min | Unlimited |
 
 ## Responsive Design Features
 

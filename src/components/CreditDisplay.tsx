@@ -225,7 +225,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   // Show loading state for authenticated users while data is loading
   if (isLoading) {
     return (
-      <div className={`${position === "fixed" ? "fixed top-20 right-4 sm:top-24 sm:right-4 lg:top-4 lg:right-4 xl:top-4 xl:right-6 z-40" : ""} ${className}`}>
+      <div className={`${position === "fixed" ? "fixed top-20 right-4 sm:top-24 sm:right-4 lg:top-20 lg:right-6 xl:top-20 xl:right-8 z-40" : ""} ${className}`}>
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 animate-pulse">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/20 rounded"></div>
@@ -243,7 +243,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`${position === "fixed" ? "fixed top-20 right-4 sm:top-24 sm:right-4 lg:top-4 lg:right-4 xl:top-4 xl:right-6 z-40" : ""} ${className}`}
+        className={`${position === "fixed" ? "fixed top-20 right-4 sm:top-24 sm:right-4 lg:top-20 lg:right-6 xl:top-20 xl:right-8 z-40" : ""} ${className}`}
       >
         <div className="bg-red-500/20 backdrop-blur-lg border border-red-500/30 rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2">
           <span className="text-xs sm:text-sm text-red-300">Unable to load credits</span>
@@ -273,8 +273,8 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   // Tablet: Side position to avoid dropdown
   // Desktop: Top-right corner safe zone
   // z-40 ensures it's visible above most content but below modals (z-50)
-  const positionClasses = position === "fixed" 
-    ? "fixed top-20 right-4 sm:top-24 sm:right-4 lg:top-4 lg:right-4 xl:top-4 xl:right-6 z-40 max-w-[calc(100vw-2rem)] sm:max-w-none"
+  const positionClasses = position === "fixed"
+    ? "fixed top-20 right-4 sm:top-24 sm:right-4 lg:top-20 lg:right-6 xl:top-20 xl:right-8 z-40 max-w-[calc(100vw-2rem)] sm:max-w-none"
     : "";
 
   return (

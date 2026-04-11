@@ -45,8 +45,8 @@ const validateEnvironmentVariables = () => {
   }
   if (!isValidPriceId(process.env.STRIPE_PRICE_PRO_ANNUAL)) {
     console.warn('⚠️ STRIPE_PRICE_PRO_ANNUAL is not set or invalid (should start with "price_")');
-    console.warn('1. In the same Pro product, click "Add another price" → Annual → $48/year');
-    console.warn('2. Copy that price ID and set STRIPE_PRICE_PRO_ANNUAL\n');
+    console.warn('1. In the same Pro product, click "Add another price" → Annual → $96/year');
+    console.warn('2. Copy that price ID and set STRIPE_PRICE_PRO_ANNUAL (currently $96/year)\n');
   }
 };
 

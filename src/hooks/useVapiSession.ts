@@ -28,7 +28,7 @@ interface UseVapiSessionReturn {
   startSession: () => Promise<void>
   endSession: () => Promise<void>
   toggleMute: () => void
-  sendMessage: (message: string) => void
+  sendMessage: (message: string | { type: string; message: { role: string; content: string } }) => void
   pauseSession: () => Promise<void>
   resumeSession: () => Promise<void>
 }
@@ -273,22 +273,28 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
     }
   }, [isConnected, isMuted])
 
-  const sendMessage = useCallback((message: string) => {
+  const sendMessage = useCallback((message: string | { type: string; message: { role: string; content: string } }) => {
     const currentVapi = vapiRef.current || vapiInstanceManager.getCurrentInstance();
-    
+
     if (!currentVapi || !isConnected) {
       console.warn('[VAPI] Cannot send message: not connected')
       return
     }
 
     try {
-      currentVapi.send({
-        type: 'add-message',
-        message: {
-          role: 'user',
-          content: message
-        }
-      })
+      // Support both raw string (sent as user message) and full message objects (e.g. system notifications)
+      if (typeof message === 'string') {
+        currentVapi.send({
+          type: 'add-message',
+          message: {
+            role: 'user',
+            content: message
+          }
+        })
+      } else {
+        // Pass through the full message object directly (for system notifications, etc.)
+        currentVapi.send(message)
+      }
     } catch (error) {
       console.error('[VAPI] Failed to send message:', error)
     }

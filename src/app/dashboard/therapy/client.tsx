@@ -273,21 +273,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   // This prevents the modal from appearing before session recovery
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   // Show warm-up page when X is clicked
-  const [showWarmupPage, setShowWarmupPage] = useState(() => {
-    // Check if warm-up page was active before refresh
-    if (typeof window !== 'undefined') {
-      // Don't show warm-up if there's an active session recovery
-      const recoveryPending = sessionStorage.getItem('session-recovery-pending');
-      const recoveryInProgress = sessionStorage.getItem('recovery-check-in-progress');
-      if (recoveryPending || recoveryInProgress === 'true') {
-        return false;
-      }
-      
-      const warmupActive = sessionStorage.getItem('therapy-warmup-active');
-      return warmupActive === 'true';
-    }
-    return false;
-  });
+  // Initialize as false to match server render, then check sessionStorage in useEffect
+  const [showWarmupPage, setShowWarmupPage] = useState(false);
   // Countdown overlay state
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
@@ -326,6 +313,19 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   }>({});
 
   // Digital clock state removed - now using DigitalClock component
+
+  // Restore warm-up state from sessionStorage after hydration (avoids SSR mismatch)
+  useEffect(() => {
+    const recoveryPending = sessionStorage.getItem('session-recovery-pending');
+    const recoveryInProgress = sessionStorage.getItem('recovery-check-in-progress');
+    if (recoveryPending || recoveryInProgress === 'true') {
+      return;
+    }
+    const warmupActive = sessionStorage.getItem('therapy-warmup-active');
+    if (warmupActive === 'true') {
+      setShowWarmupPage(true);
+    }
+  }, []);
 
   // Persist warm-up page state to handle page refreshes
   useEffect(() => {

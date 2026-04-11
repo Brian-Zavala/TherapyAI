@@ -94,9 +94,9 @@ export default function Navigation() {
   }
 
   return (
-    <div className="fixed top-2 w-full flex justify-between items-center z-40 px-4 py-4 nav-container">
+    <div className="fixed top-2 w-full flex justify-between items-center z-40 px-4 py-4 nav-container pointer-events-none">
       {/* Logo/Site Title - left aligned */}
-      <div className="absolute text-white text-lg font-semibold">
+      <div className="absolute text-white text-lg font-semibold pointer-events-auto">
         TherapyAI&#8482;
       </div>
 
@@ -104,7 +104,7 @@ export default function Navigation() {
       {!isMenuOpen && (
         <div
           id="menu-tab"
-          className="hidden lg:block cursor-pointer"
+          className="hidden lg:block cursor-pointer pointer-events-auto"
           onMouseOver={() => {
             setIsMenuOpen(true);
             playSound();
@@ -328,7 +328,7 @@ export default function Navigation() {
       </div>
 
       {/* Mobile Menu Button - visible on mobile and tablet */}
-      <div className="lg:hidden top-2 right-2 absolute z-50">
+      <div className="lg:hidden top-2 right-2 absolute z-50 pointer-events-auto">
         <button
           ref={menuBtnRef}
           className="focus:outline-none cursor-pointer"
@@ -377,7 +377,7 @@ export default function Navigation() {
         {isMenuOpen && (
           <motion.div
             ref={mobileMenuRef}
-            className="lg:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto"
+            className="lg:hidden fixed inset-0 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 backdrop-blur-sm z-50 overflow-y-auto pointer-events-auto"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
