@@ -63,6 +63,8 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
   let sessionHistory = "No previous sessions found.";
   let sessions: { length: number; date?: Date }[] = [];
   let previousSessionContext = "";
+  let completedSessionCount = 0;
+  let lastCompletedSession: { date: Date; theme: string } | null = null;
 
   try {
     const [sessionCount, recentSummaries, lastSession] = await Promise.all([
@@ -90,6 +92,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
 
     if (sessionCount > 0) {
       if (lastSession) {
+        lastCompletedSession = lastSession;
         const lastDate = new Date(lastSession.date).toLocaleDateString();
         sessionHistory = `Client has ${sessionCount} previous sessions. Last session: ${lastDate}.${
           lastSession.theme ? ` Theme: ${lastSession.theme}.` : ""
@@ -120,6 +123,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
         console.log(`[VAPI Assistant] Loaded session memory: ${recentSummaries.length} summaries, ${memoryLines.length} memory lines`);
       }
     }
+    completedSessionCount = sessionCount;
     sessions = [{ length: sessionCount }];
   } catch (error) {
     console.error('Error fetching session count:', error);
@@ -183,8 +187,8 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
     sessionHistory: sessionHistory,
     previousSessionContext: previousSessionContext || undefined,
     onboardingCompleted: user.onboardingCompleted,
-    sessionsCompleted: sessions.length,
-    lastSessionDate: sessions[0]?.date || null,
+    sessionsCompleted: completedSessionCount,
+    lastSessionDate: lastCompletedSession?.date || null,
     selectedFamilyMembers: selectedFamilyMembers.length > 0 ? selectedFamilyMembers : undefined
   };
 
