@@ -19,8 +19,9 @@ export function useWelcomeFlow() {
         return
       }
 
-      // Check if onboarding is completed
-      if (profile.onboardingCompleted || profile.onboardingData) {
+      // Check if onboarding is completed — use strict equality to avoid
+      // truthy-but-empty onboardingData objects causing premature redirect
+      if (profile.onboardingCompleted === true) {
         router.replace('/')
       }
     }

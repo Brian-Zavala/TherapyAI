@@ -68,18 +68,19 @@ export async function GET(req: NextRequest) {
     headers.set('X-Response-Time', startTime.toString())
     
     // EDGE CASE: Session retrieval with timeout protection
+    // 15s timeout: new users trigger DB create + credit init which can take 8-12s
     try {
       session = await Promise.race([
         getAuthSession(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session retrieval timeout')), 5000)
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session retrieval timeout')), 15000)
         )
       ])
     } catch (sessionError) {
       console.error('[Profile API] Session retrieval error:', sessionError)
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: "Authentication service unavailable",
-        code: "AUTH_TIMEOUT" 
+        code: "AUTH_TIMEOUT"
       }, { status: 503 })
     }
     

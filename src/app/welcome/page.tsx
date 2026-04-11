@@ -668,17 +668,22 @@ function WelcomePageInner() {
               router.replace("/auth/login");
               return null;
             }
+            if (!res.ok) {
+              // Server errors (503, 500) — DB slow for new user. Trust localStorage.
+              router.replace("/");
+              return null;
+            }
             return res.json();
           })
           .then((data) => {
-            if (!data) return; // Handle case where we redirected due to 401
-            
+            if (!data) return; // Already handled above
+
             // Check if user hasn't seen intro yet (skip if coming directly from intro to avoid browser-cache loop)
             if (!data.hasSeenIntro && !fromIntro) {
               router.replace("/intro");
               return;
             }
-            if (data.onboardingCompleted || data.onboardingData) {
+            if (data.onboardingCompleted === true) {
               router.replace("/");
             } else {
               // Local storage says completed but backend doesn't, clear local storage
@@ -688,8 +693,8 @@ function WelcomePageInner() {
           })
           .catch((error) => {
             console.error("Error checking onboarding status:", error);
-            // On error, redirect to login to be safe
-            router.replace("/auth/login");
+            // Network errors — trust localStorage if it said completed
+            router.replace("/");
           });
       } else {
         // No local storage record, check backend
@@ -699,16 +704,20 @@ function WelcomePageInner() {
               // Stale session - redirect to login
               console.log("Stale session detected, redirecting to login");
               router.replace("/auth/login");
-              return;
+              return null;
             }
-            if (!res.ok && res.status !== 500) {
-              throw new Error(`Error fetching profile: ${res.status}`);
+            if (!res.ok) {
+              // Server errors (503, 500, etc.) mean DB is slow/unavailable.
+              // User IS authenticated — just show the onboarding form.
+              console.warn(`Profile API returned ${res.status} — showing onboarding form`);
+              setCheckingOnboarding(false);
+              return null;
             }
             return res.json();
           })
           .then((data) => {
-            if (!data) return; // Handle case where we redirected due to 401
-            
+            if (!data) return; // Already handled above
+
             // Check if user hasn't seen intro yet (skip if coming directly from intro to avoid browser-cache loop)
             if (!data.hasSeenIntro && !fromIntro) {
               router.replace("/intro");
@@ -724,8 +733,8 @@ function WelcomePageInner() {
           })
           .catch((error) => {
             console.error("Error fetching profile:", error);
-            // On error, redirect to login to be safe
-            router.replace("/auth/login");
+            // Network errors — user is authenticated, just show the form
+            setCheckingOnboarding(false);
           });
       }
     }

@@ -17,7 +17,9 @@ const isPublicRoute = createRouteMatcher([
   '/privacy',
   '/terms',
   '/support',
+  '/site.webmanifest',
   '/api/health',
+  '/api/analytics/(.*)',
   '/api/webhooks/(.*)',
   '/api/vapi/webhook(.*)',
   '/api/cron/(.*)',
@@ -84,12 +86,17 @@ function getClientIp(request: NextRequest): string {
 export default clerkMiddleware(async (auth: any, request: NextRequest) => {
   const pathname = request.nextUrl.pathname
 
-  // Skip static assets
+  // Skip static assets (public directory files and Next.js internals)
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
-    /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname) ||
-    pathname.startsWith('/favicon')
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/sounds/') ||
+    pathname.startsWith('/videos/') ||
+    pathname.startsWith('/animations/') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/fonts/') ||
+    /\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot|mp3|mp4|webmanifest|json)$/.test(pathname)
   ) {
     return NextResponse.next()
   }
@@ -177,6 +184,6 @@ export default clerkMiddleware(async (auth: any, request: NextRequest) => {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|gif|png|svg|ico|css|js|woff|woff2|ttf|eot)).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sounds|videos|animations|images|fonts|.*\\.(?:jpg|jpeg|gif|png|svg|ico|webp|css|js|woff|woff2|ttf|eot|mp3|mp4|webmanifest|json)).*)',
   ],
 }

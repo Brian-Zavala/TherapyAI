@@ -4,6 +4,27 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma-optimized'
 import { creditManager } from '@/lib/services/credit-manager.service'
 
+// In-process cache for Clerk ID → DB user mapping.
+// Eliminates 2 DB round-trips (~2600ms) on every authenticated API request
+// after the user is first created. TTL: 5 minutes.
+const authCache = new Map<string, { user: any; expiresAt: number }>()
+const AUTH_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+function getCachedUser(clerkId: string) {
+  const entry = authCache.get(clerkId)
+  if (entry && entry.expiresAt > Date.now()) return entry.user
+  authCache.delete(clerkId)
+  return null
+}
+
+function setCachedUser(clerkId: string, user: any) {
+  authCache.set(clerkId, { user, expiresAt: Date.now() + AUTH_CACHE_TTL })
+}
+
+export function invalidateAuthCache(clerkId: string) {
+  authCache.delete(clerkId)
+}
+
 /**
  * Get the current authenticated user's session info.
  * Drop-in replacement for `getServerSession(authOptions)`.
@@ -16,6 +37,19 @@ export async function getAuthSession() {
     return null
   }
 
+  // Fast path: return cached user without hitting Clerk or DB
+  const cached = getCachedUser(userId)
+  if (cached) {
+    return {
+      user: {
+        id: cached.id,
+        email: cached.email,
+        name: cached.name,
+        image: cached.image,
+      }
+    }
+  }
+
   const clerkUser = await currentUser()
   if (!clerkUser) {
     return null
@@ -23,6 +57,9 @@ export async function getAuthSession() {
 
   // Find or create the database user linked to this Clerk user
   const dbUser = await findOrCreateUser(clerkUser)
+
+  // Cache for subsequent requests
+  setCachedUser(userId, dbUser)
 
   return {
     user: {
@@ -51,8 +88,8 @@ async function findOrCreateUser(clerkUser: {
 
   const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || email.split('@')[0]
 
-  // First try to find by clerkId
-  let user = await prisma.user.findFirst({
+  // First try to find by clerkId (unique field — use findUnique for index scan)
+  let user = await prisma.user.findUnique({
     where: { clerkId: clerkUser.id }
   })
 

@@ -57,50 +57,32 @@ export async function findUserByEmailOptimized(email: string) {
     return null
   }
   
-  // RACE CONDITION PREVENTION: Use transaction for consistent read
-  return await prisma.$transaction(async (tx) => {
-    // Execute queries in parallel for better performance
-    const [user, profile, familyMembers] = await Promise.all([
-      // Query 1: Get basic user data
-      tx.user.findUnique({
-        where: { email },
-        select: userProfileSelect,
-      }),
-      
-      // Query 2: Get profile data separately
-      tx.userProfile.findFirst({
-        where: { 
-          user: { email } 
-        },
-        select: profileDetailsSelect,
-      }),
-      
-      // Query 3: Get family members separately
-      tx.familyMember.findMany({
-        where: { 
-          user: { email },
-          isActive: true,
-        },
-        orderBy: { order: 'asc' },
-        select: familyMemberSelect,
-        take: 7, // Limit to 7 family members
-      }),
-    ]);
+  // Step 1: Get user by email (indexed unique field — fast)
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: userProfileSelect,
+  });
 
   if (!user) {
     return null;
   }
 
-    // Combine results
-    const result = {
-      ...user,
-      profile,
-      familyMembers,
-    };
+  // Step 2: Parallelize profile + family member queries using indexed userId
+  // Avoids nested WHERE on email (N+1 join) — uses direct indexed userId lookups
+  const [profile, familyMembers] = await Promise.all([
+    prisma.userProfile.findFirst({
+      where: { userId: user.id },
+      select: profileDetailsSelect,
+    }),
+    prisma.familyMember.findMany({
+      where: { userId: user.id, isActive: true },
+      orderBy: { order: 'asc' },
+      select: familyMemberSelect,
+      take: 7,
+    }),
+  ]);
 
-    // Note: Caching is now handled in the API route
-    return result;
-  });
+  return { ...user, profile, familyMembers };
 }
 
 /**
