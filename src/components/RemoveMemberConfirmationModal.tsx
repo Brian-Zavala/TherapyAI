@@ -50,9 +50,9 @@ export default function RemoveMemberConfirmationModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 overflow-x-hidden"
           >
-            <div 
+            <div
               className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-gray-700/50"
               onClick={(e) => e.stopPropagation()}
             >

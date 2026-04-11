@@ -150,9 +150,9 @@ export function ClinicalDisclaimerModal({
               damping: 25,
               stiffness: 300
             }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8 pointer-events-none"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8 pointer-events-none overflow-x-hidden"
           >
-            <div className="relative w-full max-w-2xl max-h-[90vh] min-h-[600px] overflow-y-auto rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
+            <div className="relative w-full max-w-2xl max-h-[90vh] min-h-[600px] overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
               {/* Gradient background effects - Blue liquid glass theme */}
               <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}>
                 <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/15 to-blue-900/20 rounded-2xl" />

@@ -8,6 +8,7 @@ export default function Page() {
       <Spotlight />
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4 py-8">
         <SignUp
+          forceRedirectUrl="/intro"
           appearance={{
             variables: {
               colorBackground: '#ffffff',

@@ -481,7 +481,7 @@ export default function UnifiedSessionModal({
               damping: 30,
               duration: 0.4 
             }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 overflow-x-hidden"
           >
             <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden max-w-md w-full" 
                  data-active-session-modal={isRecoveryMode}

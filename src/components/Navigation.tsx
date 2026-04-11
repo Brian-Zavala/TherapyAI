@@ -13,6 +13,7 @@ export default function Navigation() {
   const { isAuthenticated, logout, isLoading } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const playSound = useButtonSound();
@@ -102,8 +103,9 @@ export default function Navigation() {
   const linkStyles = (isActive: boolean) =>
     isActive ? "text-white font-bold" : "text-gray-100 hover:text-white";
 
-  // Don't show navbar on auth pages, intro, or during onboarding - moved after all hook calls
+  // Don't show navbar on auth pages, intro, onboarding, or during logout transition
   if (
+    isLoggingOut ||
     pathname?.startsWith("/auth/") ||
     pathname?.startsWith("/welcome") ||
     pathname?.startsWith("/sign-in") ||
@@ -331,6 +333,7 @@ export default function Navigation() {
                         onClick={async (e) => {
                           e.preventDefault();
                           setIsMenuOpen(false);
+                          setIsLoggingOut(true);
                           await logout();
                         }}
                         tabIndex={isMenuOpen ? 0 : -1}
@@ -661,8 +664,9 @@ export default function Navigation() {
                 <div className="pt-8 mt-4 border-t border-stone-600/50 w-full flex justify-center">
                   <button
                     onClick={async () => {
-                      await logout();
+                      setIsLoggingOut(true);
                       setIsMenuOpen(false);
+                      await logout();
                     }}
                     className="text-2xl text-indigo-100 hover:cursor-pointer hover:text-white py-4 px-6 text-center hover:bg-red-600/30 rounded-lg transition-colors flex items-center justify-center"
                   >

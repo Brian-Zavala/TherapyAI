@@ -158,6 +158,8 @@ export default function MusicPlayer() {
     '/dashboard/therapy/client', // Hide in client therapy view
     '/auth/login',               // Hide on login page
     '/auth/register',            // Hide on register page
+    '/sign-in',                  // Hide on Clerk sign-in page
+    '/sign-up',                  // Hide on Clerk sign-up page
     '/welcome',                  // Hide on onboarding page
     '/intro',                    // Hide on intro page
     '/api/sessions'              // Hide on session API routes

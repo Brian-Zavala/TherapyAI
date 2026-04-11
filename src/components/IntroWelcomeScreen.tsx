@@ -873,25 +873,13 @@ export default function IntroWelcomeScreen() {
 
                   {currentStep === therapySteps.length - 1 ? (
                     <motion.button
-                      whileHover={{
-                        scale: 1.08,
-                        boxShadow: [
-                          "0 0 20px rgba(59, 130, 246, 0.3)",
-                          "0 0 30px rgba(139, 92, 246, 0.4)",
-                          "0 0 40px rgba(6, 182, 212, 0.3)",
-                        ],
-                        transition: {
-                          duration: 0.3,
-                          ease: [0.4, 0.0, 0.2, 1],
-                        },
-                      }}
                       whileTap={{
-                        scale: 0.96,
+                        scale: 0.97,
                         transition: { duration: 0.1 },
                       }}
                       onClick={handleGetStarted}
                       disabled={isLoading}
-                      className="px-2 xs:px-3 sm:px-4 md:px-6 py-1.5 xs:py-2 sm:py-2.5 md:py-3 text-white rounded-lg xs:rounded-xl font-medium transition-all text-xs xs:text-sm sm:text-base relative overflow-hidden group shadow-lg cursor-pointer"
+                      className="px-4 xs:px-5 sm:px-6 md:px-8 py-1.5 xs:py-2 sm:py-2.5 md:py-3 text-white rounded-lg xs:rounded-xl font-medium text-xs xs:text-sm sm:text-base relative overflow-hidden group shadow-lg cursor-pointer min-w-[120px] xs:min-w-[140px] sm:min-w-[160px]"
                       style={{ transform: "translate3d(0, 0, 0)" }}
                       animate={{
                         background: [
@@ -946,34 +934,30 @@ export default function IntroWelcomeScreen() {
                         }}
                       />
 
-                      <span className="relative z-10">
-                        {isLoading ? (
-                          <span className="flex items-center">
-                            <svg
-                              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Getting Started...
-                          </span>
-                        ) : (
-                          "Get Started"
+                      <span className="relative z-10 flex items-center justify-center whitespace-nowrap">
+                        {isLoading && (
+                          <svg
+                            className="animate-spin mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-white flex-shrink-0"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
                         )}
+                        Get Started
                       </span>
                     </motion.button>
                   ) : (

@@ -72,10 +72,10 @@ export default function AddFamilyMemberModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-3 sm:p-4"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-3 sm:p-4 overflow-x-hidden"
           >
-            <div 
-              className="relative w-full max-w-md bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50"
+            <div
+              className="relative w-full max-w-md bg-gradient-to-br from-gray-900/95 via-slate-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative px-6 py-6 border-b border-gray-600/30">
