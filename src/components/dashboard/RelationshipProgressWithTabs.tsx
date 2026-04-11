@@ -204,12 +204,12 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
       whileHover={{ scale: 1.02, y: -2 }}
     >
       <div
-        className="h-full flex flex-col gap-3 p-4 sm:p-5 rounded-xl border transition-all duration-300 bg-white/5 border-white/10 hover:border-white/25 hover:bg-white/10 cursor-pointer"
+        className="h-full flex flex-col gap-2 sm:gap-3 lg:gap-4 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 rounded-lg sm:rounded-xl border transition-all duration-300 bg-white/5 border-white/10 hover:border-white/25 hover:bg-white/10 cursor-pointer"
       >
         {/* Header: Icon + Label */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
           <motion.div
-            className={`p-2.5 rounded-xl bg-gradient-to-br ${theme.gradient} flex-shrink-0`}
+            className={`p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br ${theme.gradient} flex-shrink-0`}
             whileHover={{ rotate: [0, -5, 5, 0] }}
             transition={{ duration: 0.5 }}
           >
@@ -219,11 +219,11 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
           </motion.div>
 
           <div className="min-w-0 flex-1">
-            <span className="text-sm sm:text-base font-semibold text-white block leading-tight">
+            <span className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-white block leading-tight">
               {label}
             </span>
             {description && (
-              <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">
+              <p className="text-xs sm:text-sm lg:text-base text-gray-400 mt-0.5 sm:mt-1 leading-snug line-clamp-2">
                 {description}
               </p>
             )}
@@ -232,16 +232,16 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
 
         {/* Value + Achievement */}
         <div className="flex items-baseline justify-between">
-          <div className="flex items-baseline gap-1">
+          <div className="flex items-baseline gap-0.5 sm:gap-1">
             <motion.span
-              className={`text-2xl sm:text-3xl font-bold ${getStatusColor()}`}
+              className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold ${getStatusColor()}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
               {displayValue}
             </motion.span>
-            <span className={`text-sm font-semibold ${getStatusColor()} opacity-70`}>%</span>
+            <span className={`text-xs sm:text-sm md:text-base lg:text-lg font-semibold ${getStatusColor()} opacity-70`}>%</span>
           </div>
 
           {achievement && (
@@ -251,8 +251,8 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
               transition={{ delay: 0.4 }}
               className="flex items-center gap-1"
             >
-              <achievement.icon className={`h-3.5 w-3.5 ${achievement.color}`} />
-              <span className={`text-xs font-medium ${achievement.color}`}>
+              <achievement.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-5 lg:w-5 ${achievement.color}`} />
+              <span className={`text-xs sm:text-sm lg:text-base font-medium ${achievement.color}`}>
                 {achievement.label}
               </span>
             </motion.div>
@@ -261,7 +261,7 @@ function ProgressMetric({ label, value, icon, metricType, description }: Progres
 
         {/* Progress bar */}
         <div className="relative mt-auto">
-          <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-white/10 rounded-full h-1.5 sm:h-2 lg:h-2.5 overflow-hidden">
             <motion.div
               className={getProgressBarClasses(value)}
               initial={{ width: 0 }}
@@ -433,7 +433,7 @@ export default function RelationshipProgressWithTabs() {
   );
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border-2 border-white/30 shadow-xl min-h-[500px] flex flex-col">
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 sm:border-2 sm:border-white/30 shadow-xl min-h-[400px] sm:min-h-[500px] flex flex-col">
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">
@@ -521,10 +521,10 @@ export default function RelationshipProgressWithTabs() {
               className="space-y-6 flex-1 flex flex-col"
             >
               {/* Overall Progress */}
-              <div className="text-center pb-5 border-b border-white/10">
-                <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="text-center pb-4 sm:pb-5 lg:pb-6 border-b border-white/10">
+                <div className="flex items-center justify-center gap-2 sm:gap-3 lg:gap-4 mb-2">
                   <motion.div
-                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${healthIconColors.background} flex items-center justify-center`}
+                    className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br ${healthIconColors.background} flex items-center justify-center`}
                     animate={{
                       scale: [1, 1.05, 1],
                       rotate: [0, 5, -5, 0]
@@ -535,18 +535,18 @@ export default function RelationshipProgressWithTabs() {
                       repeatDelay: 3
                     }}
                   >
-                    <TrendingUp className={`h-5 w-5 ${healthIconColors.icon}`} />
+                    <TrendingUp className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 ${healthIconColors.icon}`} />
                   </motion.div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">{overallScore}</span>
-                    <span className="text-lg sm:text-xl font-semibold text-white/60">%</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-1">
+                    <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white">{overallScore}</span>
+                    <span className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-white/60">%</span>
                   </div>
                 </div>
-                <h3 className="text-sm font-semibold text-gray-300 mb-1">
+                <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-300 mb-1">
                   Overall {activeType === 'family' ? 'Family' : 'Relationship'} Health
                 </h3>
                 {therapeuticSaying && (
-                  <p className="text-xs sm:text-sm text-gray-500 italic max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs sm:text-sm lg:text-base text-gray-500 italic max-w-xs sm:max-w-sm lg:max-w-md mx-auto leading-relaxed">
                     "{therapeuticSaying}"
                   </p>
                 )}

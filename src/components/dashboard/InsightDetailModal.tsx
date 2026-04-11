@@ -121,16 +121,16 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="relative flex-shrink-0 pb-4 border-b">
-          <div className="pr-12">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <InsightIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+      <DialogContent className="w-full max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="relative flex-shrink-0 pb-3 sm:pb-4 border-b">
+          <div className="pr-10 sm:pr-12">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 lg:p-2.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <InsightIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <DialogTitle className="text-lg sm:text-xl font-bold truncate pr-2">{insight.title}</DialogTitle>
-                <DialogDescription className="mt-1 text-xs sm:text-sm">
+                <DialogTitle className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold truncate pr-2">{insight.title}</DialogTitle>
+                <DialogDescription className="mt-0.5 sm:mt-1 text-xs sm:text-sm lg:text-base">
                   In-depth analysis and personalized recommendations
                 </DialogDescription>
               </div>
@@ -140,21 +140,21 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="flex-shrink-0 grid w-full grid-cols-2 sm:grid-cols-4 px-6">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="progress" className="text-xs sm:text-sm">Progress</TabsTrigger>
-            <TabsTrigger value="patterns" className="hidden sm:inline-flex text-xs sm:text-sm">Patterns</TabsTrigger>
-            <TabsTrigger value="resources" className="hidden sm:inline-flex text-xs sm:text-sm">Resources</TabsTrigger>
+          <TabsList className="flex-shrink-0 grid w-full grid-cols-2 sm:grid-cols-4 px-3 sm:px-4 md:px-6">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm lg:text-base">Overview</TabsTrigger>
+            <TabsTrigger value="progress" className="text-xs sm:text-sm lg:text-base">Progress</TabsTrigger>
+            <TabsTrigger value="patterns" className="hidden sm:inline-flex text-xs sm:text-sm lg:text-base">Patterns</TabsTrigger>
+            <TabsTrigger value="resources" className="hidden sm:inline-flex text-xs sm:text-sm lg:text-base">Resources</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-4">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 pb-3 sm:pb-4">
             <TabsContent value="overview" className="space-y-4 m-0">
               {/* Current Status Card */}
               <Card>
@@ -519,12 +519,12 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
           </div>
         </Tabs>
 
-        <div className="flex-shrink-0 pt-4 px-6 border-t flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">{insight.category}</Badge>
-            <Badge variant="outline" className="text-xs">{insight.priority} priority</Badge>
+        <div className="flex-shrink-0 pt-3 sm:pt-4 px-3 sm:px-4 md:px-6 border-t flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Badge variant="outline" className="text-xs sm:text-sm">{insight.category}</Badge>
+            <Badge variant="outline" className="text-xs sm:text-sm">{insight.priority} priority</Badge>
           </div>
-          <Button onClick={onClose} size="sm">Close</Button>
+          <Button onClick={onClose} size="sm" className="text-xs sm:text-sm">Close</Button>
         </div>
       </DialogContent>
     </Dialog>

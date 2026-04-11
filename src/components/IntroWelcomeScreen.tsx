@@ -444,13 +444,14 @@ export default function IntroWelcomeScreen() {
       }
 
       // Navigate immediately - welcome page will handle scroll on mount
-      router.push("/welcome");
+      // Pass ?from=intro so welcome page skips the hasSeenIntro check (avoids browser-cache race condition)
+      router.push("/welcome?from=intro");
     } catch (error) {
       console.error("Error updating intro status:", error);
       setError("Continuing to onboarding...");
       // Continue anyway after a short delay
       setTimeout(() => {
-        router.push("/welcome");
+        router.push("/welcome?from=intro");
       }, 1000);
     } finally {
       // Don't set loading to false here since we're navigating away

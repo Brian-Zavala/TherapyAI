@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Spotlight } from "@/components/ui/spotlight-new";
 import GlassCard from "@/components/ui/glass-card";
 import { useSession } from '@/hooks/useClerkSession'
 import ButtonWithSound from "@/components/ButtonWithSound";
 import ConfettiAnimation from "@/components/ui/confetti-animation";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { CheckCircleIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 import RelationshipAssessment from "@/components/RelationshipAssessment";
 import OnboardingSuccessSplash from "@/components/OnboardingSuccessSplash";
 import { usePersistentOnboarding } from "@/hooks/usePersistentOnboarding";
@@ -512,8 +512,122 @@ const formSteps: FormStep[] = [
   },
 ];
 
-export default function WelcomePage() {
+// ─── Custom Select Dropdown ───────────────────────────────────────────────────
+interface CustomSelectProps {
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}
+
+function CustomSelect({
+  name,
+  value,
+  onChange,
+  options,
+  placeholder = "Select an option",
+}: CustomSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      {/* Trigger button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((o) => !o)}
+        className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-left flex items-center justify-between transition-all focus:outline-none ${
+          isOpen
+            ? "border-blue-400 shadow-lg shadow-blue-500/20"
+            : "border-white/20 hover:border-white/40 focus:border-blue-400"
+        }`}
+      >
+        <span className={`text-sm sm:text-base ${selectedLabel ? "text-white" : "text-white/40"}`}>
+          {selectedLabel ?? placeholder}
+        </span>
+        <motion.span
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+          className="flex-shrink-0 ml-2 text-white/50"
+        >
+          <ChevronDownIcon className="w-5 h-5" />
+        </motion.span>
+      </button>
+
+      {/* Dropdown panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute z-[60] w-full mt-1.5 bg-[#0f1729]/95 backdrop-blur-2xl border border-white/15 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+          >
+            <div className="max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent py-1">
+              {options.map((option, index) => {
+                const isSelected = option.value === value;
+                return (
+                  <motion.button
+                    key={option.value}
+                    type="button"
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.018, duration: 0.12 }}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-2 transition-colors duration-100 ${
+                      isSelected
+                        ? "bg-blue-600/30 text-white"
+                        : "text-white/75 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="text-sm sm:text-base leading-snug">{option.label}</span>
+                    {isSelected && (
+                      <CheckCircleIcon className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
+function WelcomePageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromIntro = searchParams.get("from") === "intro";
   const { data: session, status } = useSession();
   const {
     currentStep,
@@ -563,8 +677,8 @@ export default function WelcomePage() {
           .then((data) => {
             if (!data) return; // Handle case where we redirected due to 401
             
-            // Check if user hasn't seen intro yet
-            if (!data.hasSeenIntro) {
+            // Check if user hasn't seen intro yet (skip if coming directly from intro to avoid browser-cache loop)
+            if (!data.hasSeenIntro && !fromIntro) {
               router.replace("/intro");
               return;
             }
@@ -599,8 +713,8 @@ export default function WelcomePage() {
           .then((data) => {
             if (!data) return; // Handle case where we redirected due to 401
             
-            // Check if user hasn't seen intro yet
-            if (!data.hasSeenIntro) {
+            // Check if user hasn't seen intro yet (skip if coming directly from intro to avoid browser-cache loop)
+            if (!data.hasSeenIntro && !fromIntro) {
               router.replace("/intro");
               return;
             }
@@ -1475,11 +1589,11 @@ export default function WelcomePage() {
 
                       return (
                         <div key={field.name}>
-                          <label className="block text-white mb-2">
+                          <label className="block text-sm sm:text-base font-medium text-white/90 mb-2 tracking-wide">
                             {field.label}
                             {field.required && (
                               <span
-                                className={`ml-1 text-lg font-bold ${
+                                className={`ml-1 text-base font-bold ${
                                   showTooltip &&
                                   ((field.name === "nickname" &&
                                     !formData.nickname?.trim()) ||
@@ -1570,7 +1684,7 @@ export default function WelcomePage() {
                               onChange={(e) =>
                                 handleInputChange(field.name, e.target.value)
                               }
-                              className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 transition-all"
+                              className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                             />
                           )}
 
@@ -1589,7 +1703,7 @@ export default function WelcomePage() {
                                   showTooltip &&
                                   (!formData.age ||
                                     parseInt(formData.age.toString()) <= 0)
-                                    ? ["#ef4444", "#dc2626", "#ef4444"] // Red pulsing animation
+                                    ? ["#ef4444", "#dc2626", "#ef4444"]
                                     : undefined,
                               }}
                               transition={{
@@ -1603,13 +1717,13 @@ export default function WelcomePage() {
                                     : 0,
                                 ease: "easeInOut",
                               }}
-                              className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
+                              className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-white placeholder-white/50 focus:outline-none transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
                                 field.name === "age" &&
                                 showTooltip &&
                                 (!formData.age ||
                                   parseInt(formData.age.toString()) <= 0)
                                   ? "border-red-500 focus:border-red-400 shadow-lg shadow-red-500/25"
-                                  : "border-white/20 focus:border-blue-400"
+                                  : "border-white/20 focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/10"
                               }`}
                               min="1"
                               max="120"
@@ -1617,30 +1731,12 @@ export default function WelcomePage() {
                           )}
 
                           {field.type === "select" && (
-                              <motion.select
-                                name={field.name}
-                                value={formData[field.name] || ""}
-                                onChange={(e) =>
-                                  handleInputChange(field.name, e.target.value)
-                                }
-                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer"
-                              >
-                              <option
-                                value=""
-                                className="bg-gray-900 text-gray-400"
-                              >
-                                Select an option
-                              </option>
-                              {field.options?.map((option) => (
-                                <option
-                                  key={option.value}
-                                  value={option.value}
-                                  className="bg-gray-900 text-white"
-                                >
-                                  {option.label}
-                                </option>
-                              ))}
-                            </motion.select>
+                            <CustomSelect
+                              name={field.name}
+                              value={formData[field.name] || ""}
+                              onChange={(val) => handleInputChange(field.name, val)}
+                              options={field.options ?? []}
+                            />
                           )}
 
                           {field.type === "multiselect" && (
@@ -1948,7 +2044,7 @@ export default function WelcomePage() {
                   className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all ${
                     currentStep === 0
                       ? "bg-white/5 text-white/30 cursor-not-allowed"
-                      : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                      : "bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer"
                   } ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? "w-full sm:w-auto" : ""}`}
                 >
                   Back
@@ -1982,7 +2078,7 @@ export default function WelcomePage() {
                       className={`px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base ${
                         currentStep === 0 && !isCurrentStepValid()
                           ? "bg-gray-600 hover:bg-gray-600 cursor-not-allowed border-2 border-red-500/50 shadow-red-500/20 shadow-lg"
-                          : "bg-blue-500 hover:bg-blue-600"
+                          : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
                       } text-white rounded-xl font-medium transition-all ${
                         currentStep === 0 && !isCurrentStepValid()
                           ? ""
@@ -2032,5 +2128,13 @@ export default function WelcomePage() {
         </GlassCard>
       </div>
     </div>
+  );
+}
+
+export default function WelcomePage() {
+  return (
+    <Suspense>
+      <WelcomePageInner />
+    </Suspense>
   );
 }

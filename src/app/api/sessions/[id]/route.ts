@@ -457,6 +457,18 @@ async function handleSessionUpdate(
           // Metrics already exist, update them
           console.log(`Metrics already exist for session ${sessionId}, not generating new ones`);
         }
+
+        // Bust server-side dashboard cache so metrics appear immediately
+        try {
+          const { dashboardCache } = await import('@/lib/cache/dashboard-cache')
+          await dashboardCache.invalidateOnSessionComplete(
+            user.id,
+            existingSession.theme || '',
+            existingSession.sessionType || 'SOLO'
+          )
+        } catch (cacheError) {
+          console.warn('Failed to invalidate dashboard cache after session complete:', cacheError)
+        }
       } catch (metricsError) {
         console.error('Error generating metrics, but continuing:', metricsError)
         // Don't fail the whole request if metrics generation fails

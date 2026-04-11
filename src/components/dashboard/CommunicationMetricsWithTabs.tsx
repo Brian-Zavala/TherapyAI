@@ -128,7 +128,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
 
   return (
     <motion.div
-      className={`bg-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-5 md:p-6 border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex flex-col h-full box-border ${
+      className={`bg-white/5 backdrop-blur-md rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex flex-col h-full box-border ${
         isAnimating ? 'breathing-glow breathing-glow-active' : 'breathing-glow'
       }`}
       initial={{ opacity: 0, y: 20 }}
@@ -137,20 +137,20 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       whileHover={{ y: -3, scale: 1.01 }}
     >
       {/* Header: Icon + Title */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`p-2.5 rounded-xl ${theme.background} flex-shrink-0`}>
-          <Icon className={`h-5 w-5 ${theme.text}`} />
+      <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-5">
+        <div className={`p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl ${theme.background} flex-shrink-0`}>
+          <Icon className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 xl:h-7 xl:w-7 ${theme.text}`} />
         </div>
-        <div className="min-w-0">
-          <h4 className="font-semibold text-sm sm:text-base text-white leading-tight">{name}</h4>
-          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 leading-snug">{description}</p>
+        <div className="min-w-0 flex-1">
+          <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-white leading-tight">{name}</h4>
+          <p className="text-xs sm:text-sm lg:text-base text-gray-400 mt-0.5 sm:mt-1 leading-snug">{description}</p>
         </div>
       </div>
 
       {/* Percentage Display */}
-      <div className="flex items-baseline gap-1 mb-4">
+      <div className="flex items-baseline gap-0.5 sm:gap-1 mb-3 sm:mb-4 lg:mb-5">
         <motion.span
-          className={`text-3xl sm:text-4xl md:text-5xl font-bold ${getStatusColor()}`}
+          className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold ${getStatusColor()}`}
           animate={hasReachedTarget ? {
             scale: [1, 1.15, 1],
           } : {}}
@@ -158,12 +158,12 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
         >
           {displayValue}
         </motion.span>
-        <span className={`text-lg sm:text-xl font-semibold ${getStatusColor()} opacity-70`}>%</span>
+        <span className={`text-sm sm:text-base md:text-lg lg:text-xl font-semibold ${getStatusColor()} opacity-70`}>%</span>
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-4 mt-auto">
-        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+      <div className="mb-3 sm:mb-4 mt-auto">
+        <div className="w-full bg-white/10 rounded-full h-1.5 sm:h-2 lg:h-2.5 overflow-hidden">
           <motion.div
             className={getProgressBarClasses(type)}
             initial={{ width: 0 }}
@@ -174,7 +174,7 @@ function MetricItem({ name, value, icon: Icon, type, description, therapyType, i
       </div>
 
       {/* Inspirational Message */}
-      <p className="text-xs text-gray-500 italic leading-relaxed">
+      <p className="text-xs sm:text-sm lg:text-base text-gray-500 italic leading-relaxed">
         "{getSaying()}"
       </p>
     </motion.div>
@@ -262,8 +262,8 @@ function CommunicationMetricsContent() {
   const hasData = communicationMetrics && Array.isArray(communicationMetrics) && communicationMetrics.length > 0;
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border-2 border-white/30 shadow-xl min-h-[500px] flex flex-col">
-      <CardHeader className="pb-3 sm:pb-4">
+    <Card className="bg-white/10 backdrop-blur-lg border border-white/20 sm:border-2 sm:border-white/30 shadow-xl min-h-[400px] sm:min-h-[500px] flex flex-col">
+      <CardHeader className="pb-2 sm:pb-3 md:pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full text-center">
             <CardTitle className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white">

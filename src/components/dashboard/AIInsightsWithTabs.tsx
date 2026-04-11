@@ -499,48 +499,48 @@ export default function AIInsightsWithTabs() {
 
         {/* Progress Summary */}
         {hasData && insights.summary && (
-          <div className="mt-4 p-4 sm:p-5 bg-white/5 border border-white/10 rounded-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+          <div className="mt-3 sm:mt-4 lg:mt-5 p-3 sm:p-4 md:p-5 lg:p-6 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4">
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm sm:text-base text-white">
+                <h4 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl text-white">
                   {insights.summary.primaryFocus}
                 </h4>
-                <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                <p className="text-xs sm:text-sm lg:text-base text-gray-400 mt-0.5 sm:mt-1">
                   Next milestone: {insights.summary.nextMilestone}
                 </p>
               </div>
-              <div className="flex items-baseline gap-1.5 flex-shrink-0">
-                <span className="text-2xl sm:text-3xl font-bold text-blue-400">
+              <div className="flex items-baseline gap-0.5 sm:gap-1 lg:gap-1.5 flex-shrink-0">
+                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-blue-400">
                   {insights.summary.overallProgress}
                 </span>
-                <span className="text-sm sm:text-base font-semibold text-blue-400/70">%</span>
-                <span className="text-xs text-gray-500 ml-1">Overall Health</span>
+                <span className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-blue-400/70">%</span>
+                <span className="text-xs sm:text-sm text-gray-500 ml-1 lg:ml-2">Overall Health</span>
               </div>
             </div>
             <Progress
               value={insights.summary.overallProgress}
-              className="h-2 bg-white/10"
+              className="h-1.5 sm:h-2 lg:h-2.5 bg-white/10"
             />
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-2">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 sm:mt-3 lg:mt-4 gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {insights.summary.isRealTime ? (
                   <>
-                    <Activity className="h-4 w-4 text-green-400 animate-pulse" />
-                    <span className="text-sm text-green-400 font-medium">
+                    <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-green-400 animate-pulse" />
+                    <span className="text-xs sm:text-sm lg:text-base text-green-400 font-medium">
                       Live Session Data
                     </span>
                   </>
                 ) : (
                   <>
-                    <TrendingUp className="h-4 w-4 text-green-400" />
-                    <span className="text-sm text-gray-400">
+                    <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-green-400" />
+                    <span className="text-xs sm:text-sm lg:text-base text-gray-400">
                       {insights.summary.improvementRate}% improvement this month
                     </span>
                   </>
                 )}
               </div>
               {insights.summary.sessionsAnalyzed > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs sm:text-sm">
                   {insights.summary.isRealTime ? 'Real-time' : `Based on ${insights.summary.sessionsAnalyzed} sessions`}
                 </Badge>
               )}

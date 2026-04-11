@@ -288,9 +288,10 @@ export const dashboardCache = {
    */
   mapSessionToTherapyType(theme: string, sessionType: string): 'solo' | 'couple' | 'family' | null {
     const lowerTheme = theme.toLowerCase();
+    // DB stores uppercase enums (SOLO/COUPLE/FAMILY) — normalize before comparing
     const lowerType = sessionType.toLowerCase();
-    
-    if (lowerTheme.includes('individual') || lowerTheme.includes('solo') || lowerType === 'individual') {
+
+    if (lowerTheme.includes('individual') || lowerTheme.includes('solo') || lowerType === 'solo' || lowerType === 'individual') {
       return 'solo';
     }
     if (lowerTheme.includes('relationship') || lowerTheme.includes('couple') || lowerType === 'couple') {
@@ -299,7 +300,7 @@ export const dashboardCache = {
     if (lowerTheme.includes('family') || lowerType === 'family') {
       return 'family';
     }
-    
+
     return null;
   },
 
