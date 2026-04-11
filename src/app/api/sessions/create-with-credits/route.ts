@@ -1,16 +1,16 @@
 // @ts-nocheck
 import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
-import { creditManager } from '@/lib/services/credit-manager.service';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/cache/redis-client';
 import { SessionStatus, SessionType } from '@prisma/client';
 import { z } from 'zod';
-import { 
-  sessionCreationSchema, 
+import {
+  sessionCreationSchema,
   validateAndSanitizeDuration,
-  type PlanType 
+  type PlanType
 } from '@/lib/validation/duration-validation';
+import { calculateReservationExpiry } from '@/lib/utils/billing-utils';
 
 // Concurrent session limits by plan
 const CONCURRENT_LIMITS = {
@@ -68,21 +68,47 @@ export async function POST(request: NextRequest) {
 
     try {
       // Transaction for atomic session creation with credit validation
+      // Timeout increased: each query takes ~1300ms due to Supabase latency
       const result = await prisma.$transaction(async (tx) => {
-        // 1. Get user with current credits to determine plan type
-        const user = await tx.user.findUnique({
-          where: { id: session.user.id },
-          include: {
-            usageCredits: {
-              where: {
-                billingPeriodStart: { lte: new Date() },
-                billingPeriodEnd: { gte: new Date() },
+        // 1. Get user with current credits + check concurrent sessions in parallel
+        // Also fetch grace period from Redis (non-DB, safe to parallelize)
+        const [user, activeSessionsList, graceData] = await Promise.all([
+          tx.user.findUnique({
+            where: { id: session.user.id },
+            include: {
+              usageCredits: {
+                where: {
+                  billingPeriodStart: { lte: new Date() },
+                  billingPeriodEnd: { gte: new Date() },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
               },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
             },
-          },
-        });
+          }),
+          tx.session.findMany({
+            where: {
+              userId: session.user.id,
+              status: {
+                in: [SessionStatus.ACTIVE, SessionStatus.PAUSED],
+              },
+            },
+            orderBy: { startTime: 'desc' },
+            take: 3,
+            select: {
+              id: true,
+              theme: true,
+              startTime: true,
+              duration: true,
+              conversationTimeSeconds: true,
+              status: true,
+            },
+          }),
+          redis.get(`payment:grace:${session.user.id}`).catch((redisError) => {
+            console.warn(`Redis unavailable for grace period check: ${redisError}`);
+            return null;
+          }),
+        ]);
 
         if (!user) {
           throw new Error('User not found');
@@ -90,14 +116,10 @@ export async function POST(request: NextRequest) {
 
         // 2. Determine plan type from current credits or subscription status
         let planType: PlanType = 'free';
-        
-        // First try to get from current credits
+
         if (user.usageCredits && user.usageCredits.length > 0) {
           planType = user.usageCredits[0].planType as PlanType;
-        } 
-        // Fallback to checking subscription status
-        else if (user.subscriptionStatus === 'active' && user.subscriptionId) {
-          // Parse plan type from subscription ID if needed
+        } else if (user.subscriptionStatus === 'active' && user.subscriptionId) {
           const subId = user.subscriptionId.toLowerCase();
           if (subId.includes('unlimited')) {
             planType = 'unlimited';
@@ -106,7 +128,7 @@ export async function POST(request: NextRequest) {
           } else if (subId.includes('essential')) {
             planType = 'essential';
           } else {
-            planType = 'essential'; // Default for active subscriptions
+            planType = 'essential';
           }
         }
 
@@ -115,30 +137,9 @@ export async function POST(request: NextRequest) {
         if (!durationValidation.isValid) {
           throw new Error(`INVALID_DURATION:${durationValidation.error}`);
         }
-        
-        // Use the validated duration (may have been sanitized)
         const sessionDuration = durationValidation.duration;
 
         // 3. Check concurrent session limits
-        const activeSessionsList = await tx.session.findMany({
-          where: {
-            userId: session.user.id,
-            status: {
-              in: [SessionStatus.ACTIVE, SessionStatus.PAUSED],
-            },
-          },
-          orderBy: { startTime: 'desc' },
-          take: 3,
-          select: {
-            id: true,
-            theme: true,
-            startTime: true,
-            duration: true,
-            conversationTimeSeconds: true,
-            status: true,
-          },
-        });
-
         const concurrentLimit = CONCURRENT_LIMITS[planType as keyof typeof CONCURRENT_LIMITS] || 1;
 
         if (activeSessionsList.length >= concurrentLimit) {
@@ -156,60 +157,42 @@ export async function POST(request: NextRequest) {
           };
         }
 
-        // 4. Check for payment grace period with Redis fallback
-        let graceData: string | null = null;
+        // 4. Check for payment grace period
         let inGracePeriod = false;
-        
-        // Try Redis first, fallback to database if Redis is unavailable
-        try {
-          graceData = await redis.get(`payment:grace:${session.user.id}`);
-        } catch (redisError) {
-          console.warn(`Redis unavailable for grace period check: ${redisError}`);
-          // Fallback to database metadata
-          const userWithMetadata = await tx.user.findUnique({
-            where: { id: session.user.id },
-            select: { metadata: true }
-          });
-          
-          if (userWithMetadata?.metadata && typeof userWithMetadata.metadata === 'object' && 
-              'paymentGracePeriod' in userWithMetadata.metadata) {
-            const gracePeriodEnd = new Date(userWithMetadata.metadata.paymentGracePeriod as string);
+
+        // If Redis failed (graceData is null from catch), try DB fallback
+        if (graceData === null) {
+          // Check if user metadata has grace period info (only if Redis was unavailable)
+          if (user.metadata && typeof user.metadata === 'object' &&
+              'paymentGracePeriod' in user.metadata) {
+            const gracePeriodEnd = new Date(user.metadata.paymentGracePeriod as string);
             if (gracePeriodEnd > new Date()) {
               inGracePeriod = true;
               console.log(`User ${session.user.id} in grace period from DB until ${gracePeriodEnd.toISOString()}`);
-              
-              // For database fallback, we can't check specific sessions, so deny all new sessions
               throw new Error('GRACE_PERIOD:Cannot start new sessions during payment grace period. Please update your payment method.');
             }
           }
         }
-        
+
         if (graceData) {
           let grace: any;
           try {
-            grace = JSON.parse(graceData);
+            grace = typeof graceData === 'string' ? JSON.parse(graceData) : graceData;
           } catch (parseError) {
             console.error(`Malformed grace period data for user ${session.user.id}:`, parseError);
-            // Clear malformed data and continue without grace period
-            try {
-              await redis.del(`payment:grace:${session.user.id}`);
-            } catch (redisDelError) {
-              console.error(`Failed to delete malformed grace data: ${redisDelError}`);
-            }
+            redis.del(`payment:grace:${session.user.id}`).catch(() => {});
             grace = null;
           }
-          
+
           if (grace && grace.gracePeriodEnd) {
             const gracePeriodEnd = new Date(grace.gracePeriodEnd);
-            
+
             if (gracePeriodEnd > new Date()) {
               inGracePeriod = true;
               console.log(`User ${session.user.id} in grace period until ${gracePeriodEnd.toISOString()}`);
-              
-              // SECURITY FIX: Validate session ownership and active status
+
               let isExistingSession = false;
               if (validatedData.metadata?.continuationOf && grace.activeSessions?.includes(validatedData.metadata.continuationOf)) {
-                // Verify the session belongs to this user and is actually active
                 const existingSession = await tx.session.findFirst({
                   where: {
                     id: validatedData.metadata.continuationOf,
@@ -219,14 +202,14 @@ export async function POST(request: NextRequest) {
                     }
                   }
                 });
-                
+
                 isExistingSession = !!existingSession;
-                
+
                 if (!isExistingSession) {
                   console.warn(`Security Alert: User ${session.user.id} attempted to continue non-existent or unauthorized session ${validatedData.metadata.continuationOf}`);
                 }
               }
-              
+
               if (!isExistingSession) {
                 throw new Error('GRACE_PERIOD:Cannot start new sessions during payment grace period. Please update your payment method.');
               }
@@ -234,32 +217,31 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 5. Get current credits
-        const currentCredits = await creditManager.getCurrentCredits(session.user.id);
-        
+        // 5. Use credits already loaded from step 1 (no extra query needed)
+        const currentCredits = user.usageCredits?.[0] || null;
+
         if (!currentCredits && !inGracePeriod) {
           throw new Error('NO_CREDITS:No active credit balance found. Please upgrade your subscription.');
         }
 
         // 6. Check if user has enough credits
         const isUnlimited = planType === 'unlimited';
-        const availableCredits = currentCredits 
-          ? currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits 
+        const availableCredits = currentCredits
+          ? currentCredits.totalCredits + currentCredits.bonusCredits - currentCredits.usedCredits
           : 0;
-        
+
         if (!isUnlimited && !inGracePeriod && availableCredits < sessionDuration) {
           throw new Error(`INSUFFICIENT_CREDITS:You need ${sessionDuration} minutes but only have ${availableCredits} available.`);
         }
 
-        // 6. Create the session
-        // Map therapyType to sessionType enum
+        // 7. Create the session
         let sessionType: 'SOLO' | 'COUPLE' | 'FAMILY' = 'SOLO';
         if (validatedData.therapyType === 'couple') {
           sessionType = 'COUPLE';
         } else if (validatedData.therapyType === 'family') {
           sessionType = 'FAMILY';
         }
-        
+
         const newSession = await tx.session.create({
           data: {
             userId: session.user.id,
@@ -272,16 +254,39 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // 7. Reserve credits for the session
-        if (!isUnlimited) {
-          await creditManager.reserveCredits(
-            session.user.id,
-            newSession.id,
-            sessionDuration
-          );
+        // 8. Reserve credits inline (avoids nested transaction from creditManager)
+        if (!isUnlimited && currentCredits) {
+          // Check active reservations for this user (excluding current session)
+          const activeReservations = await tx.$queryRaw<any[]>`
+            SELECT COALESCE(SUM(minutes), 0) as total
+            FROM "CreditReservation"
+            WHERE "userId" = ${session.user.id}
+              AND status = 'ACTIVE'
+              AND "expiresAt" > NOW()
+              AND "sessionId" != ${newSession.id}
+          `;
+
+          const totalReserved = Number(activeReservations[0]?.total || 0);
+          const actualAvailable = availableCredits - totalReserved;
+
+          if (actualAvailable < sessionDuration) {
+            throw new Error(`INSUFFICIENT_CREDITS:You need ${sessionDuration} minutes but only have ${actualAvailable} available (${totalReserved} reserved).`);
+          }
+
+          // Create reservation record directly using tx
+          const reservationId = crypto.randomUUID();
+          const expiresAt = calculateReservationExpiry(sessionDuration);
+
+          await tx.$executeRaw`
+            INSERT INTO "CreditReservation"
+              (id, "userId", "sessionId", minutes, "creditId", "expiresAt", status, "createdAt", "updatedAt")
+            VALUES
+              (${reservationId}, ${session.user.id}, ${newSession.id}, ${sessionDuration},
+               ${currentCredits.id}, ${expiresAt}, 'ACTIVE', NOW(), NOW())
+          `;
         }
 
-        // 8. Store family members if provided
+        // 9. Store family members if provided
         if (validatedData.therapyType === 'family' && validatedData.familyMembers?.length) {
           await tx.familyMember.createMany({
             data: validatedData.familyMembers.map(member => ({
@@ -302,6 +307,9 @@ export async function POST(request: NextRequest) {
           concurrentSessions: activeSessionsList.length + 1,
           concurrentLimit,
         };
+      }, {
+        maxWait: 10000,
+        timeout: 30000,
       });
 
       // 9. Invalidate relevant caches

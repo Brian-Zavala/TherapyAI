@@ -217,32 +217,37 @@ if (typeof window === 'undefined') {
 }
 
 // Export a proxy that waits for initialization
+// Once prismaInstance is set, all access goes directly to the real client (fast path)
 export const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
-    // If already initialized, use it directly
+    // Fast path: once initialized, delegate directly to the real client
     if (prismaInstance) {
       return Reflect.get(prismaInstance, prop)
     }
-    
-    // For query methods, return a function that waits for initialization
-    const queryMethods = ['findUnique', 'findFirst', 'findMany', 'create', 'update', 'delete', 'upsert', 'createMany', 'updateMany', 'deleteMany', 'count', 'aggregate', 'groupBy', '$transaction', '$queryRaw', '$executeRaw', '$connect', '$disconnect']
-    
-    if (typeof prop === 'string' && (queryMethods.includes(prop) || prop.startsWith('$'))) {
-      return async (...args: any[]) => {
-        if (!prismaPromise) {
-          throw new Error('[Prisma] Client initialization not started')
-        }
-        const client = await prismaPromise
-        const method = Reflect.get(client, prop)
-        if (typeof method === 'function') {
-          return method.apply(client, args)
-        }
-        return method
-      }
+
+    // Avoid thenable detection (Promise.resolve checks for .then)
+    if (prop === 'then') {
+      return undefined
     }
-    
-    // For model access (e.g., prisma.user), return a proxy that handles async methods
-    if (typeof prop === 'string' && !prop.startsWith('$') && prop !== 'then') {
+
+    // Before initialization: return a lazy wrapper that awaits the client
+    if (typeof prop === 'string') {
+      // For $ methods ($transaction, $queryRaw, etc.), return async wrapper
+      if (prop.startsWith('$')) {
+        return async (...args: any[]) => {
+          if (!prismaPromise) {
+            throw new Error('[Prisma] Client initialization not started')
+          }
+          const client = await prismaPromise
+          const method = Reflect.get(client, prop)
+          if (typeof method === 'function') {
+            return method.apply(client, args)
+          }
+          return method
+        }
+      }
+
+      // For model access (e.g., prisma.user), return a proxy that lazily resolves
       return new Proxy({}, {
         get: (_, subProp) => {
           return async (...args: any[]) => {
@@ -260,9 +265,8 @@ export const prisma = new Proxy({} as PrismaClient, {
         }
       })
     }
-    
-    // For other properties, wait for initialization
-    throw new Error(`[Prisma] Cannot access property '${String(prop)}' before initialization`)
+
+    return undefined
   }
 })
 
