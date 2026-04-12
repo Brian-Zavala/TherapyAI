@@ -39,6 +39,7 @@ import {
 } from './therapy'
 import TranscriptOverlay from './therapy/TranscriptOverlay'
 import LiveTranscriptButton from './therapy/LiveTranscriptButton'
+import SessionWindDownModal from './therapy/SessionWindDownModal'
 import TherapyTypeSelector from './TherapyTypeSelector'
 import type { TherapyType, SessionRecoveryData } from '@/types/therapy-session'
 
@@ -230,12 +231,14 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     // This ensures the session is properly completed, credits updated, and user redirected
     if (sessionRef.current?.sessionId && !endSessionInProgressRef.current) {
       console.log('🔚 VAPI call ended with active session - triggering session completion')
+      // Show wind-down modal immediately — don't wait for the 500ms cleanup delay
+      setShowWindDown(true)
       // Small delay to let VAPI finish cleanup before we run our completion
       setTimeout(() => {
         handleEndSessionRef.current?.()
       }, 500)
     }
-  }, [setSessionActive])
+  }, [setSessionActive, setShowWindDown])
   
   const handleVapiError = useCallback((error: unknown) => {
     // Suppress Daily.co ejection errors — these are normal session ends triggered
@@ -560,6 +563,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   const [messageIndex, setMessageIndex] = useState(0)
   const [isRecoveredSession, setIsRecoveredSession] = useState(false)
   const [forceHidePhoneUI, setForceHidePhoneUI] = useState(false)
+  const [showWindDown, setShowWindDown] = useState(false)
   const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false)
   const [hasNewTranscriptMessages, setHasNewTranscriptMessages] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -952,12 +956,16 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }
           
           console.log('✅ Recovery validation passed, starting VAPI call...')
-          
-          await vapi.startCall(inlineConfig)
-          
+
+          const vapiInst = vapiInstanceManager.getCurrentInstance() || vapi.vapi
+          if (!vapiInst) throw new Error('VAPI instance not available for recovery')
+          await vapiInst.start(inlineConfig)
+
         } else {
           // Use assistant ID approach with recovery message
-          await vapi.startCall(assistant.id || getAssistantId(detectedType))
+          const vapiInst = vapiInstanceManager.getCurrentInstance() || vapi.vapi
+          if (!vapiInst) throw new Error('VAPI instance not available for recovery')
+          await vapiInst.start(assistant.id || getAssistantId(detectedType))
         }
         
         // Ensure session-active class is set for recovered sessions
@@ -1447,8 +1455,10 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
     
     endSessionInProgressRef.current = true
-    
+
     try {
+      // Show ambient wind-down screen immediately so user isn't left staring at spinner
+      setShowWindDown(true)
       // CRITICAL: Force hide phone UI immediately to prevent any visual glitches
       setForceHidePhoneUI(true)
       
@@ -1528,6 +1538,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.error('[TherapyButton] Failed to end session:', error)
       setError(error instanceof Error ? error.message : 'Failed to end session')
       // Still reset UI on error - no loading state to clear anymore
+      setShowWindDown(false)
       setForceHidePhoneUI(false)
       setSessionActive(false)
     } finally {
@@ -1967,13 +1978,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // But also ensures it hides properly when session ends
   const showPhoneUI = (session.sessionId || vapi.isConnected || vapi.isConnecting || isLoading || isRecoveredSession || isTransitioning || sessionState.isPaused) && !session.isEndingSession && !forceHidePhoneUI
   
-  if (showPhoneUI || isLoading) {
-
-    // Active session UI with proper phone container
-    return (
-      <div className="flex flex-col items-center w-full max-w-full sm:max-w-lg mx-auto px-2" style={{
+  const sessionContent = (showPhoneUI || isLoading) ? (
+      <div className="flex flex-col items-center justify-center w-full mx-auto" style={{
         position: 'relative',
-        zIndex: 10000
+        zIndex: 10000,
+        paddingTop: '8px',
+        paddingBottom: '8px',
       }}>
         {/* iPhone chassis wrapper */}
         <motion.div
@@ -1988,10 +1998,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             delay: isRecoveredSession ? 0.5 : 0
           }}
           style={{
-            width: '320px',
-            maxWidth: '90vw',
-            height: 'calc(100vh - 80px)',
-            maxHeight: '720px',
+            width: 'min(320px, calc(100vw - 40px))',
+            height: 'min(calc(100svh - 110px), 720px)',
             minHeight: '420px',
           }}
         >
@@ -2200,11 +2208,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             <>
               {/* Main Content */}
               <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-col items-center justify-between flex-1 overflow-y-auto bg-black">
-                {/* Security Notice */}
-                <div className="text-center py-1 text-gray-300 text-xs">
-                  <span>End-to-end encrypted</span>
-                </div>
-
                 {/* Therapist Avatar */}
                 <div className="py-2 sm:py-3 relative">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-lg mb-2 sm:mb-3 border-2 border-blue-300 mx-auto relative">
@@ -2314,13 +2317,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           </div>{/* End screen area */}
         </motion.div>{/* End iPhone chassis */}
         
-        {/* Session status message */}
-        {(vapi.isConnected || sessionState.isPaused) && (
-          <p className={`mt-4 font-medium text-sm sm:text-base opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards] text-center ${sessionState.isPaused ? 'text-orange-500' : 'text-green-600'}`}>
-            {sessionState.isPaused ? 'Session paused - click Resume to continue' : 'Session active - speak with our AI therapist'}
-          </p>
-        )}
-        
         {/* Live Transcript Button - Only show when session is active and on mobile */}
         {!isLoading && !vapi.isConnecting && vapi.isConnected && (
           <div className="mt-4 flex justify-center sm:hidden">
@@ -2349,17 +2345,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         
         {/* Error Display */}
         {error && (
-          <ErrorDisplay 
+          <ErrorDisplay
             error={error}
             onDismiss={() => setError(null)}
           />
         )}
       </div>
-    )
-  }
-  
-  // Default button state
-  return (
+  ) : (
     <>
       <div className="flex items-center justify-center w-full h-full min-h-[200px]">
         <motion.button
@@ -2474,6 +2466,15 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           {error}
         </motion.div>
       )}
+    </>
+  )
+
+  return (
+    <>
+      {/* Single persistent modal instance — lives above both branches so it never re-mounts
+          when the component switches between phone-UI and default-button states */}
+      <SessionWindDownModal isOpen={showWindDown} />
+      {sessionContent}
     </>
   )
 })

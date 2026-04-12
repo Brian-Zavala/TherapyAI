@@ -94,6 +94,9 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     };
   }, [isAuthenticated, refetch]);
   
+  // Hide widget while a session is live
+  const [isSessionActive, setIsSessionActive] = useState(false);
+
   // Track elapsed session minutes for real-time credit countdown
   // Accounts for paused time so credits don't drain while paused
   const [sessionElapsedMinutes, setSessionElapsedMinutes] = useState(0);
@@ -104,6 +107,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
 
   useEffect(() => {
     const handleSessionStarted = () => {
+      setIsSessionActive(true);
       sessionStartRef.current = Date.now();
       totalPausedMsRef.current = 0;
       pausedAtRef.current = null;
@@ -119,6 +123,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
     };
 
     const handleSessionEnd = () => {
+      setIsSessionActive(false);
       sessionStartRef.current = null;
       pausedAtRef.current = null;
       totalPausedMsRef.current = 0;
@@ -259,6 +264,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   }
 
   if (!data) return null;
+  if (isSessionActive) return null;
 
   const { credits } = data;
   // Subtract elapsed session time from available credits for real-time display

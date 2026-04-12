@@ -139,7 +139,7 @@ const PricingPage = () => {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 px-3 sm:px-4 md:px-6 py-8 sm:py-12 md:py-16">
+      <div className="relative z-10 px-3 sm:px-4 md:px-6 pt-20 sm:pt-24 md:pt-28 pb-8 sm:pb-12 md:pb-16">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -151,15 +151,6 @@ const PricingPage = () => {
             variants={itemVariants}
             className="text-center mb-8 sm:mb-12 md:mb-16"
           >
-            <motion.div
-              className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 mb-4 sm:mb-6 rounded-full bg-white/10 backdrop-blur-lg border border-white/20"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 mr-1.5 sm:mr-2" />
-              <span className="text-xs sm:text-sm lg:text-base text-white font-medium">Simple, transparent pricing</span>
-            </motion.div>
-
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-3 sm:mb-4 md:mb-6 text-center">
               Start Free. Upgrade Anytime.
             </h1>
@@ -172,19 +163,19 @@ const PricingPage = () => {
               <span className={`text-sm sm:text-base font-medium transition-colors ${!isAnnual ? 'text-white' : 'text-white/60'}`}>
                 Monthly
               </span>
-              <motion.button
+              <button
                 onClick={() => setIsAnnual(!isAnnual)}
-                className="relative w-14 h-7 sm:w-16 sm:h-8 rounded-full bg-white/20 backdrop-blur-lg border border-white/30 p-1 cursor-pointer"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className={`relative w-14 h-7 sm:w-16 sm:h-8 rounded-full transition-colors duration-300 cursor-pointer border border-white/30 flex-shrink-0 ${
+                  isAnnual ? 'bg-purple-500' : 'bg-white/20 backdrop-blur-lg'
+                }`}
               >
-                <motion.div
-                  className="absolute top-1 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full shadow-lg"
-                  animate={{ x: isAnnual ? 'calc(100% + 0.25rem)' : '0%' }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                <span
+                  className={`absolute top-1 left-1 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full shadow-lg transition-transform duration-300 ${
+                    isAnnual ? 'translate-x-7 sm:translate-x-8' : 'translate-x-0'
+                  }`}
                 />
-              </motion.button>
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              </button>
+              <div className="relative flex items-center">
                 <span className={`text-sm sm:text-base font-medium transition-colors ${isAnnual ? 'text-white' : 'text-white/60'}`}>
                   Annual
                 </span>
@@ -192,7 +183,7 @@ const PricingPage = () => {
                   <motion.span
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-xs bg-green-500/30 text-green-400 border border-green-500/40 px-2 py-0.5 rounded-full font-medium"
+                    className="absolute left-full ml-2 whitespace-nowrap text-xs bg-green-500/30 text-green-400 border border-green-500/40 px-2 py-0.5 rounded-full font-medium"
                   >
                     Save 20%
                   </motion.span>
