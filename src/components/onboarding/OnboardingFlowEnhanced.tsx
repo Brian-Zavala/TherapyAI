@@ -148,8 +148,9 @@ export default function OnboardingFlowEnhanced() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-teal-900 text-white">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-teal-900 text-white flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+      <div className="container mx-auto px-4 py-8 pb-28">
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4">
@@ -210,25 +211,30 @@ export default function OnboardingFlowEnhanced() {
               onMigrateLegacy={migrateFromLegacyFormat}
               error={error}
               onNext={handleNext}
+              onComplete={handleNext}
               onBack={handleBack}
             />
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation buttons */}
-        <div className="mt-8 flex justify-between">
+      </div>
+      </div>
+
+      {/* Navigation buttons — fixed at bottom, hidden on family step (step 1) which has its own nav */}
+      {currentStep !== 1 && (
+        <div className="fixed bottom-0 left-0 right-0 flex justify-between items-center px-4 py-4 bg-gradient-to-t from-purple-900/95 to-transparent backdrop-blur-sm border-t border-white/10">
           <ButtonWithSound
             onClick={handleBack}
             disabled={currentStep === 0}
-            className={`${currentStep === 0 ? 'invisible' : ''} px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50`}
+            className={`${currentStep === 0 ? 'invisible' : ''} px-5 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 text-sm sm:text-base`}
           >
             Back
           </ButtonWithSound>
 
           <ButtonWithSound
             onClick={handleNext}
-            disabled={isCompleting || (currentStep === 1 && familyMembers.length === 0)}
-            className="min-w-[120px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            disabled={isCompleting}
+            className="min-w-[120px] px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
           >
             {isCompleting ? (
               <span className="flex items-center">
@@ -245,7 +251,7 @@ export default function OnboardingFlowEnhanced() {
             )}
           </ButtonWithSound>
         </div>
-      </div>
+      )}
     </div>
   )
 }

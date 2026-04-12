@@ -1,8 +1,9 @@
 "use client";
 
 import { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { SoundProvider } from "@/components/SoundProvider";
-import MusicPlayer from "@/components/MusicPlayer";
+const MusicPlayer = dynamic(() => import("@/components/MusicPlayer"), { ssr: false });
 import SpotlightManager from "@/components/SpotlightManager";
 import AuthProvider from "@/components/AuthProvider";
 import Navigation from "@/components/Navigation";

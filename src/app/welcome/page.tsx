@@ -1086,12 +1086,12 @@ function WelcomePageInner() {
   }
 
   return (
-    <div className="bg-gray-900 welcome-page">
+    <div className="bg-gray-900 welcome-page overflow-x-hidden min-h-screen">
       {/* Light overlay to make background less dark - fixed positioning to cover entire page */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20 pointer-events-none" />
       <ConfettiAnimation trigger={showConfetti} />
 
-      <div className="relative z-10 px-4 pt-8 pb-8">
+      <div className="relative z-10 px-4 pt-8 pb-28">
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div
@@ -1993,98 +1993,70 @@ function WelcomePageInner() {
                 )}
               </div>
 
-              {/* Navigation buttons */}
-              <div
-                className={`flex ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? "flex-col sm:flex-row sm:justify-between" : "justify-between"} mt-8 w-full`}
-              >
-                <ButtonWithSound
-                  onClick={handleBack}
-                  disabled={currentStep === 0}
-                  className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all ${
-                    currentStep === 0
-                      ? "bg-white/5 text-white/30 cursor-not-allowed"
-                      : "bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer"
-                  } ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? "w-full sm:w-auto" : ""}`}
-                >
-                  Back
-                </ButtonWithSound>
-
-                {/* Show "Not in a relationship" button only on assessment step and when assessment is not completed */}
-                {currentStep === formSteps.length - 1 &&
-                  assessmentResults.length === 0 && (
-                    <ButtonWithSound
-                      onClick={handleSkipAssessment}
-                      className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-white rounded-xl font-medium transition-all transform hover:scale-105 w-full sm:w-auto bg-red-500 hover:bg-red-600 order-last cursor-pointer"
-                    >
-                      Not in a relationship
-                    </ButtonWithSound>
-                  )}
-
-                {/* Next/Complete button container */}
-                <div
-                  className={`relative ${currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? "w-full sm:w-auto order-2 mt-3 sm:mt-0" : ""}`}
-                >
-                  {/* Tooltip moved outside the button for better visibility */}
-
-                  {/* Only show Next/Complete button if not on assessment step or if assessment is completed */}
-                  {(currentStep !== formSteps.length - 1 ||
-                    assessmentResults.length > 0) && (
-                    <ButtonWithSound
-                      onClick={handleNext}
-                      disabled={
-                        loading || (currentStep === 0 && !isCurrentStepValid())
-                      }
-                      className={`px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base ${
-                        currentStep === 0 && !isCurrentStepValid()
-                          ? "bg-gray-600 hover:bg-gray-600 cursor-not-allowed border-2 border-red-500/50 shadow-red-500/20 shadow-lg"
-                          : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
-                      } text-white rounded-xl font-medium transition-all ${
-                        currentStep === 0 && !isCurrentStepValid()
-                          ? ""
-                          : "transform hover:scale-105"
-                      } ${
-                        currentStep === formSteps.length - 1 &&
-                        assessmentResults.length === 0
-                          ? "w-full sm:w-auto"
-                          : ""
-                      }`}
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center">
-                          <svg
-                            className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Saving...
-                        </span>
-                      ) : currentStep === formSteps.length - 1 ? (
-                        "Complete Onboarding"
-                      ) : (
-                        "Next"
-                      )}
-                    </ButtonWithSound>
-                  )}
-                </div>
-              </div>
             </motion.div>
           </AnimatePresence>
         </GlassCard>
+      </div>
+
+      {/* Navigation buttons — fixed at bottom, always visible on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-3 bg-gray-900/95 backdrop-blur-sm border-t border-white/10">
+        {currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? (
+          /* Last step without assessment: show Back + Skip stacked on mobile */
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-between max-w-2xl mx-auto">
+            <ButtonWithSound
+              onClick={handleBack}
+              disabled={currentStep === 0}
+              className="px-4 py-2.5 text-sm sm:text-base rounded-xl font-medium transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer w-full sm:w-auto"
+            >
+              Back
+            </ButtonWithSound>
+            <ButtonWithSound
+              onClick={handleSkipAssessment}
+              className="px-4 py-2.5 text-sm sm:text-base text-white rounded-xl font-medium transition-all bg-red-500 hover:bg-red-600 cursor-pointer w-full sm:w-auto"
+            >
+              Not in a relationship
+            </ButtonWithSound>
+          </div>
+        ) : (
+          /* All other steps: Back on left, Next on right */
+          <div className="flex justify-between items-center max-w-2xl mx-auto">
+            <ButtonWithSound
+              onClick={handleBack}
+              disabled={currentStep === 0}
+              className={`px-4 py-2.5 text-sm sm:text-base rounded-xl font-medium transition-all ${
+                currentStep === 0
+                  ? "bg-white/5 text-white/30 cursor-not-allowed"
+                  : "bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer"
+              }`}
+            >
+              Back
+            </ButtonWithSound>
+
+            <ButtonWithSound
+              onClick={handleNext}
+              disabled={loading || (currentStep === 0 && !isCurrentStepValid())}
+              className={`px-6 py-2.5 text-sm sm:text-base rounded-xl font-medium transition-all ${
+                currentStep === 0 && !isCurrentStepValid()
+                  ? "bg-gray-600 cursor-not-allowed border-2 border-red-500/50"
+                  : "bg-blue-500 hover:bg-blue-600 cursor-pointer transform hover:scale-105"
+              } text-white`}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </span>
+              ) : currentStep === formSteps.length - 1 ? (
+                "Complete Onboarding"
+              ) : (
+                "Next"
+              )}
+            </ButtonWithSound>
+          </div>
+        )}
       </div>
     </div>
   );

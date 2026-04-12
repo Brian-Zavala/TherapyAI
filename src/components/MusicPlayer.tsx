@@ -420,7 +420,7 @@ export default function MusicPlayer() {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
   }
 
-  // If we're on a route where the player should be hidden, don't render anything
+  // Don't render on hidden routes
   if (shouldHidePlayer) {
     return null
   }
