@@ -158,9 +158,19 @@ export default function Dashboard() {
   }, [showDisclaimer, disclaimerLoading]);
   
   // Generate tab classes with proper frosted glass effect
+  const tabs = ['overview', 'insights', 'progress', 'sessions'] as const;
   const getTabClasses = (tabValue: string) => {
     const isActive = activeTab === tabValue;
-    const baseClasses = "flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-200 !rounded-lg px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium flex-1 min-w-0 select-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none";
+    const idx = tabs.indexOf(tabValue as typeof tabs[number]);
+    const isFirst = idx === 0;
+    const isLast = idx === tabs.length - 1;
+    // Match inner radius to container: outer rounded-xl (12px) minus padding 1.5 (6px) ≈ rounded-md (6-8px)
+    const rounding = isFirst
+      ? '!rounded-l-[8px] !rounded-r-md'
+      : isLast
+      ? '!rounded-r-[8px] !rounded-l-md'
+      : '!rounded-md';
+    const baseClasses = `flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-200 ${rounding} px-2 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex-1 min-w-0 select-none data-[state=active]:!bg-transparent data-[state=active]:!shadow-none`;
     const activeClasses = isActive
       ? "text-white bg-white/25 backdrop-blur-sm shadow-lg border border-white/40 font-semibold"
       : "text-white/60 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20";
@@ -371,7 +381,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="dashboard-main-tabs space-y-4">
-        <TabsList className="main-nav-tabs flex w-full max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm !p-1.5 rounded-xl gap-1">
+        <TabsList className="main-nav-tabs flex w-full max-w-2xl mx-auto bg-white/10 border border-white/20 backdrop-blur-sm !p-1 rounded-xl gap-0.5">
           <TabsTrigger
             value="overview"
             className={getTabClasses("overview")}
