@@ -881,8 +881,8 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Maya Thompson",
   type: "couple",
   model: {
-    provider: "openai",
-    model: "gpt-4o-mini",
+    provider: "anthropic",
+    model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
     messages: [
@@ -995,8 +995,8 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Elliot Mackaphy",
   type: "solo",
   model: {
-    provider: "openai",
-    model: "gpt-4o-mini",
+    provider: "anthropic",
+    model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
     messages: [
@@ -1077,6 +1077,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     voiceId:
       process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "XmUeU0FRyne67Dy7UaT4", // Custom voice for Dr. Elliot
     model: "eleven_turbo_v2_5",
+    speed: 1.1,
   },
   transcriber: {
     provider: "deepgram",
@@ -1119,8 +1120,8 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
   name: "Dr. Jada Pearson",
   type: "family",
   model: {
-    provider: "openai",
-    model: "gpt-4o-mini",
+    provider: "anthropic",
+    model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
     messages: [
