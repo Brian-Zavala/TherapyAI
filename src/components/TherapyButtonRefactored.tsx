@@ -2321,16 +2321,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           </div>{/* End screen area */}
         </motion.div>{/* End iPhone chassis */}
         
-        {/* Live Transcript Button - Only show when session is active and on mobile */}
-        {!isLoading && !vapi.isConnecting && vapi.isConnected && (
-          <div className="mt-4 flex justify-center sm:hidden">
-            <LiveTranscriptButton 
-              onClick={handleOpenTranscriptOverlay}
-              hasNewMessages={hasNewTranscriptMessages}
-            />
-          </div>
-        )}
-        
         {/* Transcript Overlay for Mobile */}
         <TranscriptOverlay
           isOpen={showTranscriptOverlay}
