@@ -652,7 +652,7 @@ export class CreditManager {
                 vapiCallId,
                 type: TransactionType.DEBIT,
               },
-              select: { id: true, type: true, status: true },
+              select: { id: true, type: true },
             });
 
             if (existingTransaction) {

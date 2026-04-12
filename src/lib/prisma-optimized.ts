@@ -10,8 +10,8 @@ const globalForPrisma = global as unknown as {
 // Connection configuration
 const CONNECTION_TIMEOUT = 25000 // 25 seconds
 const QUERY_TIMEOUT = 15000 // 15 seconds (increased for complex queries)
-const MAX_RETRIES = 3
-const RETRY_DELAY = 1000 // 1 second base delay
+const MAX_RETRIES = 2
+const RETRY_DELAY = 300 // 300ms base delay — linear backoff (300, 600ms)
 
 // Initialize connection tracking
 if (!globalForPrisma.connectionAttempts) {
@@ -68,7 +68,7 @@ function createPrismaClient() {
         
         // Check if error is retryable
         if (isRetryableError(error) && attempt < MAX_RETRIES) {
-          const delay = RETRY_DELAY * Math.pow(2, attempt) // Exponential backoff
+          const delay = RETRY_DELAY * (attempt + 1) // Linear backoff: 300ms, 600ms
           console.warn(`[Prisma] Retrying after error (attempt ${attempt + 1}/${MAX_RETRIES}):`, {
             error: error.message,
             model: params.model,
@@ -171,7 +171,7 @@ async function getPrismaClient(): Promise<PrismaClient> {
           console.error(`[Prisma] Connection attempt ${attempt + 1} failed:`, error)
           
           if (attempt < MAX_RETRIES) {
-            const delay = RETRY_DELAY * Math.pow(2, attempt)
+            const delay = RETRY_DELAY * (attempt + 1)
             if (process.env.PRISMA_VERBOSE === 'true') {
               console.log(`[Prisma] Retrying connection in ${delay}ms...`)
             }
