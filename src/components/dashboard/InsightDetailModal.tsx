@@ -229,7 +229,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="flex-shrink-0 grid w-full grid-cols-4 mx-0 mt-0 mb-0 bg-gray-100/80 dark:bg-gray-800/80 rounded-none border-b gap-0 p-0 h-10 sm:h-11">
+          <TabsList className="flex-shrink-0 grid w-full grid-cols-4 mx-0 mt-0 mb-0 bg-gray-100/80 dark:bg-gray-800/80 !rounded-none border-b gap-0 !p-0 h-10 sm:h-11">
             {['overview', 'progress', 'patterns', 'resources'].map((tab) => (
               <TabsTrigger
                 key={tab}
@@ -241,7 +241,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
             ))}
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             {/* ── OVERVIEW ── */}
             <TabsContent value="overview" className="space-y-4 m-0 p-4 sm:p-5 md:p-6">
 
@@ -742,7 +742,7 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
                       })}
                     </div>
                   ) : (
-                    <NoDataState message="No matched resources yet. Complete a session and open this insight to see personalised recommendations." />
+                    <NoDataState message="No matched resources yet. Complete more sessions and open this insight to see personalised recommendations." />
                   )}
                 </CardContent>
               </Card>
