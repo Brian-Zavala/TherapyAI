@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   
   try {
     const { searchParams } = new URL(request.url);
-    const therapyType = searchParams.get('type') || 'couple';
+    const therapyType = searchParams.get('type'); // null = all types
 
     // Use cached session to reduce auth overhead
     const session = await getAuthSession();
@@ -48,35 +48,53 @@ export async function GET(request: Request) {
         404
       );
     }
-    
+
     // Try cache first
-    const cacheKey = cacheKeys.sessions(user.id, 'COMPLETED', therapyType);
+    const cacheKey = cacheKeys.sessions(user.id, 'COMPLETED', therapyType || 'all');
     const cached = await dashboardCache.get(cacheKey);
     if (cached) {
       console.log(`[SessionTime] Cache hit, returned in ${Date.now() - startTime}ms`);
       return NextResponse.json(cached);
     }
-    
-    // CRITICAL FIX: Use sessionType for accurate data filtering with proper enum conversion
-    const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
-    
-    // Get sessions for the specific therapy type only with retry
-    const sessionData = await withRetry(
-      () => prisma.$queryRaw`
-        SELECT 
-          TO_CHAR(DATE_TRUNC('month', "date"), 'Mon') as month,
-          EXTRACT(YEAR FROM "date") as year,
-          SUM(duration) as sessionTime,
-          COUNT(*) as sessionCount
-        FROM "Session"
-        WHERE "userId" = ${user.id}
-          AND "status" = 'COMPLETED'
-          AND "sessionType" = ${sessionTypeValue}::"SessionType"
-          AND "date" >= NOW() - INTERVAL '6 months'
-        GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
-        ORDER BY DATE_TRUNC('month', "date")
-      `
-    );
+
+    // Get sessions — filter by type if specified, otherwise return all types
+    let sessionData;
+    if (therapyType) {
+      const sessionTypeValue = therapyTypeToPrismaEnum(therapyType);
+      sessionData = await withRetry(
+        () => prisma.$queryRaw`
+          SELECT
+            TO_CHAR(DATE_TRUNC('month', "date"), 'Mon') as month,
+            EXTRACT(YEAR FROM "date") as year,
+            SUM(duration) as sessionTime,
+            COUNT(*) as sessionCount
+          FROM "Session"
+          WHERE "userId" = ${user.id}
+            AND "status" = 'COMPLETED'
+            AND "sessionType" = ${sessionTypeValue}::"SessionType"
+            AND "date" >= NOW() - INTERVAL '6 months'
+          GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
+          ORDER BY DATE_TRUNC('month', "date")
+        `
+      );
+    } else {
+      // No type filter — return all session types combined
+      sessionData = await withRetry(
+        () => prisma.$queryRaw`
+          SELECT
+            TO_CHAR(DATE_TRUNC('month', "date"), 'Mon') as month,
+            EXTRACT(YEAR FROM "date") as year,
+            SUM(duration) as sessionTime,
+            COUNT(*) as sessionCount
+          FROM "Session"
+          WHERE "userId" = ${user.id}
+            AND "status" = 'COMPLETED'
+            AND "date" >= NOW() - INTERVAL '6 months'
+          GROUP BY DATE_TRUNC('month', "date"), EXTRACT(YEAR FROM "date")
+          ORDER BY DATE_TRUNC('month', "date")
+        `
+      );
+    }
 
     // Format for the chart
     const formattedData = (sessionData as any[]).map((item: any) => ({
