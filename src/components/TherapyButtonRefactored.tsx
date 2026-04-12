@@ -109,6 +109,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Debounce ref for pause/resume operations
   const pauseResumeDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Declared early so handleVapiCallEnd (defined below) can reference it before other state
+  const [showWindDown, setShowWindDown] = useState(false)
+
   // Ref to handleEndSession so handleVapiCallEnd can trigger it without stale closures
   const handleEndSessionRef = useRef<(() => void) | null>(null)
 
@@ -233,6 +236,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.log('🔚 VAPI call ended with active session - triggering session completion')
       // Show wind-down modal immediately — don't wait for the 500ms cleanup delay
       setShowWindDown(true)
+      // Ensure CreditDisplay hides even if sessionStarted was never fired
+      window.dispatchEvent(new Event('sessionStarted'))
       // Small delay to let VAPI finish cleanup before we run our completion
       setTimeout(() => {
         handleEndSessionRef.current?.()
@@ -563,7 +568,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   const [messageIndex, setMessageIndex] = useState(0)
   const [isRecoveredSession, setIsRecoveredSession] = useState(false)
   const [forceHidePhoneUI, setForceHidePhoneUI] = useState(false)
-  const [showWindDown, setShowWindDown] = useState(false)
   const [showTranscriptOverlay, setShowTranscriptOverlay] = useState(false)
   const [hasNewTranscriptMessages, setHasNewTranscriptMessages] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
