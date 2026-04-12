@@ -325,18 +325,6 @@ export async function validateUserDashboardIntegrity(userId: string): Promise<{
       _count: true
     });
 
-    // Count metrics by session type (through session relation)
-    const metricCounts = await prisma.communicationMetric.groupBy({
-      by: ['session.sessionType'],
-      where: {
-        userId,
-        session: {
-          status: 'COMPLETED'
-        }
-      },
-      _count: true
-    });
-
     const issues: string[] = [];
     const sessionsCount: Record<SessionType, number> = { SOLO: 0, COUPLE: 0, FAMILY: 0 };
     const metricsCount: Record<SessionType, number> = { SOLO: 0, COUPLE: 0, FAMILY: 0 };
@@ -348,23 +336,21 @@ export async function validateUserDashboardIntegrity(userId: string): Promise<{
       }
     });
 
-    metricCounts.forEach(item => {
-      // Note: This requires a proper join - may need adjustment based on Prisma capabilities
-      // For now, we'll do a separate query
-    });
+    // Single query to get metrics grouped by session type (replaces 3 sequential count queries)
+    const metricsBySessionType = await prisma.$queryRaw<Array<{ sessionType: string; count: bigint }>>`
+      SELECT s."sessionType", COUNT(cm.id) as count
+      FROM "CommunicationMetric" cm
+      JOIN "Session" s ON cm."sessionId" = s.id
+      WHERE cm."userId" = ${userId}
+        AND s.status = 'COMPLETED'
+      GROUP BY s."sessionType"
+    `;
 
-    // Alternative approach for metrics count
-    for (const sessionType of ['SOLO', 'COUPLE', 'FAMILY'] as SessionType[]) {
-      const count = await prisma.communicationMetric.count({
-        where: {
-          userId,
-          session: {
-            sessionType,
-            status: 'COMPLETED'
-          }
-        }
-      });
-      metricsCount[sessionType] = count;
+    for (const row of metricsBySessionType) {
+      const st = row.sessionType as SessionType;
+      if (st in metricsCount) {
+        metricsCount[st] = Number(row.count);
+      }
     }
 
     // Check for inconsistencies

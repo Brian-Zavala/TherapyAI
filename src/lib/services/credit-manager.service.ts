@@ -249,6 +249,15 @@ export class CreditManager {
               billingPeriodEnd: { gte: now },
             },
             orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              totalCredits: true,
+              usedCredits: true,
+              bonusCredits: true,
+              planType: true,
+              billingPeriodStart: true,
+              billingPeriodEnd: true,
+            },
           });
 
           if (currentCredits) {
@@ -309,19 +318,7 @@ export class CreditManager {
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
-        // Handle both string and object responses from Redis
-        if (typeof cached === 'string') {
-          try {
-            return JSON.parse(cached) as UsageCredits;
-          } catch (parseError) {
-            console.error('[CreditManager] Failed to parse cached credits:', parseError);
-            // Clear invalid cache entry
-            await redis.del(cacheKey);
-          }
-        } else if (typeof cached === 'object' && cached !== null) {
-          // If Redis returns an object directly, use it
-          return cached as UsageCredits;
-        }
+        return safeParseRedis<UsageCredits>(cached);
       }
     } catch (error) {
       console.error('[CreditManager] Redis cache error:', error);
@@ -335,6 +332,15 @@ export class CreditManager {
         billingPeriodEnd: { gte: now },
       },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        totalCredits: true,
+        usedCredits: true,
+        bonusCredits: true,
+        planType: true,
+        billingPeriodStart: true,
+        billingPeriodEnd: true,
+      },
     });
 
     if (credits) {
@@ -646,6 +652,7 @@ export class CreditManager {
                 vapiCallId,
                 type: TransactionType.DEBIT,
               },
+              select: { id: true, type: true, status: true },
             });
 
             if (existingTransaction) {

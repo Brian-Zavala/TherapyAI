@@ -242,7 +242,8 @@ async function updateSessionMetrics(sessionId: string): Promise<void> {
 async function fixSequenceNumbers(sessionId: string): Promise<void> {
   const entries = await prisma.transcriptEntry.findMany({
     where: { sessionId },
-    orderBy: { timestamp: 'asc' }
+    orderBy: { timestamp: 'asc' },
+    select: { id: true, timestamp: true }
   })
   
   // Update sequence numbers

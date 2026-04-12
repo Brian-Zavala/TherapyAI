@@ -351,8 +351,14 @@ Format as JSON with the following structure:
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
           }
         },
-        include: {
-          sessionSummary: true
+        select: {
+          id: true,
+          completedAt: true,
+          sessionSummary: {
+            select: {
+              keyThemes: true
+            }
+          }
         },
         orderBy: { completedAt: 'desc' },
         take: 5
@@ -401,8 +407,11 @@ Format as JSON with the following structure:
           ...(currentSessionId && { sessionId: { not: currentSessionId } }),
           processingStatus: 'completed'
         },
-        include: {
-          session: {
+        select: {
+          contextForNextSession: true,
+          nextSessionFocus: true,
+          createdAt: true,
+          Session: {
             select: { completedAt: true, theme: true }
           }
         },
@@ -417,7 +426,7 @@ Format as JSON with the following structure:
       let context = "Based on our previous sessions, here's what I recall:\n\n";
       
       recentSummaries.forEach((summary, index) => {
-        const sessionDate = summary.session?.completedAt?.toLocaleDateString() || 'recently';
+        const sessionDate = summary.Session?.completedAt?.toLocaleDateString() || 'recently';
         context += `From our session on ${sessionDate}:\n`;
         context += `${summary.contextForNextSession}\n\n`;
         
@@ -430,7 +439,8 @@ Format as JSON with the following structure:
       const recentBreakthroughs = await prisma.therapeuticBreakthrough.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        take: 3
+        take: 3,
+        select: { description: true }
       });
 
       if (recentBreakthroughs.length > 0) {

@@ -369,7 +369,8 @@ export async function DELETE(
     // This requires fetching all entries and rebuilding the transcript string
     const allEntries = await prisma.transcriptEntry.findMany({
       where: { sessionId: sessionId },
-      orderBy: { timestamp: 'asc' }
+      orderBy: { timestamp: 'asc' },
+      select: { id: true, sessionId: true, speaker: true, timestamp: true }
     })
     
     // No need to update session transcript field - transcript is stored in TranscriptEntry records

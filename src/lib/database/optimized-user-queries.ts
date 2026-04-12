@@ -124,21 +124,21 @@ export async function findUserByIdOptimized(userId: string) {
 export async function findUsersByIdsOptimized(userIds: string[]) {
   if (userIds.length === 0) return [];
   
-  // Check cache for each user
+  // Parallel cache lookups
+  const cacheResults = await Promise.all(
+    userIds.map(id => profileCache.get(`user:id:${id}`))
+  );
+
   const cachedUsers: any[] = [];
   const uncachedIds: string[] = [];
-  
-  await Promise.all(
-    userIds.map(async (id) => {
-      const cacheKey = `user:id:${id}`;
-      const cached = await profileCache.get(cacheKey);
-      if (cached) {
-        cachedUsers.push(cached);
-      } else {
-        uncachedIds.push(id);
-      }
-    })
-  );
+
+  for (let i = 0; i < userIds.length; i++) {
+    if (cacheResults[i]) {
+      cachedUsers.push(cacheResults[i]);
+    } else {
+      uncachedIds.push(userIds[i]);
+    }
+  }
   
   // Fetch uncached users
   let dbUsers: any[] = [];

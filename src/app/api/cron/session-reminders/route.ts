@@ -91,192 +91,175 @@ export async function GET(request: Request) {
       },
     });
 
-    // Process 24-hour reminders
-    const reminder24hResults = await Promise.allSettled(
-      upcomingSessions24h.map(async (session) => {
-        const updates: { emailReminderSent?: boolean; smsReminderSent?: boolean } = {};
-        
-        // Send email reminder if user wants email and hasn't been sent
-        if (!session.emailReminderSent && session.user.email && shouldSendEmail(session)) {
-          try {
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            
-            // Create notification tracking token
-            const { token, expiresAt } = await createSessionNotificationToken(
-              session.id,
-              session.userId,
-              'email'
-            );
-            
-            // Generate tracking URLs
-            const urls = generateNotificationUrls(baseUrl, session.id, token);
-            
-            await resend.emails.send({
-              from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
-              to: session.user.email,
-              subject: 'Reminder: Your Upcoming Therapy Session',
-              react: SessionReminderEmail({
-                username: session.user.name || 'Valued Client',
-                sessionDate: session.date,
-                duration: session.duration,
-                notes: session.notes || '',
-                baseUrl: baseUrl,
-                trackingToken: token,
-                sessionId: session.id,
-                communicationStyle: session.user.profile?.communicationStyle as any,
-                sessionTheme: session.theme,
-              }) as any,
-            });
-            updates.emailReminderSent = true;
-            console.log(`Email reminder sent for session ${session.id}`);
-          } catch (emailError) {
-            console.error(`Failed to send email reminder for session ${session.id}:`, emailError);
-          }
-        }
+    // Process 24-hour reminders: send notifications, then batch DB updates
+    const emailSuccessIds24h: string[] = [];
+    const smsSuccessIds24h: string[] = [];
 
-        // Send SMS reminder if user wants SMS and hasn't been sent
-        if (!session.smsReminderSent && shouldSendSMS(session) && session.user.profile?.phone) {
-          try {
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            
-            // Create notification tracking token for SMS
-            const { token, shortToken, expiresAt } = await createSessionNotificationToken(
-              session.id,
-              session.userId,
-              'sms'
-            );
-            
-            // Generate tracking URLs
-            const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
-            
-            const smsResult = await sendSessionReminder(
-              session.user.profile.phone,
-              session.date,
-              session.duration,
-              {
-                userId: session.user.id,
-                sessionId: session.id,
-                priority: 'high',
-                shortUrl: urls.shortUrl
-              }
-            );
-            
-            if (smsResult.success) {
-              updates.smsReminderSent = true;
-              console.log(`SMS reminder sent for session ${session.id} to ${session.user.profile?.phone}`);
-            } else {
-              console.error(`Failed to send SMS reminder for session ${session.id}:`, smsResult.error);
-            }
-          } catch (smsError) {
-            console.error(`SMS service error for session ${session.id}:`, smsError);
-          }
-        }
-        
-        // Update the session with reminder status
-        if (Object.keys(updates).length > 0) {
-          return prisma.session.update({
-            where: { id: session.id },
-            data: updates,
+    // Phase 1: Send all 24h email reminders in parallel
+    const emailSessions24h = upcomingSessions24h.filter(
+      s => !s.emailReminderSent && s.user.email && shouldSendEmail(s)
+    );
+    await Promise.allSettled(
+      emailSessions24h.map(async (session) => {
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const { token } = await createSessionNotificationToken(session.id, session.userId, 'email');
+          const urls = generateNotificationUrls(baseUrl, session.id, token);
+          await resend.emails.send({
+            from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+            to: session.user.email,
+            subject: 'Reminder: Your Upcoming Therapy Session',
+            react: SessionReminderEmail({
+              username: session.user.name || 'Valued Client',
+              sessionDate: session.date,
+              duration: session.duration,
+              notes: session.notes || '',
+              baseUrl: baseUrl,
+              trackingToken: token,
+              sessionId: session.id,
+              communicationStyle: session.user.profile?.communicationStyle as any,
+              sessionTheme: session.theme,
+            }) as any,
           });
+          emailSuccessIds24h.push(session.id);
+          console.log(`Email reminder sent for session ${session.id}`);
+        } catch (emailError) {
+          console.error(`Failed to send email reminder for session ${session.id}:`, emailError);
         }
-        
-        return null;
       })
     );
 
-    // Process 1-hour reminders
-    const reminder1hResults = await Promise.allSettled(
-      upcomingSessions1h.map(async (session) => {
-        const updates: any = {};
-        let sentReminder = false;
-        
-        // Send email 1-hour reminder if user wants email
-        if (session.user.email && shouldSendEmail(session)) {
-          try {
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            
-            // Create notification tracking token for 1-hour reminder
-            const { token, expiresAt } = await createSessionNotificationToken(
-              session.id,
-              session.userId,
-              'email'
-            );
-            
-            // Generate tracking URLs
-            const urls = generateNotificationUrls(baseUrl, session.id, token);
-            
-            await resend.emails.send({
-              from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
-              to: session.user.email,
-              subject: 'Starting Soon: Your Therapy Session in 1 Hour',
-              react: SessionReminderEmail({
-                username: session.user.name || 'Valued Client',
-                sessionDate: session.date,
-                duration: session.duration,
-                notes: session.notes || '',
-                isOneHourReminder: true,
-                baseUrl: baseUrl,
-                trackingToken: token,
-                sessionId: session.id,
-                communicationStyle: session.user.profile?.communicationStyle as any,
-                sessionTheme: session.theme,
-              }) as any,
-            });
-            sentReminder = true;
-            console.log(`1-hour email reminder sent for session ${session.id}`);
-          } catch (emailError) {
-            console.error(`Failed to send 1-hour email reminder for session ${session.id}:`, emailError);
-          }
-        }
-
-        // Send SMS 1-hour reminder if user wants SMS
-        if (shouldSendSMS(session) && session.user.profile?.phone) {
-          try {
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            
-            // Create notification tracking token for SMS 1-hour reminder
-            const { token, shortToken, expiresAt } = await createSessionNotificationToken(
-              session.id,
-              session.userId,
-              'sms'
-            );
-            
-            // Generate tracking URLs
-            const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
-            
-            const smsResult = await sendSessionReminder(
-              session.user.profile.phone,
-              session.date,
-              session.duration,
-              {
-                userId: session.user.id,
-                sessionId: session.id,
-                priority: 'high',
-                shortUrl: urls.shortUrl,
-                isOneHour: true
-              }
-            );
-            
-            if (smsResult.success) {
-              sentReminder = true;
-              console.log(`1-hour SMS reminder sent for session ${session.id} to ${session.user.profile?.phone}`);
-            } else {
-              console.error(`Failed to send 1-hour SMS reminder for session ${session.id}:`, smsResult.error);
+    // Phase 2: Send all 24h SMS reminders in parallel
+    const smsSessions24h = upcomingSessions24h.filter(
+      s => !s.smsReminderSent && shouldSendSMS(s) && s.user.profile?.phone
+    );
+    await Promise.allSettled(
+      smsSessions24h.map(async (session) => {
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const { token, shortToken } = await createSessionNotificationToken(session.id, session.userId, 'sms');
+          const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
+          const smsResult = await sendSessionReminder(
+            session.user.profile!.phone!,
+            session.date,
+            session.duration,
+            {
+              userId: session.user.id,
+              sessionId: session.id,
+              priority: 'high',
+              shortUrl: urls.shortUrl
             }
-          } catch (smsError) {
-            console.error(`1-hour SMS service error for session ${session.id}:`, smsError);
+          );
+          if (smsResult.success) {
+            smsSuccessIds24h.push(session.id);
+            console.log(`SMS reminder sent for session ${session.id} to ${session.user.profile?.phone}`);
+          } else {
+            console.error(`Failed to send SMS reminder for session ${session.id}:`, smsResult.error);
           }
-        }
-        
-        // Mark 1-hour reminder as sent if any notification was successful
-        if (sentReminder) {
-          await prisma.session.update({
-            where: { id: session.id },
-            data: { oneHourReminderSent: true },
-          });
+        } catch (smsError) {
+          console.error(`SMS service error for session ${session.id}:`, smsError);
         }
       })
     );
+
+    // Phase 3: Batch update reminder flags instead of per-session writes
+    const reminder24hResults = await Promise.allSettled([
+      emailSuccessIds24h.length > 0
+        ? prisma.session.updateMany({
+            where: { id: { in: emailSuccessIds24h } },
+            data: { emailReminderSent: true },
+          })
+        : Promise.resolve(null),
+      smsSuccessIds24h.length > 0
+        ? prisma.session.updateMany({
+            where: { id: { in: smsSuccessIds24h } },
+            data: { smsReminderSent: true },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    // Process 1-hour reminders: send notifications, then batch DB updates
+    const oneHourSuccessIds: string[] = [];
+
+    // Phase 1: Send all 1h email reminders in parallel
+    const emailSessions1h = upcomingSessions1h.filter(
+      s => s.user.email && shouldSendEmail(s)
+    );
+    await Promise.allSettled(
+      emailSessions1h.map(async (session) => {
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const { token } = await createSessionNotificationToken(session.id, session.userId, 'email');
+          const urls = generateNotificationUrls(baseUrl, session.id, token);
+          await resend.emails.send({
+            from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+            to: session.user.email,
+            subject: 'Starting Soon: Your Therapy Session in 1 Hour',
+            react: SessionReminderEmail({
+              username: session.user.name || 'Valued Client',
+              sessionDate: session.date,
+              duration: session.duration,
+              notes: session.notes || '',
+              isOneHourReminder: true,
+              baseUrl: baseUrl,
+              trackingToken: token,
+              sessionId: session.id,
+              communicationStyle: session.user.profile?.communicationStyle as any,
+              sessionTheme: session.theme,
+            }) as any,
+          });
+          oneHourSuccessIds.push(session.id);
+          console.log(`1-hour email reminder sent for session ${session.id}`);
+        } catch (emailError) {
+          console.error(`Failed to send 1-hour email reminder for session ${session.id}:`, emailError);
+        }
+      })
+    );
+
+    // Phase 2: Send all 1h SMS reminders in parallel
+    const smsSessions1h = upcomingSessions1h.filter(
+      s => shouldSendSMS(s) && s.user.profile?.phone
+    );
+    await Promise.allSettled(
+      smsSessions1h.map(async (session) => {
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const { token, shortToken } = await createSessionNotificationToken(session.id, session.userId, 'sms');
+          const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
+          const smsResult = await sendSessionReminder(
+            session.user.profile!.phone!,
+            session.date,
+            session.duration,
+            {
+              userId: session.user.id,
+              sessionId: session.id,
+              priority: 'high',
+              shortUrl: urls.shortUrl,
+              isOneHour: true
+            }
+          );
+          if (smsResult.success) {
+            // Only add if not already added by email success
+            if (!oneHourSuccessIds.includes(session.id)) {
+              oneHourSuccessIds.push(session.id);
+            }
+            console.log(`1-hour SMS reminder sent for session ${session.id} to ${session.user.profile?.phone}`);
+          } else {
+            console.error(`Failed to send 1-hour SMS reminder for session ${session.id}:`, smsResult.error);
+          }
+        } catch (smsError) {
+          console.error(`1-hour SMS service error for session ${session.id}:`, smsError);
+        }
+      })
+    );
+
+    // Phase 3: Batch update 1-hour reminder flags
+    const reminder1hResults = oneHourSuccessIds.length > 0
+      ? await prisma.session.updateMany({
+          where: { id: { in: oneHourSuccessIds } },
+          data: { oneHourReminderSent: true },
+        })
+      : { count: 0 };
 
     // Handle missed sessions (past scheduled time without completion)
     const missedSessionsToUpdate = await prisma.session.findMany({
@@ -291,49 +274,41 @@ export async function GET(request: Request) {
       },
     });
 
-    // Send SessionMissed emails for each missed session
+    // Phase 1: Batch update all missed sessions to ABANDONED in a single query
+    if (missedSessionsToUpdate.length > 0) {
+      await prisma.session.updateMany({
+        where: { id: { in: missedSessionsToUpdate.map(s => s.id) } },
+        data: { status: 'ABANDONED' },
+      });
+    }
+
+    // Phase 2: Send missed session emails in parallel (no per-session DB writes)
     const missedEmailResults = await Promise.allSettled(
       missedSessionsToUpdate.map(async (session) => {
-        try {
-          // Update session status to abandoned (user didn't attend scheduled session)
-          await prisma.session.update({
-            where: { id: session.id },
-            data: { status: 'ABANDONED' },
-          });
-
-          // Note: Rescheduling slots removed as sessions are user-specific
-          // Users can reschedule through the proper scheduling interface
-
-          // Send missed session email
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-          await resend.emails.send({
-            from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
-            to: session.user.email,
-            subject: 'You Missed Your Therapy Session',
-            react: SessionMissedEmail({
-              userName: session.user.name || 'Valued Client',
-              sessionDate: session.date.toLocaleDateString(),
-              sessionTime: session.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
-              sessionType: session.theme || 'Therapy Session',
-              nextAvailableSlots: undefined, // Removed: sessions are user-specific, no generic available slots
-              baseUrl: baseUrl,
-            }) as any,
-          });
-          console.log(`Missed session email sent for session ${session.id}`);
-        } catch (error) {
-          console.error(`Failed to process missed session ${session.id}:`, error);
-          throw error;
-        }
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        await resend.emails.send({
+          from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+          to: session.user.email,
+          subject: 'You Missed Your Therapy Session',
+          react: SessionMissedEmail({
+            userName: session.user.name || 'Valued Client',
+            sessionDate: session.date.toLocaleDateString(),
+            sessionTime: session.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
+            sessionType: session.theme || 'Therapy Session',
+            nextAvailableSlots: undefined, // Removed: sessions are user-specific, no generic available slots
+            baseUrl: baseUrl,
+          }) as any,
+        });
+        console.log(`Missed session email sent for session ${session.id}`);
       })
     );
 
     // Return processing results
     return NextResponse.json({
-      reminders24hSent: reminder24hResults.filter(r => r.status === 'fulfilled').length,
-      reminders24hFailed: reminder24hResults.filter(r => r.status === 'rejected').length,
-      reminders1hSent: reminder1hResults.filter(r => r.status === 'fulfilled').length,
-      reminders1hFailed: reminder1hResults.filter(r => r.status === 'rejected').length,
+      reminders24hEmailsSent: emailSuccessIds24h.length,
+      reminders24hSmsSent: smsSuccessIds24h.length,
+      reminders1hSent: oneHourSuccessIds.length,
       missedSessionsUpdated: missedSessionsToUpdate.length,
       missedEmailsSent: missedEmailResults.filter(r => r.status === 'fulfilled').length,
       missedEmailsFailed: missedEmailResults.filter(r => r.status === 'rejected').length,

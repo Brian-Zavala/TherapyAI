@@ -26,8 +26,58 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/webhook(.*)',
 ])
 
-// Shared ephemeral cache for all rate limiters
-const sharedCache = new Map()
+// Lightweight TTL cache — evicts expired entries on access, caps at MAX_SIZE
+// Replaces unbounded Map to prevent memory leaks in long-running middleware
+const CACHE_MAX_SIZE = 10_000
+
+const _cacheStore = new Map<string, { value: number; expiresAt: number }>()
+
+function cacheGet(key: string): number | undefined {
+  const entry = _cacheStore.get(key)
+  if (!entry) return undefined
+  if (entry.expiresAt < Date.now()) {
+    _cacheStore.delete(key)
+    return undefined
+  }
+  return entry.value
+}
+
+function cacheSet(key: string, value: number, ttlMs: number): void {
+  // Evict oldest 10% when at capacity
+  if (_cacheStore.size >= CACHE_MAX_SIZE) {
+    const toDelete = Math.ceil(CACHE_MAX_SIZE * 0.1)
+    let deleted = 0
+    for (const k of _cacheStore.keys()) {
+      _cacheStore.delete(k)
+      if (++deleted >= toDelete) break
+    }
+  }
+  _cacheStore.set(key, { value, expiresAt: Date.now() + ttlMs })
+}
+
+// Map-compatible facade so Upstash Ratelimit SDK can use it as ephemeralCache
+const sharedCache = {
+  get(key: string) {
+    return cacheGet(key)
+  },
+  set(key: string, value: number) {
+    // Upstash ratelimit cache entries are short-lived; default 60s TTL
+    cacheSet(key, value, 60_000)
+    return this
+  },
+  delete(key: string) {
+    return _cacheStore.delete(key)
+  },
+  has(key: string) {
+    return cacheGet(key) !== undefined
+  },
+  get size() {
+    return _cacheStore.size
+  },
+  clear() {
+    _cacheStore.clear()
+  },
+} as unknown as Map<string, number>
 
 // Initialize Upstash Redis (singleton)
 let redis: Redis | null = null

@@ -353,7 +353,24 @@ export async function GET(request: NextRequest) {
           orderBy: { date: 'desc' },
           skip,
           take: limit,
-          include: {
+          select: {
+            id: true,
+            userId: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            duration: true,
+            theme: true,
+            status: true,
+            sessionType: true,
+            assistantId: true,
+            isPaused: true,
+            conversationTimeSeconds: true,
+            totalPausedTimeSeconds: true,
+            completedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            // Omit: notes (large TEXT, fetch via detail endpoint)
             communicationMetrics: includeMetrics,
             progressTracking: includeMetrics
           }

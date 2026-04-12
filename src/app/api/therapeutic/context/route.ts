@@ -63,14 +63,24 @@ export async function GET(request: NextRequest) {
         }
       }),
       prisma.sessionSummary.findMany({
-        where: { 
+        where: {
           userId: user.id,
           processingStatus: 'completed'
         },
         orderBy: { createdAt: 'desc' },
         take: 3,
-        include: {
-          session: {
+        select: {
+          id: true,
+          sessionId: true,
+          userId: true,
+          keyThemes: true,
+          breakthroughMoments: true,
+          emotionalJourney: true,
+          nextSessionFocus: true,
+          processingStatus: true,
+          createdAt: true,
+          // Omit: therapistNotes, contextForNextSession (large text, only needed in detail view)
+          Session: {
             select: { id: true, date: true, theme: true, completedAt: true }
           }
         }
@@ -86,7 +96,7 @@ export async function GET(request: NextRequest) {
         sessionSummaries
       },
       continuityScore: this.calculateContinuityScore(sessionSummaries, recentBreakthroughs),
-      lastSessionDate: sessionSummaries[0]?.session?.completedAt || null
+      lastSessionDate: sessionSummaries[0]?.Session?.completedAt || null
     };
 
     // Include VAPI configuration if requested
@@ -139,7 +149,7 @@ function calculateContinuityScore(
   
   // Bonus for session consistency
   const sessionDates = sessionSummaries
-    .map(s => new Date(s.session?.completedAt))
+    .map(s => new Date(s.Session?.completedAt))
     .filter(date => !isNaN(date.getTime()))
     .sort((a, b) => b.getTime() - a.getTime());
     

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const timeframe = searchParams.get('timeframe') || '30'; // days
     const sessionId = searchParams.get('sessionId');
     const type = searchParams.get('type');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -66,27 +66,39 @@ export async function GET(request: NextRequest) {
       take: limit
     });
 
-    // Get breakthrough statistics
-    const stats = await prisma.therapeuticBreakthrough.groupBy({
-      by: ['breakthroughType'],
-      where: {
-        userId: user.id,
-        createdAt: {
-          gte: new Date(Date.now() - parseInt(timeframe) * 24 * 60 * 60 * 1000)
-        }
-      },
-      _count: {
-        id: true
-      },
-      _avg: {
-        intensity: true
-      }
-    });
+    // Get breakthrough statistics — use SQL aggregation instead of JS reduce
+    const dateFilter = timeframe !== 'all' ? {
+      createdAt: { gte: new Date(Date.now() - parseInt(timeframe) * 24 * 60 * 60 * 1000) }
+    } : {};
 
-    // Calculate progress metrics
+    const [stats, aggregateStats] = await Promise.all([
+      prisma.therapeuticBreakthrough.groupBy({
+        by: ['breakthroughType'],
+        where: {
+          userId: user.id,
+          ...dateFilter
+        },
+        _count: {
+          id: true
+        },
+        _avg: {
+          intensity: true
+        }
+      }),
+      prisma.therapeuticBreakthrough.aggregate({
+        where: {
+          userId: user.id,
+          ...dateFilter
+        },
+        _count: { id: true },
+        _avg: { intensity: true },
+      })
+    ]);
+
+    // Calculate progress metrics using SQL-aggregated values
     const progressMetrics = {
-      totalBreakthroughs: breakthroughs.length,
-      averageIntensity: breakthroughs.reduce((sum, b) => sum + b.intensity, 0) / (breakthroughs.length || 1),
+      totalBreakthroughs: aggregateStats._count.id,
+      averageIntensity: aggregateStats._avg.intensity || 0,
       typeDistribution: stats.map(stat => ({
         type: stat.breakthroughType,
         count: stat._count.id,

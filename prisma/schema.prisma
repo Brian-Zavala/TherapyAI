@@ -176,6 +176,7 @@ model Session {
   @@index([notificationToken])
   @@index([completedAt])
   @@index([vapiCallId])
+  @@index([userId, completedAt])
 }
 
 model SessionFamilyMember {
@@ -286,6 +287,7 @@ model TranscriptEntry {
 
   @@index([sessionId, timestamp])
   @@index([sessionId, sequence])
+  @@index([sessionId, speaker])
   @@index([timestamp])
   @@index([assistantId])
 }
@@ -668,6 +670,8 @@ model AIInsight {
   @@index([therapistValidated])
   @@index([type])
   @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, type])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -689,8 +693,11 @@ model DailyTip {
   User            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scheduledDate])
+  @@index([userId])
   @@index([userId, category])
   @@index([userId, isActive, scheduledDate])
+  @@index([isActive, scheduledDate])
+  @@index([category, isActive])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -714,8 +721,11 @@ model DynamicGoal {
   User            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([targetDate])
+  @@index([userId])
+  @@index([userId, status])
   @@index([userId, category, status])
   @@index([userId, status, targetDate])
+  @@index([status, targetDate])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -762,8 +772,10 @@ model InsightPattern {
 
   @@index([confidence])
   @@index([lastObservedAt])
+  @@index([userId])
   @@index([userId, patternType, status])
   @@index([userId, status, isPositive])
+  @@index([severity, status])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -786,7 +798,9 @@ model SessionSummary {
 
   @@index([createdAt])
   @@index([sessionId])
+  @@index([userId])
   @@index([userId, processingStatus])
+  @@index([userId, createdAt])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -895,4 +909,7 @@ model Resource {
   @@index([sessionTypes])
   @@index([concerns])
   @@index([type])
+  @@index([source])
+  @@index([difficulty])
+  @@index([createdAt])
 }

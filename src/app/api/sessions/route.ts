@@ -176,13 +176,15 @@ export async function GET(request: NextRequest) {
     }
     
     // 2025 Standard: Optimized query with pagination
+    // Use Promise.all instead of $transaction for read-only parallel queries (less overhead)
     const skip = (page - 1) * limit;
-    const [sessions, totalCount] = await prisma.$transaction([
+    const sessionWhere = {
+      userId: user.id,
+      ...(status && { status })
+    };
+    const [sessions, totalCount] = await Promise.all([
       prisma.session.findMany({
-        where: {
-          userId: user.id,
-          ...(status && { status })
-        },
+        where: sessionWhere,
         orderBy: { [sortBy]: sortOrder },
         skip,
         take: limit,
@@ -206,28 +208,19 @@ export async function GET(request: NextRequest) {
             select: {
               transcriptEntries: true
             }
-          },
-          transcriptEntries: {
-            orderBy: {
-              timestamp: 'asc'
-            },
-            take: 100 // Limit to prevent overfetching for list view
           }
+          // Note: transcriptEntries removed from list endpoint — fetch via /sessions/[id] instead
         }
       }),
       prisma.session.count({
-        where: {
-          userId: user.id,
-          ...(status && { status })
-        }
+        where: sessionWhere
       })
     ]);
     
     // 2025 Standard: Transform with proper typing
-    const sessionsWithCounts: SessionWithCounts[] = sessions.map(session => ({
+    const sessionsWithCounts = sessions.map(session => ({
       ...session,
       transcriptCount: session._count.transcriptEntries,
-      transcriptEntries: session.transcriptEntries || []
     }));
     
     // Cache with TTL
