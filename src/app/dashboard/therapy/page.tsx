@@ -1,5 +1,4 @@
 // src/app/dashboard/therapy/page.tsx
-import { Suspense } from "react"
 import { getAuthSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { findUserByIdOptimized } from '@/lib/database/optimized-user-queries'
@@ -24,9 +23,5 @@ export default async function TherapyPage() {
     redirect("/welcome")
   }
 
-  return (
-    <Suspense>
-      <TherapyPageClient userId={session.user.id} />
-    </Suspense>
-  )
+  return <TherapyPageClient userId={session.user.id} />
 }

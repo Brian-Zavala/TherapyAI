@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Image from "next/image";
 import { TherapyButtonWrapper as TherapyButton } from "@/components/TherapyButtonWrapper";
 import TherapyTypeSelector from "@/components/TherapyTypeSelector";
@@ -22,10 +22,19 @@ import { useFamilyMembersEnhanced } from "@/hooks/useFamilyMembersEnhanced";
 import { useSearchParams } from 'next/navigation';
 import CreditDisplay from "@/components/CreditDisplay";
 
+// Isolated inner component so useSearchParams is inside a Suspense boundary (Next.js App Router requirement)
+function SearchParamsReader({ onSessionId }: { onSessionId: (id: string) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const sessionId = searchParams.get('sessionId');
+    if (sessionId) onSessionId(sessionId);
+  }, [searchParams, onSessionId]);
+  return null;
+}
+
 export default function TherapyPageClient({ userId }: { userId: string }) {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const { profile } = useProfile();
-  const searchParams = useSearchParams();
   
   // Family members hook
   const { familyMembers, loading: familyMembersLoading } = useFamilyMembersEnhanced({ autoSave: false });
@@ -82,13 +91,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     return () => clearTimeout(timer)
   }, []) // Only run once on mount
   
-  // Handle sessionId query parameter
-  useEffect(() => {
-    const sessionId = searchParams.get('sessionId');
+  // Handle sessionId query parameter — via SearchParamsReader (rendered below in JSX)
+  const handleSessionIdParam = useCallback((sessionId: string) => {
     if (sessionId && !linkedSessionId) {
       loadLinkedSession(sessionId);
     }
-  }, [searchParams]);
+  }, [linkedSessionId]);
   
   // Load linked session data
   const loadLinkedSession = async (sessionId: string) => {
@@ -754,6 +762,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Use React.createElement to avoid JSX parsing issues
   return React.createElement(React.Fragment, null, [
+    // SearchParamsReader: isolated inside Suspense so useSearchParams doesn't require a server-side Suspense wrapper
+    React.createElement(Suspense, { key: "search-params-suspense", fallback: null },
+      React.createElement(SearchParamsReader, { onSessionId: handleSessionIdParam })
+    ),
     // Credit display - always visible
     React.createElement(CreditDisplay, {
       key: "credit-display",
@@ -1045,10 +1057,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                   "div",
                   {
                     key: "session-card",
-                    className: `md:col-span-3 relative overflow-visible rounded-lg shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
+                    className: `md:col-span-3 relative overflow-visible rounded-2xl sm:rounded-3xl shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
                       isSessionActive
                         ? "bg-transparent p-0 sm:p-4 md:p-6 lg:p-8 rounded-xl"
-                        : "bg-transparent rounded-xl p-4 sm:p-8 md:p-12 lg:p-16"
+                        : "bg-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-10 lg:p-14 xl:p-16"
                     }`,
                   },
                   [
@@ -1076,7 +1088,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   {
                                     key: "action-buttons",
                                     className:
-                                      "w-full flex justify-between items-center mt-0 mb-4 px-2 sm:px-4 md:px-5 lg:px-6",
+                                      "w-full flex flex-wrap justify-center sm:justify-between items-center gap-3 sm:gap-4 mt-0 mb-5 sm:mb-6 px-0 sm:px-4 md:px-5 lg:px-6",
                                   },
                                   [
                                     // Quick Actions Menu Button and Popup
@@ -1097,7 +1109,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               setQuickActionsOpen(
                                                 !quickActionsOpen
                                               ),
-                                            className: `flex items-center whitespace-nowrap rounded-xl px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium min-h-[44px] ${
+                                            className: `flex items-center rounded-xl px-3.5 sm:px-5 md:px-6 py-2.5 sm:py-3 text-sm sm:text-base md:text-lg font-medium min-h-[44px] sm:min-h-[48px] ${
                                               quickActionsOpen
                                                 ? "bg-blue-500/60 text-white shadow-lg shadow-blue-400/30 ring-2 ring-blue-200"
                                                 : isSessionActive
@@ -1126,7 +1138,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                   "svg",
                                                   {
                                                     key: "menu-icon",
-                                                    className: "h-4 w-4 mr-1",
+                                                    className: "h-5 w-5 sm:h-5 sm:w-5 mr-1.5",
                                                     fill: "none",
                                                     viewBox: "0 0 24 24",
                                                     stroke: "currentColor",
@@ -1145,7 +1157,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                   motion.svg,
                                                   {
                                                     key: "chevron-icon",
-                                                    className: "h-4 w-4 ml-1",
+                                                    className: "h-5 w-5 sm:h-5 sm:w-5 ml-1.5",
                                                     fill: "none",
                                                     viewBox: "0 0 24 24",
                                                     stroke: "currentColor",
@@ -1184,7 +1196,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                 key: "popup-menu",
                                                 ...{ 'data-quick-actions-menu': "true" },
                                                 className:
-                                                  "absolute left-0 mt-2 w-48 rounded-md shadow-xl bg-white ring-1 ring-black/5 ring-opacity-5 z-30 overflow-hidden",
+                                                  "absolute left-0 mt-2 w-56 sm:w-60 rounded-xl shadow-xl bg-white ring-1 ring-black/5 ring-opacity-5 z-30 overflow-hidden",
                                                 initial: {
                                                   opacity: 0,
                                                   y: -10,
@@ -1238,7 +1250,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                         key: "dashboard-button",
                                                         href: "/dashboard",
                                                         className:
-                                                          "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-green-500/80 cursor-pointer",
+                                                          "flex items-center px-4 sm:px-5 py-3 sm:py-3.5 text-base sm:text-lg text-gray-700 hover:bg-indigo-50 hover:text-green-500/80 cursor-pointer min-h-[48px]",
                                                         variants: {
                                                           open: {
                                                             opacity: 1,
@@ -1268,7 +1280,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                           {
                                                             key: "dashboard-icon",
                                                             className:
-                                                              "h-4 w-4 mr-2 text-blue-500",
+                                                              "h-5 w-5 sm:h-6 sm:w-6 mr-2.5 text-blue-500",
                                                             fill: "none",
                                                             viewBox:
                                                               "0 0 24 24",
@@ -1298,7 +1310,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                         key: "sessions-button",
                                                         href: "/dashboard/sessions",
                                                         className:
-                                                          "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-green-500/80 cursor-pointer",
+                                                          "flex items-center px-4 sm:px-5 py-3 sm:py-3.5 text-base sm:text-lg text-gray-700 hover:bg-blue-50 hover:text-green-500/80 cursor-pointer min-h-[48px]",
                                                         variants: {
                                                           open: {
                                                             opacity: 1,
@@ -1328,7 +1340,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                           {
                                                             key: "sessions-icon",
                                                             className:
-                                                              "h-4 w-4 mr-2 text-blue-500",
+                                                              "h-5 w-5 sm:h-6 sm:w-6 mr-2.5 text-blue-500",
                                                             fill: "none",
                                                             viewBox:
                                                               "0 0 24 24",
@@ -1358,7 +1370,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                         key: "resources-button",
                                                         href: "/dashboard/resources",
                                                         className:
-                                                          "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-green-500/80 cursor-pointer",
+                                                          "flex items-center px-4 sm:px-5 py-3 sm:py-3.5 text-base sm:text-lg text-gray-700 hover:bg-blue-50 hover:text-green-500/80 cursor-pointer min-h-[48px]",
                                                         variants: {
                                                           open: {
                                                             opacity: 1,
@@ -1388,7 +1400,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                           {
                                                             key: "resources-icon",
                                                             className:
-                                                              "h-4 w-4 mr-2 text-blue-500",
+                                                              "h-5 w-5 sm:h-6 sm:w-6 mr-2.5 text-blue-500",
                                                             fill: "none",
                                                             viewBox:
                                                               "0 0 24 24",
@@ -1424,7 +1436,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         {
                                           key: "switch-therapist",
                                           onClick: openTherapistSelector,
-                                          className: `flex items-center whitespace-nowrap rounded-xl px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium min-h-[44px] bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
+                                          className: `flex items-center rounded-xl px-3.5 sm:px-5 md:px-6 py-2.5 sm:py-3 text-sm sm:text-base md:text-lg font-medium min-h-[44px] sm:min-h-[48px] bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
                                           whileHover: { scale: 1.05 },
                                           whileTap: { scale: 0.95 },
                                           initial: { opacity: 0, y: 20 },
@@ -1454,7 +1466,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                 "svg",
                                                 {
                                                   key: "switch-icon",
-                                                  className: "h-4 w-4 mr-1",
+                                                  className: "h-5 w-5 sm:h-5 sm:w-5 mr-1.5",
                                                   fill: "none",
                                                   viewBox: "0 0 24 24",
                                                   stroke: "currentColor",
@@ -1487,10 +1499,10 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   "div",
                                   {
                                     key: "therapist-photo",
-                                    className: `w-12 h-12 rounded-full overflow-hidden shadow-md transition-all duration-500 mb-1 ${
+                                    className: `w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden shadow-lg transition-all duration-500 mb-2 sm:mb-3 ${
                                       isSessionActive
-                                        ? "border-2 border-blue-500 ring-2 ring-blue-300/50"
-                                        : "border-2 border-blue-400 ring-2 ring-blue-200/50"
+                                        ? "border-3 border-blue-500 ring-3 ring-blue-300/50"
+                                        : "border-3 border-blue-400 ring-3 ring-blue-200/50"
                                     }`,
                                   },
                                   [
@@ -1558,7 +1570,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                                 "svg",
                                                 {
                                                   key: "doctor-icon",
-                                                  className: `h-8 w-8 transition-colors duration-500 ${isSessionActive ? "text-white" : "text-indigo-600"}`,
+                                                  className: `h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 transition-colors duration-500 ${isSessionActive ? "text-white" : "text-indigo-600"}`,
                                                   fill: "none",
                                                   viewBox: "0 0 24 24",
                                                   stroke: "currentColor",
@@ -1589,7 +1601,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       "h2",
                                       {
                                         key: "therapist-name",
-                                        className: `text-base sm:text-lg md:text-xl font-bold transition-colors duration-500 ${isSessionActive ? "text-white" : "text-black/90"}`,
+                                        className: `text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold transition-colors duration-500 leading-tight ${isSessionActive ? "text-white" : "text-black/90"}`,
                                       },
                                       selectedAssistant?.name || "Loading..."
                                     ),
@@ -1597,7 +1609,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       "p",
                                       {
                                         key: "therapist-type",
-                                        className: `text-xs font-medium px-3 py-0.5 rounded-full whitespace-nowrap transition-all duration-500 shadow-sm ${
+                                        className: `text-sm sm:text-base md:text-lg font-medium px-4 sm:px-5 py-1 sm:py-1.5 rounded-full whitespace-nowrap transition-all duration-500 shadow-sm mt-1 sm:mt-2 ${
                                           isSessionActive
                                             ? "bg-gradient-to-r from-green-500/60 to-blue-500/60 text-white"
                                             : "bg-blue-100/70 text-black/90"
@@ -1764,7 +1776,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                   {
                                     key: "welcome-info",
                                     className:
-                                      "space-y-3 mb-2 mt-4 sm:mt-6 text-center max-w-xl mx-auto hide-during-session p-3 sm:p-5 rounded-xl backdrop-blur-sm bg-gradient-to-b from-white/70 to-white/50 shadow-lg border border-white/60",
+                                      "space-y-4 sm:space-y-5 md:space-y-6 mb-4 mt-6 sm:mt-8 text-center max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto hide-during-session p-5 sm:p-7 md:p-8 lg:p-10 rounded-2xl sm:rounded-3xl backdrop-blur-md bg-gradient-to-b from-white/75 to-white/55 shadow-xl border border-white/60",
                                   },
                                   [
                                     // Welcome header and therapist intro combined with better styling
@@ -1772,7 +1784,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       "div",
                                       {
                                         key: "welcome-therapist-header",
-                                        className: "space-y-0.5",
+                                        className: "space-y-1 sm:space-y-2",
                                       },
                                       [
                                         // Welcome header with enhanced typography
@@ -1781,19 +1793,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                           {
                                             key: "welcome-header",
                                             className:
-                                              "text-lg sm:text-xl font-semibold text-black/90 tracking-tight",
+                                              "text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-black/90 tracking-tight leading-snug",
                                           },
                                           `Hello! Welcome to your session`
-                                        ),
-                                        // Therapist name with emphasis and enhanced styling
-                                        React.createElement(
-                                          "p",
-                                          {
-                                            key: "therapist-name",
-                                            className:
-                                              "text-sm sm:text-base font-medium text-black/90 bg-blue-50/80 px-2 py-0.5 rounded-md inline-block",
-                                          },
-                                          selectedAssistant?.name ? `I'm ${selectedAssistant.name}` : "Loading therapist..."
                                         ),
                                       ]
                                     ),
@@ -1804,13 +1806,13 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       {
                                         key: "warm-welcome",
                                         className:
-                                          "text-sm text-black/80 leading-relaxed max-w-md mx-auto bg-white/40 px-3 py-2 rounded-lg shadow-sm border border-blue-100/50",
+                                          "text-[15px] sm:text-lg md:text-xl lg:text-xl text-black/70 leading-[1.75] sm:leading-[1.8] md:leading-loose text-center whitespace-pre-line max-w-full sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto bg-white/40 px-5 sm:px-6 md:px-7 py-4 sm:py-5 md:py-6 rounded-xl shadow-sm border border-blue-100/50",
                                       },
                                       sessionType === "couple"
-                                        ? `I'm delighted to meet you both${userProfile.name ? ", " + userProfile.name : ""}${userProfile.partnerName ? " and " + userProfile.partnerName : ""}, today! This is a safe space where we can work together on strengthening your connection and understanding each other better.`
+                                        ? `I'm delighted to meet you both${userProfile.name ? ", " + userProfile.name.trim() : ""}${userProfile.partnerName ? " and " + userProfile.partnerName.trim() : ""}, today!\n\nThis is a safe space where we can work together on strengthening your connection and understanding each other better.`
                                         : sessionType === "solo"
-                                          ? `I'm so glad you're here today${userProfile.name ? ", " + userProfile.name : ""}! This is your private, judgment-free space where we can explore whatever is on your mind and work toward your personal goals.`
-                                          : `Hello ${userProfile.name ? userProfile.name : ""}${userProfile.partnerName ? ", " + userProfile.partnerName : ""}${userProfile.familyMember1 ? ", " + userProfile.familyMember1 : ""}${userProfile.familyMember2 ? ", " + userProfile.familyMember2 : ""}${userProfile.familyMember3 ? ", " + userProfile.familyMember3 : ""}${userProfile.familyMember4 ? ", " + userProfile.familyMember4 : ""}!! I'm excited to meet everyone today This is a supportive environment where all family members can share openly as we work together to improve communication and connection.`
+                                          ? `I'm so glad you're here today${userProfile.name ? ", " + userProfile.name.trim() + "!" : "!"}\n\nThis is your private, judgment-free space where we can explore whatever is on your mind and work toward your personal goals.`
+                                          : `Hello${userProfile.name ? " " + userProfile.name.trim() : ""}${userProfile.partnerName ? ", " + userProfile.partnerName.trim() : ""}${userProfile.familyMember1 ? ", " + userProfile.familyMember1.trim() : ""}${userProfile.familyMember2 ? ", " + userProfile.familyMember2.trim() : ""}${userProfile.familyMember3 ? ", " + userProfile.familyMember3.trim() : ""}${userProfile.familyMember4 ? ", " + userProfile.familyMember4.trim() : ""}!\n\nI'm excited to meet everyone today. This is a supportive environment where all family members can share openly as we work together to improve communication and connection.`
                                     ),
 
                                     // CTA message with enhanced styling
@@ -1818,7 +1820,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       "div",
                                       {
                                         key: "cta-container",
-                                        className: "mt-3",
+                                        className: "mt-4 sm:mt-5",
                                       },
                                       React.createElement(
                                         "div",
@@ -1833,40 +1835,38 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                             {
                                               key: "cta-message",
                                               className:
-                                                "text-black/90 font-medium py-1 px-3 border border-blue-300 rounded-lg bg-gradient-to-r from-blue-50/90 to-blue-50/80 backdrop-blur-sm inline-block text-xs shadow-sm",
+                                                "text-black/90 font-semibold py-2 sm:py-2.5 px-4 sm:px-6 border border-blue-300 rounded-xl bg-gradient-to-r from-blue-50/90 to-blue-50/80 backdrop-blur-sm inline-block text-sm sm:text-base md:text-lg shadow-sm",
                                             },
                                             "Ready to talk? Click the button below."
+                                          ),
+                                          // Therapy call button — inside the welcome card
+                                          initialCheckComplete && selectedAssistant && React.createElement(
+                                            "div",
+                                            {
+                                              key: "button-wrapper-inside-card",
+                                              className: "flex justify-center items-center w-full mt-4 sm:mt-5",
+                                            },
+                                            React.createElement(TherapyButton, {
+                                              key: "therapy-button-main",
+                                              therapyType: (sessionType || "couple") as TherapyType,
+                                              disabled: false,
+                                              forceNewSession: forceNewSession,
+                                              linkedSessionId: linkedSessionId,
+                                              onSessionConflict: (conflictData: any) => {
+                                                console.log('🔴 Session conflict detected:', conflictData)
+                                                setConflictSessionData(conflictData)
+                                                setSessionModalMode('conflict')
+                                              },
+                                              onSessionStarted: () => {
+                                                setForceNewSession(false)
+                                              }
+                                            })
                                           ),
                                         ]
                                       )
                                     ),
                                   ]
                                 ) : null,
-                                
-                                // Show therapy button only after initial check AND therapist selection
-                                initialCheckComplete && selectedAssistant && React.createElement(
-                                  "div",
-                                  {
-                                    key: "button-wrapper-persistent",
-                                    className: "flex justify-center items-center w-full mt-1 mb-4 pb-8",
-                                  },
-                                  React.createElement(TherapyButton, {
-                                    key: "therapy-button-main", // Add stable key to prevent remounting
-                                    therapyType: (sessionType || "couple") as TherapyType,
-                                    disabled: false,
-                                    forceNewSession: forceNewSession,
-                                    linkedSessionId: linkedSessionId,
-                                    onSessionConflict: (conflictData: any) => {
-                                      console.log('🔴 Session conflict detected:', conflictData)
-                                      setConflictSessionData(conflictData)
-                                      setSessionModalMode('conflict')
-                                    },
-                                    onSessionStarted: () => {
-                                      // Reset the force flag after session is started
-                                      setForceNewSession(false)
-                                    }
-                                  })
-                                ),
                               ]
                             ),
                           ]
