@@ -325,10 +325,10 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
           {insight.exercise && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
-              className="flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+              className="flex-shrink-0 p-2 sm:p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer"
               aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
             >
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {isExpanded ? <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" /> : <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />}
             </button>
           )}
         </div>
@@ -389,10 +389,10 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 sm:h-8 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5 px-2.5"
+            className="h-10 sm:h-8 min-h-[44px] sm:min-h-0 text-xs sm:text-sm text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5 px-3 sm:px-2.5 cursor-pointer"
             onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
           >
-            <ExternalLink className="h-3 w-3" />
+            <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             Full Analysis
           </Button>
         </div>

@@ -23,14 +23,14 @@ export default function CheckoutCancelPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-12">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-3 sm:px-4 md:px-6 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="max-w-md w-full"
         >
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg sm:rounded-xl shadow-2xl p-6 sm:p-8 text-center">
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg sm:rounded-xl shadow-2xl p-4 sm:p-6 md:p-8 text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -73,17 +73,17 @@ export default function CheckoutCancelPage() {
             >
               <Link
                 href="/pricing"
-                className="flex items-center justify-center w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white font-medium py-3 px-6 rounded-lg sm:rounded-xl hover:from-blue-500 hover:to-indigo-600 transition-all duration-300 cursor-pointer"
+                className="flex items-center justify-center w-full min-h-[44px] bg-gradient-to-r from-blue-400 to-indigo-500 text-white font-medium py-2 sm:py-3 px-3 sm:px-6 rounded-lg sm:rounded-xl hover:from-blue-500 hover:to-indigo-600 transition-all duration-300 cursor-pointer text-sm sm:text-base"
               >
-                <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                <ArrowLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Back to Pricing
               </Link>
 
               <Link
                 href="/auth/register"
-                className="flex items-center justify-center w-full bg-white/20 backdrop-blur-md text-white font-medium py-3 px-6 rounded-lg sm:rounded-xl hover:bg-white/30 transition-all duration-300 cursor-pointer"
+                className="flex items-center justify-center w-full min-h-[44px] bg-white/20 backdrop-blur-md text-white font-medium py-2 sm:py-3 px-3 sm:px-6 rounded-lg sm:rounded-xl hover:bg-white/30 transition-all duration-300 cursor-pointer text-sm sm:text-base"
               >
-                <ChatBubbleBottomCenterTextIcon className="w-5 h-5 mr-2" />
+                <ChatBubbleBottomCenterTextIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Try Free Plan
               </Link>
             </motion.div>

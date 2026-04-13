@@ -250,7 +250,7 @@ export default function Dashboard() {
           }}
           resetKeys={[activeTab]}
         >
-        <div className="dashboard-page-container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] pt-20 sm:pt-22 md:pt-24" data-page="dashboard">
+        <div className="dashboard-page-container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1920px] pt-16 sm:pt-20 md:pt-24 pb-16 sm:pb-8" data-page="dashboard">
 
         {/* Dashboard status banner — handles: no sessions yet, error, partial load */}
         {(() => {
@@ -482,13 +482,14 @@ export default function Dashboard() {
 
         {/* Real-time indicator */}
         {isRealTimeConnected && (
-          <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-background/80 backdrop-blur-sm border rounded-full px-3 py-1.5 text-xs">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-muted-foreground whitespace-nowrap">
-              Live updates active
+          <div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs z-30">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
+            <span className="text-white/60 whitespace-nowrap">
+              Live
+              <span className="hidden sm:inline"> updates active</span>
               {lastRealTimeUpdate && (
-                <span className="ml-1 whitespace-nowrap">
-                  • Last update: {new Date(lastRealTimeUpdate).toLocaleTimeString()}
+                <span className="hidden md:inline ml-1 whitespace-nowrap">
+                  • {new Date(lastRealTimeUpdate).toLocaleTimeString()}
                 </span>
               )}
             </span>

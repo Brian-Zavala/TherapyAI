@@ -44,7 +44,7 @@ function DashboardMobileNav({ activeTab, setActiveTab }: DashboardMobileNavProps
               key={tab.id}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative px-1.5 py-2.5 rounded-lg font-medium flex-1 text-[10px] transition-all duration-300 min-w-0 ${
+              className={`relative px-2 py-3 rounded-lg font-medium flex-1 text-[11px] transition-all duration-300 min-w-0 min-h-[48px] cursor-pointer ${
                 activeTab === tab.id
                   ? "text-white shadow-lg"
                   : "text-white/90 hover:text-white hover:bg-white/10"
@@ -59,7 +59,7 @@ function DashboardMobileNav({ activeTab, setActiveTab }: DashboardMobileNavProps
                 />
               )}
               <span className="relative z-10 flex flex-col items-center justify-center">
-                <svg className="w-3 h-3 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="w-4 h-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
                 </svg>
                 <span className="truncate font-semibold">{tab.label}</span>

@@ -350,7 +350,7 @@ export default function SessionTimeChart() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-[520px] flex flex-col mb-6 sm:mb-0 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6" 
+        className="min-h-[520px] flex flex-col mb-6 sm:mb-0 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-3 sm:p-4 md:p-6"
       >
         <div className="flex items-center mb-6">
           <motion.div 
@@ -676,7 +676,7 @@ export default function SessionTimeChart() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="flex flex-col p-6 w-full h-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
+      className="flex flex-col p-3 sm:p-4 md:p-6 w-full h-full bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
       style={{
         maxWidth: "100%",
         overflowX: "hidden",

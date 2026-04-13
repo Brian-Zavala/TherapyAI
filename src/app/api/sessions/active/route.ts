@@ -11,11 +11,18 @@ export async function GET(request: Request) {
 
     const userId = session.user.id;
 
-    // Find the most recent active or paused session for this user
+    // Find the most recent active, paused, or recently-scheduled session for this user
     const activeSession = await prisma.session.findFirst({
       where: {
         userId: userId,
-        status: { in: ['ACTIVE', 'PAUSED'] },
+        OR: [
+          { status: { in: ['ACTIVE', 'PAUSED'] } },
+          // Include SCHEDULED sessions created within the last 30 min (VAPI not yet started)
+          {
+            status: 'SCHEDULED',
+            createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
+          },
+        ],
         NOT: {
           notes: {
             contains: 'Session completed'
@@ -23,7 +30,7 @@ export async function GET(request: Request) {
         }
       },
       orderBy: {
-        startTime: 'desc',
+        createdAt: 'desc',
       },
       include: {
         transcriptEntries: {
@@ -35,17 +42,19 @@ export async function GET(request: Request) {
       }
     });
 
-    if (!activeSession || !['ACTIVE', 'PAUSED'].includes(activeSession.status)) {
+    if (!activeSession || !['ACTIVE', 'PAUSED', 'SCHEDULED'].includes(activeSession.status)) {
       return NextResponse.json(null);
     }
 
     // Validate that the session hasn't exceeded its duration based on conversation time
-    const sessionDurationMinutes = activeSession.duration;
+    // SCHEDULED sessions haven't started yet so conversationTimeSeconds is always 0
+    const sessionDurationMinutes = activeSession.duration || 15;
     const conversationTimeSeconds = activeSession.conversationTimeSeconds || 0;
     const conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60);
     const remainingMinutes = sessionDurationMinutes - conversationTimeMinutes;
 
-    if (remainingMinutes <= 0) {
+    // For SCHEDULED sessions, they haven't started so remaining = full duration
+    if (remainingMinutes <= 0 && activeSession.status !== 'SCHEDULED') {
       return NextResponse.json(null);
     }
 

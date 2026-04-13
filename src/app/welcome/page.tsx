@@ -554,7 +554,7 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen((o) => !o)}
-        className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-left flex items-center justify-between transition-all focus:outline-none cursor-pointer ${
+        className={`w-full px-3 sm:px-4 py-3 min-h-[44px] bg-white/10 backdrop-blur-md border-2 rounded-lg sm:rounded-xl text-left flex items-center justify-between transition-all focus:outline-none cursor-pointer ${
           isOpen
             ? "border-blue-400 shadow-lg shadow-blue-500/20"
             : "border-white/20 hover:border-white/40 focus:border-blue-400"
@@ -596,7 +596,7 @@ function CustomSelect({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-2 transition-colors duration-100 cursor-pointer ${
+                    className={`w-full px-3 sm:px-4 py-2.5 min-h-[44px] text-left flex items-center justify-between gap-2 transition-colors duration-100 cursor-pointer ${
                       isSelected
                         ? "bg-blue-600/30 text-white"
                         : "text-white/75 hover:bg-white/10 hover:text-white"
@@ -1091,7 +1091,7 @@ function WelcomePageInner() {
       <div className="fixed inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20 pointer-events-none" />
       <ConfettiAnimation trigger={showConfetti} />
 
-      <div className="relative z-10 px-4 pt-8 pb-28">
+      <div className="relative z-10 px-3 sm:px-4 md:px-6 pt-8 pb-28">
         {/* Global tooltip that appears when user tries to proceed without filling required fields */}
         {showTooltip && currentStep === 0 && (
           <motion.div
@@ -1696,7 +1696,7 @@ function WelcomePageInner() {
                                     : 0,
                                 ease: "easeInOut",
                               }}
-                              className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-white placeholder-white/50 focus:outline-none transition-all ${
+                              className={`w-full px-3 sm:px-4 py-3 min-h-[44px] bg-white/10 backdrop-blur-md border-2 rounded-lg sm:rounded-xl text-white text-sm sm:text-base placeholder-white/50 focus:outline-none transition-all ${
                                 field.name === "nickname" &&
                                 showTooltip &&
                                 !formData.nickname?.trim()
@@ -1715,7 +1715,7 @@ function WelcomePageInner() {
                               onChange={(e) =>
                                 handleInputChange(field.name, e.target.value)
                               }
-                              className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                              className="w-full px-3 sm:px-4 py-3 min-h-[44px] bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-lg sm:rounded-xl text-white text-sm sm:text-base placeholder-white/50 focus:outline-none focus:border-blue-400 focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                             />
                           )}
 
@@ -1748,7 +1748,7 @@ function WelcomePageInner() {
                                     : 0,
                                 ease: "easeInOut",
                               }}
-                              className={`w-full px-4 py-3 bg-white/10 backdrop-blur-md border-2 rounded-xl text-white placeholder-white/50 focus:outline-none transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
+                              className={`w-full px-3 sm:px-4 py-3 min-h-[44px] bg-white/10 backdrop-blur-md border-2 rounded-lg sm:rounded-xl text-white text-sm sm:text-base placeholder-white/50 focus:outline-none transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
                                 field.name === "age" &&
                                 showTooltip &&
                                 (!formData.age ||
@@ -1787,7 +1787,7 @@ function WelcomePageInner() {
                                         option.value
                                       )
                                     }
-                                    className={`relative px-4 py-2 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+                                    className={`relative px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] rounded-lg sm:rounded-xl border transition-all cursor-pointer overflow-hidden ${
                                       isSelected
                                         ? "bg-blue-500/30 border-blue-400 text-white"
                                         : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
@@ -1841,7 +1841,7 @@ function WelcomePageInner() {
                                         option.value
                                       )
                                     }
-                                    className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all font-medium cursor-pointer ${
+                                    className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 min-h-[44px] rounded-lg sm:rounded-xl border-2 transition-all font-medium cursor-pointer text-sm sm:text-base ${
                                       isSelected
                                         ? "bg-blue-500/30 border-blue-400 text-white shadow-lg shadow-blue-500/25"
                                         : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20 hover:border-white/30"
@@ -1999,20 +1999,20 @@ function WelcomePageInner() {
       </div>
 
       {/* Navigation buttons — fixed at bottom, always visible on mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-3 bg-gray-900/95 backdrop-blur-sm border-t border-white/10">
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-3 sm:px-4 md:px-6 py-3 bg-gray-900/95 backdrop-blur-sm border-t border-white/10">
         {currentStep === formSteps.length - 1 && assessmentResults.length === 0 ? (
           /* Last step without assessment: show Back + Skip stacked on mobile */
           <div className="flex flex-col sm:flex-row gap-2 sm:justify-between max-w-2xl mx-auto">
             <ButtonWithSound
               onClick={handleBack}
               disabled={currentStep === 0}
-              className="px-4 py-2.5 text-sm sm:text-base rounded-xl font-medium transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer w-full sm:w-auto"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] text-sm sm:text-base rounded-lg sm:rounded-xl font-medium transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer w-full sm:w-auto"
             >
               Back
             </ButtonWithSound>
             <ButtonWithSound
               onClick={handleSkipAssessment}
-              className="px-4 py-2.5 text-sm sm:text-base text-white rounded-xl font-medium transition-all bg-red-500 hover:bg-red-600 cursor-pointer w-full sm:w-auto"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] text-sm sm:text-base text-white rounded-lg sm:rounded-xl font-medium transition-all bg-red-500 hover:bg-red-600 cursor-pointer w-full sm:w-auto"
             >
               Not in a relationship
             </ButtonWithSound>
@@ -2023,7 +2023,7 @@ function WelcomePageInner() {
             <ButtonWithSound
               onClick={handleBack}
               disabled={currentStep === 0}
-              className={`px-4 py-2.5 text-sm sm:text-base rounded-xl font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] text-sm sm:text-base rounded-lg sm:rounded-xl font-medium transition-all ${
                 currentStep === 0
                   ? "bg-white/5 text-white/30 cursor-not-allowed"
                   : "bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer"
@@ -2035,7 +2035,7 @@ function WelcomePageInner() {
             <ButtonWithSound
               onClick={handleNext}
               disabled={loading || (currentStep === 0 && !isCurrentStepValid())}
-              className={`px-6 py-2.5 text-sm sm:text-base rounded-xl font-medium transition-all ${
+              className={`px-4 sm:px-6 py-2 sm:py-2.5 min-h-[44px] text-sm sm:text-base rounded-lg sm:rounded-xl font-medium transition-all ${
                 currentStep === 0 && !isCurrentStepValid()
                   ? "bg-gray-600 cursor-not-allowed border-2 border-red-500/50"
                   : "bg-blue-500 hover:bg-blue-600 cursor-pointer transform hover:scale-105"

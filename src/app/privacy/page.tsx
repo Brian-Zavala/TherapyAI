@@ -18,25 +18,25 @@ export default function PrivacyPolicy() {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
       <BokehBackground />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 pt-20 sm:pt-24">
+      <div className="relative z-10 min-h-screen flex items-start sm:items-center justify-center px-3 sm:px-4 md:px-6 pt-16 sm:pt-20 md:pt-24 pb-8">
         <div className="w-full max-w-4xl">
           <button
             type="button"
-            className="inline-flex items-center text-white hover:text-white/60 mb-6 cursor-pointer bg-transparent p-2 whitespace-nowrap"
+            className="inline-flex items-center text-white hover:text-white/60 mb-4 sm:mb-6 cursor-pointer bg-transparent p-2 whitespace-nowrap text-sm sm:text-base min-h-[44px]"
             onClick={() => window.location.href = '/'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
             Back to Home
           </button>
-          
+
           <GlassCard className="w-full">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white">
+            <div className="text-center mb-6 sm:mb-8">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">
                 Privacy Policy
               </h1>
-              <p className="mt-2 text-white/70">
+              <p className="mt-2 text-xs sm:text-sm md:text-base text-white/70">
                 Last updated: 4/12/2026
               </p>
             </div>

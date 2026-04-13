@@ -262,10 +262,21 @@ export async function POST(request: NextRequest) {
             SET status = 'RELEASED', "updatedAt" = NOW()
             WHERE "userId" = ${session.user.id}
               AND status = 'ACTIVE'
-              AND "sessionId" IN (
-                SELECT s.id FROM "Session" s
-                WHERE s.id = "CreditReservation"."sessionId"
-                  AND s.status NOT IN ('ACTIVE', 'PAUSED', 'SCHEDULED')
+              AND (
+                -- Release for completed/failed/cancelled sessions
+                "sessionId" IN (
+                  SELECT s.id FROM "Session" s
+                  WHERE s.id = "CreditReservation"."sessionId"
+                    AND s.status NOT IN ('ACTIVE', 'PAUSED', 'SCHEDULED')
+                )
+                OR
+                -- Release for SCHEDULED sessions older than 15 minutes (VAPI never started)
+                "sessionId" IN (
+                  SELECT s.id FROM "Session" s
+                  WHERE s.id = "CreditReservation"."sessionId"
+                    AND s.status = 'SCHEDULED'
+                    AND s."createdAt" < NOW() - INTERVAL '15 minutes'
+                )
               )
           `;
 

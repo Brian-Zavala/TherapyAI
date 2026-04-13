@@ -142,22 +142,27 @@ export default function TherapyTypeSelector({
             onClick={onClose}
           />
 
-          {/* Modal Container - Centered */}
+          {/* Modal Container - Bottom sheet on mobile, centered on tablet+ */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            className="fixed inset-x-0 bottom-0 z-[10001] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4"
           >
             <div
-              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-4xl max-h-[85vh] overflow-y-auto border border-indigo-100"
+              className="relative bg-gradient-to-br from-white to-indigo-50/30 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl md:max-w-4xl max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto border border-indigo-100"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Pull handle (mobile only) */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-gray-300" />
+              </div>
+
               {/* Close button - always visible */}
               <button
                 onClick={onClose}
-                className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50 p-2 rounded-lg bg-white hover:bg-gray-100 shadow-md transition-all duration-200 group cursor-pointer"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-50 p-2 rounded-xl bg-white/80 hover:bg-gray-100 shadow-md transition-all duration-200 group cursor-pointer min-w-[40px] min-h-[40px] flex items-center justify-center"
                 aria-label="Close modal"
               >
                 <svg
@@ -174,7 +179,7 @@ export default function TherapyTypeSelector({
                   />
                 </svg>
               </button>
-              
+
               <div className="p-4 sm:p-6 md:p-8">
                 
                 <div className="flex justify-center items-center mb-6 sm:mb-8">

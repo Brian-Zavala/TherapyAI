@@ -152,7 +152,7 @@ export function ClinicalDisclaimerModal({
             }}
             className="fixed inset-0 z-[10001] flex items-center justify-center p-4 sm:p-6 lg:p-8 pointer-events-none overflow-x-hidden"
           >
-            <div className="relative w-full max-w-2xl max-h-[90vh] min-h-[600px] overflow-y-auto overflow-x-hidden rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
+            <div className="relative w-full max-w-2xl max-h-[90dvh] sm:min-h-[600px] overflow-y-auto overflow-x-hidden rounded-t-2xl sm:rounded-2xl bg-gray-900/95 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(30, 58, 138, 0.1), rgba(30, 58, 138, 0.05))' }}>
               {/* Gradient background effects - Blue liquid glass theme */}
               <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}>
                 <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/15 to-blue-900/20 rounded-2xl" />
@@ -173,10 +173,10 @@ export function ClinicalDisclaimerModal({
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-400/20 mb-4">
                     <ShieldCheck className="w-8 h-8 text-white" />
                   </div>
-                  <h2 className="text-3xl font-bold text-white mb-2">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 px-2">
                     Welcome to Your AI-Enhanced Therapy Journey
                   </h2>
-                  <p className="text-white/70 text-lg">
+                  <p className="text-white/70 text-sm sm:text-base md:text-lg px-2">
                     Understanding how we support your mental health
                   </p>
                 </motion.div>
@@ -210,20 +210,20 @@ export function ClinicalDisclaimerModal({
                       />
                       
                       {/* Content with padding */}
-                      <div className="relative flex items-start gap-4 p-6 z-10">
+                      <div className="relative flex items-start gap-3 sm:gap-4 p-4 sm:p-5 md:p-6 z-10">
                         <div className={cn(
-                          "p-3 rounded-lg transition-all duration-300",
+                          "p-2.5 sm:p-3 rounded-lg transition-all duration-300 flex-shrink-0",
                           hoveredFeature === index
                             ? "bg-gradient-to-br from-blue-500/30 to-blue-400/30"
                             : "bg-white/10"
                         )}>
-                          <feature.icon className="w-6 h-6 text-white" />
+                          <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-white mb-1">
                             {feature.title}
                           </h3>
-                          <p className="text-white/70 text-sm mb-2">
+                          <p className="text-white/70 text-xs sm:text-sm mb-2">
                             {feature.description}
                           </p>
                           <div className="flex items-center gap-2">
@@ -251,12 +251,12 @@ export function ClinicalDisclaimerModal({
                     style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
                   />
                   
-                  <div className="relative p-6 z-10">
-                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                  <div className="relative p-4 sm:p-5 md:p-6 z-10">
+                    <h4 className="text-white font-semibold text-sm sm:text-base mb-2 sm:mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 flex-shrink-0" />
                     Important Information
                   </h4>
-                  <ul className="space-y-2 text-sm text-white/80">
+                  <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/80">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
                       <span>AI insights are supplementary tools</span>
@@ -327,7 +327,7 @@ export function ClinicalDisclaimerModal({
                   <Button
                     variant="outline"
                     onClick={handleDecline}
-                    className="w-full sm:flex-1 min-w-0 px-4 py-2.5 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis"
+                    className="w-full sm:flex-1 min-w-0 px-4 py-3 sm:py-2.5 min-h-[48px] sm:min-h-[44px] bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis rounded-xl cursor-pointer"
                   >
                     I'll Review Later
                   </Button>
@@ -335,7 +335,7 @@ export function ClinicalDisclaimerModal({
                     onClick={handleAccept}
                     disabled={!acknowledged || isAccepting}
                     className={cn(
-                      "w-full sm:flex-1 min-w-0 px-4 py-2.5 transition-all duration-300 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis",
+                      "w-full sm:flex-1 min-w-0 px-4 py-3 sm:py-2.5 min-h-[48px] sm:min-h-[44px] transition-all duration-300 text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis rounded-xl cursor-pointer",
                       acknowledged && !isAccepting
                         ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
                         : "bg-white/10 text-white/50 cursor-not-allowed"

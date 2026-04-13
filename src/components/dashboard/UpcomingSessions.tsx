@@ -155,7 +155,7 @@ export default function UpcomingSessions() {
 
   if (error) {
     return (
-      <div className="min-h-[520px] bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6">
+      <div className="min-h-[520px] bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg sm:rounded-xl shadow-xl p-3 sm:p-4 md:p-6">
         <DashboardAPIError
           error={error}
           onRetry={errorRecovery.canRetry ? fetchSessions : undefined}
@@ -182,7 +182,7 @@ export default function UpcomingSessions() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl p-6 w-full h-full overflow-y-auto"
+      className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg sm:rounded-xl shadow-xl p-3 sm:p-4 md:p-6 w-full h-full overflow-y-auto"
     >
       {/* Minimal header with just session count */}
       {sessions.length > 0 && (
@@ -190,7 +190,7 @@ export default function UpcomingSessions() {
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-4 py-1.5 text-sm font-medium text-purple-300 whitespace-nowrap"
+            className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-purple-300 whitespace-nowrap"
           >
             {sessions.length} session{sessions.length !== 1 ? 's' : ''}
           </motion.div>
@@ -206,7 +206,7 @@ export default function UpcomingSessions() {
           transition={{ duration: 0.6 }}
           className="h-full min-h-[400px] flex items-center justify-center"
         >
-          <div className="text-center p-8 max-w-md">
+          <div className="text-center p-4 sm:p-6 md:p-8 max-w-md">
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -306,7 +306,7 @@ export default function UpcomingSessions() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-2xl font-bold text-white mb-3"
+              className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2 sm:mb-3"
             >
               Your Calendar Awaits
             </motion.h3>
@@ -314,7 +314,7 @@ export default function UpcomingSessions() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="text-white/80 mb-8 leading-relaxed"
+              className="text-sm sm:text-base text-white/80 mb-6 sm:mb-8 leading-relaxed"
             >
               Schedule your therapy sessions to begin your transformative journey towards stronger relationships and better communication.
             </motion.p>
@@ -327,7 +327,7 @@ export default function UpcomingSessions() {
             >
               <Link 
                 href="/schedule" 
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium transition-all duration-200 cursor-pointer hover:from-purple-600 hover:to-pink-600 hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-500/20"
+                className="inline-flex items-center px-4 sm:px-6 py-2.5 sm:py-3 min-h-[44px] bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg sm:rounded-xl font-medium text-sm sm:text-base transition-all duration-200 cursor-pointer hover:from-purple-600 hover:to-pink-600 hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-500/20"
               >
                 Schedule Your First Session
               </Link>
@@ -336,7 +336,7 @@ export default function UpcomingSessions() {
         </motion.div>
       ) : (
         <motion.div 
-          className="space-y-4"
+          className="space-y-3 sm:space-y-4"
           variants={{
             hidden: { opacity: 0 },
             show: {
@@ -362,12 +362,12 @@ export default function UpcomingSessions() {
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0 }
                 }}
-                className={`bg-white/90 backdrop-blur-sm border rounded-xl p-4 sm:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${isExpanded ? 'border-purple-400 shadow-purple-500/20' : 'border-purple-200/50 hover:border-purple-300'} ${isSmallScreen ? 'mx-1' : ''} cursor-pointer`}
+                className={`bg-white/90 backdrop-blur-sm border rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${isExpanded ? 'border-purple-400 shadow-purple-500/20' : 'border-purple-200/50 hover:border-purple-300'} cursor-pointer`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col space-y-2">
                     <div className="flex items-center flex-wrap gap-2">
-                      <h3 className={`font-semibold text-purple-800 ${isSmallScreen ? 'text-sm' : 'text-base'} leading-tight`}>{session.theme}</h3>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base leading-tight">{session.theme}</h3>
                       <motion.span
                         whileHover={{ scale: 1.05 }}
                         className={`text-xs px-3 py-1 rounded-full font-medium shadow-md whitespace-nowrap flex-shrink-0
@@ -405,15 +405,16 @@ export default function UpcomingSessions() {
                         )}
                       </div>
                     </div>
-                    <div className={`${isSmallScreen ? 'space-y-1' : 'space-y-1.5'}`}>
-                      <p className={`${isSmallScreen ? 'text-xs' : 'text-sm'} text-gray-700 flex items-center font-medium`}>
-                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-purple-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="space-y-1 sm:space-y-1.5">
+                      <p className="text-xs sm:text-sm text-gray-700 flex items-center font-medium">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-purple-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        {format(sessionDate, isSmallScreen ? 'MMM d, yyyy' : 'EEEE, MMMM d, yyyy')}
+                        <span className="sm:hidden">{format(sessionDate, 'MMM d, yyyy')}</span>
+                        <span className="hidden sm:inline">{format(sessionDate, 'EEEE, MMMM d, yyyy')}</span>
                       </p>
-                      <p className={`${isSmallScreen ? 'text-xs' : 'text-sm'} text-gray-700 flex items-center font-medium`}>
-                        <svg className={`${isSmallScreen ? 'w-3 h-3' : 'w-4 h-4'} mr-2 text-purple-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <p className="text-xs sm:text-sm text-gray-700 flex items-center font-medium">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-purple-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {format(sessionDate, 'h:mm a')} ({session.duration} min)
@@ -424,10 +425,10 @@ export default function UpcomingSessions() {
                     <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
                       <button
                         onClick={() => setExpandedSession(isExpanded ? null : session.id)}
-                        className={`p-2 rounded-full transition-all duration-300 ${isExpanded ? 'bg-purple-100 shadow-md' : 'hover:bg-purple-50'} border border-purple-200/50 cursor-pointer`}
+                        className={`p-2 sm:p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full transition-all duration-300 ${isExpanded ? 'bg-purple-100 shadow-md' : 'hover:bg-purple-50'} border border-purple-200/50 cursor-pointer`}
                         title={isExpanded ? 'Collapse details' : 'View details'}
                       >
-                        <svg className={`${isSmallScreen ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`w-4 h-4 sm:w-5 sm:h-5 text-purple-600 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
@@ -451,14 +452,14 @@ export default function UpcomingSessions() {
                         </div>
                       )}
                       
-                      <div className={`flex ${isSmallScreen ? 'flex-col space-y-2' : 'flex-row space-x-2'} justify-end mt-4`}>
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 justify-end mt-4">
                         {badgeStyles.label !== 'Happening soon' && (
                           <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                             <Link
                               href={`/dashboard/therapy?sessionId=${session.id}`}
-                              className={`flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white ${isSmallScreen ? 'px-4 py-3 w-full' : 'px-4 py-2'} rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-blue-500 transition-all duration-300 border border-blue-400/30`}
+                              className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] w-full sm:w-auto rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-blue-500 transition-all duration-300 border border-blue-400/30"
                             >
-                              <svg className={`${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                               </svg>
                               Start Session
@@ -468,9 +469,9 @@ export default function UpcomingSessions() {
                         <motion.div whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }}>
                           <Link
                             href={`/schedule?reschedule=${session.id}`}
-                            className={`flex items-center justify-center bg-white/90 backdrop-blur-sm border border-blue-400 text-blue-600 hover:bg-blue-50 ${isSmallScreen ? 'px-4 py-3 w-full' : 'px-4 py-2'} rounded-xl font-medium transition-all duration-300 shadow-md hover:shadow-lg`}
+                            className="flex items-center justify-center bg-white/90 backdrop-blur-sm border border-blue-400 text-blue-600 hover:bg-blue-50 px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] w-full sm:w-auto rounded-lg sm:rounded-xl font-medium text-sm sm:text-base transition-all duration-300 shadow-md hover:shadow-lg"
                           >
-                            <svg className={`${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             Reschedule
@@ -480,11 +481,11 @@ export default function UpcomingSessions() {
                           <button
                             onClick={() => handleCancelSession(session.id)}
                             disabled={isCancelling}
-                            className={`flex items-center justify-center bg-white/90 backdrop-blur-sm border border-red-400 text-red-600 hover:bg-red-50 ${isSmallScreen ? 'px-4 py-3 w-full' : 'px-4 py-2'} rounded-xl font-medium transition-all duration-300 disabled:opacity-50 shadow-md hover:shadow-lg`}
+                            className="flex items-center justify-center bg-white/90 backdrop-blur-sm border border-red-400 text-red-600 hover:bg-red-50 px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] w-full sm:w-auto rounded-lg sm:rounded-xl font-medium text-sm sm:text-base transition-all duration-300 disabled:opacity-50 shadow-md hover:shadow-lg cursor-pointer"
                           >
                             {isCancelling ? (
                               <>
-                                <svg className={`animate-spin ${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2 text-red-600`} fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin w-4 h-4 sm:w-5 sm:h-5 mr-2 text-red-600" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -492,7 +493,7 @@ export default function UpcomingSessions() {
                               </>
                             ) : (
                               <>
-                                <svg className={`${isSmallScreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                                 Cancel

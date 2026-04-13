@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
-import SessionTimer from './SessionTimer'
 import { Clock, AlertCircle } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
@@ -65,7 +64,6 @@ export default function UnifiedSessionModal({
 }: UnifiedSessionModalProps) {
   const [showModal, setShowModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentRemainingMinutes, setCurrentRemainingMinutes] = useState<number>(0)
   const [isClient, setIsClient] = useState(false)
   const [elapsedTimeSeconds, setElapsedTimeSeconds] = useState<number>(0)
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -112,7 +110,6 @@ export default function UnifiedSessionModal({
           console.log('🔔 Unified modal triggered for recovery')
           
           setShowModal(true)
-          setCurrentRemainingMinutes(data.remainingMinutes)
           setElapsedTimeSeconds(data.conversationTimeSeconds || 0)
         }
       } catch (error) {
@@ -457,6 +454,33 @@ export default function UnifiedSessionModal({
     remainingMinutes: 60 - Math.floor((conflictSession?.conversationTimeSeconds || 0) / 60)
   }
 
+  // Resolve human-readable session type from DB enum
+  const rawSessionType = (displayData?.sessionData as any)?.sessionType
+    || (displayData?.sessionData as any)?.therapyType
+    || ''
+  const sessionTypeLabel = rawSessionType
+    ? ({ SOLO: 'Solo Therapy', COUPLE: 'Couples Therapy', FAMILY: 'Family Therapy' } as Record<string, string>)[rawSessionType.toUpperCase()]
+      ?? rawSessionType.charAt(0).toUpperCase() + rawSessionType.slice(1).toLowerCase() + ' Therapy'
+    : 'AI Therapy Session'
+
+  // Accurate time computation — single source of truth
+  const totalSeconds = Math.max(1, (sessionData?.sessionData?.duration || 15) * 60)
+  const usedSeconds = Math.max(0, Math.min(elapsedTimeSeconds, totalSeconds))
+  const remainingSeconds = totalSeconds - usedSeconds
+
+  const formatMMSS = (s: number) => {
+    const m = Math.floor(Math.abs(s) / 60)
+    const sec = Math.abs(s) % 60
+    return `${m}:${sec.toString().padStart(2, '0')}`
+  }
+  const formatMinutes = (s: number) => {
+    const m = Math.floor(s / 60)
+    return m === 1 ? '1 min' : `${m} min`
+  }
+
+  const hasConversationTime = usedSeconds > 0
+  const remainingLabel = remainingSeconds > 0 ? `${formatMinutes(remainingSeconds)} left` : ''
+
   const modalContent = (
     <AnimatePresence>
       {showModal && (
@@ -466,225 +490,287 @@ export default function UnifiedSessionModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-md z-[10000]"
             onClick={() => !isLoading && onClose && onClose()}
           />
-          
-          {/* Modal */}
+
+          {/* ── Mobile: slides up from bottom  ── Tablet+: centered card ── */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 300, 
-              damping: 30,
-              duration: 0.4 
-            }}
-            className="fixed inset-0 z-[10001] flex items-center justify-center p-4 overflow-x-hidden"
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 38, mass: 0.9 }}
+            className="fixed inset-x-0 bottom-0 z-[10001] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-6"
           >
-            <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden max-w-md w-full" 
-                 data-active-session-modal={isRecoveryMode}
-                 data-session-conflict-modal={isConflictMode}>
-              {/* Header */}
-              <div className={`px-6 py-4 ${isRecoveryMode ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-amber-500 to-orange-500'} text-white`}>
-                <div className="flex items-center space-x-3">
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      rotate: isRecoveryMode ? [0, 10, -10, 0] : [0, 5, -5, 0]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    {isRecoveryMode ? (
-                      <svg className="w-6 h-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                    ) : (
-                      <AlertCircle className="w-6 h-6 text-yellow-300" />
-                    )}
-                  </motion.div>
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {isRecoveryMode ? 'Active Session Found!' : 'Active Session Detected'}
-                    </h3>
-                    <p className="text-orange-100 text-sm">
-                      {isRecoveryMode ? 'Your therapy session is still running' : 'You have an ongoing session'}
-                    </p>
-                  </div>
-                </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ delay: 0.05, duration: 0.2 }}
+              className={[
+                /* shared */
+                'relative bg-white w-full overflow-hidden flex flex-col',
+                /* mobile: bottom sheet feel */
+                'rounded-t-3xl max-h-[92dvh]',
+                /* tablet+: floating card */
+                'sm:rounded-2xl sm:max-w-md sm:max-h-none sm:shadow-2xl',
+                /* desktop: slightly wider */
+                'lg:max-w-lg',
+              ].join(' ')}
+              data-active-session-modal={isRecoveryMode}
+              data-session-conflict-modal={isConflictMode}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* ── Pull handle (mobile only) ── */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-gray-300" />
               </div>
 
-              {/* Content */}
-              <div className="px-6 py-5 space-y-4">
-                {/* Warning/Info message */}
-                {isRecoveryMode ? (
-                  (displayData?.conversationTimeSeconds || 0) > 0 ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <div className="flex items-start space-x-2">
-                        <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="text-sm text-red-700">
-                          <p className="font-medium">Session was in progress!</p>
-                          <p>You have conversation time used. Continue to avoid losing progress.</p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <div className="flex items-start space-x-2">
-                        <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="text-sm text-blue-700">
-                          <p className="font-medium">Session is ready to continue!</p>
-                          <p>No time has been used yet. Your session is paused and waiting.</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <p className="text-gray-600">
-                    {conflictSession && (
-                      <>You have an active session that started {Math.round(conflictSession.hoursAgo * 60)} minutes ago{conflictSession.remainingMinutes < 0 && ' (over time)'}:</>
-                    )}
-                  </p>
-                )}
+              {/* ── Hero header ── */}
+              <div className={[
+                'relative px-6 pt-5 pb-6 sm:pt-6 sm:pb-7',
+                isRecoveryMode
+                  ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800'
+                  : 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-500',
+              ].join(' ')}>
+                {/* Decorative glow */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden rounded-t-3xl sm:rounded-t-2xl">
+                  <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/30 blur-2xl" />
+                  <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/20 blur-xl" />
+                </div>
 
-                {/* Session info */}
-                {isRecoveryMode ? (
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-blue-50 rounded-lg px-3 py-2">
-                      <div className="text-blue-600 font-medium">Conversation Time</div>
-                      <div className="text-blue-800 font-semibold">{formatTime(elapsedTimeSeconds)}</div>
-                    </div>
-                    <div className={`${sessionData?.isOverTime ? 'bg-amber-50' : 'bg-green-50'} rounded-lg px-3 py-2`}>
-                      <div className={`${sessionData?.isOverTime ? 'text-amber-600' : 'text-green-600'} font-medium text-center mb-1`}>
-                        {sessionData?.isOverTime ? 'Over Time' : 'Time Remaining'}
-                      </div>
-                      {sessionData?.isOverTime ? (
-                        <div className="text-amber-800 font-semibold text-center">
-                          +{Math.abs(sessionData.remainingMinutes || 0)}m
-                          <div className="text-xs text-amber-600 mt-1">Billing continues</div>
-                        </div>
+                <div className="relative flex items-start gap-4">
+                  {/* Pulse icon */}
+                  <div className="relative flex-shrink-0 mt-0.5">
+                    <div className={[
+                      'absolute inset-0 rounded-full animate-ping opacity-40',
+                      isRecoveryMode ? 'bg-blue-400' : 'bg-amber-300',
+                    ].join(' ')} />
+                    <div className={[
+                      'relative w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center',
+                      isRecoveryMode ? 'bg-white/20' : 'bg-white/25',
+                    ].join(' ')}>
+                      {isRecoveryMode ? (
+                        /* Waveform / mic icon for therapy context */
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z" />
+                        </svg>
                       ) : (
-                        <SessionTimer
-                          durationMinutes={sessionData?.sessionData.duration || 60}
-                          conversationTimeSeconds={elapsedTimeSeconds}
-                          isConversationActive={false}
-                          className="scale-90"
-                          showRecoveredIndicator={false}
-                          onTimeUpdate={(remainingMinutes) => setCurrentRemainingMinutes(remainingMinutes)}
-                        />
+                        <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       )}
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                    <p className="font-medium text-gray-900">
-                      {conflictSession?.theme || 'Therapy Session'}
+
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-white font-bold text-xl sm:text-2xl leading-tight">
+                      {isRecoveryMode ? 'Session Waiting' : 'Active Session'}
+                    </h2>
+                    <p className="text-white/75 text-sm sm:text-base mt-0.5 leading-snug">
+                      {isRecoveryMode
+                        ? hasConversationTime
+                          ? 'Pick up right where you left off'
+                          : 'Your session is reserved and ready'
+                        : 'You have an ongoing therapy session'}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>Duration: {formatTime(conflictSession?.conversationTimeSeconds || 0)}</span>
+                  </div>
+
+                  {/* Close button */}
+                  {onClose && (
+                    <button
+                      onClick={() => !isLoading && onClose()}
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+                      aria-label="Close"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* ── Stat pills ── */}
+                {isRecoveryMode && (
+                  <div className="relative flex gap-3 mt-5">
+                    {/* Elapsed */}
+                    <div className="flex-1 bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-center">
+                      <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-1">Used</p>
+                      <p className="text-white font-bold text-xl sm:text-2xl leading-none tabular-nums">
+                        {formatMMSS(usedSeconds)}
+                      </p>
+                    </div>
+                    {/* Remaining */}
+                    <div className={[
+                      'flex-1 rounded-2xl px-4 py-3 text-center',
+                      remainingSeconds <= 0
+                        ? 'bg-red-400/30 backdrop-blur-sm'
+                        : remainingSeconds <= totalSeconds * 0.25
+                          ? 'bg-amber-400/30 backdrop-blur-sm'
+                          : 'bg-white/15 backdrop-blur-sm',
+                    ].join(' ')}>
+                      <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-1">
+                        {remainingSeconds <= 0 ? 'Over time' : 'Remaining'}
+                      </p>
+                      <p className={[
+                        'font-bold text-xl sm:text-2xl leading-none tabular-nums',
+                        remainingSeconds <= 0 ? 'text-red-200' : 'text-white',
+                      ].join(' ')}>
+                        {remainingSeconds <= 0
+                          ? `+${formatMMSS(usedSeconds - totalSeconds)}`
+                          : formatMMSS(remainingSeconds)}
+                      </p>
                     </div>
                   </div>
                 )}
 
-                <div className="bg-gray-50 rounded-lg px-3 py-2">
-                  <div className="text-gray-600 text-xs">Session Type</div>
-                  <div className="text-gray-800 font-medium">
-                    {displayData?.sessionData?.theme || 'Therapy Session'}
+                {/* Conflict mode duration */}
+                {isConflictMode && conflictSession && (
+                  <div className="relative flex gap-3 mt-5">
+                    <div className="flex-1 bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-center">
+                      <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-1">Duration</p>
+                      <p className="text-white font-bold text-lg sm:text-xl leading-none">
+                        {formatTime(conflictSession.conversationTimeSeconds || 0)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-
-                {isConflictMode && (
-                  <p className="text-sm text-gray-600">
-                    Would you like to resume this session or end it and start a new one?
-                  </p>
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="px-6 py-4 bg-gray-50 space-y-3">
-                {/* Continue/Resume Button */}
+              {/* ── Body ── */}
+              <div className="px-5 py-4 sm:px-6 sm:py-5 flex-1 overflow-y-auto">
+                {/* Session name row */}
+                <div className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className={[
+                    'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                    isRecoveryMode ? 'bg-blue-100' : 'bg-amber-100',
+                  ].join(' ')}>
+                    <svg className={['w-5 h-5', isRecoveryMode ? 'text-blue-600' : 'text-amber-600'].join(' ')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Session</p>
+                    <p className="text-gray-900 font-semibold text-sm sm:text-base truncate">
+                      {sessionTypeLabel}
+                    </p>
+                  </div>
+                  {/* Status badge */}
+                  <div className="ml-auto flex-shrink-0">
+                    <span className={[
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold',
+                      hasConversationTime
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700',
+                    ].join(' ')}>
+                      <span className={[
+                        'w-1.5 h-1.5 rounded-full',
+                        hasConversationTime ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500',
+                      ].join(' ')} />
+                      {hasConversationTime ? 'Paused' : 'Ready'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Contextual message */}
+                <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-500 leading-relaxed px-0.5">
+                  {isRecoveryMode
+                    ? hasConversationTime
+                      ? 'Your session was interrupted. Continue to reconnect with your therapist — your progress is saved.'
+                      : 'A session is reserved for you. Continue to start talking, or discard it to begin fresh.'
+                    : 'Would you like to resume your existing session or end it and start a new one?'}
+                </p>
+              </div>
+
+              {/* ── Actions ── */}
+              <div className="px-5 pb-6 pt-3 sm:px-6 sm:pb-6 space-y-3 bg-white">
+                {/* Primary: Continue */}
                 <motion.button
                   onClick={handleContinueSession}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                  whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                  whileTap={{ scale: 0.975 }}
+                  className={[
+                    'w-full flex items-center justify-center gap-2.5',
+                    'py-4 sm:py-3.5 px-5 rounded-2xl sm:rounded-xl',
+                    'font-semibold text-base sm:text-sm text-white',
+                    'transition-all duration-150 active:scale-[0.98]',
+                    'disabled:opacity-60 disabled:cursor-not-allowed',
+                    isRecoveryMode ? 'shadow-lg shadow-blue-500/30' : 'shadow-lg shadow-amber-500/25',
+                    isRecoveryMode
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700',
+                  ].join(' ')}
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Connecting...</span>
+                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      <span>Connecting…</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span>
-                        {isRecoveryMode ? (
-                          sessionData?.isOverTime ? 
-                            `Continue Session (Over time by ${Math.abs(sessionData.remainingMinutes || 0)}m)` :
-                            `Continue Session (${formatTime(currentRemainingMinutes * 60 || displayData?.remainingMinutes * 60)} left)`
-                        ) : 
-                          'Resume Session'
-                        }
+                        {isRecoveryMode
+                          ? sessionData?.isOverTime
+                            ? 'Continue Session'
+                            : remainingLabel
+                              ? `Continue Session · ${remainingLabel}`
+                              : 'Continue Session'
+                          : 'Resume Session'}
                       </span>
                     </>
                   )}
                 </motion.button>
 
-                {/* Start New Session Button */}
+                {/* Secondary: End & Start New */}
                 <motion.button
                   onClick={handleStartNew}
                   disabled={isLoading}
-                  className="w-full bg-gray-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                  whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                  whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                  whileTap={{ scale: 0.975 }}
+                  className={[
+                    'w-full flex items-center justify-center gap-2.5',
+                    'py-4 sm:py-3.5 px-5 rounded-2xl sm:rounded-xl',
+                    'font-semibold text-base sm:text-sm',
+                    'border-2 border-gray-200 bg-white text-gray-600',
+                    'hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800',
+                    'transition-all duration-150 active:scale-[0.98]',
+                    'disabled:opacity-60 disabled:cursor-not-allowed',
+                  ].join(' ')}
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Ending previous...</span>
+                      <div className="w-4 h-4 border-2 border-gray-400/40 border-t-gray-500 rounded-full animate-spin" />
+                      <span>Ending…</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      <svg className="w-5 h-5 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
-                      <span>End Previous & Start New</span>
+                      <span>
+                        {isConflictMode ? 'End & Start New' : 'Discard & Start Fresh'}
+                      </span>
                     </>
                   )}
                 </motion.button>
 
-                {/* Cancel button for conflict mode */}
+                {/* Cancel (conflict mode only) */}
                 {isConflictMode && onClose && (
                   <button
-                    onClick={() => onClose()}
+                    onClick={() => !isLoading && onClose()}
                     disabled={isLoading}
-                    className="w-full text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium py-2 px-4 transition-colors disabled:opacity-50"
+                    className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium disabled:opacity-50"
                   >
                     Cancel
                   </button>
                 )}
-              </div>
 
-              {/* Footer */}
-              {isRecoveryMode && sessionData && (
-                <div className="px-6 py-2 bg-gray-100 text-xs text-gray-600 text-center">
-                  Session ID: {sessionData.sessionId.slice(-8)}...
-                </div>
-              )}
-            </div>
+                {/* Safe area spacer (iOS home indicator) */}
+                <div className="h-safe-bottom sm:hidden" style={{ height: 'env(safe-area-inset-bottom)' }} />
+              </div>
+            </motion.div>
           </motion.div>
         </>
       )}

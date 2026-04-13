@@ -14,17 +14,25 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Find and complete all active/paused sessions
+    // Find and complete all active/paused/stale-scheduled sessions
     const result = await prisma.session.updateMany({
       where: {
         userId: session.user.id,
-        status: { in: ['ACTIVE', 'PAUSED'] },
+        status: { in: ['ACTIVE', 'PAUSED', 'SCHEDULED'] },
       },
       data: {
         status: 'COMPLETED',
         notes: 'Session force-completed via cleanup endpoint',
       },
     });
+
+    // Release all active credit reservations for this user
+    await prisma.$executeRaw`
+      UPDATE "CreditReservation"
+      SET status = 'RELEASED', "updatedAt" = NOW()
+      WHERE "userId" = ${session.user.id}
+        AND status = 'ACTIVE'
+    `;
 
     // Also clean up TherapySession table
     const therapyResult = await prisma.therapySession.updateMany({

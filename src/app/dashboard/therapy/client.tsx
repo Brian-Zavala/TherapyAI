@@ -513,8 +513,9 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
       }
       
       const currentSessionData = await sessionCheck.json()
-      // Use utility function for case-insensitive status check
-      if (!checkSessionActive(currentSessionData.status)) {
+      // Allow ACTIVE, PAUSED, and SCHEDULED sessions (SCHEDULED = created but VAPI not yet started)
+      const statusNormalized = (currentSessionData.status || '').toUpperCase()
+      if (!['ACTIVE', 'PAUSED', 'SCHEDULED'].includes(statusNormalized)) {
         throw new Error(`Session is ${currentSessionData.status}, cannot continue`)
       }
       
@@ -668,28 +669,33 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
 
   // Handle starting new session (ends previous)
   const handleStartNewSession = () => {
-    console.log('🆕 Starting new session, previous session ended')
-    
+    console.log('🆕 Starting new session, abandoning previous session')
+
     // Reset all state and show type selector
     setSessionType(null)
     setSelectedAssistant(null) // CRITICAL: Reset assistant selection
     setMeditationStep('none')
     setIsSessionActive(false)
-    
+
     // IMPORTANT: Set flag to force new session creation
     setForceNewSession(true)
-    
+
     // Clear any stale recovery state to prevent race conditions
     sessionStorage.removeItem('session-recovery-pending')
     sessionStorage.removeItem('recovery-check-in-progress')
     sessionStorage.removeItem('current-session-id')
     sessionStorage.removeItem('session-auto-start')
-    
+
     // Close the unified modal
     setSessionModalMode(null)
     setRecoverySessionData(null)
     setConflictSessionData(null)
-    
+
+    // Release any stale reservations so the user can start fresh
+    fetch('/api/sessions/cleanup-stale', { method: 'POST' }).catch(() => {
+      // Non-critical — reservation will auto-expire or be cleaned up on next create attempt
+    })
+
     // Small delay to ensure modal closes and state resets before showing type selector
     setTimeout(() => {
       console.log('📝 Showing therapy type selector for new session')
@@ -1091,7 +1097,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               setQuickActionsOpen(
                                                 !quickActionsOpen
                                               ),
-                                            className: `flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium ${
+                                            className: `flex items-center whitespace-nowrap rounded-xl px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium min-h-[44px] ${
                                               quickActionsOpen
                                                 ? "bg-blue-500/60 text-white shadow-lg shadow-blue-400/30 ring-2 ring-blue-200"
                                                 : isSessionActive
@@ -1418,7 +1424,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         {
                                           key: "switch-therapist",
                                           onClick: openTherapistSelector,
-                                          className: `flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
+                                          className: `flex items-center whitespace-nowrap rounded-xl px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium min-h-[44px] bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
                                           whileHover: { scale: 1.05 },
                                           whileTap: { scale: 0.95 },
                                           initial: { opacity: 0, y: 20 },
@@ -1583,7 +1589,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       "h2",
                                       {
                                         key: "therapist-name",
-                                        className: `text-xl font-bold transition-colors duration-500 ${isSessionActive ? "text-white" : "text-black/90"}`,
+                                        className: `text-base sm:text-lg md:text-xl font-bold transition-colors duration-500 ${isSessionActive ? "text-white" : "text-black/90"}`,
                                       },
                                       selectedAssistant?.name || "Loading..."
                                     ),
@@ -1907,48 +1913,110 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     //   key: "session-recovery-notification"
     // }),
 
-    // Session Recovery Checking Indicator - Only on therapy page when actually checking
-    isCheckingForSession && 
+    // Session Recovery Checking Indicator — centered fullscreen overlay
+    isCheckingForSession &&
       React.createElement(
-        motion.div,
-        {
-          key: "session-checking-indicator",
-          className: "fixed top-4 right-4 z-[9998] pointer-events-none",
-          initial: { opacity: 0, scale: 0.8 },
-          animate: { opacity: 1, scale: 1 },
-          exit: { opacity: 0, scale: 0.8 },
-          transition: { duration: 0.3 }
-        },
+        AnimatePresence,
+        { key: "checking-presence" },
         React.createElement(
-          "div",
+          motion.div,
           {
-            className: "bg-black/70 text-white px-3 py-2 rounded-lg text-xs backdrop-blur-sm border border-white/20"
+            key: "session-checking-indicator",
+            className: "fixed inset-0 z-[9998] flex items-center justify-center pointer-events-none",
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
+            exit: { opacity: 0 },
+            transition: { duration: 0.4 }
           },
-          [
-            React.createElement(
-              "div",
-              {
-                key: "checking-content",
-                className: "flex items-center space-x-2"
-              },
-              [
-                React.createElement(
-                  motion.div,
-                  {
-                    key: "spinner",
-                    className: "w-3 h-3 border border-white/40 border-t-white rounded-full",
-                    animate: { rotate: 360 },
-                    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-                  }
-                ),
-                React.createElement(
-                  "span",
-                  { key: "text" },
-                  "Checking for active session..."
+          React.createElement(
+            motion.div,
+            {
+              className: "relative flex flex-col items-center gap-5 px-8 py-8 sm:px-10 sm:py-10 rounded-3xl bg-blue-900/80 backdrop-blur-xl border border-blue-400/20 shadow-2xl max-w-xs w-full mx-4",
+              initial: { scale: 0.88, y: 16 },
+              animate: { scale: 1, y: 0 },
+              exit: { scale: 0.9, y: 12 },
+              transition: { type: "spring", stiffness: 340, damping: 32 }
+            },
+            [
+              // Rings
+              React.createElement(
+                "div",
+                { key: "rings", className: "relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center" },
+                [
+                  React.createElement(motion.div, {
+                    key: "ring1",
+                    className: "absolute inset-0 rounded-full border-2 border-blue-400/30",
+                    animate: { scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] },
+                    transition: { duration: 2.2, repeat: Infinity, ease: "easeInOut" }
+                  }),
+                  React.createElement(motion.div, {
+                    key: "ring2",
+                    className: "absolute inset-2 rounded-full border-2 border-blue-400/40",
+                    animate: { scale: [1, 1.25, 1], opacity: [0.6, 0, 0.6] },
+                    transition: { duration: 2.2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }
+                  }),
+                  // Center icon
+                  React.createElement(
+                    "div",
+                    { key: "center", className: "relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/40" },
+                    React.createElement(
+                      motion.svg,
+                      {
+                        key: "mic-icon",
+                        className: "w-6 h-6 sm:w-7 sm:h-7 text-white",
+                        fill: "none",
+                        viewBox: "0 0 24 24",
+                        stroke: "currentColor",
+                        strokeWidth: 2,
+                        animate: { scale: [1, 1.12, 1] },
+                        transition: { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
+                      },
+                      [
+                        React.createElement("path", {
+                          key: "p1",
+                          strokeLinecap: "round",
+                          strokeLinejoin: "round",
+                          d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z"
+                        })
+                      ]
+                    )
+                  )
+                ]
+              ),
+
+              // Text block
+              React.createElement(
+                "div",
+                { key: "text-block", className: "text-center space-y-1.5" },
+                [
+                  React.createElement(
+                    "p",
+                    { key: "title", className: "text-white font-bold text-lg sm:text-xl leading-tight" },
+                    "Checking your session…"
+                  ),
+                  React.createElement(
+                    "p",
+                    { key: "sub", className: "text-blue-200/70 text-sm sm:text-base leading-snug" },
+                    "Looking for any open sessions to resume"
+                  )
+                ]
+              ),
+
+              // Animated dots
+              React.createElement(
+                "div",
+                { key: "dots", className: "flex items-center gap-2" },
+                [0, 0.2, 0.4].map((delay, i) =>
+                  React.createElement(motion.div, {
+                    key: `dot-${i}`,
+                    className: "w-2 h-2 rounded-full bg-blue-400",
+                    animate: { opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] },
+                    transition: { duration: 1.1, repeat: Infinity, ease: "easeInOut", delay }
+                  })
                 )
-              ]
-            )
-          ]
+              )
+            ]
+          )
         )
       )
   ]);

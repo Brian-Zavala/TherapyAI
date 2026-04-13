@@ -8,7 +8,7 @@ const CalendarLoadingSpinner = React.memo(() => {
   const dates = Array.from({ length: 28 }, (_, i) => i + 1);
   
   return (
-    <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-6">
+    <div className="min-h-[520px] flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-3 sm:p-4 md:p-6">
       <motion.div 
         animate={{ 
           scale: [1, 1.02, 1],

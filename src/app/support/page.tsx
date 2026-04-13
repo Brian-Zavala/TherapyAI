@@ -93,24 +93,24 @@ export default function SupportPage() {
   return (
     <div className="min-h-screen relative">
       <LampContainer>
-        <div className="relative z-10 container mx-auto py-16 px-4">
+        <div className="relative z-10 container mx-auto py-8 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6">
           <div className="max-w-3xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-4xl font-bold text-white text-center mb-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center mb-2 sm:mb-3">
                 Contact Support
               </h1>
 
-              <p className="text-lg text-white/80 text-center mb-8">
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 text-center mb-6 sm:mb-8 px-2">
                 Our team is here to help with any questions or issues you may
                 have.
               </p>
             </motion.div>
 
-            <GlassCard className="p-8 ">
+            <GlassCard className="p-4 sm:p-6 md:p-8">
               {success ? (
                 <div className="bg-green-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
                   <div className="flex">
@@ -163,7 +163,7 @@ export default function SupportPage() {
                   <div>
                     <label
                       htmlFor="name"
-                      className="block text-sm font-medium text-white mb-1"
+                      className="block text-xs sm:text-sm font-medium text-white mb-1"
                     >
                       Your Name
                     </label>
@@ -182,7 +182,7 @@ export default function SupportPage() {
                   <div>
                     <label
                       htmlFor="email"
-                      className="block text-sm font-medium text-white mb-1"
+                      className="block text-xs sm:text-sm font-medium text-white mb-1"
                     >
                       Your Email
                     </label>
@@ -202,7 +202,7 @@ export default function SupportPage() {
                 <div>
                   <label
                     htmlFor="subject"
-                    className="block text-sm font-medium text-white mb-1"
+                    className="block text-xs sm:text-sm font-medium text-white mb-1"
                   >
                     Subject
                   </label>
@@ -247,7 +247,7 @@ export default function SupportPage() {
                 <div>
                   <label
                     htmlFor="message"
-                    className="block text-sm font-medium text-white mb-1"
+                    className="block text-xs sm:text-sm font-medium text-white mb-1"
                   >
                     Message
                   </label>
@@ -267,7 +267,7 @@ export default function SupportPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl text-lg font-bold text-white font-pj bg-blue-500 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-blue-500 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer animate-tilt glow-button"
+                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl text-base sm:text-lg font-bold text-white font-pj bg-blue-500 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-blue-500 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]"
                   >
                     {loading ? (
                       <>
@@ -300,11 +300,11 @@ export default function SupportPage() {
                 </div>
               </form>
 
-              <div className="mt-8 border-t border-white/10 pt-6">
-                <h3 className="text-lg font-medium text-white mb-3">
+              <div className="mt-6 sm:mt-8 border-t border-white/10 pt-4 sm:pt-6">
+                <h3 className="text-base sm:text-lg md:text-xl font-medium text-white mb-2 sm:mb-3">
                   Contact Information
                 </h3>
-                <div className="space-y-2 text-white/70">
+                <div className="space-y-2 text-xs sm:text-sm md:text-base text-white/70">
                   <p>Support Email: support@therapyai.us</p>
                   <p>Business Hours: Monday-Friday, 9AM-5PM EST</p>
                   <p>

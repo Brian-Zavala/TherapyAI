@@ -132,10 +132,10 @@ export default function Navigation() {
   }
 
   return (
-    <div className="fixed top-2 w-full flex justify-between items-center z-40 px-4 py-4 nav-container pointer-events-none">
+    <div className="fixed top-0 left-0 right-0 w-full flex justify-between items-center z-40 px-3 sm:px-4 md:px-6 py-3 sm:py-4 nav-container pointer-events-none">
       {/* Logo/Site Title - left aligned */}
-      <div className="absolute text-white text-lg font-semibold pointer-events-auto">
-        TherapyAI&#8482;
+      <div className="text-white text-base sm:text-lg md:text-xl lg:text-2xl font-semibold pointer-events-auto flex-shrink-0">
+        TherapyAI{'\u2122'}
       </div>
 
       {/* Thin menu tab that expands on hover - hidden when menu is open */}
@@ -367,17 +367,17 @@ export default function Navigation() {
       </div>
 
       {/* Mobile Menu Button - visible on mobile and tablet */}
-      <div className="lg:hidden top-2 right-2 absolute z-50 pointer-events-auto">
+      <div className="lg:hidden absolute top-3 right-3 sm:top-3 sm:right-4 z-50 pointer-events-auto">
         <button
           ref={menuBtnRef}
-          className="focus:outline-none cursor-pointer"
+          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-md cursor-pointer"
           onClick={toggleMenu}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMenuOpen}
           style={{ willChange: 'transform', transform: 'translateZ(0)' }}
         >
-          <div 
-            className="bg-black w-10 h-10 flex items-center justify-center border-1 border-white rounded-sm"
+          <div
+            className="bg-black/80 backdrop-blur-sm w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center border border-white/30 rounded-lg"
             style={{ willChange: 'background-color', transform: 'translateZ(0)' }}
           >
             <div 
@@ -454,8 +454,8 @@ export default function Navigation() {
             </button>
           </div>
 
-          <motion.div 
-            className="flex-1 flex flex-col justify-center items-center py-10 space-y-6"
+          <motion.div
+            className="flex-1 flex flex-col justify-center items-center py-6 sm:py-10 space-y-3 sm:space-y-5 px-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}
@@ -469,12 +469,12 @@ export default function Navigation() {
             >
               <Link
                 href="/"
-                className={`menu-item js-cdpn-mobile-menu__link text-2xl text-center w-full ${linkStyles(pathname === "/")} py-4 px-6 rounded-lg hover:bg-black transition-colors flex items-center justify-center`}
+                className={`menu-item js-cdpn-mobile-menu__link text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                 onClick={() => optimizedSetMenuOpen(false)}
                 style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
               >
               <svg
-                className="w-7 h-7 mr-4"
+                className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -500,12 +500,12 @@ export default function Navigation() {
             >
               <Link
                 href="/pricing"
-                className={`menu-item js-cdpn-mobile-menu__link text-2xl text-center w-full ${linkStyles(pathname === "/pricing")} py-4 px-6 rounded-lg hover:bg-black transition-colors flex items-center justify-center`}
+                className={`menu-item js-cdpn-mobile-menu__link text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/pricing")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                 onClick={() => optimizedSetMenuOpen(false)}
                 style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
               >
                 <svg
-                  className="w-7 h-7 mr-4"
+                  className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -550,12 +550,12 @@ export default function Navigation() {
               <>
                 <Link
                   href="/dashboard/therapy"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/therapy")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/therapy")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                   style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -572,12 +572,12 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/dashboard"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/dashboard")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/dashboard")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                   style={{ willChange: 'background-color, transform', transform: 'translateZ(0)' }}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -594,11 +594,11 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/dashboard/sessions"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/sessions")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/sessions")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -615,11 +615,11 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/dashboard/resources"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname.includes("/resources"))} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname.includes("/resources"))} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -636,11 +636,11 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/dashboard/profile"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/profile")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/dashboard/profile")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -657,11 +657,11 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/support"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/support")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/support")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -677,17 +677,17 @@ export default function Navigation() {
                   Support
                 </Link>
 
-                <div className="pt-8 mt-4 border-t border-stone-600/50 w-full flex justify-center">
+                <div className="pt-6 sm:pt-8 mt-3 sm:mt-4 border-t border-white/10 w-full flex justify-center">
                   <button
                     onClick={async () => {
                       setIsLoggingOut(true);
                       setIsMenuOpen(false);
                       await logout();
                     }}
-                    className="text-2xl text-indigo-100 hover:cursor-pointer hover:text-white py-4 px-6 text-center hover:bg-red-600/30 rounded-lg transition-colors flex items-center justify-center"
+                    className="text-lg sm:text-xl md:text-2xl text-indigo-100 hover:cursor-pointer hover:text-white py-3 sm:py-4 px-5 sm:px-6 text-center hover:bg-red-500/20 rounded-xl transition-colors flex items-center justify-center min-h-[48px]"
                   >
                     <svg
-                      className="w-7 h-7 mr-4"
+                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -708,11 +708,11 @@ export default function Navigation() {
               <>
                 <Link
                   href="/auth/login"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/auth/login")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/auth/login")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -729,11 +729,11 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/auth/register"
-                  className={`menu-item text-2xl text-center w-full ${linkStyles(pathname === "/auth/register")} py-4 px-6 rounded-lg hover:bg-black/30 transition-colors flex items-center justify-center`}
+                  className={`menu-item text-lg sm:text-xl md:text-2xl text-center w-full ${linkStyles(pathname === "/auth/register")} py-3 sm:py-4 px-5 sm:px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center min-h-[48px]`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg
-                    className="w-7 h-7 mr-4"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-3 sm:mr-4 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

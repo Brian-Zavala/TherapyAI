@@ -329,15 +329,15 @@ export default function ProfileClient() {
     <>
       <Navigation />
       
-      <div className="min-h-screen bg-gray-900 pt-20">
+      <div className="min-h-screen bg-gray-900 pt-16 sm:pt-20 pb-8">
         <motion.div
           key="profile-form"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8"
+          className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6"
         >
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/10">
             {/* Success/Error Messages */}
             {(isSuccess || error) && (
               <motion.div
@@ -435,13 +435,13 @@ export default function ProfileClient() {
               </motion.div>
             )}
             
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Profile Settings</h1>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all duration-300"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl transition-all duration-300 text-sm sm:text-base min-h-[44px] flex-shrink-0 cursor-pointer self-start sm:self-auto"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 flex-shrink-0" />
                 Logout
               </button>
             </div>
@@ -449,9 +449,9 @@ export default function ProfileClient() {
             {/* Removed duplicate success/error messages - they're already shown above */}
 
             {/* Personal Information */}
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-400" />
+            <div className="space-y-4 sm:space-y-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white flex items-center gap-2">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
                 Personal Information
               </h2>
               
@@ -465,7 +465,7 @@ export default function ProfileClient() {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors min-h-[44px]"
                   />
                 </div>
                 
@@ -479,7 +479,7 @@ export default function ProfileClient() {
                     value={formData.email}
                     onChange={handleInputChange}
                     disabled
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 cursor-not-allowed"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/5 border border-white/10 rounded-xl text-sm sm:text-base text-gray-400 cursor-not-allowed min-h-[44px]"
                   />
                 </div>
 
@@ -495,7 +495,7 @@ export default function ProfileClient() {
                     placeholder="30"
                     min="18"
                     max="120"
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors min-h-[44px]"
                   />
                 </div>
 
@@ -507,7 +507,7 @@ export default function ProfileClient() {
                     name="pronouns"
                     value={formData.pronouns}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors appearance-none cursor-pointer"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors appearance-none cursor-pointer min-h-[44px]"
                   >
                     <option value="" className="bg-gray-800">Select pronouns</option>
                     <option value="he/him" className="bg-gray-800">he/him</option>
@@ -540,9 +540,9 @@ export default function ProfileClient() {
             </div>
 
             {/* Partner Information */}
-            <div className="mt-8 space-y-6">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-pink-400" />
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white flex items-center gap-2">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400 flex-shrink-0" />
                 Partner Information
               </h2>
               
@@ -556,7 +556,7 @@ export default function ProfileClient() {
                     name="partnerName"
                     value={formData.partnerName}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors min-h-[44px]"
                   />
                 </div>
                 
@@ -572,7 +572,7 @@ export default function ProfileClient() {
                     placeholder="30"
                     min="18"
                     max="120"
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors min-h-[44px]"
                   />
                 </div>
 
@@ -584,7 +584,7 @@ export default function ProfileClient() {
                     name="relationshipStatus"
                     value={formData.relationshipStatus}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors [&>option]:bg-gray-800"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors min-h-[44px] cursor-pointer [&>option]:bg-gray-800"
                   >
                     <option value="">Select status</option>
                     <option value="Married">Married</option>
@@ -599,15 +599,15 @@ export default function ProfileClient() {
             </div>
 
             {/* Family Members */}
-            <div className="mt-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Users className="w-5 h-5 text-green-400" />
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white flex items-center gap-2">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0" />
                   Family Members
                 </h2>
                 <button
                   onClick={() => setShowAddFamilyModal(true)}
-                  className="px-4 py-2 bg-blue-500/80 hover:bg-blue-600/80 text-white rounded-lg transition-all duration-300"
+                  className="px-3 sm:px-4 py-2.5 bg-blue-500/80 hover:bg-blue-600/80 text-white text-sm sm:text-base rounded-xl transition-all duration-300 min-h-[44px] cursor-pointer self-start sm:self-auto"
                   disabled={getExistingFamilyMembers().length >= 7}
                 >
                   {getExistingFamilyMembers().length >= 7 ? 'Maximum Reached' : 'Add Family Member'}
@@ -622,11 +622,11 @@ export default function ProfileClient() {
                   if (!memberName) return null
                   
                   return (
-                    <div key={num} className="flex items-center justify-between p-3 bg-white/5 rounded-lg gap-2">
+                    <div key={num} className="flex items-center justify-between p-3 sm:p-4 bg-white/5 rounded-xl gap-3 border border-white/5">
                       <div className="flex-1 min-w-0">
-                        <span className="text-white font-medium">{memberName}</span>
+                        <span className="text-white font-medium text-sm sm:text-base">{memberName}</span>
                         {(memberAge || memberRelation) && (
-                          <span className="text-gray-400 text-sm ml-2">
+                          <span className="text-gray-400 text-xs sm:text-sm ml-2">
                             {memberRelation && `(${memberRelation})`}
                             {memberAge && memberRelation && ', '}
                             {memberAge && `Age ${memberAge}`}
@@ -635,7 +635,7 @@ export default function ProfileClient() {
                       </div>
                       <button
                         onClick={() => handleRemoveMember(num)}
-                        className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0 whitespace-nowrap"
+                        className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 py-1.5 hover:bg-red-500/10 rounded-lg cursor-pointer min-h-[36px] flex items-center"
                       >
                         Remove
                       </button>
@@ -646,10 +646,10 @@ export default function ProfileClient() {
             </div>
 
             {/* Therapy Preferences */}
-            <div className="mt-8 space-y-6">
-              <h2 className="text-xl font-semibold text-white">Therapy Preferences</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white">Therapy Preferences</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
 
 
                 <div className="md:col-span-2">
@@ -703,10 +703,10 @@ export default function ProfileClient() {
             </div>
 
             {/* Therapy Preferences - Missing Fields */}
-            <div className="mt-8 space-y-6">
-              <h2 className="text-xl font-semibold text-white">Therapy Preferences</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white">Schedule & Concerns</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Current Concerns
@@ -765,8 +765,8 @@ export default function ProfileClient() {
             </div>
 
             {/* Additional Information */}
-            <div className="mt-8 space-y-6">
-              <h2 className="text-xl font-semibold text-white">Additional Information</h2>
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white">Additional Information</h2>
               
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -778,34 +778,34 @@ export default function ProfileClient() {
                   onChange={handleInputChange}
                   rows={4}
                   placeholder="Any additional information you'd like to share..."
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-blue-400 focus:outline-none transition-colors resize-none"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-sm sm:text-base text-white focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30 transition-colors resize-none"
                 />
               </div>
             </div>
 
             {/* Account Settings */}
-            <div className="mt-8 space-y-6 border-t border-white/10 pt-8">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-gray-400" />
+            <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 border-t border-white/10 pt-6 sm:pt-8">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white flex items-center gap-2">
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 Account Settings
               </h2>
-              
-              <div className="space-y-4">
+
+              <div className="space-y-3 sm:space-y-4">
                 {/* Profile Reset */}
-                <div className="p-6 bg-white/5 rounded-lg border border-white/10">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                        <RefreshCw className="w-5 h-5 text-blue-400" />
+                <div className="p-4 sm:p-5 md:p-6 bg-white/5 rounded-xl border border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-base md:text-lg font-medium text-white flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
                         Fresh Start
                       </h3>
-                      <p className="text-white/60 text-sm mt-1">
+                      <p className="text-white/60 text-xs sm:text-sm mt-1 ml-6 sm:ml-7">
                         Clear your profile data and preferences while keeping your account
                       </p>
                     </div>
                     <button
                       onClick={() => setShowResetModal(true)}
-                      className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all duration-300"
+                      className="px-3 sm:px-4 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-xl transition-all duration-300 text-sm min-h-[44px] cursor-pointer flex-shrink-0 self-start sm:self-auto"
                     >
                       Reset Profile
                     </button>
@@ -813,20 +813,20 @@ export default function ProfileClient() {
                 </div>
 
                 {/* Account Deletion */}
-                <div className="p-6 bg-red-900/10 rounded-lg border border-red-900/20">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-red-400" />
+                <div className="p-4 sm:p-5 md:p-6 bg-red-900/10 rounded-xl border border-red-900/20">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-base md:text-lg font-medium text-white flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 flex-shrink-0" />
                         Delete Account
                       </h3>
-                      <p className="text-white/60 text-sm mt-1">
+                      <p className="text-white/60 text-xs sm:text-sm mt-1 ml-6 sm:ml-7">
                         Temporarily disable your account with 30-day recovery option
                       </p>
                     </div>
                     <Link
                       href="/auth/delete-account"
-                      className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all duration-300"
+                      className="px-3 sm:px-4 py-2.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl transition-all duration-300 text-sm min-h-[44px] flex items-center cursor-pointer flex-shrink-0 self-start sm:self-auto"
                     >
                       Delete Account
                     </Link>
@@ -836,11 +836,11 @@ export default function ProfileClient() {
             </div>
 
             {/* Update Button */}
-            <div className="mt-8 flex justify-end">
+            <div className="mt-6 sm:mt-8 flex">
               <button
                 onClick={handleUpdate}
                 disabled={updating}
-                className="px-6 py-3 bg-blue-500/80 hover:bg-blue-600/80 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto sm:ml-auto px-6 py-3 sm:py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm sm:text-base rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px] shadow-lg shadow-blue-500/20"
               >
                 {updating ? "Updating..." : "Update Profile"}
               </button>
@@ -933,26 +933,28 @@ export default function ProfileClient() {
       />
 
       {showRemoveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-gray-800 p-6 rounded-lg max-w-sm w-full mx-4">
-            <h3 className="text-white font-semibold mb-4">Remove Family Member?</h3>
-            <p className="text-gray-300 mb-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gray-800 p-5 sm:p-6 rounded-t-2xl sm:rounded-2xl max-w-sm w-full sm:mx-4 border border-white/10">
+            <h3 className="text-white font-semibold text-base sm:text-lg mb-3 sm:mb-4">Remove Family Member?</h3>
+            <p className="text-gray-300 text-sm sm:text-base mb-5 sm:mb-6">
               Are you sure you want to remove this family member?
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
               <button
                 onClick={() => setShowRemoveModal(false)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                className="px-4 py-2.5 sm:py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors cursor-pointer min-h-[44px] text-sm sm:text-base"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmRemoveMember}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                className="px-4 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors cursor-pointer min-h-[44px] text-sm sm:text-base"
               >
                 Remove
               </button>
             </div>
+            {/* Safe area spacer for iOS */}
+            <div className="sm:hidden" style={{ height: 'env(safe-area-inset-bottom)' }} />
           </div>
         </div>
       )}

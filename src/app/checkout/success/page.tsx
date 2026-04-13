@@ -267,7 +267,7 @@ function CheckoutSuccessContent() {
 
                   <motion.h1
                     variants={itemVariants}
-                    className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3"
+                    className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3"
                   >
                     Welcome to TherapyAI!
                   </motion.h1>
@@ -377,7 +377,7 @@ function CheckoutSuccessContent() {
                     </div>
                     <button
                       onClick={() => setShouldRedirect(false)}
-                      className="text-white/50 hover:text-white text-xs sm:text-sm underline transition-colors"
+                      className="text-white/50 hover:text-white text-xs sm:text-sm underline transition-colors min-h-[44px] px-2 cursor-pointer"
                     >
                       Cancel
                     </button>
