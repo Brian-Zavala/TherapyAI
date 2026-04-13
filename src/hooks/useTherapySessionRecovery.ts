@@ -169,24 +169,26 @@ export function useTherapySessionRecovery() {
           }
           
           // Calculate session timing (for display only - sessions never auto-expire)
+          // Use seconds-level precision to avoid rounding errors
           let remainingMinutes = 0
           let conversationTimeSeconds = 0
           let conversationTimeMinutes = 0
           let isOverTime = false
-          
+
           if (activeSession.duration) {
             const sessionDurationMinutes = activeSession.duration
             conversationTimeSeconds = activeSession.conversationTimeSeconds || 0
-            conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60)
-            remainingMinutes = sessionDurationMinutes - conversationTimeMinutes
-            isOverTime = remainingMinutes < 0
-            
-            console.log(`📊 Session timing (for display): ${conversationTimeMinutes}/${sessionDurationMinutes} minutes used`)
+            conversationTimeMinutes = conversationTimeSeconds / 60 // Keep fractional precision
+            const remainingSeconds = (sessionDurationMinutes * 60) - conversationTimeSeconds
+            remainingMinutes = Math.ceil(remainingSeconds / 60) // Ceil so "14:01 left" shows as 15 min, not 14
+            isOverTime = remainingSeconds < 0
+
+            console.log(`📊 Session timing: ${Math.floor(conversationTimeMinutes)}m ${conversationTimeSeconds % 60}s / ${sessionDurationMinutes}m`)
             console.log(`🕒 Total conversation time: ${conversationTimeSeconds} seconds`)
             if (isOverTime) {
-              console.log(`⏰ Session is over time by ${Math.abs(remainingMinutes)} minutes (billing continues)`)
+              console.log(`⏰ Session is over time by ${Math.abs(Math.floor(remainingSeconds / 60))} minutes (billing continues)`)
             } else {
-              console.log(`⏳ ${remainingMinutes} minutes remaining in planned duration`)
+              console.log(`⏳ ${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')} remaining`)
             }
           }
           

@@ -70,15 +70,17 @@ interface TherapyButtonRefactoredProps {
   forceNewSession?: boolean
   onSessionConflict?: (conflictData: any) => void
   onSessionStarted?: () => void
+  onTherapyTypeChange?: (newType: TherapyType) => void
   linkedSessionId?: string | null
 }
 
-export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactored({ 
-  therapyType, 
+export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactored({
+  therapyType,
   disabled = false,
   forceNewSession = false,
   onSessionConflict,
   onSessionStarted,
+  onTherapyTypeChange,
   linkedSessionId = null
 }: TherapyButtonRefactoredProps) {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -210,17 +212,23 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     if (sessionRef.current?.sessionId && sessionRef.current?.conversationTimeSeconds > 0) {
       console.log('💾 Saving conversation time on VAPI disconnect:', sessionRef.current.conversationTimeSeconds)
 
-      // Force update conversation time to database
-      fetch(`/api/sessions/${sessionRef.current.sessionId}`, {
+      const payload = JSON.stringify({
+        conversationTimeSeconds: sessionRef.current.conversationTimeSeconds,
+        lastConversationStart: null, // Clear to indicate not actively in conversation
+        vapiDisconnectReason: reason || 'unknown'
+      })
+
+      // Use fetch for normal disconnects (supports error handling and retries).
+      // The beforeunload listener handles page-unload scenarios via sendBeacon.
+      const url = `/api/sessions/${sessionRef.current.sessionId}`
+      fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationTimeSeconds: sessionRef.current.conversationTimeSeconds,
-          lastConversationStart: null, // Clear to indicate not actively in conversation
-          vapiDisconnectReason: reason || 'unknown'
-        })
+        body: payload
       }).catch(error => {
         console.error('Failed to save conversation time on disconnect:', error)
+        // Fallback to sendBeacon if fetch fails (e.g. page is unloading)
+        navigator.sendBeacon?.(url, new Blob([payload], { type: 'application/json' }))
       })
     }
 
@@ -555,6 +563,26 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   useEffect(() => {
     sessionRef.current = session
   }, [session])
+
+  // Save conversation time on page unload (refresh/close) via sendBeacon
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const s = sessionRef.current
+      if (s?.sessionId && s?.conversationTimeSeconds > 0) {
+        const payload = JSON.stringify({
+          conversationTimeSeconds: s.conversationTimeSeconds,
+          lastConversationStart: null,
+          vapiDisconnectReason: 'page-unload'
+        })
+        navigator.sendBeacon?.(
+          `/api/sessions/${s.sessionId}`,
+          new Blob([payload], { type: 'application/json' })
+        )
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
   
   // Credit-aware session management
   const sessionWithCredits = useSessionWithCredits()
@@ -710,7 +738,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       recoveryProcessedRef.current.set(sessionId, now) // Store with timestamp
       lastRecoveryAttemptRef.current = now
       setIsRecoveredSession(true)
-      
+      setIsLoading(true)
+
       // Reset forceHidePhoneUI when recovering a session
       setForceHidePhoneUI(false)
       
@@ -732,6 +761,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             event: event.detail
           })
           setIsProcessingRecovery(false)
+          setIsLoading(false)
           recoveryProcessedRef.current.delete(sessionId) // Remove from map on deferral
           return
         }
@@ -785,11 +815,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           
           setError(SESSION_ERRORS.RECOVERY_AUTH_ERROR)
           setIsProcessingRecovery(false)
+          setIsLoading(false)
           recoveryProcessedRef.current.delete(sessionId) // Allow retry after auth error
           lastRecoveryAttemptRef.current = 0 // Reset cooldown
           return
         }
-        
+
         // Wait for VAPI to be ready
         let vapiReadyAttempts = 0
         const maxVapiAttempts = RECOVERY_CONSTANTS.VAPI_READY_TIMEOUT_MS / RECOVERY_CONSTANTS.VAPI_READY_CHECK_INTERVAL_MS
@@ -814,6 +845,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           
           setError(SESSION_ERRORS.RECOVERY_TIMEOUT)
           setIsProcessingRecovery(false)
+          setIsLoading(false)
           recoveryProcessedRef.current.delete(sessionId) // Allow retry after timeout
           lastRecoveryAttemptRef.current = 0 // Reset cooldown
           return
@@ -974,13 +1006,15 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         
         // Ensure session-active class is set for recovered sessions
         setSessionActive(true)
+        setIsLoading(false)
         console.log('🌟 Set session-active for recovered session')
-        
+
         console.log('✅ VAPI session auto-started successfully for recovery')
-        
+
       } catch (error) {
         console.error('❌ Failed to auto-start VAPI session for recovery:', error)
         setError(SESSION_ERRORS.RECOVERY_FAILED)
+        setIsLoading(false)
         // Remove from processed set on error so it can be retried later
         recoveryProcessedRef.current.delete(sessionId)
         lastRecoveryAttemptRef.current = 0 // Reset cooldown on error
@@ -1122,24 +1156,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       return
     }
     
-    console.log('🎨 Preparing session - showing duration selection modal')
-    
-    // Apply background transition but DO NOT set loading state yet
-    // This allows the duration modal to be visible and interactive
-    
-    // 1. Set session-active class for starry night background
-    setSessionActive(true)
-    console.log('Set session-active for therapy button click')
-    
-    // 2. Set window flag is handled by setSessionActive
-    
-    // 3. Apply visual effects
-    const main = document.querySelector('main')
-    if (main) {
-      main.style.transition = 'all 0.3s ease-in-out'
-      main.style.opacity = '0.95'
-    }
-    
+    console.log('🎨 Preparing session - showing duration selection modal (session-active deferred until VAPI starts)')
+
+    // NOTE: Do NOT set sessionActive here! It triggers a body class change that causes
+    // client.tsx to switch render branches, unmounting this component and destroying
+    // the modal state. sessionActive is set later in startVAPISession after VAPI connects.
+
     // NOTE: DO NOT set isLoading = true here!
     // We need the duration modal to be visible and interactive
     
@@ -1165,6 +1187,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Handle duration selection with atomic credit validation and session creation
   const handleDurationSelect = useCallback(async (duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
     console.log(`🎯 Duration selected: ${duration} minutes`);
+
+    if (!therapyType || !['solo', 'couple', 'family'].includes(therapyType)) {
+      setError('Please select a therapy type before starting a session');
+      return;
+    }
+
     setShowDurationModal(false);
     setIsLoading(true);
     setError(null);
@@ -1289,7 +1317,6 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       delete inlineConfig.variableValues;
       delete inlineConfig.recordingEnabled;
       delete inlineConfig.hipaaEnabled;
-      delete inlineConfig.backgroundDenoisingEnabled;
       delete inlineConfig.responseDelaySeconds;
       delete inlineConfig.llmRequestDelaySeconds;
       delete inlineConfig.numWordsToInterruptAssistant;
@@ -1774,14 +1801,18 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   const handleTherapyTypeChange = useCallback((newTherapyType: TherapyType) => {
     console.log('🔄 Switching therapy type to:', newTherapyType)
     setShowTherapyTypeSelector(false)
-    setTherapyType(newTherapyType)
-    
+
     // If session is active, show a message that they need to end current session first
     if (session.sessionId || vapi.isConnected) {
       setError('Please end your current session before switching therapists')
       return
     }
-  }, [session.sessionId, vapi.isConnected])
+
+    // Delegate to parent so sessionType + selectedAssistant stay in sync
+    if (onTherapyTypeChange) {
+      onTherapyTypeChange(newTherapyType)
+    }
+  }, [session.sessionId, vapi.isConnected, onTherapyTypeChange])
 
   const handleRemoveFamilyMember = useCallback(async (index: number) => {
     // Find the family member by index
@@ -1813,8 +1844,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   // Monitor session state and ensure session-active class is in sync
   useEffect(() => {
-    const hasActiveSession = !!(session.sessionId || vapi.isConnected || isLoading || showDurationModal || showFamilySelectionModal)
-    
+    const hasActiveSession = !!(session.sessionId || vapi.isConnected || isLoading)
+
     if (hasActiveSession && !sessionActiveManaged.current) {
       console.log('[Session Monitor] Detected active session, ensuring session-active class')
       setSessionActive(true)
@@ -1822,7 +1853,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.log('[Session Monitor] No active session, ensuring session-active class removed')
       setSessionActive(false)
     }
-  }, [session.sessionId, vapi.isConnected, isLoading, showDurationModal, showFamilySelectionModal, forceHidePhoneUI, setSessionActive])
+  }, [session.sessionId, vapi.isConnected, isLoading, forceHidePhoneUI, setSessionActive])
   
   // Monitor VAPI state and ensure conversation timer is in sync
   useEffect(() => {
@@ -2054,9 +2085,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             isVisible={!isLoading && !vapi.isConnecting}
           />
           
-          {/* Loading Animation - Show when loading but call not started */}
-          {/* For recovered sessions, show UI immediately even if VAPI is still initializing */}
-          {(isLoading || vapi.isConnecting) && !isRecoveredSession ? (
+          {/* Loading Animation - Show when loading or connecting (both normal and recovered sessions) */}
+          {(isLoading || vapi.isConnecting) ? (
             <motion.div 
               className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-gradient-to-b from-black/90 via-black/95 to-black rounded-[41px] backdrop-blur-sm"
               initial={{ opacity: 0 }}
@@ -2390,10 +2420,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             isOpen={showDurationModal}
             onClose={() => {
               setShowDurationModal(false)
-              // Reset UI state if user cancels the modal
-              setIsLoading(false)
-              setSessionActive(false)
-              console.log('🔙 Duration modal cancelled - reverting UI state')
+              console.log('🔙 Duration modal cancelled')
             }}
             onSelectDuration={handleDurationSelect}
             therapyType={therapyType}

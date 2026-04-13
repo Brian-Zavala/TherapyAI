@@ -1716,58 +1716,32 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       {
                                         key: "active-info",
                                         className:
-                                          "hidden",
+                                          "w-full flex flex-col items-center",
                                       },
                                       [
-                                        // Info icon at the top with pulsing animation - hidden on mobile
-                                        React.createElement(
+                                        // Render TherapyButton during active session so session UI (timer, controls, waveform) stays mounted
+                                        initialCheckComplete && React.createElement(
                                           "div",
                                           {
-                                            key: "info-header",
-                                            className: "hidden sm:flex justify-center mb-2",
+                                            key: "button-wrapper-active",
+                                            className: "flex justify-center items-center w-full",
                                           },
-                                          [
-                                            React.createElement(
-                                              "div",
-                                              {
-                                                key: "info-icon-container",
-                                                className:
-                                                  "w-10 h-1 rounded-full bg-transparent flex items-center justify-center mb-1 shadow-lg animate-[float_4s_ease-in-out_infinite]",
-                                              },
-                                              [
-                                                React.createElement(
-                                                  "svg",
-                                                  {
-                                                    key: "info-icon",
-                                                    className: "w-5 h-5 text-white",
-                                                    fill: "none",
-                                                    viewBox: "0 0 24 24",
-                                                    stroke: "currentColor",
-                                                  },
-                                                  React.createElement("path", {
-                                                    strokeLinecap: "round",
-                                                    strokeLinejoin: "round",
-                                                    strokeWidth: 1.5,
-                                                    d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-                                                  })
-                                                ),
-                                              ]
-                                            ),
-                                          ]
-                                        ),
-                                        // Session message with enhanced styling - hidden on mobile
-                                        React.createElement(
-                                          "p",
-                                          {
-                                            key: "active-message",
-                                            className:
-                                              "hidden sm:block text-white text-center text-xs sm:text-sm lg:text-base bg-transparent py-3 px-4 rounded-lg backdrop-blur-sm shadow-inner mt-2 z-50 relative mx-auto max-w-[95%] md:max-w-[90%] lg:max-w-[80%]",
-                                          },
-                                          sessionType === "couple"
-                                            ? "Speak naturally and I will respond to help with your relationship concerns. Everything shared is completely private and secure."
-                                            : sessionType === "solo"
-                                              ? "Speak naturally and I will respond to help with your personal concerns. Everything shared is completely private and secure."
-                                              : "Speak naturally and I will respond to help with your family concerns. Everything shared is completely private and secure."
+                                          React.createElement(TherapyButton, {
+                                            key: "therapy-button-active",
+                                            therapyType: (sessionType || "couple") as TherapyType,
+                                            disabled: false,
+                                            forceNewSession: forceNewSession,
+                                            linkedSessionId: linkedSessionId,
+                                            onSessionConflict: (conflictData: any) => {
+                                              console.log('🔴 Session conflict detected:', conflictData)
+                                              setConflictSessionData(conflictData)
+                                              setSessionModalMode('conflict')
+                                            },
+                                            onSessionStarted: () => {
+                                              setForceNewSession(false)
+                                            },
+                                            onTherapyTypeChange: handleSelectTherapyType
+                                          })
                                         ),
                                       ]
                                     )
@@ -1859,7 +1833,8 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               },
                                               onSessionStarted: () => {
                                                 setForceNewSession(false)
-                                              }
+                                              },
+                                              onTherapyTypeChange: handleSelectTherapyType
                                             })
                                           ),
                                         ]

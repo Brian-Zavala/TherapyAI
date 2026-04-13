@@ -131,7 +131,7 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
   }
 
   const queryTherapyType = searchParams.get('therapyType');
-  const therapyType = queryTherapyType || 'solo';
+  const therapyType = queryTherapyType || 'couple';
 
   const selectedFamilyMembersParam = searchParams.get('selectedFamilyMembers');
   let selectedFamilyMembers: Array<{name: string, age: number, relation: string}> = [];

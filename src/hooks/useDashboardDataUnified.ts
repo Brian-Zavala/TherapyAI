@@ -355,36 +355,43 @@ async function fetchWithRetry(
   url: string,
   options: RequestInit & { retries?: number } = {}
 ): Promise<Response> {
-  const { retries = 3, ...fetchOptions } = options;
-  
+  const { retries = 3, signal: parentSignal, ...restOptions } = options;
+
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), 10000);
+
+      // Compose parent signal (if any) with timeout signal
+      const signal = parentSignal
+        ? AbortSignal.any([parentSignal, timeoutController.signal])
+        : timeoutController.signal;
+
       const response = await fetch(url, {
-        ...fetchOptions,
-        signal: controller.signal,
+        ...restOptions,
+        signal,
         headers: {
           'Content-Type': 'application/json',
-          ...fetchOptions.headers,
+          ...restOptions.headers,
         },
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok && attempt < retries - 1) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         continue;
       }
-      
+
       return response;
     } catch (error) {
+      // Don't retry if parent signal was aborted (intentional cancellation)
+      if (parentSignal?.aborted) throw error;
       if (attempt === retries - 1) throw error;
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
     }
   }
-  
+
   throw new Error(`Failed to fetch ${url} after ${retries} attempts`);
 }
 
@@ -433,20 +440,15 @@ export function useDashboardDataUnified(
   
   // Refs
   const realTimeCleanupRef = useRef<(() => void)[]>([]);
-  const abortControllerRef = useRef<AbortController>();
   
   // ========================================
   // DATA FETCHING
   // ========================================
   
-  const fetchDashboardData = useCallback(async (): Promise<DashboardData> => {
+  const fetchDashboardData = useCallback(async ({ signal }: { signal?: AbortSignal } = {}): Promise<DashboardData> => {
     if (!session?.user?.id) {
       throw new Error('Authentication required');
     }
-    
-    // Abort any in-flight requests
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
     
     // Define endpoints with proper data transformation
     const endpoints = [
@@ -483,7 +485,7 @@ export function useDashboardDataUnified(
           `${endpoint.key}-${session.user.id}-${period}`,
           async () => {
             const response = await fetchWithRetry(endpoint.url, {
-              signal: abortControllerRef.current?.signal,
+              signal,
             });
             
             if (!response.ok) {
@@ -532,12 +534,15 @@ export function useDashboardDataUnified(
           failed.push(endpoint.key);
         }
       } else {
-        const errorMessage = result.reason instanceof Error 
-          ? result.reason.message 
+        // Abort errors are expected during unmount/re-render — skip logging
+        if (result.reason?.name === 'AbortError') return;
+
+        const errorMessage = result.reason instanceof Error
+          ? result.reason.message
           : String(result.reason);
-        logger.error(`Fetch failed for ${endpoint.key}:`, { 
+        logger.error(`Fetch failed for ${endpoint.key}:`, {
           reason: errorMessage,
-          stack: result.reason instanceof Error ? result.reason.stack : undefined 
+          stack: result.reason instanceof Error ? result.reason.stack : undefined
         });
         failed.push(endpoint.key);
       }
@@ -550,6 +555,11 @@ export function useDashboardDataUnified(
     
     setFailedEndpoints(failed);
     
+    // If the signal was aborted, throw AbortError so React Query handles it silently
+    if (signal?.aborted) {
+      throw new DOMException('Query was cancelled', 'AbortError');
+    }
+
     // Throw if all endpoints failed
     if (successCount === 0) {
       throw new Error('All dashboard endpoints failed');
@@ -745,7 +755,6 @@ export function useDashboardDataUnified(
   
   useEffect(() => {
     return () => {
-      abortControllerRef.current?.abort();
       deduplicator.clear();
     };
   }, []);

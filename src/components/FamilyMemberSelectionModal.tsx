@@ -386,10 +386,11 @@ export default function FamilyMemberSelectionModal({
     return null;
   }
 
-  const modalRoot = document.getElementById("modal-root");
+  let modalRoot = document.getElementById("modal-root");
   if (!modalRoot) {
-    console.error("Modal root element not found");
-    return null;
+    modalRoot = document.createElement("div");
+    modalRoot.id = "modal-root";
+    document.body.appendChild(modalRoot);
   }
 
   return createPortal(modalContent, modalRoot);

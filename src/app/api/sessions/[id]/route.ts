@@ -24,10 +24,13 @@ export async function GET(
 
     // Check cache first before any database queries
     const cacheKey = cacheKeys.sessionDetails(sessionId);
-    const cachedSession = sessionCache.get<{userId: string, transcriptEntries: unknown[]}>(cacheKey);
+    const cachedSession = sessionCache.get<{userId: string, status?: string, lastConversationStart?: string | null, isPaused?: boolean, transcriptEntries: unknown[]}>(cacheKey);
 
     // If we have a cached session, verify it belongs to the current user
-    if (cachedSession && session.user.email) {
+    // Skip cache for active sessions that need lastConversationStart adjustment (time-dependent)
+    const needsTimeAdjustment = cachedSession?.lastConversationStart && !cachedSession?.isPaused
+      && ['ACTIVE', 'PAUSED'].includes(cachedSession?.status || '')
+    if (cachedSession && session.user.email && !needsTimeAdjustment) {
       console.log(`Returning cached session ${sessionId}`);
       return NextResponse.json(cachedSession);
     }
@@ -55,11 +58,33 @@ export async function GET(
     if (!therapySession || therapySession.userId !== userId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
-    
-    // Cache the session
-    sessionCache.set(cacheKey, therapySession, 5 * 60 * 1000); // Cache for 5 minutes
-    
-    return NextResponse.json(therapySession)
+
+    // Adjust conversationTimeSeconds for unsaved active segment (same logic as /active route)
+    // If lastConversationStart is set and session isn't paused, the VAPI call was active
+    // when the client disconnected — add the elapsed time since last sync.
+    let adjustedSession = therapySession
+    // Same condition as /api/sessions/active — only adjust if not paused
+    if (therapySession.lastConversationStart && !therapySession.isPaused) {
+      const lastStart = new Date(therapySession.lastConversationStart).getTime()
+      const unsavedSeconds = Math.max(0, Math.floor((Date.now() - lastStart) / 1000))
+      const cappedUnsaved = Math.min(unsavedSeconds, 300) // Cap at 5 min safety
+      if (cappedUnsaved > 0) {
+        const rawConvTime = therapySession.conversationTimeSeconds || 0
+        adjustedSession = {
+          ...therapySession,
+          conversationTimeSeconds: rawConvTime + cappedUnsaved,
+        }
+      }
+    }
+
+    // Only cache completed/non-active sessions — active sessions with lastConversationStart
+    // need real-time adjustment that would go stale immediately in cache
+    const isTimeAdjusted = adjustedSession !== therapySession
+    if (!isTimeAdjusted) {
+      sessionCache.set(cacheKey, therapySession, 5 * 60 * 1000); // Cache for 5 minutes
+    }
+
+    return NextResponse.json(adjustedSession)
   } catch (error) {
     console.error('Error fetching session:', error)
     return NextResponse.json(
@@ -106,11 +131,13 @@ async function handleSessionUpdate(
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
 
-    const { status, notes, transcript, transcriptEntry, duration, conversationTimeSeconds, lastConversationStart, isPaused } = requestData;
-    
+    const { status, notes, transcript, transcriptEntry, duration, conversationTimeSeconds, lastConversationStart, isPaused, vapiDisconnectReason } = requestData;
+
     // Rate limit conversation time updates to prevent database hammering
+    // Always allow page-unload saves through (sendBeacon final save is critical for billing accuracy)
+    const isPageUnload = vapiDisconnectReason === 'page-unload'
     const isConversationTimeUpdate = conversationTimeSeconds !== undefined || lastConversationStart !== undefined || isPaused !== undefined;
-    if (isConversationTimeUpdate && timeSinceLastUpdate < RATE_LIMIT_MS && !status && !transcriptEntry) {
+    if (isConversationTimeUpdate && timeSinceLastUpdate < RATE_LIMIT_MS && !status && !transcriptEntry && !isPageUnload) {
       console.log(`⏸️ Rate limiting conversation time update for session ${sessionId} (last update ${timeSinceLastUpdate}ms ago)`);
       // Return success without actually updating to prevent client errors
       return NextResponse.json({ rateLimited: true, sessionId, timeSinceLastUpdate });

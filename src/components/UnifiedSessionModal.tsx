@@ -370,7 +370,10 @@ export default function UnifiedSessionModal({
         
         if (response.ok) {
           const latestSession = await response.json()
-          if (latestSession.status?.toUpperCase() === 'ACTIVE' && latestSession.conversationTimeSeconds !== undefined) {
+          const status = latestSession.status?.toUpperCase()
+          // Accept ACTIVE, PAUSED, and SCHEDULED — the API now returns adjusted conversationTimeSeconds
+          // that includes unsaved active segment time from lastConversationStart
+          if (['ACTIVE', 'PAUSED', 'SCHEDULED'].includes(status) && latestSession.conversationTimeSeconds !== undefined) {
             setElapsedTimeSeconds(latestSession.conversationTimeSeconds)
           }
         } else if (response.status === 404) {
@@ -777,10 +780,11 @@ export default function UnifiedSessionModal({
     </AnimatePresence>
   )
 
-  const modalRoot = document.getElementById("modal-root")
+  let modalRoot = document.getElementById("modal-root")
   if (!modalRoot) {
-    console.error("Modal root element not found")
-    return null
+    modalRoot = document.createElement("div")
+    modalRoot.id = "modal-root"
+    document.body.appendChild(modalRoot)
   }
 
   return createPortal(modalContent, modalRoot)

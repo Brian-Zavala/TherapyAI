@@ -49,7 +49,21 @@ export async function GET(request: Request) {
     // Validate that the session hasn't exceeded its duration based on conversation time
     // SCHEDULED sessions haven't started yet so conversationTimeSeconds is always 0
     const sessionDurationMinutes = activeSession.duration || 15;
-    const conversationTimeSeconds = activeSession.conversationTimeSeconds || 0;
+    let conversationTimeSeconds = activeSession.conversationTimeSeconds || 0;
+
+    // If lastConversationStart is set, the conversation was active when it disconnected
+    // (e.g. page refresh). Add the unsaved active segment time so recovery gets accurate data.
+    if (activeSession.lastConversationStart && !activeSession.isPaused) {
+      const lastStart = new Date(activeSession.lastConversationStart).getTime();
+      const unsavedSeconds = Math.max(0, Math.floor((Date.now() - lastStart) / 1000));
+      // Cap at 5 minutes to avoid stale lastConversationStart inflating the time
+      const cappedUnsaved = Math.min(unsavedSeconds, 300);
+      if (cappedUnsaved > 0) {
+        console.log(`⏱️ Adding ${cappedUnsaved}s unsaved active time (lastConversationStart was ${unsavedSeconds}s ago)`);
+        conversationTimeSeconds += cappedUnsaved;
+      }
+    }
+
     const conversationTimeMinutes = Math.floor(conversationTimeSeconds / 60);
     const remainingMinutes = sessionDurationMinutes - conversationTimeMinutes;
 
@@ -71,7 +85,11 @@ export async function GET(request: Request) {
       return NextResponse.json(null);
     }
 
-    return NextResponse.json(activeSession);
+    // Return session with corrected conversationTimeSeconds (includes unsaved active segment)
+    return NextResponse.json({
+      ...activeSession,
+      conversationTimeSeconds,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch active session' },

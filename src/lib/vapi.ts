@@ -1983,7 +1983,7 @@ export const getPersonalizedAssistantConfig = (
   }
 ) => {
   // Determine therapy type from user profile if not explicitly provided
-  const therapyType = type || userProfile?.therapyType || "solo";
+  const therapyType = type || userProfile?.therapyType || "couple";
 
   const baseConfig = getAssistantConfigByType(therapyType);
 
