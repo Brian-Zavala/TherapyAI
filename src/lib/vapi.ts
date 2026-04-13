@@ -975,9 +975,8 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
-    language: "en-US",
+    language: "en",
     smartFormat: true,
-    endpointing: 500, // 500ms pause tolerance — prevents cutting off mid-thought in therapy
     keywords: ["Gottman", "EFT", "attachment", "mindfulness", "CBT", "therapy"],
   },
   // Configure which messages to send to client for transcript capture
@@ -1097,9 +1096,8 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
-    language: "en-US",
+    language: "en",
     smartFormat: true,
-    endpointing: 500, // 500ms pause tolerance — prevents cutting off mid-thought in therapy
     keywords: [
       "CBT",
       "ACT",
@@ -1230,9 +1228,8 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
-    language: "en-US",
+    language: "en",
     smartFormat: true,
-    endpointing: 500, // 500ms pause tolerance — prevents cutting off mid-thought in therapy
     keywords: [
       "family",
       "siblings",
@@ -2148,6 +2145,11 @@ export const getPersonalizedAssistantConfig = (
     },
     transcriber: {
       ...baseConfig.transcriber,
+      // Override to Deepgram Flux — native EOT detection for therapy-appropriate turn-taking
+      model: "nova-3",
+      language: "en",
+      // Conservative EOT: waits longer to confirm user is done (therapy = reflective pauses)
+      // 0.9-1.0 = very conservative, 0.7 = balanced, 0.5-0.6 = aggressive
       // Multi-word phrase boosting for Nova-3
       keyterm: [
         "attachment style", "inner child", "cognitive distortion",
@@ -2156,10 +2158,10 @@ export const getPersonalizedAssistantConfig = (
         "self compassion", "nervous system", "window of tolerance",
         "emotional regulation", "thought pattern", "coping mechanism",
       ],
-      // Fallback to Nova-2 if Nova-3 has an outage — prevents session drops
+      // Fallback to Nova-2 if primary has an outage — prevents session drops
       fallbackPlan: {
         transcribers: [
-          { provider: "deepgram", model: "nova-2", language: "en-US" },
+          { provider: "deepgram", model: "nova-2", language: "en" },
         ],
       },
     },
@@ -2188,14 +2190,10 @@ export const getPersonalizedAssistantConfig = (
     // Backchannel — automatic "mm-hmm", "I see" responses during user speech
     backchannelingEnabled: true,
 
-    // Speaking plan — conservative (healthcare) config per VAPI docs
-    // "Very patient, rarely interrupts users. Use case: Healthcare, sensitive conversations."
+    // Speaking plan — conservative (healthcare/therapy) per VAPI docs
+    // No smartEndpointingPlan — Deepgram nova-3 handles EOT natively
     startSpeakingPlan: {
       waitSeconds: 0.7,
-      smartEndpointingPlan: {
-        provider: "livekit",
-        waitFunction: "700 + 4000 * max(0, x-0.5)",
-      },
     },
     stopSpeakingPlan: {
       numWords: 0,
