@@ -97,6 +97,20 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
   // Hide widget while a session is live
   const [isSessionActive, setIsSessionActive] = useState(false);
 
+  // Hide widget when mobile hamburger menu is open
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleMenuOpen = () => setIsMobileMenuOpen(true);
+    const handleMenuClose = () => setIsMobileMenuOpen(false);
+    window.addEventListener('mobileMenuOpen', handleMenuOpen);
+    window.addEventListener('mobileMenuClose', handleMenuClose);
+    return () => {
+      window.removeEventListener('mobileMenuOpen', handleMenuOpen);
+      window.removeEventListener('mobileMenuClose', handleMenuClose);
+    };
+  }, []);
+
   // Track elapsed session minutes for real-time credit countdown
   // Accounts for paused time so credits don't drain while paused
   const [sessionElapsedMinutes, setSessionElapsedMinutes] = useState(0);
@@ -265,6 +279,7 @@ export default function CreditDisplay({ className = "", position = "fixed" }: Cr
 
   if (!data) return null;
   if (isSessionActive) return null;
+  if (isMobileMenuOpen) return null;
 
   const { credits } = data;
   // Subtract elapsed session time from available credits for real-time display

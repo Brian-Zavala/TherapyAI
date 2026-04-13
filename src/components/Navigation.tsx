@@ -100,6 +100,11 @@ export default function Navigation() {
     };
   }, [isMenuOpen, handleEscape]);
 
+  // Notify CreditDisplay when mobile menu opens/closes
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(isMenuOpen ? 'mobileMenuOpen' : 'mobileMenuClose'));
+  }, [isMenuOpen]);
+
   // Hide nav when a therapy session is active
   useEffect(() => {
     const show = () => setIsSessionActive(false);
