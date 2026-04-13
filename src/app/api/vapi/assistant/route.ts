@@ -304,12 +304,11 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
       maxDurationSeconds: personalizedConfig.maxDurationSeconds,
       silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
       backgroundSound: personalizedConfig.backgroundSound || "off",
-      backgroundDenoisingEnabled: personalizedConfig.backgroundDenoisingEnabled ?? true,
       backchannelingEnabled: personalizedConfig.backchannelingEnabled ?? true,
       startSpeakingPlan: personalizedConfig.startSpeakingPlan,
       stopSpeakingPlan: personalizedConfig.stopSpeakingPlan,
       endCallPhrases: personalizedConfig.endCallPhrases,
-      artifactPlan: personalizedConfig.artifactPlan,
+      // NOTE: backgroundDenoisingEnabled and artifactPlan cause 400s on inline configs — only valid on pre-created assistants
       clientMessages: Array.isArray(personalizedConfig.clientMessages)
         ? personalizedConfig.clientMessages
         : ["transcript", "model-output", "hang", "function-call-result", "tool-calls", "tool-calls-result", "speech-update", "conversation-update"]

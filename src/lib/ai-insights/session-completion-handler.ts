@@ -474,6 +474,7 @@ export class SessionCompletionHandler {
           importance: 'low',
           actionable: true,
           confidence: 100,
+          updatedAt: new Date(),
           metadata: {
             category: 'progress',
             priority: 'low',

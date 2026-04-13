@@ -84,7 +84,7 @@ class VapiInstanceManager {
         });
 
         instance.on('error', (error: any) => {
-          console.error('[VapiInstanceManager] Instance error:', error);
+          console.error('[VapiInstanceManager] Instance error:', typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error || {})) : error);
           // Don't null out the instance on error - let consumer handle it
         });
         

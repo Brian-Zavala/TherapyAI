@@ -185,7 +185,7 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
         return
       }
 
-      console.error('[VAPI] Error:', error)
+      console.error('[VAPI] Error:', typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error || {})) : error)
       setIsConnecting(false)
       config.onError?.(error)
 

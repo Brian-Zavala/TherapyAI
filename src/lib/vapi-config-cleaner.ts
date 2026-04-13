@@ -19,6 +19,8 @@ const INVALID_FIELDS = [
   'llmRequestDelaySeconds',
   'numWordsToInterruptAssistant',
   'functions', // Should be in model.tools instead
+  'backgroundDenoisingEnabled', // Causes 400 on inline configs
+  'artifactPlan', // Only valid on pre-created assistants, not inline
 ]
 
 /**

@@ -889,7 +889,6 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
     model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
-    emotionRecognitionEnabled: true,
     messages: [
       {
         role: "system",
@@ -1010,7 +1009,6 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
     model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
-    emotionRecognitionEnabled: true,
     messages: [
       {
         role: "system",
@@ -1142,7 +1140,6 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
     model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
-    emotionRecognitionEnabled: true,
     messages: [
       {
         role: "system",
@@ -2187,22 +2184,23 @@ export const getPersonalizedAssistantConfig = (
     maxDurationSeconds: sessionDurationSeconds + 45,
     silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 15,
     backgroundSound: "off",
-    backgroundDenoisingEnabled: true,
 
     // Backchannel — automatic "mm-hmm", "I see" responses during user speech
     backchannelingEnabled: true,
 
-    // Speaking plan — therapy-appropriate pacing (give users space to finish thoughts)
+    // Speaking plan — conservative (healthcare) config per VAPI docs
+    // "Very patient, rarely interrupts users. Use case: Healthcare, sensitive conversations."
     startSpeakingPlan: {
-      waitSeconds: 0.6,
-      onPunctuationSeconds: 0.4,
-      onNoPunctuationSeconds: 1.8,
-      onNumberSeconds: 0.5,
+      waitSeconds: 0.7,
+      smartEndpointingPlan: {
+        provider: "livekit",
+        waitFunction: "700 + 4000 * max(0, x-0.5)",
+      },
     },
     stopSpeakingPlan: {
-      numWords: 2,
-      voiceSeconds: 0.5,
-      backoffSeconds: 1.0,
+      numWords: 0,
+      voiceSeconds: 0.2,
+      backoffSeconds: 1.5,
     },
 
     // End-call phrases — VAPI auto-hangs-up when assistant says these

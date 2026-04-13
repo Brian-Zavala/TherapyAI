@@ -238,6 +238,7 @@ export class DynamicInsightsService {
           importance: insight.priority || 'medium',
           actionable: (insight.actionItems?.length || 0) > 0,
           confidence: insight.confidence,
+          updatedAt: new Date(),
           metadata: {
             category: insight.category,
             priority: insight.priority,
