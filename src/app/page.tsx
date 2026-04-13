@@ -1113,7 +1113,7 @@ export default function Home() {
       {/* Apply scroll-linked opacity directly */}
       <motion.section
         ref={featuresRef} // Assign ref
-        className="w-full py-16 sm:py-20 min-h-screen"
+        className="w-full py-16 sm:py-20"
         // Apply opacity driven by useTransform hook with mobile fallback
         style={{
           opacity: featuresOpacity,

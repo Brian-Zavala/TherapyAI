@@ -395,16 +395,35 @@ export class DynamicInsightsService {
   }
 
   /**
-   * Determine overall progress from insights
+   * Determine overall progress as a numeric 0-100 score.
+   * Combines insight priority distribution, confidence, data quality,
+   * and session consistency into a single health score.
    */
-  private determineOverallProgress(insights: GeneratedInsights): 'excellent' | 'good' | 'moderate' | 'needs-attention' {
+  private determineOverallProgress(insights: GeneratedInsights): number {
+    const total = insights.insights.length;
+    if (total === 0) return 25; // No data yet
+
     const highPriorityCount = insights.insights.filter(i => i.priority === 'high').length;
+    const medPriorityCount = insights.insights.filter(i => i.priority === 'medium').length;
     const lowPriorityCount = insights.insights.filter(i => i.priority === 'low').length;
 
-    if (insights.confidence > 40 && lowPriorityCount > highPriorityCount) return 'excellent'; // SAFETY: Lowered from 85% to 40%
-    if (insights.confidence > 35 && highPriorityCount <= 1) return 'good'; // SAFETY: Lowered from 70% to 35%
-    if (highPriorityCount > 2) return 'needs-attention';
-    return 'moderate';
+    // Priority distribution score (0-40): fewer high-priority issues = better
+    const priorityScore = Math.round(
+      ((lowPriorityCount * 1.0 + medPriorityCount * 0.6 + highPriorityCount * 0.2) / total) * 40
+    );
+
+    // Confidence score (0-30): how confident the system is in its analysis
+    const confidenceScore = Math.round(Math.min(insights.confidence, 100) * 0.3);
+
+    // Data quality score (0-15)
+    const qualityScore = insights.dataQuality === 'high' ? 15
+      : insights.dataQuality === 'medium' ? 10
+      : 5;
+
+    // Engagement bonus (0-15): having more insights = more engagement data
+    const engagementScore = Math.min(15, Math.round(total * 3));
+
+    return Math.min(100, Math.max(10, priorityScore + confidenceScore + qualityScore + engagementScore));
   }
 
   /**
@@ -490,7 +509,7 @@ export class DynamicInsightsService {
         timeframe: 'this-week' as const
       }] : [],
       summary: {
-        overallProgress: hasRecentSessions ? 'moderate' as const : 'needs-attention' as const,
+        overallProgress: hasRecentSessions ? Math.min(85, 30 + sessionCount * 10) : 20,
         topStrengths: hasRecentSessions ? ['Commitment to therapy', 'Taking action for improvement'] : ['Seeking help'],
         focusAreas: hasRecentSessions ? ['Consistency', 'Application of techniques'] : ['Getting started with therapy'],
         weeklyGoals: hasRecentSessions 

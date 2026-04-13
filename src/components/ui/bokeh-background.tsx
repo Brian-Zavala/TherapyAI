@@ -67,6 +67,7 @@ Particle.displayName = 'Particle';
 
 export default function BokehBackground() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
   const [windowSize, setWindowSize] = useState<{width: number, height: number} | null>(null)
   
   // Generate particles only once and cache them with useMemo
@@ -119,15 +120,18 @@ export default function BokehBackground() {
         height: window.innerHeight
       });
     };
-    
+
     // Initial size detection
     updateSize();
-    
+    setMounted(true);
+
     // Listen for window resize
     window.addEventListener('resize', updateSize);
-    
+
     return () => window.removeEventListener('resize', updateSize);
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <div ref={containerRef} className="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">

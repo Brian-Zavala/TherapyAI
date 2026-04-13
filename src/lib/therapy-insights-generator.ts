@@ -28,7 +28,7 @@ export interface TherapyInsight {
 export interface ComprehensiveInsights {
   insights: TherapyInsight[];
   summary: {
-    overallProgress: 'excellent' | 'good' | 'moderate' | 'needs-attention';
+    overallProgress: number | 'excellent' | 'good' | 'moderate' | 'needs-attention';
     topStrengths: string[];
     focusAreas: string[];
     weeklyGoals: string[];
@@ -476,13 +476,21 @@ export class TherapyInsightsGenerator {
   }
 
   private generateSummary(insights: TherapyInsight[], progressData: any[], sessions: any[]) {
-    const hasHighPriorityInsights = insights.some(i => i.priority === 'high');
-    const hasCelebrations = insights.some(i => i.celebrationType);
-    
-    let overallProgress: ComprehensiveInsights['summary']['overallProgress'] = 'moderate';
-    if (hasCelebrations && !hasHighPriorityInsights) overallProgress = 'excellent';
-    else if (hasCelebrations) overallProgress = 'good';
-    else if (hasHighPriorityInsights) overallProgress = 'needs-attention';
+    const highCount = insights.filter(i => i.priority === 'high').length;
+    const lowCount = insights.filter(i => i.priority === 'low').length;
+    const celebrationCount = insights.filter(i => i.celebrationType).length;
+    const total = insights.length || 1;
+
+    // Numeric score: celebrations boost, high-priority issues reduce
+    const baseScore = 50;
+    const celebrationBonus = Math.min(25, celebrationCount * 10);
+    const priorityPenalty = Math.min(25, highCount * 8);
+    const lowPriorityBonus = Math.min(15, lowCount * 5);
+    const sessionBonus = Math.min(10, sessions.length * 2);
+
+    const overallProgress = Math.min(100, Math.max(10,
+      baseScore + celebrationBonus - priorityPenalty + lowPriorityBonus + sessionBonus
+    ));
 
     const topStrengths = insights
       .filter(i => i.celebrationType)

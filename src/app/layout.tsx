@@ -62,12 +62,11 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/favicons/favicon-16x16.webp", sizes: "16x16", type: "image/png" },
-      { url: "/favicons/favicon-32x32.webp", sizes: "32x32", type: "image/png" },
+      { url: "/favicons/favicon-16x16.webp", sizes: "16x16", type: "image/webp" },
+      { url: "/favicons/favicon-32x32.webp", sizes: "32x32", type: "image/webp" },
     ],
     apple: [
-      { url: "/favicons/apple-touch-icon.webp", sizes: "180x180", type: "image/png" },
+      { url: "/favicons/favicon-32x32.webp", sizes: "180x180", type: "image/webp" },
     ],
     other: [
       {

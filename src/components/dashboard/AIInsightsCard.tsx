@@ -105,21 +105,36 @@ export function AIInsightsCard() {
       return {
         communicationHealth: 0,
         emotionalIntelligence: 0,
-        relationshipProgress: 0,
+        communicationDelta: 0,
+        emotionalDelta: 0,
         improvementRate: 0
       };
     }
-    
-    // Calculate metrics from actual insights
-    const avgConfidence = data.insights.reduce((sum, i) => sum + (i.confidence || 0), 0) / data.insights.length;
-    const communicationInsights = data.insights.filter(i => i.category === 'communication').length;
-    const emotionalInsights = data.insights.filter(i => i.category === 'emotional').length;
-    
+
+    // Calculate per-category averages from actual insight confidence scores
+    const commInsights = data.insights.filter(i => i.category === 'communication');
+    const emoInsights = data.insights.filter(i => i.category === 'emotional');
+    const allInsights = data.insights;
+
+    const avgConfidence = (items: typeof allInsights) =>
+      items.length > 0
+        ? Math.round(items.reduce((s, i) => s + (i.confidence || 0), 0) / items.length)
+        : 0;
+
+    const commScore = commInsights.length > 0 ? avgConfidence(commInsights) : avgConfidence(allInsights);
+    const emoScore = emoInsights.length > 0 ? avgConfidence(emoInsights) : Math.round(avgConfidence(allInsights) * 0.9);
+
+    // Derive deltas from priority distribution (low = improving, high = declining)
+    const lowRatio = allInsights.filter(i => i.priority === 'low').length / allInsights.length;
+    const highRatio = allInsights.filter(i => i.priority === 'high').length / allInsights.length;
+    const delta = Math.round((lowRatio - highRatio) * 20); // -20 to +20 range
+
     return {
-      communicationHealth: Math.round(avgConfidence * 0.9), // Based on confidence
-      emotionalIntelligence: Math.round(avgConfidence * 0.85),
-      relationshipProgress: Math.round(avgConfidence * 0.8),
-      improvementRate: data.insights.some(i => i.priority === 'high') ? 12 : 8
+      communicationHealth: commScore,
+      emotionalIntelligence: emoScore,
+      communicationDelta: delta,
+      emotionalDelta: Math.round(delta * 0.8),
+      improvementRate: Math.max(0, delta)
     };
   }, [data]);
   
@@ -184,7 +199,11 @@ export function AIInsightsCard() {
             <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-2 sm:p-3">
               <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-[10px] sm:text-xs font-medium text-green-600 dark:text-green-400">+5%</span>
+                {metrics.communicationDelta !== 0 && (
+                  <span className={`text-[10px] sm:text-xs font-medium ${metrics.communicationDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                    {metrics.communicationDelta > 0 ? '+' : ''}{metrics.communicationDelta}%
+                  </span>
+                )}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Communication</p>
               <p className="text-base sm:text-lg font-bold">{metrics.communicationHealth}%</p>
@@ -192,7 +211,11 @@ export function AIInsightsCard() {
             <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-2 sm:p-3">
               <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-pink-600 dark:text-pink-400" />
-                <span className="text-[10px] sm:text-xs font-medium text-green-600 dark:text-green-400">+8%</span>
+                {metrics.emotionalDelta !== 0 && (
+                  <span className={`text-[10px] sm:text-xs font-medium ${metrics.emotionalDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                    {metrics.emotionalDelta > 0 ? '+' : ''}{metrics.emotionalDelta}%
+                  </span>
+                )}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Emotional IQ</p>
               <p className="text-base sm:text-lg font-bold">{metrics.emotionalIntelligence}%</p>

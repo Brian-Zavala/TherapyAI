@@ -148,70 +148,116 @@ function ProgressOverview({ summary }: ProgressOverviewProps) {
   const label = getProgressLabel(summary.overallProgress);
   const colors = getScoreColor(score);
 
+  // Ring dimensions
+  const ringSize = 100;
+  const strokeWidth = 8;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`mt-4 rounded-xl border p-4 sm:p-5 ${colors.bg} ${colors.border}`}
+      className="mt-4 rounded-2xl sm:rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 sm:p-5 md:p-6 overflow-hidden relative"
     >
-      {/* Score row */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+      {/* Subtle gradient glow behind the ring */}
+      <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-20 pointer-events-none ${score >= 75 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} />
+
+      <div className="flex items-center gap-4 sm:gap-5 relative z-10">
+        {/* Circular progress ring */}
+        <div className="flex-shrink-0 relative">
+          <svg width={ringSize} height={ringSize} className="transform -rotate-90 drop-shadow-lg">
+            {/* Track */}
+            <circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth={strokeWidth}
+            />
+            {/* Progress */}
+            <motion.circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              fill="none"
+              stroke="url(#scoreGradient)"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              initial={{ strokeDashoffset: circumference }}
+              animate={{ strokeDashoffset: circumference - (score / 100) * circumference }}
+              transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
+            />
+            <defs>
+              <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={score >= 75 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171'} />
+                <stop offset="100%" stopColor={score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'} />
+              </linearGradient>
+            </defs>
+          </svg>
+          {/* Score text centered in ring */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <motion.span
+              className={`text-2xl sm:text-3xl font-bold ${colors.text} leading-none`}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.6 }}
+            >
+              {score}
+            </motion.span>
+            <span className="text-[10px] text-white/40 font-medium uppercase tracking-wide">
+              of 100
+            </span>
+          </div>
+        </div>
+
+        {/* Info column */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-0.5">
-            Overall Health Score
+          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-white/40 mb-1">
+            Health Score
           </p>
-          <h4 className="text-sm sm:text-base md:text-lg font-semibold text-white leading-snug">
+          <h4 className="text-sm sm:text-base md:text-lg font-bold text-white leading-snug truncate">
             {summary.primaryFocus || 'Your Progress'}
           </h4>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${colors.bar}`} />
+              {label}
+            </span>
+          </div>
           {summary.nextMilestone && (
-            <p className="text-xs sm:text-sm text-white/60 mt-0.5 leading-relaxed">
+            <p className="text-[10px] sm:text-xs text-white/50 mt-1.5 leading-relaxed">
               Next: {summary.nextMilestone}
             </p>
           )}
         </div>
-
-        {/* Big score */}
-        <div className="flex-shrink-0 text-right">
-          <div className="flex items-baseline gap-1">
-            <span className={`text-3xl sm:text-4xl md:text-5xl font-extrabold ${colors.text}`}>
-              {score}
-            </span>
-            <span className={`text-lg font-bold ${colors.text}/70`}>%</span>
-          </div>
-          <span className={`text-xs sm:text-sm font-semibold ${colors.text}`}>{label}</span>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-2.5 sm:h-3 w-full bg-white/10 rounded-full overflow-hidden">
-        <motion.div
-          className={`h-full rounded-full ${colors.bar}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-        />
       </div>
 
       {/* Footer */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2.5 gap-1.5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-3 border-t border-white/5 gap-1.5 relative z-10">
         <div className="flex items-center gap-1.5">
           {summary.isRealTime ? (
             <>
-              <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
               <span className="text-xs text-emerald-400 font-medium">Live Session Data</span>
             </>
           ) : (
             <>
-              <TrendingUp className="h-3.5 w-3.5 text-white/50" />
-              <span className="text-xs text-white/50">
-                {summary.improvementRate ? `↑ ${summary.improvementRate}% improvement this month` : 'Based on your sessions'}
+              <TrendingUp className="h-3.5 w-3.5 text-white/40" />
+              <span className="text-xs text-white/40">
+                {summary.improvementRate ? `${summary.improvementRate}% improvement this month` : 'Based on your sessions'}
               </span>
             </>
           )}
         </div>
         {summary.sessionsAnalyzed > 0 && (
-          <span className="text-xs text-white/40">
+          <span className="text-[10px] sm:text-xs text-white/30 tabular-nums">
             {summary.sessionsAnalyzed} session{summary.sessionsAnalyzed !== 1 ? 's' : ''} analysed
           </span>
         )}
@@ -739,15 +785,22 @@ export default function AIInsightsWithTabs() {
     if (realTimeInsights.length > 0) {
       const avgProgress = realTimeInsights.reduce((acc, ins) => {
         const m = ins.metrics || {};
-        return acc + (m.score || m.overallScore || 75);
+        return acc + (m.score || m.overallScore || 50);
       }, 0) / realTimeInsights.length;
+
+      // Calculate improvement from priority distribution
+      const lowCount = realTimeInsights.filter(i => i.priority === 'low').length;
+      const highCount = realTimeInsights.filter(i => i.priority === 'high').length;
+      const total = realTimeInsights.length || 1;
+      const improvementRate = Math.max(0, Math.round(((lowCount - highCount) / total) * 20));
+
       return {
         insights: realTimeInsights,
         summary: {
           overallProgress: Math.round(avgProgress),
           primaryFocus: realTimeInsights[0]?.title?.split(':')[0] || 'Personal Growth',
           nextMilestone: `Continue progress in ${realTimeInsights.find(i => i.priority === 'high')?.category || 'all areas'}`,
-          improvementRate: 15,
+          improvementRate,
           sessionsAnalyzed: sessionCount || 0,
           isRealTime: true
         },

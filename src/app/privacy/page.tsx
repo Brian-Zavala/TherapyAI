@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
 import BokehBackground from '@/components/ui/bokeh-background'
@@ -19,17 +18,17 @@ export default function PrivacyPolicy() {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/20" />
       <BokehBackground />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 pt-20 sm:pt-24">
         <div className="w-full max-w-4xl">
-          <button 
+          <button
             type="button"
             className="inline-flex items-center text-white hover:text-white/60 mb-6 cursor-pointer bg-transparent p-2 whitespace-nowrap"
-            onClick={() => window.location.href = '/auth/register'}
+            onClick={() => window.location.href = '/'}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            Back to Registration
+            Back to Home
           </button>
           
           <GlassCard className="w-full">
@@ -38,7 +37,7 @@ export default function PrivacyPolicy() {
                 Privacy Policy
               </h1>
               <p className="mt-2 text-white/70">
-                Last updated: {new Date().toLocaleDateString()}
+                Last updated: 4/12/2026
               </p>
             </div>
 
