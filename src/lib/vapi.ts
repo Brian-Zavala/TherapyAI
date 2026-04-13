@@ -1082,16 +1082,8 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     ],
   },
   voice: {
-    provider: "11labs",
-    voiceId:
-      process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "XmUeU0FRyne67Dy7UaT4", // Custom voice for Dr. Elliot
-    model: "eleven_turbo_v2_5",
-    speed: 1.1,
-    stability: 0.6,
-    similarityBoost: 0.8,
-    style: 0.3,
-    useSpeakerBoost: true,
-    optimizeStreamingLatency: 3,
+    provider: "vapi",
+    voiceId: "Elliot",
   },
   transcriber: {
     provider: "deepgram",
@@ -1477,6 +1469,12 @@ CRITICAL - NEVER VERBALIZE META-COMMENTARY:
 • Never announce communication techniques (e.g., do NOT say "I'm validating your feelings")
 • Simply BE warm, empathetic, or direct - don't announce it
 • Your therapeutic approach should be evident through your responses, not stated explicitly
+
+FILLER & PACING RULES:
+• Occasional filler like "hmm", "you know", "let me think about that" is fine — it sounds human
+• But do NOT repeat "hold on a sec", "just a moment", "one second" frequently — vary your phrasing
+• If you need a moment, use natural bridges: "That's a really good point...", "I'm sitting with what you just said...", "Something about that resonates..."
+• Never use the same filler phrase twice in a row
 
 FUNCTION CALLING INSTRUCTIONS:
 • You have access to the endCall tool - use it to hang up when the session should end (after delivering your closing words)
@@ -2166,10 +2164,10 @@ export const getPersonalizedAssistantConfig = (
       },
     },
     firstMessage: getPersonalizedFirstMessageForType(therapyType, userProfile),
-    // For returning clients, let the LLM generate a contextual greeting from session memory
-    firstMessageMode: (userProfile?.sessionsCompleted > 0)
-      ? "assistant-speaks-first-with-model-generated-message"
-      : "assistant-speaks-first",
+    // Always use our handcrafted first messages — they have time-of-day greetings,
+    // session milestones, concerns integration, and returning-client variations.
+    // "assistant-speaks-first-with-model-generated-message" produces generic bare greetings.
+    firstMessageMode: "assistant-speaks-first",
 
     // Post-call artifact plan — labeled transcripts
     artifactPlan: {
@@ -2201,13 +2199,8 @@ export const getPersonalizedAssistantConfig = (
       backoffSeconds: 1.5,
     },
 
-    // End-call phrases — VAPI auto-hangs-up when assistant says these
-    endCallPhrases: [
-      "Take care of yourself",
-      "Until next time",
-      "Goodbye for now",
-      "Take care",
-    ],
+    // NOTE: endCallPhrases removed — phrases like "Take care" are too common in therapy
+    // and caused premature call endings. The endCall tool in the system prompt handles termination.
 
     // Client messages configuration (important for transcript capture)
     clientMessages: baseConfig.clientMessages || [
