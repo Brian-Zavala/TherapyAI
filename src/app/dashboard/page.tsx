@@ -386,28 +386,28 @@ export default function Dashboard() {
             value="overview"
             className={getTabClasses("overview")}
           >
-            <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <LayoutDashboard className="hidden sm:block h-5 w-5 flex-shrink-0" />
             <span className="truncate">Overview</span>
           </TabsTrigger>
           <TabsTrigger
             value="insights"
             className={getTabClasses("insights")}
           >
-            <Brain className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <Brain className="hidden sm:block h-5 w-5 flex-shrink-0" />
             <span className="truncate">Insights</span>
           </TabsTrigger>
           <TabsTrigger
             value="progress"
             className={getTabClasses("progress")}
           >
-            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <TrendingUp className="hidden sm:block h-5 w-5 flex-shrink-0" />
             <span className="truncate">Progress</span>
           </TabsTrigger>
           <TabsTrigger
             value="sessions"
             className={getTabClasses("sessions")}
           >
-            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <Calendar className="hidden sm:block h-5 w-5 flex-shrink-0" />
             <span className="truncate">Sessions</span>
           </TabsTrigger>
         </TabsList>

@@ -433,6 +433,7 @@ export class SessionCompletionHandler {
     try {
       await prisma.dynamicGoal.createMany({
         data: milestones.map(milestone => ({
+          id: crypto.randomUUID(),
           userId,
           title: milestone.title,
           description: milestone.description,
@@ -464,6 +465,7 @@ export class SessionCompletionHandler {
     try {
       await prisma.aIInsight.createMany({
         data: milestones.map(milestone => ({
+          id: crypto.randomUUID(),
           userId,
           sessionId,
           type: 'progress',

@@ -19,15 +19,6 @@ interface TherapyOption {
 
 const therapyOptions: TherapyOption[] = [
   {
-    id: "couple",
-    type: "couple",
-    title: "Couples Therapy",
-    description:
-      "Build a healthier relationship with guided support, improved communication techniques, and conflict resolution strategies tailored for couples.",
-    therapist: "Dr. Maya Thompson",
-    imageUrl: "/images/dr-maya-thompson.webp",
-  },
-  {
     id: "solo",
     type: "solo",
     title: "Individual Therapy",
@@ -35,6 +26,15 @@ const therapyOptions: TherapyOption[] = [
       "Embark on a journey of personal growth and emotional wellbeing with confidential, one-on-one therapeutic guidance for your unique challenges.",
     therapist: "Dr. Elliot Mackaphy",
     imageUrl: "/images/dr-elliot-mackaphy.webp",
+  },
+  {
+    id: "couple",
+    type: "couple",
+    title: "Couples Therapy",
+    description:
+      "Build a healthier relationship with guided support, improved communication techniques, and conflict resolution strategies tailored for couples.",
+    therapist: "Dr. Maya Thompson",
+    imageUrl: "/images/dr-maya-thompson.webp",
   },
   {
     id: "family",

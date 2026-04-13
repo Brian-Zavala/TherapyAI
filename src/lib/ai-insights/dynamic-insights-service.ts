@@ -229,6 +229,7 @@ export class DynamicInsightsService {
       // only has: type, title, description, importance, actionable, metadata, confidence
       await prisma.aIInsight.create({
         data: {
+          id: crypto.randomUUID(),
           userId,
           sessionId: recentSession.id,
           type: insight.category || 'progress',
@@ -258,6 +259,7 @@ export class DynamicInsightsService {
 
       await prisma.dynamicGoal.create({
         data: {
+          id: crypto.randomUUID(),
           userId,
           title: goal,
           description: goal,

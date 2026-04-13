@@ -83,7 +83,7 @@ export class SessionDataProcessor {
             timestamp: true,
             sentiment: true,
             topics: true,
-            confidence: true
+            emotionalIntensity: true
           }
         },
         communicationMetrics: {
@@ -93,7 +93,9 @@ export class SessionDataProcessor {
             empathy: true,
             respect: true,
             confidence: true,
-            engagement: true
+            overall: true,
+            listening: true,
+            expression: true
           }
         },
         sessionFamilyMembers: {
