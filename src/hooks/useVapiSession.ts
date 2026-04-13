@@ -174,7 +174,9 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       // This is a normal session end, not a real error — suppress it entirely.
       const msg: string = error?.message || error?.errorMsg || error?.error?.msg || ''
       const isEjection = /ejection|Meeting has ended|no-room/i.test(msg) ||
-        error?.error?.type === 'no-room'
+        error?.error?.type === 'no-room' ||
+        error?.error?.error?.type === 'ejected' ||
+        error?.type === 'daily-error'
       if (isEjection) {
         console.log('[VAPI] Call ended by server (ejection) — treating as normal call-end')
         setIsConnected(false)

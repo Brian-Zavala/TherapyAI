@@ -260,7 +260,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       const errorObj = error as Record<string, any>
       const msg: string = errorObj.message || errorObj.errorMsg || errorObj.error?.msg || ''
       const isEjection = /ejection|Meeting has ended|no-room/i.test(msg) ||
-        errorObj.error?.type === 'no-room'
+        errorObj.error?.type === 'no-room' ||
+        errorObj.error?.error?.type === 'ejected' ||
+        errorObj.type === 'daily-error'
       if (isEjection) {
         const currentSessionId = sessionRef.current?.sessionId
         if (currentSessionId) {
