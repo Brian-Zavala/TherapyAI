@@ -3,14 +3,12 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager';
 import { onSessionCompleted } from '@/lib/ai-insights/session-completion-handler';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
 import SessionCompletedEmail from '@/emails/SessionCompleted';
 import { rateLimitManager } from '@/lib/rate-limit-manager';
 import { logger } from '@/lib/logger';
 import { trackNotificationInteraction } from '@/lib/notification-tokens';
 import { sendSMS } from '@/lib/sms-service';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 const lifecycleManager = SessionLifecycleManager.getInstance();
 
 /**
@@ -351,8 +349,7 @@ export async function POST(
 
         // Send email and SMS in parallel
         const notificationPromises: Promise<unknown>[] = [
-          resend.emails.send({
-            from: `Therapy Platform <${process.env.EMAIL_FROM}>`,
+          sendEmail({
             to: therapySession.user.email,
             subject: 'Session Completed - Great Progress!',
             react: SessionCompletedEmail({
@@ -361,7 +358,7 @@ export async function POST(
               duration: durationInMinutes,
               sessionNotes: therapySession.notes || undefined,
               nextSessionDate: nextSession?.date,
-              baseUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+              baseUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000',
             }) as any,
           })
         ];

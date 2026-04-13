@@ -90,7 +90,7 @@ export default function FamilyMembersStepEnhanced({
     addFamilyMember({
       name: '',
       age: null,
-      relation: null,
+      relationship: null,
     })
   }
 
@@ -124,7 +124,7 @@ export default function FamilyMembersStepEnhanced({
           id: fm.id,
           name: fm.name,
           age: fm.age,
-          relation: fm.relation,
+          relationship: fm.relationship,
         })),
         hasFamilyMembers: familyMembers.length > 0,
       })
@@ -240,10 +240,10 @@ export default function FamilyMembersStepEnhanced({
                         Relationship
                       </label>
                       <select
-                        value={member.relation || ''}
+                        value={member.relationship || ''}
                         onChange={(e) =>
                           updateFamilyMember(member.id!, {
-                            relation: e.target.value || null,
+                            relationship: e.target.value || null,
                           })
                         }
                         className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

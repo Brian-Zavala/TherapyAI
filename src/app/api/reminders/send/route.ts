@@ -5,11 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
 import { z } from 'zod';
 import { sendSMS, formatPhoneNumber } from '@/lib/sms-service';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Request validation schema
 const SendReminderSchema = z.object({
@@ -201,6 +199,7 @@ async function sendEmailReminder(
   message: string,
   priority: string
 ): Promise<any> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
   const sessionDate = new Date(session.date);
   const formattedDate = sessionDate.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -247,8 +246,8 @@ async function sendEmailReminder(
               ${session.notes ? `<p><strong>Notes:</strong> ${session.notes}</p>` : ''}
             </div>
             
-            <a href="${process.env.NEXTAUTH_URL}/dashboard" class="button">View in Dashboard</a>
-            
+            <a href="${baseUrl}/dashboard" class="button">View in Dashboard</a>
+
             <p style="margin-top: 30px;">
               <strong>Need to reschedule?</strong><br>
               You can manage your session from your dashboard or reply to this email for assistance.
@@ -256,19 +255,18 @@ async function sendEmailReminder(
           </div>
           <div class="footer">
             <p>You're receiving this because you have a scheduled therapy session.</p>
-            <p><a href="${process.env.NEXTAUTH_URL}/settings/notifications" style="color: #3b82f6;">Manage notification preferences</a></p>
+            <p><a href="${baseUrl}/settings/notifications" style="color: #3b82f6;">Manage notification preferences</a></p>
           </div>
         </div>
       </body>
     </html>
   `;
 
-  const result = await resend.emails.send({
-    from: `AI Therapy Platform <${process.env.EMAIL_FROM}>`,
-    to: [user.email],
+  const result = await sendEmail({
+    to: user.email,
     subject: title,
     html: emailHtml,
-    text: `${title}\n\n${message}\n\nSession Details:\nDate & Time: ${formattedDate}\nDuration: ${session.duration} minutes\nTheme: ${session.theme}\n\nView in Dashboard: ${process.env.NEXTAUTH_URL}/dashboard`
+    text: `${title}\n\n${message}\n\nSession Details:\nDate & Time: ${formattedDate}\nDuration: ${session.duration} minutes\nTheme: ${session.theme}\n\nView in Dashboard: ${baseUrl}/dashboard`
   });
 
   return result;

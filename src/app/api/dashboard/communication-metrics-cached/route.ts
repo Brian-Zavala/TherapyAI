@@ -2,6 +2,7 @@ import { getAuthSession } from '@/lib/auth'
 // src/app/api/dashboard/communication-metrics/route.ts
 // This is an optimized version with caching for immediate performance improvement
 import { NextResponse } from "next/server";
+import { analyzeTranscriptForMetrics } from '@/lib/transcript-analysis';
 import { prisma } from '@/lib/prisma-optimized';
 import { 
   handleDashboardError, 
@@ -118,9 +119,6 @@ async function generateMetricsData(userId: string, therapyType: string) {
       );
       
       if (transcriptEntries.length > 0) {
-        // Import the analysis function
-        const { analyzeTranscriptForMetrics } = await import('@/app/api/sessions/[id]/metrics-helper');
-        
         // Combine transcript entries
         const combinedTranscript = transcriptEntries
           .map(entry => `${entry.speaker}: ${entry.text}`)

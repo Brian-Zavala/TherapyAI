@@ -1526,6 +1526,29 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     const sessionCount = userProfile?.sessionsCompleted || 0;
     const lastSessionDate = userProfile?.lastSessionDate;
 
+    // Session continuity context from user preferences
+    const sessionPreferenceFF = (userProfile?.sessionPreference || "flexible").toLowerCase();
+    const sessionFrequencyFF = (userProfile?.sessionFrequency || "as-needed").toLowerCase();
+    const recurringSessionFF = (userProfile?.recurringSession || "no").toLowerCase();
+    const _freqMapFF: Record<string, string> = {
+      daily:       "This family engages daily — acknowledge their consistent commitment and build on recent momentum.",
+      weekly:      "This family meets weekly — acknowledge what's happened in their week and carry threads forward.",
+      biweekly:    "This family meets every two weeks — check what has changed or unfolded since last session.",
+      monthly:     "This family meets monthly — sessions span significant time; invite reflection on the full month.",
+      "as-needed": "This family schedules sessions as needed — they sought support proactively today.",
+    };
+    const _timeMapFF: Record<string, string> = { morning: "morning", afternoon: "afternoon", evening: "evening", flexible: "" };
+    const _freqLineFF = _freqMapFF[sessionFrequencyFF] || _freqMapFF["as-needed"];
+    const _timeLabelFF = _timeMapFF[sessionPreferenceFF] || "";
+    const _closingLineFF = recurringSessionFF === "yes"
+      ? "When wrapping up, acknowledge the family's ongoing commitment and suggest continuing progress in their next scheduled session."
+      : "When wrapping up, warmly invite the family to return whenever they feel ready.";
+    const sessionContinuityContextCF = [
+      _freqLineFF,
+      _timeLabelFF ? `Family prefers ${_timeLabelFF} sessions — match your tone and energy accordingly.` : "",
+      _closingLineFF,
+    ].filter(Boolean).join("\n• ");
+
     // Create natural family member information for system prompt (avoid robotic data lists)
     let familyMembers = [];
 

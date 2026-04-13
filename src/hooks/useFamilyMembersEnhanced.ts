@@ -10,7 +10,7 @@ const FamilyMemberSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1).max(255),
   age: z.number().int().min(0).max(150).nullable().optional(),
-  relation: z.string().max(100).nullable().optional(),
+  relationship: z.string().max(100).nullable().optional(),
   order: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
 })
@@ -51,7 +51,7 @@ function extractLegacyFamilyMembers(userData: any): FamilyMember[] {
         id: `legacy-${i}`,
         name,
         age: userData[`familyMemberAge${i}`] || null,
-        relation: userData[`familyMemberRelation${i}`] || null,
+        relationship: userData[`familyMemberRelation${i}`] || null,
         order: i - 1,
         isActive: true,
       })

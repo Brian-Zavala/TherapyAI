@@ -1,10 +1,8 @@
 import { getAuthSession } from '@/lib/auth'
 // src/app/api/support/contact/route.ts
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { sendEmail, DEFAULT_EMAIL_FROM } from '@/lib/email';
 
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@therapyai.us';
 
 export async function POST(request: Request) {
@@ -60,34 +58,32 @@ export async function POST(request: Request) {
     
     // Log email information
     console.log('Attempting to send email with:');
-    console.log('From:', process.env.EMAIL_FROM || 'Therapy Support <onboarding@resend.dev>');
+    console.log('From:', DEFAULT_EMAIL_FROM);
     console.log('To:', SUPPORT_EMAIL);
     console.log('Subject:', formattedSubject);
-    
+
     // Send email to support
     try {
-      const { data, error } = await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'Therapy AI Support <support@therapyai.us>',
+      const result = await sendEmail({
         to: SUPPORT_EMAIL,
         replyTo: email,
         subject: formattedSubject,
         html: html,
       });
-      
-      if (error) {
-        console.error('Error sending support email:', error);
-        return NextResponse.json({ error: `Failed to send message: ${error.message}` }, { status: 500 });
+
+      if (!result.success) {
+        console.error('Error sending support email:', result.error);
+        return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
       }
-      
-      console.log('Email sent successfully, ID:', data?.id);
+
+      console.log('Email sent successfully');
     } catch (emailError) {
       console.error('Exception sending email:', emailError);
       return NextResponse.json({ error: `Email exception: ${emailError instanceof Error ? emailError.message : String(emailError)}` }, { status: 500 });
     }
-    
+
     // Also send confirmation email to the user
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'Therapy Support <onboarding@resend.dev>',
+    await sendEmail({
       to: email,
       subject: 'We received your support request',
       html: `

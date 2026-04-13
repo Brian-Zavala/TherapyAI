@@ -1,6 +1,7 @@
 import { getAuthSession } from '@/lib/auth'
 // src/app/api/dashboard/communication-metrics/route.ts
 import { NextResponse } from "next/server";
+import { analyzeTranscriptForMetrics } from '@/lib/transcript-analysis';
 import { prisma } from '@/lib/prisma-optimized';
 import { 
   handleDashboardError, 
@@ -131,9 +132,6 @@ export async function GET(request: Request) {
 
         if (transcriptEntries.length > 0) {
           try {
-            // Import the analysis function from metrics-helper
-            const { analyzeTranscriptForMetrics } = await import('@/app/api/sessions/[id]/metrics-helper');
-
             // Combine transcript entries into a single transcript
             const combinedTranscript = transcriptEntries
               .map(entry => `${entry.speaker}: ${entry.text}`)

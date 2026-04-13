@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import FamilyMembersStepEnhanced from './FamilyMembersStepEnhanced'
 import ConcernsOnboardingStep from './ConcernsOnboardingStep'
-import { useFamilyMembersEnhanced } from '@/hooks/useFamilyMembersEnhanced'
 import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import ButtonWithSound from '@/components/ButtonWithSound'
 import GlassCard from '@/components/ui/glass-card'
@@ -24,18 +23,6 @@ export default function OnboardingFlowEnhanced() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [isCompleting, setIsCompleting] = useState(false)
-  
-  const {
-    familyMembers,
-    loading,
-    error,
-    addFamilyMember,
-    updateFamilyMember,
-    removeFamilyMember,
-    saveFamilyMembers,
-    hasLegacyData,
-    migrateFromLegacyFormat
-  } = useFamilyMembersEnhanced({ autoSave: false })
 
   const steps: OnboardingStep[] = [
     {
@@ -108,10 +95,7 @@ export default function OnboardingFlowEnhanced() {
     setIsCompleting(true)
     
     try {
-      // Save family members if any were added
-      if (familyMembers.length > 0) {
-        await saveFamilyMembers()
-      }
+      // Family members are already saved by FamilyMembersStepEnhanced on its own step completion.
 
       // Mark onboarding as complete
       const response = await fetch('/api/user/complete-onboarding', {
@@ -119,7 +103,6 @@ export default function OnboardingFlowEnhanced() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           hasCompletedOnboarding: true,
-          familyMemberCount: familyMembers.length
         })
       })
 
@@ -139,7 +122,7 @@ export default function OnboardingFlowEnhanced() {
 
   const CurrentStepComponent = steps[currentStep].component
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -203,13 +186,6 @@ export default function OnboardingFlowEnhanced() {
           >
             <CurrentStepComponent
               user={session?.user}
-              familyMembers={familyMembers}
-              onAddFamilyMember={addFamilyMember}
-              onUpdateFamilyMember={updateFamilyMember}
-              onRemoveFamilyMember={removeFamilyMember}
-              hasLegacyData={hasLegacyData}
-              onMigrateLegacy={migrateFromLegacyFormat}
-              error={error}
               onNext={handleNext}
               onComplete={handleNext}
               onBack={handleBack}

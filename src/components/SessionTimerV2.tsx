@@ -125,8 +125,8 @@ export default function SessionTimerV2({
     const currentRemaining = totalSeconds
     const timeDiff = Math.abs(expectedRemaining - currentRemaining)
     
-    // Sync for any meaningful difference during recovery (1+ minute)
-    if (timeDiff > 60) {
+    // Sync for any meaningful difference during recovery (>2 seconds)
+    if (timeDiff > 2) {
       console.log(`🔄 Recovery sync: Expected ${expectedRemaining}s, Current ${currentRemaining}s (diff: ${timeDiff}s)`)
       const newExpiry = calculateExpiryTimestamp()
       restartRef.current(newExpiry, true)

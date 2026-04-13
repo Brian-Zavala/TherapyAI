@@ -4,12 +4,10 @@ import { prisma } from '@/lib/prisma-optimized'
 import { withTransaction, withRetry } from '@/lib/prisma-enhanced'
 import { generateMetricsFromSession } from '../../metrics-helper'
 import { SessionLifecycleManager } from '@/lib/session/session-lifecycle-manager'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email'
 import SessionCompletedEmail from '@/emails/SessionCompleted'
 import { rateLimitManager } from '@/lib/rate-limit-manager'
 import { z } from 'zod'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 const lifecycleManager = SessionLifecycleManager.getInstance()
 
 // Enhanced request validation
@@ -256,8 +254,7 @@ export async function POST(
             .map((fm: any) => fm.name)
         : []
       
-      await resend.emails.send({
-        from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+      await sendEmail({
         to: therapySession.user.email,
         subject: 'Therapy Session Completed',
         react: SessionCompletedEmail({
@@ -266,8 +263,8 @@ export async function POST(
           duration: completionResult.billing.conversationTimeSeconds,
           sessionNotes: therapySession.notes || undefined,
           nextSessionDate: nextSession?.date,
-          baseUrl: process.env.NEXTAUTH_URL || 'https://localhost:3000',
-        }),
+          baseUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://localhost:3000',
+        }) as any,
       })
     } catch (emailError) {
       console.error('Error sending completion email:', emailError)

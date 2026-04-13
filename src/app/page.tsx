@@ -492,7 +492,7 @@ export default function Home() {
           </div>
 
           {/* Scroll Down Arrow (Original Structure) */}
-          <div className="absolute bottom-16 md:bottom-24 lg:bottom-32 xl:bottom-40 left-1/2 transform -translate-x-1/2 optimize-gpu">
+          <div className="absolute bottom-16 md:bottom-24 lg:bottom-24 xl:bottom-4 2xl:bottom-16 left-1/2 transform -translate-x-1/2 optimize-gpu">
             {" "}
             {/* Responsive positioning: closer on mobile, farther on large screens */}
             <ScrollDownArrow

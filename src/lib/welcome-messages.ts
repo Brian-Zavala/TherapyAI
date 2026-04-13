@@ -3,14 +3,11 @@
  * Creative, nurturing, energetic welcome messages for new users
  */
 
-import { Resend } from 'resend';
+import { sendEmail, DEFAULT_EMAIL_FROM } from '@/lib/email';
 import { sendSMS, formatPhoneNumber } from '@/lib/sms-service';
 import { prisma } from '@/lib/prisma-optimized';
 import { z } from 'zod';
 import { Redis } from '@upstash/redis';
-
-// Environment setup
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // User welcome data schema
 const WelcomeUserSchema = z.object({
@@ -113,35 +110,27 @@ export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: bo
     const emailContent = generateWelcomeEmailHTML(user);
 
     // Send email
-    console.log(`📧 Attempting to send welcome email to ${user.email} from ${process.env.EMAIL_FROM || 'TherapyAI Team <welcome@therapyai.us>'}`);
-    
-    const response = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'TherapyAI Team <welcome@therapyai.us>',
+    console.log(`📧 Attempting to send welcome email to ${user.email} from ${DEFAULT_EMAIL_FROM}`);
+
+    const response = await sendEmail({
       to: user.email,
       subject,
       html: emailContent,
-      headers: {
-        'X-Welcome-Message': 'true',
-        'X-User-ID': user.id
-      },
-      tags: [
-        { name: 'type', value: 'welcome_message' },
-        { name: 'onboarding', value: 'complete' }
-      ]
     });
 
-    console.log(`📧 Resend API response:`, response);
+    console.log(`📧 Email send response:`, response);
 
-    if (response.data?.id) {
+    if (response.success) {
       // Log welcome message sent
-      await logWelcomeMessage(user.id, 'email', response.data.id);
+      const emailId = (response.data as any)?.id || 'unknown';
+      await logWelcomeMessage(user.id, 'email', emailId);
       console.log(`✅ Welcome email sent to ${user.email}`);
       return { success: true };
     } else {
       // Extract more specific error message
-      let errorMessage = 'Failed to send email - no response ID';
+      let errorMessage = 'Failed to send email';
       if (response.error) {
-        errorMessage = response.error.message || response.error.name || errorMessage;
+        errorMessage = response.error instanceof Error ? response.error.message : String(response.error);
       }
       console.error(`❌ Email send failed:`, errorMessage, response);
       return { success: false, error: errorMessage };
@@ -159,7 +148,7 @@ export const sendWelcomeEmail = async (user: WelcomeUser): Promise<{ success: bo
 // Generate universal HTML email content
 const generateWelcomeEmailHTML = (user: WelcomeUser): string => {
   const displayName = user.name || 'Friend';
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
   
   // Ultra-crafted content that makes users feel amazing
   const content = {
@@ -470,7 +459,7 @@ export const sendWelcomeMessages = async (user: WelcomeUser): Promise<{
 // Helper function to generate email text version
 const generateWelcomeEmailText = (user: WelcomeUser): string => {
   const displayName = user.name || 'Friend';
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
   
   return `${displayName}, what you did today took real courage.
 

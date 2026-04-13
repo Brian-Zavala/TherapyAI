@@ -310,18 +310,9 @@ export async function POST(request: NextRequest) {
           `;
         }
 
-        // 9. Store family members if provided
-        if (validatedData.therapyType === 'family' && validatedData.familyMembers?.length) {
-          await tx.familyMember.createMany({
-            data: validatedData.familyMembers.map(member => ({
-              userId: session.user.id,
-              sessionId: newSession.id,
-              name: member.name,
-              age: member.age,
-              relation: member.relation,
-            })),
-          });
-        }
+        // 9. Family members are already stored in the FamilyMember table from onboarding/profile.
+        // The selectedFamilyMembers are passed via URL params to the VAPI assistant config,
+        // not stored as separate per-session records.
 
         return {
           session: newSession,

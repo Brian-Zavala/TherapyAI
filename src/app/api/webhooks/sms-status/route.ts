@@ -5,27 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
-import crypto from 'crypto';
-
-// Verify webhook signature from Twilio
-function verifyTwilioSignature(
-  authToken: string,
-  twilioSignature: string,
-  url: string,
-  params: Record<string, any>
-): boolean {
-  const data = Object.keys(params)
-    .sort()
-    .map(key => `${key}${params[key]}`)
-    .join('');
-  
-  const signature = crypto
-    .createHmac('sha1', authToken)
-    .update(url + data)
-    .digest('base64');
-  
-  return signature === twilioSignature;
-}
+import { verifyTwilioSignature } from '@/lib/twilio-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,17 +17,24 @@ export async function POST(request: NextRequest) {
       params[key] = value.toString();
     }
     
-    // Verify webhook signature (optional but recommended)
+    // Verify webhook signature
     const twilioSignature = request.headers.get('x-twilio-signature');
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    
-    if (twilioSignature && authToken) {
-      const url = request.url;
-      const isValid = verifyTwilioSignature(authToken, twilioSignature, url, params);
-      
+
+    if (process.env.NODE_ENV === 'production') {
+      if (!twilioSignature || !authToken) {
+        console.error('Missing Twilio signature or auth token in production');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const isValid = verifyTwilioSignature(authToken, twilioSignature, request.url, params);
       if (!isValid) {
         console.error('Invalid Twilio webhook signature');
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else if (twilioSignature && authToken) {
+      const isValid = verifyTwilioSignature(authToken, twilioSignature, request.url, params);
+      if (!isValid) {
+        console.warn('Invalid Twilio webhook signature (dev mode, continuing)');
       }
     }
     

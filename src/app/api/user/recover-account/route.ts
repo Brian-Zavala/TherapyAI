@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from '@/lib/prisma-optimized'
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email"
 import { verifySignedToken } from "@/lib/security/tokens"
 import { checkRateLimit } from "@/lib/security/rateLimiter"
 
 export const dynamic = 'force-dynamic';
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Helper function to create audit log entry
 async function createAuditLog(
@@ -227,19 +225,19 @@ export async function POST(request: NextRequest) {
       )
 
       // Send recovery confirmation email
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
       try {
-        await resend.emails.send({
-          from: "noreply@coupletherapy.app",
+        await sendEmail({
           to: recovery.email,
           subject: "Account Recovery Successful - Welcome Back!",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #059669;">🎉 Account Recovery Successful!</h2>
+              <h2 style="color: #059669;">Account Recovery Successful!</h2>
               <p>Hello ${(recovery.userSnapshot as any)?.name || 'User'},</p>
-              <p>Great news! Your Couple Therapy account has been successfully recovered.</p>
-              
+              <p>Great news! Your therapy account has been successfully recovered.</p>
+
               <div style="margin: 30px 0; padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
-                <h3 style="color: #059669; margin-top: 0;">✅ What's been restored:</h3>
+                <h3 style="color: #059669; margin-top: 0;">What's been restored:</h3>
                 <ul style="margin: 0; padding-left: 20px;">
                   <li>Your account access and login credentials</li>
                   <li>Profile information and therapy preferences</li>
@@ -249,7 +247,7 @@ export async function POST(request: NextRequest) {
               </div>
 
               <div style="margin: 30px 0; padding: 20px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;">
-                <h3 style="color: #ea580c; margin-top: 0;">⚠️ Important Notes:</h3>
+                <h3 style="color: #ea580c; margin-top: 0;">Important Notes:</h3>
                 <ul style="margin: 0; padding-left: 20px;">
                   <li>Family members have been marked as inactive for security</li>
                   <li>Please review and update your family member information</li>
@@ -259,9 +257,9 @@ export async function POST(request: NextRequest) {
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.NEXTAUTH_URL}/auth/login" 
+                <a href="${baseUrl}/sign-in"
                    style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  🔐 Log In to Your Account
+                  Log In to Your Account
                 </a>
               </div>
 
@@ -274,8 +272,8 @@ export async function POST(request: NextRequest) {
               </ol>
 
               <p>We're glad to have you back! If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-              
-              <p>Best regards,<br>The Couple Therapy Team</p>
+
+              <p>Best regards,<br>The Therapy Platform Team</p>
             </div>
           `
         })

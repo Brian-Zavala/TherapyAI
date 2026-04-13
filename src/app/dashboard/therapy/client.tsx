@@ -1710,135 +1710,91 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         )
                                       ]
                                     )
-                                  : (isSessionActive || hasActiveSession)
-                                  ? React.createElement(
-                                      "div",
-                                      {
-                                        key: "active-info",
-                                        className:
-                                          "w-full flex flex-col items-center",
-                                      },
-                                      [
-                                        // Render TherapyButton during active session so session UI (timer, controls, waveform) stays mounted
-                                        initialCheckComplete && React.createElement(
-                                          "div",
-                                          {
-                                            key: "button-wrapper-active",
-                                            className: "flex justify-center items-center w-full",
-                                          },
-                                          React.createElement(TherapyButton, {
-                                            key: "therapy-button-active",
-                                            therapyType: (sessionType || "couple") as TherapyType,
-                                            disabled: false,
-                                            forceNewSession: forceNewSession,
-                                            linkedSessionId: linkedSessionId,
-                                            onSessionConflict: (conflictData: any) => {
-                                              console.log('🔴 Session conflict detected:', conflictData)
-                                              setConflictSessionData(conflictData)
-                                              setSessionModalMode('conflict')
-                                            },
-                                            onSessionStarted: () => {
-                                              setForceNewSession(false)
-                                            },
-                                            onTherapyTypeChange: handleSelectTherapyType
-                                          })
-                                        ),
-                                      ]
-                                    )
                                   : sessionType && selectedAssistant ? React.createElement(
                                   "div",
                                   {
-                                    key: "welcome-info",
-                                    className:
-                                      "space-y-4 sm:space-y-5 md:space-y-6 mb-4 mt-6 sm:mt-8 text-center max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto hide-during-session p-5 sm:p-7 md:p-8 lg:p-10 rounded-2xl sm:rounded-3xl backdrop-blur-md bg-gradient-to-b from-white/75 to-white/55 shadow-xl border border-white/60",
+                                    key: "session-content",
+                                    className: "w-full flex flex-col items-center",
                                   },
                                   [
-                                    // Welcome header and therapist intro combined with better styling
-                                    React.createElement(
+                                    // Welcome card — hidden when session is active (TherapyButton stays mounted)
+                                    !(isSessionActive || hasActiveSession) && React.createElement(
                                       "div",
                                       {
-                                        key: "welcome-therapist-header",
-                                        className: "space-y-1 sm:space-y-2",
+                                        key: "welcome-info",
+                                        className:
+                                          "space-y-4 sm:space-y-5 md:space-y-6 mb-4 mt-6 sm:mt-8 text-center max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto hide-during-session p-5 sm:p-7 md:p-8 lg:p-10 rounded-2xl sm:rounded-3xl backdrop-blur-md bg-gradient-to-b from-white/75 to-white/55 shadow-xl border border-white/60",
                                       },
                                       [
-                                        // Welcome header with enhanced typography
+                                        // Welcome header
                                         React.createElement(
-                                          "h2",
+                                          "div",
                                           {
-                                            key: "welcome-header",
-                                            className:
-                                              "text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-black/90 tracking-tight leading-snug",
+                                            key: "welcome-therapist-header",
+                                            className: "space-y-1 sm:space-y-2",
                                           },
-                                          `Hello! Welcome to your session`
+                                          React.createElement(
+                                            "h2",
+                                            {
+                                              key: "welcome-header",
+                                              className:
+                                                "text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-black/90 tracking-tight leading-snug",
+                                            },
+                                            `Hello! Welcome to your session`
+                                          )
+                                        ),
+
+                                        // Warm welcome message
+                                        React.createElement(
+                                          "p",
+                                          {
+                                            key: "warm-welcome",
+                                            className:
+                                              "text-[15px] sm:text-lg md:text-xl lg:text-xl text-black/70 leading-[1.75] sm:leading-[1.8] md:leading-loose text-center whitespace-pre-line max-w-full sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto bg-white/40 px-5 sm:px-6 md:px-7 py-4 sm:py-5 md:py-6 rounded-xl shadow-sm border border-blue-100/50",
+                                          },
+                                          sessionType === "couple"
+                                            ? `I'm delighted to meet you both${userProfile.name ? ", " + userProfile.name.trim() : ""}${userProfile.partnerName ? " and " + userProfile.partnerName.trim() : ""}, today!\n\nThis is a safe space where we can work together on strengthening your connection and understanding each other better.`
+                                            : sessionType === "solo"
+                                              ? `I'm so glad you're here today${userProfile.name ? ", " + userProfile.name.trim() + "!" : "!"}\n\nThis is your private, judgment-free space where we can explore whatever is on your mind and work toward your personal goals.`
+                                              : `Hello${userProfile.name ? " " + userProfile.name.trim() : ""}${userProfile.partnerName ? ", " + userProfile.partnerName.trim() : ""}${userProfile.familyMember1 ? ", " + userProfile.familyMember1.trim() : ""}${userProfile.familyMember2 ? ", " + userProfile.familyMember2.trim() : ""}${userProfile.familyMember3 ? ", " + userProfile.familyMember3.trim() : ""}${userProfile.familyMember4 ? ", " + userProfile.familyMember4.trim() : ""}!\n\nI'm excited to meet everyone today. This is a supportive environment where all family members can share openly as we work together to improve communication and connection.`
+                                        ),
+
+                                        // CTA message
+                                        React.createElement(
+                                          "p",
+                                          {
+                                            key: "cta-message",
+                                            className:
+                                              "text-black/90 font-semibold py-2 sm:py-2.5 px-4 sm:px-6 border border-blue-300 rounded-xl bg-gradient-to-r from-blue-50/90 to-blue-50/80 backdrop-blur-sm inline-block text-sm sm:text-base md:text-lg shadow-sm mt-4 sm:mt-5",
+                                          },
+                                          "Ready to talk? Click the button below."
                                         ),
                                       ]
                                     ),
 
-                                    // Warm welcome message - better typography and contrast
-                                    React.createElement(
-                                      "p",
-                                      {
-                                        key: "warm-welcome",
-                                        className:
-                                          "text-[15px] sm:text-lg md:text-xl lg:text-xl text-black/70 leading-[1.75] sm:leading-[1.8] md:leading-loose text-center whitespace-pre-line max-w-full sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto bg-white/40 px-5 sm:px-6 md:px-7 py-4 sm:py-5 md:py-6 rounded-xl shadow-sm border border-blue-100/50",
-                                      },
-                                      sessionType === "couple"
-                                        ? `I'm delighted to meet you both${userProfile.name ? ", " + userProfile.name.trim() : ""}${userProfile.partnerName ? " and " + userProfile.partnerName.trim() : ""}, today!\n\nThis is a safe space where we can work together on strengthening your connection and understanding each other better.`
-                                        : sessionType === "solo"
-                                          ? `I'm so glad you're here today${userProfile.name ? ", " + userProfile.name.trim() + "!" : "!"}\n\nThis is your private, judgment-free space where we can explore whatever is on your mind and work toward your personal goals.`
-                                          : `Hello${userProfile.name ? " " + userProfile.name.trim() : ""}${userProfile.partnerName ? ", " + userProfile.partnerName.trim() : ""}${userProfile.familyMember1 ? ", " + userProfile.familyMember1.trim() : ""}${userProfile.familyMember2 ? ", " + userProfile.familyMember2.trim() : ""}${userProfile.familyMember3 ? ", " + userProfile.familyMember3.trim() : ""}${userProfile.familyMember4 ? ", " + userProfile.familyMember4.trim() : ""}!\n\nI'm excited to meet everyone today. This is a supportive environment where all family members can share openly as we work together to improve communication and connection.`
-                                    ),
-
-                                    // CTA message with enhanced styling
-                                    React.createElement(
+                                    // TherapyButton — SINGLE instance, never unmounts during session lifecycle
+                                    initialCheckComplete && React.createElement(
                                       "div",
                                       {
-                                        key: "cta-container",
-                                        className: "mt-4 sm:mt-5",
+                                        key: "button-wrapper",
+                                        className: "flex justify-center items-center w-full mt-4 sm:mt-5",
                                       },
-                                      React.createElement(
-                                        "div",
-                                        {
-                                          key: "cta-message-container",
-                                          className:
-                                            "flex flex-col items-center space-y-2",
+                                      React.createElement(TherapyButton, {
+                                        key: "therapy-button",
+                                        therapyType: (sessionType || "couple") as TherapyType,
+                                        disabled: false,
+                                        forceNewSession: forceNewSession,
+                                        linkedSessionId: linkedSessionId,
+                                        onSessionConflict: (conflictData: any) => {
+                                          console.log('🔴 Session conflict detected:', conflictData)
+                                          setConflictSessionData(conflictData)
+                                          setSessionModalMode('conflict')
                                         },
-                                        [
-                                          React.createElement(
-                                            "p",
-                                            {
-                                              key: "cta-message",
-                                              className:
-                                                "text-black/90 font-semibold py-2 sm:py-2.5 px-4 sm:px-6 border border-blue-300 rounded-xl bg-gradient-to-r from-blue-50/90 to-blue-50/80 backdrop-blur-sm inline-block text-sm sm:text-base md:text-lg shadow-sm",
-                                            },
-                                            "Ready to talk? Click the button below."
-                                          ),
-                                          // Therapy call button — inside the welcome card
-                                          initialCheckComplete && selectedAssistant && React.createElement(
-                                            "div",
-                                            {
-                                              key: "button-wrapper-inside-card",
-                                              className: "flex justify-center items-center w-full mt-4 sm:mt-5",
-                                            },
-                                            React.createElement(TherapyButton, {
-                                              key: "therapy-button-main",
-                                              therapyType: (sessionType || "couple") as TherapyType,
-                                              disabled: false,
-                                              forceNewSession: forceNewSession,
-                                              linkedSessionId: linkedSessionId,
-                                              onSessionConflict: (conflictData: any) => {
-                                                console.log('🔴 Session conflict detected:', conflictData)
-                                                setConflictSessionData(conflictData)
-                                                setSessionModalMode('conflict')
-                                              },
-                                              onSessionStarted: () => {
-                                                setForceNewSession(false)
-                                              },
-                                              onTherapyTypeChange: handleSelectTherapyType
-                                            })
-                                          ),
-                                        ]
-                                      )
+                                        onSessionStarted: () => {
+                                          setForceNewSession(false)
+                                        },
+                                        onTherapyTypeChange: handleSelectTherapyType
+                                      })
                                     ),
                                   ]
                                 ) : null,

@@ -104,8 +104,9 @@ interface LottieAnimationProps {
 
 const LottieAnimation = React.memo(({ url, title }: LottieAnimationProps) => {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [animationData, setAnimationData] = useState(null);
+  const cachedData = animationCache.get(url);
+  const [isLoading, setIsLoading] = useState(!cachedData);
+  const [animationData, setAnimationData] = useState<any>(cachedData || null);
 
   useEffect(() => {
     const loadAnimation = async () => {
@@ -768,17 +769,12 @@ export default function IntroWelcomeScreen() {
                         {currentTherapy.techniques.map((technique, index) => (
                           <motion.span
                             key={index}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
                             whileHover={{
                               scale: 1.05,
                               background:
                                 "linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3))",
                             }}
-                            transition={{
-                              delay: 0.5 + index * 0.05,
-                              hover: { duration: 0.2 },
-                            }}
+                            transition={{ hover: { duration: 0.2 } }}
                             className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/80 border border-white/20 cursor-default"
                           >
                             {technique}
@@ -790,11 +786,8 @@ export default function IntroWelcomeScreen() {
                     {/* Description points */}
                     <div className="space-y-3">
                       {currentTherapy.description.map((point, index) => (
-                        <motion.div
+                        <div
                           key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + index * 0.1 }}
                           className="flex items-start space-x-3"
                         >
                           <div className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-300 flex items-center justify-center mt-0.5">
@@ -823,7 +816,7 @@ export default function IntroWelcomeScreen() {
                             </motion.svg>
                           </div>
                           <p className="text-white/90">{point}</p>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>

@@ -8,7 +8,7 @@ import { formatRelationLabel } from '@/lib/utils';
 interface FamilyMember {
   name: string;
   age: number;
-  relation: string;
+  relationship: string;
 }
 
 interface FamilyMemberCardProps {
@@ -77,7 +77,7 @@ const FamilyMemberCard = memo(({
               {member.name}
             </h4>
             <p className="text-sm text-gray-300">
-              {formatRelationLabel(member.relation)}, {member.age} years old
+              {formatRelationLabel(member.relationship)}, {member.age} years old
             </p>
           </div>
         </div>

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from '@/lib/prisma-optimized'
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email"
 import { withAuth } from "@/lib/middleware/withAuth"
 import { createDeletionToken, verifySignedToken, createRecoveryToken } from "@/lib/security/tokens"
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Helper function to create audit log entry
 async function createAuditLog(
@@ -507,7 +505,7 @@ export const POST = withAuth(
             <h3 style="color: #0284c7; margin-top: 0;">🔄 Account Recovery</h3>
             <p>You have <strong>30 days</strong> to recover your account if you change your mind.</p>
             <p>Recovery expires: ${recoveryInfo.expiresAt.toLocaleDateString()}</p>
-            <p>To recover, visit: <a href="${process.env.NEXTAUTH_URL}/auth/recover?token=${recoveryInfo.recoveryToken}">Recovery Link</a></p>
+            <p>To recover, visit: <a href="${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/recover?token=${recoveryInfo.recoveryToken}">Recovery Link</a></p>
           </div>
           ` : ''}
 
@@ -535,8 +533,7 @@ export const POST = withAuth(
       `
 
       try {
-        await resend.emails.send({
-          from: "noreply@coupletherapy.app",
+        await sendEmail({
           to: session.user.email, // Use original email before anonymization
           subject: "Account Deletion Confirmation - Important Information",
           html: emailContent
@@ -666,21 +663,21 @@ export const GET = withAuth(
       </div>
     `
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
     try {
-      await resend.emails.send({
-        from: "noreply@coupletherapy.app",
+      await sendEmail({
         to: session.user.email,
         subject: "Account Deletion Request - Confirmation Required",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #dc2626;">⚠️ Account Deletion Request</h2>
+            <h2 style="color: #dc2626;">Account Deletion Request</h2>
             <p>Hello ${user.name || 'User'},</p>
-            <p>We received a request to delete your Couple Therapy account permanently.</p>
-            
+            <p>We received a request to delete your therapy account permanently.</p>
+
             ${impactSummary}
-            
+
             <div style="margin: 30px 0; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
-              <h3 style="color: #dc2626; margin-top: 0;">⚠️ This action is permanent and cannot be undone!</h3>
+              <h3 style="color: #dc2626; margin-top: 0;">This action is permanent and cannot be undone!</h3>
               <p>Deleting your account will:</p>
               <ul>
                 <li>Immediately terminate any active therapy sessions</li>
@@ -694,18 +691,18 @@ export const GET = withAuth(
             </div>
 
             <p>If you're sure you want to proceed, click the button below:</p>
-            
+
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXTAUTH_URL}/auth/delete-account?token=${deletionToken}" 
+              <a href="${baseUrl}/auth/delete-account?token=${deletionToken}"
                  style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                ⚠️ Permanently Delete My Account
+                Permanently Delete My Account
               </a>
             </div>
 
             <p>This link will expire in 24 hours for security reasons.</p>
-            
+
             <div style="margin: 30px 0; padding: 20px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
-              <h3 style="color: #0284c7; margin-top: 0;">🤔 Having second thoughts?</h3>
+              <h3 style="color: #0284c7; margin-top: 0;">Having second thoughts?</h3>
               <p>If you're experiencing issues with our service, we'd love to help! Consider:</p>
               <ul>
                 <li>Contacting our support team for assistance</li>
@@ -716,7 +713,7 @@ export const GET = withAuth(
               <p>You can safely ignore this email if you don't want to delete your account.</p>
             </div>
 
-            <p>Best regards,<br>The Couple Therapy Team</p>
+            <p>Best regards,<br>The Therapy Platform Team</p>
           </div>
         `
       })

@@ -284,7 +284,20 @@ async function processJob(job: Job) {
       
     case JobType.SEND_SESSION_REMINDER:
       const { sendSessionReminder } = await import('@/lib/sms-service')
-      await sendSessionReminder(job.data.userId, job.data.sessionTime)
+      const { prisma: prismaSMS } = await import('@/lib/prisma-optimized')
+      const reminderUser = await prismaSMS.user.findUnique({
+        where: { id: job.data.userId },
+        select: { profile: { select: { phone: true } } }
+      })
+      if (reminderUser?.profile?.phone) {
+        await sendSessionReminder(
+          reminderUser.profile.phone,
+          new Date(job.data.sessionTime),
+          job.data.duration || 50
+        )
+      } else {
+        console.warn(`[JobQueue] No phone number for user ${job.data.userId}, skipping SMS reminder`)
+      }
       break
       
     case JobType.PROCESS_SESSION_METRICS:

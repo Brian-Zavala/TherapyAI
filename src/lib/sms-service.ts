@@ -17,7 +17,7 @@ const smsConfig = {
   authToken: process.env.TWILIO_AUTH_TOKEN,
   phoneNumber: process.env.TWILIO_PHONE_NUMBER,
   messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
-  statusWebhookUrl: process.env.TWILIO_STATUS_WEBHOOK_URL || `${process.env.NEXTAUTH_URL}/api/webhooks/sms-status`,
+  statusWebhookUrl: process.env.TWILIO_STATUS_WEBHOOK_URL || `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL}/api/webhooks/sms-status`,
   useMock: process.env.SMS_USE_MOCK === 'true' || !process.env.TWILIO_ACCOUNT_SID
 };
 
@@ -157,9 +157,9 @@ export const SMS_TEMPLATES = {
   SESSION_COMPLETED: {
     template: (data: { duration: number; nextSessionDate?: string; shortUrl?: string }) =>
       data.shortUrl
-        ? `Therapy Space\n\nSession complete (${data.duration}min)\n${nextSessionDate ? `Next: ${nextSessionDate}\n` : ''}\nReflect: ${data.shortUrl}`
-        : nextSessionDate
-          ? `Therapy Space: Well done! ${data.duration}min completed. Next: ${nextSessionDate}. Keep growing!`
+        ? `Therapy Space\n\nSession complete (${data.duration}min)\n${data.nextSessionDate ? `Next: ${data.nextSessionDate}\n` : ''}\nReflect: ${data.shortUrl}`
+        : data.nextSessionDate
+          ? `Therapy Space: Well done! ${data.duration}min completed. Next: ${data.nextSessionDate}. Keep growing!`
           : `Therapy Space: ${data.duration}min session complete. Ready to schedule your next step forward?`,
     maxLength: 160
   },

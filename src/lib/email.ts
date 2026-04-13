@@ -2,6 +2,10 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+export const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM
+  ? `Therapy Platform <${process.env.EMAIL_FROM}>`
+  : 'Therapy Platform <noreply@therapy.app>';
+
 export interface EmailOptions {
   to: string | string[];
   subject: string;
@@ -18,7 +22,7 @@ export async function sendEmail({
   html,
   react,
   text,
-  from = 'Therapy Platform <noreply@therapy.app>',
+  from = DEFAULT_EMAIL_FROM,
   replyTo
 }: EmailOptions) {
   try {

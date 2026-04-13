@@ -3,7 +3,6 @@ import { getAuthSession } from '@/lib/auth'
 // src/app/api/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
-import { Resend } from 'resend';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
 import { sendSessionConfirmation } from '@/lib/sms-service';
 import { sessionCache, cacheKeys } from '@/lib/session-cache';
@@ -96,14 +95,8 @@ const createSessionSchema = z.object({
   linkedSessionId: z.string().optional() // Link to scheduled session for tracking
 });
 
-// 2025 Standard: Lazy initialization
-let resend: Resend | null = null;
-const getResendClient = () => {
-  if (!resend && process.env.RESEND_API_KEY) {
-    resend = new Resend(process.env.RESEND_API_KEY);
-  }
-  return resend;
-};
+// Use centralized email service
+import { sendEmail } from '@/lib/email';
 
 // 2025 Standard: Structured logging
 const log = {
@@ -530,16 +523,14 @@ export async function POST(request: NextRequest) {
       Promise.resolve().then(async () => {
         try {
           const emailValidation = validateEmailEnvironment();
-          const resendClient = getResendClient();
-          
-          if (!emailValidation.isValid || !resendClient) {
+
+          if (!emailValidation.isValid) {
             log.error('Email environment not configured', emailValidation.missingVars);
             return;
           }
-          
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-          await resendClient.emails.send({
-            from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          await sendEmail({
             to: user.email,
             subject: 'Your Therapy Session is Scheduled',
             react: SessionConfirmationEmail({
@@ -549,7 +540,7 @@ export async function POST(request: NextRequest) {
               theme: data.theme,
               notes: data.notes,
               baseUrl: baseUrl,
-            }),
+            }) as any,
           });
           
           log.info('Confirmation email sent', { userId: user.id, sessionId: result.newSession.id });

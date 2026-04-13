@@ -109,7 +109,7 @@ export default function OnboardingSuccessSplash({ userData, onComplete }: Onboar
   }, [])
   
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="h-screen overflow-hidden bg-gray-900 flex items-center justify-center p-4">
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden">
         {particles.map((particle) => (

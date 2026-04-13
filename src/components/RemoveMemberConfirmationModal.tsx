@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 interface FamilyMember {
   name: string;
   age: number;
-  relation: string;
+  relationship: string;
 }
 
 interface RemoveMemberConfirmationModalProps {
@@ -92,7 +92,7 @@ export default function RemoveMemberConfirmationModal({
                       {member.name}
                     </h4>
                     <p className="text-xs sm:text-sm text-gray-300">
-                      {member.relation}, {member.age} years old
+                      {member.relationship}, {member.age} years old
                     </p>
                   </div>
                 </div>

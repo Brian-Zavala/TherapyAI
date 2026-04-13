@@ -1,14 +1,11 @@
 // app/api/cron/session-reminders/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
 import SessionReminderEmail from '@/emails/SessionReminder';
 import SessionMissedEmail from '@/emails/SessionMissed';
 import { sendSessionReminder } from '@/lib/sms-service';
 import { createSessionNotificationToken, generateNotificationUrls } from '@/lib/notification-tokens';
-
-// Initialize Resend with your API key
-const resend = new Resend(process.env.RESEND_API_KEY);
 const CRON_SECRET = process.env.CRON_SECRET;
 
 // Helper function to check if user wants SMS notifications
@@ -102,11 +99,10 @@ export async function GET(request: Request) {
     await Promise.allSettled(
       emailSessions24h.map(async (session) => {
         try {
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const { token } = await createSessionNotificationToken(session.id, session.userId, 'email');
           const urls = generateNotificationUrls(baseUrl, session.id, token);
-          await resend.emails.send({
-            from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+          await sendEmail({
             to: session.user.email,
             subject: 'Reminder: Your Upcoming Therapy Session',
             react: SessionReminderEmail({
@@ -136,7 +132,7 @@ export async function GET(request: Request) {
     await Promise.allSettled(
       smsSessions24h.map(async (session) => {
         try {
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const { token, shortToken } = await createSessionNotificationToken(session.id, session.userId, 'sms');
           const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
           const smsResult = await sendSessionReminder(
@@ -188,11 +184,10 @@ export async function GET(request: Request) {
     await Promise.allSettled(
       emailSessions1h.map(async (session) => {
         try {
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const { token } = await createSessionNotificationToken(session.id, session.userId, 'email');
           const urls = generateNotificationUrls(baseUrl, session.id, token);
-          await resend.emails.send({
-            from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+          await sendEmail({
             to: session.user.email,
             subject: 'Starting Soon: Your Therapy Session in 1 Hour',
             react: SessionReminderEmail({
@@ -223,7 +218,7 @@ export async function GET(request: Request) {
     await Promise.allSettled(
       smsSessions1h.map(async (session) => {
         try {
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
           const { token, shortToken } = await createSessionNotificationToken(session.id, session.userId, 'sms');
           const urls = generateNotificationUrls(baseUrl, session.id, token, shortToken);
           const smsResult = await sendSessionReminder(
@@ -285,18 +280,17 @@ export async function GET(request: Request) {
     // Phase 2: Send missed session emails in parallel (no per-session DB writes)
     const missedEmailResults = await Promise.allSettled(
       missedSessionsToUpdate.map(async (session) => {
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        await resend.emails.send({
-          from: `Therapy AI Support <${process.env.EMAIL_FROM}>`,
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        await sendEmail({
           to: session.user.email,
           subject: 'You Missed Your Therapy Session',
           react: SessionMissedEmail({
             userName: session.user.name || 'Valued Client',
             sessionDate: session.date.toLocaleDateString(),
             sessionTime: session.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            therapistName: 'Dr. Maya Thompson', // You might want to get this from your database
+            therapistName: 'Dr. Maya Thompson',
             sessionType: session.theme || 'Therapy Session',
-            nextAvailableSlots: undefined, // Removed: sessions are user-specific, no generic available slots
+            nextAvailableSlots: undefined,
             baseUrl: baseUrl,
           }) as any,
         });

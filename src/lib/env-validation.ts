@@ -47,6 +47,14 @@ const envSchemas = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   
+  // SMS / Twilio
+  TWILIO_ACCOUNT_SID: z.string().regex(/^AC[a-f0-9]{32}$/, 'Invalid Twilio Account SID format').optional(),
+  TWILIO_AUTH_TOKEN: z.string().min(32, 'Must be at least 32 characters').optional(),
+  TWILIO_PHONE_NUMBER: z.string().regex(/^\+[1-9]\d{1,14}$/, 'Must be E.164 format').optional(),
+
+  // App URL
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+
   // Optional services
   SENTRY_DSN: z.string().url().optional(),
   CRON_SECRET: z.string().min(16).optional(),
@@ -66,6 +74,7 @@ const envCategories = {
   email: ['RESEND_API_KEY', 'EMAIL_FROM'],
   vapi: ['VAPI_API_KEY', 'VAPI_ORG_ID', 'VAPI_PRIVATE_KEY'],
   supabase: ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'],
+  sms: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
   monitoring: ['SENTRY_DSN', 'CSP_REPORT_URI'],
   oauth: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'FACEBOOK_CLIENT_ID', 'FACEBOOK_CLIENT_SECRET'],
   cron: ['CRON_SECRET']
@@ -135,6 +144,18 @@ export function validateEnvironmentCategory(category: keyof typeof envCategories
     }
   }
   
+  if (category === 'sms') {
+    const hasSid = !!process.env.TWILIO_ACCOUNT_SID;
+    const hasToken = !!process.env.TWILIO_AUTH_TOKEN;
+    const hasPhone = !!process.env.TWILIO_PHONE_NUMBER;
+    if ((hasSid || hasToken || hasPhone) && !(hasSid && hasToken && hasPhone)) {
+      result.warnings.push('Twilio partially configured - need TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER together');
+    }
+    if (!hasSid) {
+      result.warnings.push('Twilio not configured - SMS will use mock implementation');
+    }
+  }
+
   if (category === 'monitoring' && !process.env.SENTRY_DSN) {
     result.warnings.push('Sentry not configured - error tracking disabled');
   }

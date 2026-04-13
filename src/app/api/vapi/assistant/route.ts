@@ -138,7 +138,13 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
 
   if (selectedFamilyMembersParam) {
     try {
-      selectedFamilyMembers = JSON.parse(decodeURIComponent(selectedFamilyMembersParam));
+      const parsed = JSON.parse(decodeURIComponent(selectedFamilyMembersParam));
+      // Normalize: accept both 'relation' and 'relationship' field names
+      selectedFamilyMembers = parsed.map((m: any) => ({
+        name: m.name,
+        age: m.age,
+        relation: m.relation || m.relationship || '',
+      }));
       console.log('Received selected family members for session:', selectedFamilyMembers);
     } catch (error) {
       console.error('Error parsing selected family members:', error);

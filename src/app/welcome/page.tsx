@@ -12,6 +12,8 @@ import { CheckCircleIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 import RelationshipAssessment from "@/components/RelationshipAssessment";
 import OnboardingSuccessSplash from "@/components/OnboardingSuccessSplash";
 import { usePersistentOnboarding } from "@/hooks/usePersistentOnboarding";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 // Removed scroll-utils import - using direct container scrolling instead
 
 interface FormStep {
@@ -636,6 +638,7 @@ function WelcomePageInner() {
     clearOnboardingState,
     hasExistingProgress,
   } = usePersistentOnboarding();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
@@ -918,9 +921,10 @@ function WelcomePageInner() {
         body: JSON.stringify(formData),
       });
 
-      // Always consider onboarding successful if we get a response (even 500)
-      // This prevents users from getting stuck in onboarding due to database issues
-      if (response.ok || response.status === 500) {
+      if (response.ok) {
+        // Invalidate React Query profile cache so dashboard/profile show fresh data
+        await queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+
         // Mark onboarding as completed in localStorage
         if (session?.user?.email) {
           const localOnboardingKey = `onboarding_completed_${session.user.email}`;
@@ -970,8 +974,8 @@ function WelcomePageInner() {
           setShowSplashScreen(true);
         }, 1000);
       } else {
-        // Only show error for non-500 errors
-        console.error("Unexpected error during onboarding:", response.status);
+        console.error("Error during onboarding:", response.status);
+        toast.error("Something went wrong saving your profile. Please try again.");
         setLoading(false);
       }
     } catch (error) {
@@ -985,6 +989,9 @@ function WelcomePageInner() {
           JSON.stringify(formData)
         );
       }
+
+      // Invalidate React Query profile cache in case partial data was saved
+      await queryClient.invalidateQueries({ queryKey: ['user', 'profile'] }).catch(() => {});
 
       // Clear persistent onboarding state even on error
       clearOnboardingState();
@@ -1793,7 +1800,7 @@ function WelcomePageInner() {
                                         : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
                                     }`}
                                   >
-                                    <span className="relative z-10 flex items-center justify-center whitespace-nowrap">
+                                    <span className="relative z-10 flex items-center justify-center text-xs sm:text-sm leading-tight text-center">
                                       {option.label}
                                     </span>
                                     {isSelected && (

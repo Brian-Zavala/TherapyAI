@@ -1,10 +1,8 @@
 import { getAuthSession } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-optimized';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
 import SessionConfirmationEmail from '@/emails/SessionConfirmation';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(
   request: NextRequest,
@@ -64,8 +62,7 @@ export async function POST(
 
     // Send rescheduling confirmation email
     try {
-      await resend.emails.send({
-        from: `Therapy Support <${process.env.EMAIL_FROM}>`,
+      await sendEmail({
         to: existingSession.user.email,
         subject: 'Your Therapy Session Has Been Rescheduled',
         react: SessionConfirmationEmail({
@@ -73,7 +70,7 @@ export async function POST(
           sessionDate: sessionDate,
           duration: existingSession.duration,
           notes: existingSession.notes || undefined,
-          baseUrl: process.env.NEXTAUTH_URL || 'https://therapyai.us',
+          baseUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://therapyai.us',
         } as any) as any,
       });
     } catch (emailError) {

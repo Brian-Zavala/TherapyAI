@@ -1,5 +1,8 @@
 // metrics-helper.ts
 import { prisma } from '@/lib/prisma-optimized'
+import { analyzeTranscriptForMetrics } from '@/lib/transcript-analysis'
+
+export { analyzeTranscriptForMetrics }
 
 // Helper function to generate metrics from the session
 export async function generateMetricsFromSession(userId: string, duration: number, sessionId?: string, transcript?: string, therapyType: string = 'couple', assistantId?: string) {
@@ -186,8 +189,10 @@ export async function generateMetricsFromSession(userId: string, duration: numbe
   }
 }
 
-// Helper function to analyze transcript and extract metrics
-export function analyzeTranscriptForMetrics(transcript?: string, baseScore = 60, variability = 10, therapyType: string = 'couple') {
+// analyzeTranscriptForMetrics is re-exported from @/lib/transcript-analysis (see top of file)
+// Removed duplicate definition — use the import above
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _unused(transcript?: string, baseScore = 60, variability = 10, therapyType: string = 'couple') {
   therapyType = therapyType.toLowerCase();
   // For solo therapy, generate minimal metrics even without transcript
   if (!transcript) {

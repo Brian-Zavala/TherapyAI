@@ -10,7 +10,7 @@ import RemoveMemberConfirmationModal from './RemoveMemberConfirmationModal';
 interface FamilyMember {
   name: string;
   age: number;
-  relation: string;
+  relationship: string;
 }
 
 interface FamilyMemberSelectionModalProps {

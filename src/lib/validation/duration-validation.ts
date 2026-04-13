@@ -182,8 +182,13 @@ export const sessionCreationSchema = z.object({
   familyMembers: z.array(z.object({
     name: z.string(),
     age: z.number(),
-    relation: z.string(),
-  })).optional(),
+    relationship: z.string().optional().default(''),
+    relation: z.string().optional(),
+  }).transform(m => ({
+    name: m.name,
+    age: m.age,
+    relationship: m.relationship || m.relation || '',
+  }))).optional(),
   metadata: z.record(z.string()).optional(),
 });
 

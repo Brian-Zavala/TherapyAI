@@ -7,7 +7,7 @@ import { Users, User, Check } from 'lucide-react'
 interface FamilyMember {
   name: string
   age: number
-  relation: string
+  relationship: string
 }
 
 interface FamilySelectionModalProps {
@@ -35,12 +35,12 @@ export const FamilySelectionModal: React.FC<FamilySelectionModalProps> = ({
     if (isLoading) return
 
     const isSelected = selectedMembers.some(
-      m => m.name === member.name && m.relation === member.relation
+      m => m.name === member.name && m.relationship === member.relationship
     )
 
     if (isSelected) {
       setSelectedMembers(selectedMembers.filter(
-        m => !(m.name === member.name && m.relation === member.relation)
+        m => !(m.name === member.name && m.relationship === member.relationship)
       ))
     } else if (selectedMembers.length < maxSelection) {
       setSelectedMembers([...selectedMembers, member])
@@ -61,12 +61,12 @@ export const FamilySelectionModal: React.FC<FamilySelectionModalProps> = ({
 
   const isMemberSelected = (member: FamilyMember) => {
     return selectedMembers.some(
-      m => m.name === member.name && m.relation === member.relation
+      m => m.name === member.name && m.relationship === member.relationship
     )
   }
 
-  const getRelationIcon = (relation: string) => {
-    if (relation.toLowerCase().includes('child') || relation.toLowerCase().includes('son') || relation.toLowerCase().includes('daughter')) {
+  const getRelationIcon = (relationship: string) => {
+    if (relationship.toLowerCase().includes('child') || relationship.toLowerCase().includes('son') || relationship.toLowerCase().includes('daughter')) {
       return <User className="w-4 h-4" />
     }
     return <Users className="w-4 h-4" />
@@ -95,7 +95,7 @@ export const FamilySelectionModal: React.FC<FamilySelectionModalProps> = ({
           ) : (
             familyMembers.map((member, index) => (
               <button
-                key={`${member.name}-${member.relation}-${index}`}
+                key={`${member.name}-${member.relationship}-${index}`}
                 onClick={() => toggleMember(member)}
                 disabled={isLoading || (!isMemberSelected(member) && selectedMembers.length >= maxSelection)}
                 className={`
@@ -121,13 +121,13 @@ export const FamilySelectionModal: React.FC<FamilySelectionModalProps> = ({
                 </div>
                 
                 <div className="flex-1 flex items-center space-x-2">
-                  {getRelationIcon(member.relation)}
+                  {getRelationIcon(member.relationship)}
                   <div className="text-left">
                     <div className="font-medium text-gray-900 dark:text-white">
                       {member.name}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {member.relation} • Age {member.age}
+                      {member.relationship} • Age {member.age}
                     </div>
                   </div>
                 </div>

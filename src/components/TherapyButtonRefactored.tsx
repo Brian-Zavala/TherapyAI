@@ -620,7 +620,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     saveFamilyMembers
   } = useFamilyMembersEnhanced({ autoSave: false })
   
-  const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Array<{name: string, age: number, relation: string}>>([])
+  const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Array<{name: string, age: number, relationship: string}>>([])
   
   // Mute functionality
   const [isMuted, setIsMuted] = useState(false)
@@ -1009,6 +1009,9 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         setIsLoading(false)
         console.log('🌟 Set session-active for recovered session')
 
+        // Ensure CreditDisplay knows a session is active after recovery
+        window.dispatchEvent(new Event('sessionStarted'))
+
         console.log('✅ VAPI session auto-started successfully for recovery')
 
       } catch (error) {
@@ -1185,7 +1188,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }, [user, isLoading, vapi.isConnecting, session.sessionId, vapi.isConnected, playClick, therapyType, familyMembersLoading, familyMembers.length])
   
   // Handle duration selection with atomic credit validation and session creation
-  const handleDurationSelect = useCallback(async (duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>) => {
+  const handleDurationSelect = useCallback(async (duration: number, familyMembersOverride?: Array<{name: string, age: number, relationship: string}>) => {
     console.log(`🎯 Duration selected: ${duration} minutes`);
 
     if (!therapyType || !['solo', 'couple', 'family'].includes(therapyType)) {
@@ -1196,6 +1199,10 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     setShowDurationModal(false);
     setIsLoading(true);
     setError(null);
+
+    // Trigger starry night background + hide welcome card BEFORE phone UI appears.
+    // Safe now that TherapyButton is a single instance that never unmounts on branch switches.
+    setSessionActive(true);
 
     try {
       // Fire both requests in parallel — assistant config doesn't need the session ID
@@ -1242,9 +1249,10 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
         }
         
         setIsLoading(false);
+        setSessionActive(false);
         return;
       }
-      
+
       // Session created successfully with credits reserved
       const { sessionId, creditsRemaining, concurrentInfo } = result.data;
       
@@ -1277,11 +1285,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.error('Error in session creation:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
       setIsLoading(false);
+      setSessionActive(false);
     }
-  }, [therapyType, selectedFamilyMembers]);
+  }, [therapyType, selectedFamilyMembers, setSessionActive]);
   
   // Start VAPI session after successful creation
-  const startVAPISession = useCallback(async (sessionId: string, duration: number, familyMembersOverride?: Array<{name: string, age: number, relation: string}>, prefetchedConfig?: any) => {
+  const startVAPISession = useCallback(async (sessionId: string, duration: number, familyMembersOverride?: Array<{name: string, age: number, relationship: string}>, prefetchedConfig?: any) => {
     console.log('🚀 Starting VAPI for session:', sessionId);
 
     try {
@@ -1708,8 +1717,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   // Handle time updates from the timer
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleTimeUpdate = useCallback((_remainingMinutes: number, _remainingSeconds: number) => {
-    // Time updates are for display/logging purposes only
-    // All time warnings are handled by useSessionManagementV2's onTimeWarning callback
+    // Time warnings are handled by useSessionManagementV2's onTimeWarning callback
     // Timer expiration is handled by handleTimerExpire callback
   }, [])
 
@@ -1781,7 +1789,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   }, [isMuted, vapi])
 
   // Handle family member selection for family therapy
-  const handleFamilyMembersSelected = useCallback((members: Array<{name: string, age: number, relation: string}>) => {
+  const handleFamilyMembersSelected = useCallback((members: Array<{name: string, age: number, relationship: string}>) => {
     setSelectedFamilyMembers(members)
     setShowFamilySelectionModal(false)
     console.log('👨‍👩‍👧‍👦 Selected family members:', members)
@@ -1843,8 +1851,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
   
   // Monitor session state and ensure session-active class is in sync
+  // NOTE: isLoading is intentionally excluded — it triggers before VAPI connects,
+  // which causes client.tsx to switch render branches and unmount this component
+  // mid-API-call. setSessionActive(true) is called explicitly in startVAPISession
+  // after VAPI actually connects.
   useEffect(() => {
-    const hasActiveSession = !!(session.sessionId || vapi.isConnected || isLoading)
+    const hasActiveSession = !!(session.sessionId || vapi.isConnected)
 
     if (hasActiveSession && !sessionActiveManaged.current) {
       console.log('[Session Monitor] Detected active session, ensuring session-active class')
@@ -1853,7 +1865,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       console.log('[Session Monitor] No active session, ensuring session-active class removed')
       setSessionActive(false)
     }
-  }, [session.sessionId, vapi.isConnected, isLoading, forceHidePhoneUI, setSessionActive])
+  }, [session.sessionId, vapi.isConnected, forceHidePhoneUI, setSessionActive])
   
   // Monitor VAPI state and ensure conversation timer is in sync
   useEffect(() => {
@@ -2436,7 +2448,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
             familyMembers={familyMembers.map(member => ({
               name: member.name,
               age: member.age || 0,
-              relation: member.relation || ''
+              relationship: member.relationship || ''
             }))}
             onRemoveMember={handleRemoveFamilyMember}
             isLoading={vapi.isConnecting || familyMembersLoading}
