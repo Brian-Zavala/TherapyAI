@@ -229,12 +229,12 @@ export function InsightDetailModal({ isOpen, onClose, insight, therapyType }: In
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="flex-shrink-0 grid w-full grid-cols-4 mx-0 mt-0 mb-0 bg-gray-100/80 dark:bg-gray-800/80 !rounded-none border-b gap-0 !p-0 h-10 sm:h-11">
+          <TabsList className="flex-shrink-0 flex w-full mx-0 mt-0 mb-0 bg-gray-100/80 dark:bg-gray-800/80 !rounded-none border-b !p-0 h-10 sm:h-11">
             {['overview', 'progress', 'patterns', 'resources'].map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
-                className="h-full text-[10px] sm:text-xs md:text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=inactive]:text-gray-500 dark:data-[state=inactive]:text-gray-400 font-medium transition-all capitalize"
+                className="flex-1 h-full text-[10px] sm:text-xs md:text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=inactive]:text-gray-500 dark:data-[state=inactive]:text-gray-400 font-medium transition-all capitalize"
               >
                 {tab}
               </TabsTrigger>
