@@ -221,13 +221,14 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
   useEffect(() => {
     // Wait for BOTH initial check AND minimum wait time to prevent UI flash
     if (initialCheckComplete && minimumWaitComplete && !isCheckingForSession && !selectedAssistant && !sessionType) {
-      // Check if there's pending recovery data that modal should handle
+      // Check if there's pending recovery data or a session just ended (redirect in progress)
       const checkRecoveryData = () => {
         const pendingRecovery = sessionStorage.getItem('session-recovery-pending');
         const recoveryInProgress = sessionStorage.getItem('recovery-check-in-progress');
-        
-        if (pendingRecovery || recoveryInProgress === 'true') {
-          // Don't show type selector, let the modal handle recovery
+        const justEnded = sessionStorage.getItem('session-just-ended');
+
+        if (pendingRecovery || recoveryInProgress === 'true' || justEnded) {
+          // Don't show type selector — either recovery is pending or redirect to dashboard is in progress
           return true;
         }
         return false;
@@ -249,11 +250,12 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           }
         }, 500); // Check every 500ms instead of 100ms
         
-        // After 2 seconds, if still no recovery data, show the type selector
+        // After 2 seconds, if still no recovery data and no redirect in progress, show the type selector
         const timeout = setTimeout(() => {
           clearInterval(checkInterval);
           const finalCheck = sessionStorage.getItem('session-recovery-pending');
-          if (!finalCheck && !hasActiveSession) {
+          const justEnded = sessionStorage.getItem('session-just-ended');
+          if (!finalCheck && !justEnded && !hasActiveSession) {
             console.log('📝 No active session found after extended check, showing therapy type selector for user to choose');
             // CRITICAL: Don't set any defaults - let the user choose their therapy type
             // The therapist will be set in handleSelectTherapyType when user makes their choice
@@ -383,22 +385,20 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
     };
   }, []);
   
-  // Listen for session ended event to show therapy type selector
+  // Listen for session ended event to clean up UI state
+  // NOTE: Do NOT show therapy type selector here — the user is redirected
+  // to the dashboard after wind-down, so showing the selector causes a flash.
   useEffect(() => {
     const handleSessionEnded = () => {
-      console.log('🎯 Therapy page received sessionEnded event, showing type selector');
+      console.log('🎯 Therapy page received sessionEnded event, cleaning up state');
       // Reset all session-related state
       setSelectedAssistant(null);
       setSessionType(null);
       setMeditationStep("none");
       setIsSessionActive(false);
-      
-      // Show the therapy type selector after a small delay
-      setTimeout(() => {
-        setShowTypeSelector(true);
-      }, 800);
+      // Don't show type selector — dashboard redirect is already in progress
     };
-    
+
     window.addEventListener('sessionEnded', handleSessionEnded);
     return () => window.removeEventListener('sessionEnded', handleSessionEnded);
   }, []);
@@ -976,7 +976,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
           {
             key: "main-content",
             className:
-              "w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-7 lg:px-8 xl:px-12 pt-4 sm:pt-6 md:pt-8 pb-32 sm:pb-24 md:pb-32 relative z-10",
+              `w-full max-w-7xl mx-auto ${isSessionActive ? 'px-0 sm:px-6 md:px-7 lg:px-8 xl:px-12' : 'px-4 sm:px-6 md:px-7 lg:px-8 xl:px-12'} pt-4 sm:pt-6 md:pt-8 pb-32 sm:pb-24 md:pb-32 relative z-10`,
           },
           [
             // Date/Time Header - reduced bottom margin
@@ -1041,7 +1041,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                     key: "session-card",
                     className: `md:col-span-3 relative overflow-visible rounded-lg shadow-xl transition-all duration-700 opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] z-10 ${
                       isSessionActive
-                        ? "bg-transparent p-4 md:p-6 lg:p-8 rounded-xl"
+                        ? "bg-transparent p-0 sm:p-4 md:p-6 lg:p-8 rounded-xl"
                         : "bg-transparent rounded-xl p-4 sm:p-8 md:p-12 lg:p-16"
                     }`,
                   },
@@ -1091,7 +1091,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                               setQuickActionsOpen(
                                                 !quickActionsOpen
                                               ),
-                                            className: `flex items-center rounded-lg px-3 py-2 text-xs font-medium ${
+                                            className: `flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium ${
                                               quickActionsOpen
                                                 ? "bg-blue-500/60 text-white shadow-lg shadow-blue-400/30 ring-2 ring-blue-200"
                                                 : isSessionActive
@@ -1418,8 +1418,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                         {
                                           key: "switch-therapist",
                                           onClick: openTherapistSelector,
-                                          className: `flex items-center rounded-lg px-3 py-2 text-xs font-medium 
-                    bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
+                                          className: `flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium bg-rose-500/70 text-white hover:bg-rose-500/80 cursor-pointer`,
                                           whileHover: { scale: 1.05 },
                                           whileTap: { scale: 0.95 },
                                           initial: { opacity: 0, y: 20 },
@@ -1592,7 +1591,7 @@ export default function TherapyPageClient({ userId }: { userId: string }) {
                                       "p",
                                       {
                                         key: "therapist-type",
-                                        className: `text-xs font-medium px-3 py-0.5 rounded-full transition-all duration-500 shadow-sm ${
+                                        className: `text-xs font-medium px-3 py-0.5 rounded-full whitespace-nowrap transition-all duration-500 shadow-sm ${
                                           isSessionActive
                                             ? "bg-gradient-to-r from-green-500/60 to-blue-500/60 text-white"
                                             : "bg-blue-100/70 text-black/90"

@@ -6,6 +6,62 @@ import Vapi from '@vapi-ai/web'
 import { toast } from 'sonner'
 import { vapiInstanceManager } from '@/lib/services/vapi-instance-manager'
 
+// Gain applied to the remote (assistant) audio stream — 2.0 = double the volume.
+// Mobile browsers throttle WebRTC output, so boosting helps audibility.
+const AUDIO_BOOST_GAIN = 2.0
+
+function boostRemoteAudio(
+  audioCtxRef: React.MutableRefObject<AudioContext | null>,
+  observerRef: React.MutableRefObject<MutationObserver | null>
+) {
+  if (typeof window === 'undefined') return
+
+  const applyGainToElement = (el: HTMLAudioElement) => {
+    if ((el as any).__gainApplied) return
+    try {
+      const ctx = audioCtxRef.current ?? new AudioContext()
+      audioCtxRef.current = ctx
+      if (ctx.state === 'suspended') ctx.resume()
+      const src = ctx.createMediaElementSource(el)
+      const gain = ctx.createGain()
+      gain.gain.value = AUDIO_BOOST_GAIN
+      src.connect(gain)
+      gain.connect(ctx.destination)
+      ;(el as any).__gainApplied = true
+      console.log('[VAPI] Audio boost applied to element')
+    } catch {
+      // Element may already be connected to a different context — safe to ignore
+    }
+  }
+
+  // Apply to any audio elements already present
+  document.querySelectorAll<HTMLAudioElement>('audio').forEach(applyGainToElement)
+
+  // Watch for Daily.co audio elements added after call-start
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof HTMLAudioElement) applyGainToElement(node)
+        if (node instanceof HTMLElement) {
+          node.querySelectorAll<HTMLAudioElement>('audio').forEach(applyGainToElement)
+        }
+      })
+    }
+  })
+  observer.observe(document.body, { childList: true, subtree: true })
+  observerRef.current = observer
+}
+
+function cleanupAudioBoost(
+  audioCtxRef: React.MutableRefObject<AudioContext | null>,
+  observerRef: React.MutableRefObject<MutationObserver | null>
+) {
+  observerRef.current?.disconnect()
+  observerRef.current = null
+  audioCtxRef.current?.close().catch(() => {})
+  audioCtxRef.current = null
+}
+
 interface VapiSessionConfig {
   apiKey?: string
   assistantId: string
@@ -45,6 +101,8 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
   const connectionAttempts = useRef(0)
   const unsubscribeRef = useRef<(() => void) | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const audioObserverRef = useRef<MutationObserver | null>(null)
 
   // Initialize VAPI instance using singleton manager
   useEffect(() => {
@@ -83,6 +141,8 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       setIsConnecting(false)
       connectionAttempts.current = 0
       config.onCallStart?.()
+      // Boost assistant audio output for mobile devices
+      boostRemoteAudio(audioCtxRef, audioObserverRef)
     })
 
     vapiInstance.on('call-end', () => {
@@ -91,6 +151,7 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
       setIsConnecting(false)
       config.onCallEnd?.()
       cleanupVolumeMonitoring()
+      cleanupAudioBoost(audioCtxRef, audioObserverRef)
     })
 
     vapiInstance.on('speech-start', () => {
@@ -120,6 +181,7 @@ export function useVapiSession(config: VapiSessionConfig): UseVapiSessionReturn 
         setIsConnecting(false)
         config.onCallEnd?.()
         cleanupVolumeMonitoring()
+        cleanupAudioBoost(audioCtxRef, audioObserverRef)
         return
       }
 

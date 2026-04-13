@@ -258,11 +258,11 @@ function InsightCard({ insight, therapyType, isExpanded, onToggleExpand, onViewD
 
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1">
-              <Badge className={`text-[10px] sm:text-xs border px-1.5 py-0 ${pStyle.badge}`}>
+              <Badge className={`text-[10px] sm:text-xs border px-1.5 py-0 whitespace-nowrap flex-shrink-0 ${pStyle.badge}`}>
                 <PriorityIcon className="h-2.5 w-2.5 mr-0.5" />
                 {config.priorities[insight.priority as keyof typeof config.priorities] || insight.priority}
               </Badge>
-              <Badge variant="outline" className="text-[10px] sm:text-xs border-white/20 text-white/50 px-1.5 py-0">
+              <Badge variant="outline" className="text-[10px] sm:text-xs border-white/20 text-white/50 px-1.5 py-0 whitespace-nowrap flex-shrink-0">
                 {insight.category.replace('-', ' ')}
               </Badge>
             </div>
@@ -428,7 +428,7 @@ function CollapsibleSection({
           <div className="flex items-center gap-2">
             <h4 className="text-sm sm:text-base font-semibold text-white leading-tight">{title}</h4>
             {badge && (
-              <Badge className={`text-[10px] border px-1.5 py-0 ${accentColor}`}>
+              <Badge className={`text-[10px] border px-1.5 py-0 whitespace-nowrap flex-shrink-0 ${accentColor}`}>
                 {badge}
               </Badge>
             )}

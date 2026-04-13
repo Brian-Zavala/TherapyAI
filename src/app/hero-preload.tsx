@@ -5,36 +5,12 @@ export default function HeroPreloads() {
   return (
     <>
       {/* Preload critical hero image */}
-      <link 
-        rel="preload" 
-        as="image" 
-        href="/images/home/7.webp" 
-        type="image/jpeg"
+      <link
+        rel="preload"
+        as="image"
+        href="/images/home/7.webp"
+        type="image/webp"
         fetchPriority="high"
-      />
-      
-      {/* Safer preloading approach without dynamic imports in inline scripts */}
-      <script 
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              try {
-                if (typeof window !== 'undefined') {
-                  // Use a timeout to ensure this runs after initial render
-                  setTimeout(() => {
-                    // Create a script tag to load Three.js
-                    const script = document.createElement('script');
-                    script.type = 'module';
-                    script.src = '/_next/static/chunks/node_modules_three_build_three_module_js.js';
-                    document.head.appendChild(script);
-                  }, 100);
-                }
-              } catch(e) {
-                console.warn('Failed to preload Three.js:', e);
-              }
-            })();
-          `
-        }}
       />
       
       {/* Preconnect to CDNs if using them */}

@@ -242,7 +242,7 @@ export default function Home() {
   const statsCostsTradPulse2 = useViewportAnimation({ threshold: 0.5 });
   const statsCostsTradPulse3 = useViewportAnimation({ threshold: 0.5 });
   const statsCostsAIPulse1 = useViewportAnimation({ threshold: 0.5 });
-  const statsCostsAIPulse2 = useViewportAnimation({ threshold: 0.5 });
+  // statsCostsAIPulse2 removed — no longer needed after pricing refactor
   const statsVideoCardView = useViewportAnimation({ threshold: 0.3 });
   const statsIconsPulseView = useViewportAnimation({ threshold: 0.2 });
 
@@ -481,7 +481,7 @@ export default function Home() {
                 href="/dashboard/therapy"
                 className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-3 sm:py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-lg hover:from-blue-600 hover:to-blue-600 focus:ring-4 focus:ring-blue-400 relative overflow-hidden" // Original classes
               >
-                <span className="relative z-10">
+                <span className="relative z-10 whitespace-nowrap">
                   Start Your Therapy Session
                 </span>
                 {/* Original overlay spans */}
@@ -596,11 +596,11 @@ export default function Home() {
                   <div className="p-4 sm:p-5 md:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-white/50 border border-white/30 shadow-md hover:shadow-lg transition-shadow duration-300">
                     {/* Original Heading */}
                     <h4 className="text-lg font-bold mb-3 flex flex-wrap items-center gap-2 relative z-10">
-                      <span className="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-3 py-1 rounded-lg shadow-md">
+                      <span className="flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800 text-white px-3 py-1 rounded-lg shadow-md">
                         TRADITIONAL
                       </span>
-                      <span className="text-gray-800 font-semibold">Therapy</span>
-                      <span className="sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md">
+                      <span className="flex-shrink-0 text-gray-800 font-semibold">Therapy</span>
+                      <span className="flex-shrink-0 sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md whitespace-nowrap">
                         HIGH COST
                       </span>
                     </h4>
@@ -683,8 +683,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* AI Powered Box */}
-                {/* Simple whileInView enter animation */}
+                {/* AI Powered Box — Value-focused comparison */}
                 <motion.div
                   initial="hidden"
                   whileInView="visible"
@@ -692,47 +691,44 @@ export default function Home() {
                   transition={{
                     duration: getOptimizedDuration(0.5),
                     delay: getOptimizedDelay(0.2),
-                  }} // Original delay relative to card entry
+                  }}
                   variants={fadeInUp}
                   className="relative"
                 >
                   <div className="p-4 sm:p-5 md:p-6 rounded-2xl bg-gradient-to-br from-white/70 to-blue-50/40 border border-blue-200/50 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    {/* Original heading */}
-                    <h4 className="text-lg font-bold mb-4 relative z-10 flex flex-wrap items-center gap-2">
-                      <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg shadow-md">
+                    {/* Heading */}
+                    <h4 className="text-lg font-bold mb-5 relative z-10 flex flex-wrap items-center gap-2">
+                      <span className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg shadow-md">
                         AI-POWERED
                       </span>
-                      <span className="text-blue-600 font-semibold">Therapy</span>
-                      <span className="sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md">
+                      <span className="flex-shrink-0 text-blue-600 font-semibold">Therapy</span>
+                      <span className="flex-shrink-0 sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md whitespace-nowrap">
                         AFFORDABLE
                       </span>
                     </h4>
-                    {/* Grid for AI costs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 mb-5 relative z-10 max-w-md mx-auto sm:max-w-none">
-                      {/* 30 Min Session Card */}
-                      {/* Simple fade-in for this inner card */}
+
+                    {/* Price anchor — traditional vs ours */}
+                    <div className="relative z-10 mb-5">
                       <motion.div
                         ref={statsCostsAIPulse1.ref}
-                        className="rounded-2xl p-4 pt-4 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+                        className="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md"
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
                       >
-                        {/* Original card title */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-2 mb-3 inline-block text-sm sm:text-base shadow-md max-w-fit">
-                          30-Minute Session
-                        </div>
-                        {/* Original price section */}
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-green-500 font-bold">
-                            Quick Therapy
+                        {/* Traditional price crossed out → our price */}
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                          <span className="text-gray-400 line-through text-lg sm:text-xl font-medium">
+                            $200/session
                           </span>
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
                           <div className="relative inline-block">
-                            {/* Controlled Green Pulse */}
                             <motion.span
-                              className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
-                              variants={pulseBorderVariant()} // Use base variant
+                              className="absolute inset-0 border-2 border-green-400/70 rounded-full"
+                              variants={pulseBorderVariant()}
                               initial="hidden"
                               animate={
                                 prefersReducedMotion
@@ -740,135 +736,71 @@ export default function Home() {
                                   : statsCostsAIPulse1.controls
                               }
                             />
-                            {/* Original price text */}
-                            <span className="text-3xl font-bold text-green-500 relative z-10">
-                              $2.65
+                            <span className="text-2xl sm:text-3xl font-bold text-green-500 relative z-10">
+                              $10/mo
                             </span>
                           </div>
                         </div>
-                        {/* Original cost breakdown list */}
-                        <ul className="text-sm text-gray-600 space-y-2">
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            </div>
-                            <span>Vapi platform: $1.50</span>
-                          </li>
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            </div>
-                            <span>Claude 3.7 AI: $0.07</span>
-                          </li>
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            </div>
-                            <span>Voice synthesis: $0.75</span>
-                          </li>
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            </div>
-                            <span>Transcription: $0.30</span>
-                          </li>
-                        </ul>
-                      </motion.div>
+                        <p className="text-center text-sm text-gray-500 mb-4">
+                          Up to 2 full sessions for just $10/mo.
+                        </p>
 
-                      {/* 60 Min Session Card */}
-                      {/* Simple fade-in for this inner card */}
-                      <motion.div
-                        ref={statsCostsAIPulse2.ref}
-                        className="rounded-2xl p-4 pt-4 sm:p-4 bg-gradient-to-br from-white to-green-50/30 border border-green-200/50 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        {/* Original card title */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg -mt-2 mb-3 inline-block text-sm sm:text-base shadow-md max-w-fit">
-                          60-Minute Session
-                        </div>
-                        {/* Original price section */}
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-green-500 font-bold">
-                            Full Therapy
-                          </span>
-                          <div className="relative inline-block">
-                            {/* Controlled Green Pulse */}
-                            <motion.span
-                              className="absolute inset-0 border-2 border-green-400/70 rounded-full" // Added shape
-                              variants={pulseBorderVariant(0.15)} // Use variant + delay
-                              initial="hidden"
-                              animate={
-                                prefersReducedMotion
-                                  ? "hidden"
-                                  : statsCostsAIPulse2.controls
-                              }
-                            />
-                            {/* Original price text */}
-                            <span className="text-3xl font-bold text-green-500 relative z-10">
-                              $5.25
-                            </span>
-                          </div>
-                        </div>
-                        {/* Original cost breakdown list */}
-                        <ul className="text-sm text-gray-600 space-y-2">
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                        {/* Value bullets */}
+                        <ul className="text-sm text-gray-700 space-y-2.5">
+                          <li className="flex items-center">
+                            <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
                               <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Vapi platform: $3.00</span>
+                            <span>Available <strong>24/7</strong> — no waitlists or scheduling</span>
                           </li>
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                          <li className="flex items-center">
+                            <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
                               <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Claude 3.7 AI: $0.15</span>
+                            <span><strong>Flexible</strong> guided therapy sessions</span>
                           </li>
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                          <li className="flex items-center">
+                            <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
                               <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Voice synthesis: $1.50</span>
+                            <span>Private, <strong>judgment-free</strong> environment</span>
                           </li>
-                          <li className="flex items-start">
-                            <div className="flex-shrink-0 w-5 h-5 mt-0.5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow duration-200">
+                          <li className="flex items-center">
+                            <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
                               <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Transcription: $0.60</span>
+                            <span>Full session <strong>transcripts & insights</strong></span>
+                          </li>
+                          <li className="flex items-center">
+                            <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
+                            <span>Start <strong>free</strong> — 2 short sessions, no credit card</span>
                           </li>
                         </ul>
                       </motion.div>
                     </div>
-                    {/* End AI costs grid */}
-                    {/* Final savings text */}
-                    {/* Simple whileInView */}
+
+                    {/* Savings callout */}
                     <motion.div
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: 0.6 }}
-                      className="text-center my-4 relative"
+                      className="text-center my-2 relative"
                     >
-                      <div className="text-white font-bold text-lg sm:text-xl relative inline-block">
-                        Save up to{" "}
+                      <div className="text-white font-bold text-base sm:text-lg relative inline-block">
+                        Less than a coffee per session.{" "}
                         <span
                           className="text-green-400 relative inline-block"
                           style={{
@@ -876,9 +808,9 @@ export default function Home() {
                               "-0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000, 0.5px 0.5px 0 #000",
                           }}
                         >
-                          97%
+                          Radically cheaper
                         </span>{" "}
-                        compared to traditional therapy costs!
+                        than traditional therapy.
                         <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: [0.4, 0.7, 0.4] }}
@@ -1026,7 +958,7 @@ export default function Home() {
                       </span>
                     </motion.div>
                     {/* Original stat text */}
-                    <p className="text-sm sm:text-base text-white">
+                    <p className="text-sm sm:text-base text-white min-w-0">
                       {stat.text}
                     </p>
                   </motion.div>
@@ -1059,199 +991,84 @@ export default function Home() {
                 cards={[
                   {
                     id: 1,
+                    videoSrc: "/videos/mental_health.mp4",
                     content: (
-                      <div className="relative w-full h-full overflow-hidden">
-                        {/* Adjust height as needed (e.g., h-[500px]) */}
-                        <video
-                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[320px] object-cover z-0"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
-                        >
-                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
-                          <source
-                            src="/videos/couple.mp4"
-                            type="video/mp4"
-                          />{" "}
-                          {/* Replace with your .mp4 path */}
-                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          Your browser does not support the video tag.
-                        </video>
-                        {/* Optional: Semi-transparent Overlay for better text readability */}
-                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
-                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
-                        {/* Text Content Container */}
-                        <div className="absolute inset-0 z-20 p-5">
-                          {/* Add positioning/centering classes here if needed */}
-
-                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
-                            Rebuild trust, improve communication, and rediscover
-                            intimacy with our specialized couples therapy. Our
-                            AI therapist uses evidence-based techniques from
-                            Gottman Method and Emotionally Focused Therapy to
-                            help you navigate conflicts and strengthen your
-                            bond.
-                          </p>
-                        </div>
+                      <div className="absolute inset-0 z-10 p-5 flex flex-col justify-end">
+                        <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
+                          Address anxiety, depression, and stress with
+                          personalized therapy approaches that promote emotional
+                          well-being. Our AI therapist employs Cognitive
+                          Behavioral Therapy (CBT), mindfulness practices, and
+                          solution-focused techniques to help you overcome
+                          obstacles.
+                        </p>
                       </div>
                     ),
                     className:
-                      "md:col-span-2 row-span-1 md:row-span-1 md:col-start-1 md:row-start-1", // Position in first row, first column for md+
-                    thumbnail: "/images/therapyType/couple.webp",
-                    size: "large",
-                    title: "Couples Therapy",
-                  },
-                  {
-                    id: 2,
-                    content: (
-                      <div className="relative w-full h-full overflow-hidden">
-                        {/* Adjust height as needed (e.g., h-[500px]) */}
-                        <video
-                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[350px] object-cover z-0"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
-                        >
-                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
-                          <source
-                            src="/videos/mental_health.mp4"
-                            type="video/mp4"
-                          />{" "}
-                          {/* Replace with your .mp4 path */}
-                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          Your browser does not support the video tag.
-                        </video>
-                        {/* Optional: Semi-transparent Overlay for better text readability */}
-                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
-                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
-                        {/* Text Content Container */}
-                        <div className="absolute inset-0 z-20 p-5">
-                          {/* Add positioning/centering classes here if needed */}
-
-                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
-                            Address anxiety, depression, and stress with
-                            personalized therapy approaches that promote
-                            emotional well-being. Our AI therapist employs
-                            Cognitive Behavioral Therapy (CBT), mindfulness
-                            practices, and solution-focused techniques to help
-                            you overcome obstacles.
-                          </p>
-                        </div>
-                      </div>
-                    ),
-                    className:
-                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2", // Position in second row, first column for md+
+                      "md:col-span-2 row-span-1 md:row-span-1 md:col-start-1 md:row-start-1",
                     thumbnail: "/images/therapyType/mental_health.webp",
-                    size: "medium",
+                    size: "large",
                     title: "Mental Health Challenges",
                   },
                   {
-                    id: 3,
+                    id: 2,
+                    videoSrc: "/videos/solo.mp4",
                     content: (
-                      <div className="relative w-full h-full overflow-hidden">
-                        {/* Adjust height as needed (e.g., h-[500px]) */}
-                        <video
-                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[380px] object-cover z-0"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
-                        >
-                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
-                          <source
-                            src="/videos/family.mp4"
-                            type="video/mp4"
-                          />{" "}
-                          {/* Replace with your .mp4 path */}
-                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          Your browser does not support the video tag.
-                        </video>
-                        {/* Optional: Semi-transparent Overlay for better text readability */}
-                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
-                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
-                        {/* Text Content Container */}
-                        <div className="absolute inset-0 z-20 p-5">
-                          {/* Add positioning/centering classes here if needed */}
-
-                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
-                            Heal family dynamics and build stronger connections
-                            through our systemic family therapy approach.
-                            Address intergenerational patterns, resolve
-                            conflicts, and improve communication between all
-                            family members in a collaborative, supportive
-                            environment.
-                          </p>
-                        </div>
+                      <div className="absolute inset-0 z-10 p-5 flex flex-col justify-end">
+                        <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
+                          Embark on a personal growth journey with our
+                          individualized solo therapy. Enhance your mental
+                          wellbeing, develop effective coping strategies, and
+                          gain profound self-awareness through personalized
+                          therapeutic approaches tailored to your unique needs.
+                        </p>
                       </div>
                     ),
                     className:
-                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2", // Position in second row, second column for md+
-                    thumbnail: "/images/therapyType/family.webp",
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-1 md:row-start-2",
+                    thumbnail: "/images/therapyType/solo.webp",
                     size: "medium",
-                    title: "Family Therapy",
+                    title: "Solo Therapy",
+                  },
+                  {
+                    id: 3,
+                    videoSrc: "/videos/couple.mp4",
+                    content: (
+                      <div className="absolute inset-0 z-10 p-5 flex flex-col justify-end">
+                        <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
+                          Rebuild trust, improve communication, and rediscover
+                          intimacy with our specialized couples therapy. Our AI
+                          therapist uses evidence-based techniques from Gottman
+                          Method and Emotionally Focused Therapy to help you
+                          navigate conflicts and strengthen your bond.
+                        </p>
+                      </div>
+                    ),
+                    className:
+                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-2",
+                    thumbnail: "/images/therapyType/couple.webp",
+                    size: "medium",
+                    title: "Couples Therapy",
                   },
                   {
                     id: 4,
+                    videoSrc: "/videos/family.mp4",
                     content: (
-                      <div className="relative w-full h-full overflow-hidden">
-                        {/* Adjust height as needed (e.g., h-[500px]) */}
-                        <video
-                          className="absolute w-full h-[246px] md:h-[280px] lg:h-[320px] object-cover z-0"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          // Optional: poster="/images/fallback-image.webp" // Add path to fallback image here
-                        >
-                          {/* PLACE YOUR VIDEO SOURCE PATHS HERE */}
-                          <source
-                            src="/videos/solo.mp4"
-                            type="video/mp4"
-                          />{" "}
-                          {/* Replace with your .mp4 path */}
-                          {/* <source src="/videos/your-background-video.webm" type="video/webm" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          {/* <source src="/videos/your-background-video.ogg" type="video/ogg" /> */}{" "}
-                          {/* Optional: Add other formats */}
-                          Your browser does not support the video tag.
-                        </video>
-                        {/* Optional: Semi-transparent Overlay for better text readability */}
-                        <div className="absolute inset-0 bg-black/50 z-10"></div>{" "}
-                        {/* Adjust color/opacity (e.g., bg-blue-500/75) */}
-                        {/* Text Content Container */}
-                        <div className="absolute inset-0 z-20 p-5">
-                          {/* Add positioning/centering classes here if needed */}
-
-                          <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
-                            Embark on a personal growth journey with our
-                            individualized solo therapy. Enhance your mental
-                            wellbeing, develop effective coping strategies, and
-                            gain profound self-awareness through personalized
-                            therapeutic approaches tailored to your unique
-                            needs.
-                          </p>
-                        </div>
+                      <div className="absolute inset-0 z-10 p-5 flex flex-col justify-end">
+                        <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg mt-4 md:mt-8 lg:mt-14">
+                          Heal family dynamics and build stronger connections
+                          through our systemic family therapy approach. Address
+                          intergenerational patterns, resolve conflicts, and
+                          improve communication between all family members in a
+                          collaborative, supportive environment.
+                        </p>
                       </div>
                     ),
                     className:
-                      "md:col-span-1 row-span-1 md:row-span-1 md:col-start-2 md:row-start-1", // Position in first row, second column for md+
-                    thumbnail: "/images/therapyType/solo.webp",
+                      "md:col-span-2 row-span-1 md:row-span-1 md:col-start-1 md:row-start-3",
+                    thumbnail: "/images/therapyType/family.webp",
                     size: "large",
-                    title: "Solo Therapy",
+                    title: "Family Therapy",
                   },
                 ]}
               />

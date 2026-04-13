@@ -300,9 +300,16 @@ async function getPersonalizedAssistant(req: NextRequest, session: any) {
       voice: personalizedConfig.voice,
       transcriber: personalizedConfig.transcriber,
       firstMessage: personalizedConfig.firstMessage,
+      firstMessageMode: personalizedConfig.firstMessageMode || "assistant-speaks-first",
       maxDurationSeconds: personalizedConfig.maxDurationSeconds,
       silenceTimeoutSeconds: personalizedConfig.silenceTimeoutSeconds,
       backgroundSound: personalizedConfig.backgroundSound || "off",
+      backgroundDenoisingEnabled: personalizedConfig.backgroundDenoisingEnabled ?? true,
+      backchannelingEnabled: personalizedConfig.backchannelingEnabled ?? true,
+      startSpeakingPlan: personalizedConfig.startSpeakingPlan,
+      stopSpeakingPlan: personalizedConfig.stopSpeakingPlan,
+      endCallPhrases: personalizedConfig.endCallPhrases,
+      artifactPlan: personalizedConfig.artifactPlan,
       clientMessages: Array.isArray(personalizedConfig.clientMessages)
         ? personalizedConfig.clientMessages
         : ["transcript", "model-output", "hang", "function-call-result", "tool-calls", "tool-calls-result", "speech-update", "conversation-update"]

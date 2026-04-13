@@ -1472,15 +1472,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       // Store sessionId before it gets cleared
       const currentSessionId = session.sessionId
       
-      // Stop VAPI call first
-      await vapi.endSession()
-      
-      // End session through both systems for proper synchronization
-      // NOTE: Both hooks make the same API call to ensure they work independently.
-      // The session completion lock in the API prevents race conditions.
+      // Run VAPI stop, session completion API, and Supabase broadcast in parallel.
+      // These are independent: VAPI SDK teardown doesn't block the DB completion,
+      // and the Supabase broadcast is a separate channel from the API call.
       await Promise.all([
-        session.endSession(),        // Handles metrics calculation and API call
-        sessionState.endSession()     // Handles state broadcast and API call
+        vapi.endSession(),            // Stops VAPI SDK / Daily.co call
+        session.endSession(),         // Calls /api/sessions/{id}/complete
+        sessionState.endSession()     // Broadcasts ENDED via Supabase
       ])
       
       setError(null)
@@ -1524,18 +1522,17 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
       if (!redirectInProgressRef.current && router) {
         redirectInProgressRef.current = true
         console.log('🚀 Navigating to dashboard after session end')
-        
-        setTimeout(() => {
-          try {
-            router.push('/dashboard')
-          } catch (navError) {
-            console.error('Failed to navigate to dashboard:', navError)
-            // Fallback to window.location if router fails
-            if (typeof window !== 'undefined') {
-              window.location.href = '/dashboard'
-            }
+
+        // Navigate immediately — all critical cleanup is already done above,
+        // and the API now defers non-critical work (email, SMS, insights) to background.
+        try {
+          router.push('/dashboard')
+        } catch (navError) {
+          console.error('Failed to navigate to dashboard:', navError)
+          if (typeof window !== 'undefined') {
+            window.location.href = '/dashboard'
           }
-        }, 500) // Small delay to ensure all cleanup is complete
+        }
       }
       
     } catch (error) {

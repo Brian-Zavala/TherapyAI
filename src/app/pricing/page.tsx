@@ -74,7 +74,7 @@ const PricingPage = () => {
       highlight: false,
       gradient: 'from-blue-700 to-blue-900',
       features: [
-        { text: '3 sessions per month', included: true },
+        { text: '2 sessions per month', included: true },
         { text: '15 minutes per session', included: true },
         { text: 'Basic mood tracking', included: true },
         { text: 'Crisis detection & support', included: true },
@@ -101,7 +101,7 @@ const PricingPage = () => {
       highlight: true,
       gradient: 'from-purple-600 to-indigo-600',
       features: [
-        { text: 'Unlimited sessions per month', included: true },
+        { text: '2 sessions per month', included: true },
         { text: '30 minutes per session', included: true },
         { text: 'Full analytics dashboard', included: true },
         { text: 'Crisis detection & support', included: true },
@@ -232,7 +232,7 @@ const PricingPage = () => {
                 >
                   {plan.highlight && (
                     <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-to-r from-purple-400 to-indigo-400 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-lg">
+                      <div className="bg-gradient-to-r from-purple-400 to-indigo-400 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-lg whitespace-nowrap">
                         MOST POPULAR
                       </div>
                     </div>
@@ -363,15 +363,15 @@ const PricingPage = () => {
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 md:gap-6">
               <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-white/10 backdrop-blur-lg border border-white/20">
                 <ShieldCheckIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-white">No Credit Card Required</span>
+                <span className="text-xs sm:text-sm text-white whitespace-nowrap">No Credit Card Required</span>
               </div>
               <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-white/10 backdrop-blur-lg border border-white/20">
                 <ClockIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-white">Cancel Anytime</span>
+                <span className="text-xs sm:text-sm text-white whitespace-nowrap">Cancel Anytime</span>
               </div>
               <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-white/10 backdrop-blur-lg border border-white/20">
                 <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-white">Join Thousands of Users</span>
+                <span className="text-xs sm:text-sm text-white whitespace-nowrap">Join Thousands of Users</span>
               </div>
             </div>
           </motion.div>
@@ -388,7 +388,7 @@ const PricingPage = () => {
               {[
                 {
                   q: "What's included in the free plan?",
-                  a: "The free plan gives you 3 sessions per month (15 minutes each), basic mood tracking, crisis detection, and AI-powered insights — everything you need to get started."
+                  a: "The free plan gives you 2 sessions per month (15 minutes each), basic mood tracking, crisis detection, and AI-powered insights — everything you need to get started."
                 },
                 {
                   q: "Can I upgrade or cancel anytime?",

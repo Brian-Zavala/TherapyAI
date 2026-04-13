@@ -72,17 +72,29 @@ Realtime: `useVapiMetricsBridge` → `useSupabaseRealTimeMetrics` ← `useSupaba
 
 ## 🔧 Session Completion Architecture
 
-**Race Condition Prevention**: 
-- Both `useSessionManagementV2` and `useSupabaseSessionState` call `/api/sessions/{id}/complete`
-- Session-level locks in API prevent duplicate processing
-- First request processes, second gets cached result
-- Both hooks work independently but share completion logic
+**Client-side flow** (`TherapyButtonRefactored.handleEndSession`):
+```
+Promise.all([
+  vapi.endSession(),          // VAPI SDK teardown
+  session.endSession(),       // → POST /api/sessions/{id}/complete
+  sessionState.endSession()   // Supabase broadcast only (no API call)
+])
+→ cleanup sessionStorage
+→ router.push('/dashboard')   // immediate, no delay
+```
 
-**Cleanup Sequence**:
-1. Clear pending timeouts
-2. Clear pending transcript chunks  
-3. Cleanup metrics calculator
-4. Broadcast session end event
+All three operations run **in parallel** — VAPI stop is independent from the DB completion.
+
+**Client-side transcript flush removed** (April 2026): `useSessionManagementV2.endSession()` no longer calls `flushSessionTranscripts()` before the API. The server's `after()` callback handles flushing. This saves 200-500ms of blocking time.
+
+**Race Condition Prevention**: 
+- Only `useSessionManagementV2` calls `/api/sessions/{id}/complete` (not both hooks)
+- `useSupabaseSessionState.endSession()` only broadcasts via Supabase — no API call
+- Session-level Redis lock in API prevents duplicate processing from any source
+
+**Server-side split** (critical path vs background):
+- **Critical path** (blocking): `lifecycleManager.completeSession()` (status + credits + metrics) → billing update → return response
+- **Background** (via `after()` from `next/server`): metrics verification/retry, transcript flush, email, SMS, AI insights regeneration
 
 **Error Handling**:
 - Proper error serialization (no more empty `{}` objects)

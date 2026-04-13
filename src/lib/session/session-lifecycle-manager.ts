@@ -68,7 +68,8 @@ export class SessionLifecycleManager {
   async transitionSession(
     sessionId: string,
     toState: SessionLifecycleState,
-    action?: () => Promise<void>
+    action?: () => Promise<void>,
+    userId?: string
   ): Promise<void> {
     // Prevent concurrent transitions
     const existingLock = this.processingLocks.get(sessionId);
@@ -82,7 +83,7 @@ export class SessionLifecycleManager {
       }
     }
 
-    const transitionPromise = this.performTransition(sessionId, toState, action);
+    const transitionPromise = this.performTransition(sessionId, toState, action, userId);
     this.processingLocks.set(sessionId, transitionPromise);
 
     try {
@@ -95,7 +96,8 @@ export class SessionLifecycleManager {
   private async performTransition(
     sessionId: string,
     toState: SessionLifecycleState,
-    action?: () => Promise<void>
+    action?: () => Promise<void>,
+    userId?: string
   ): Promise<void> {
     const currentState = await this.getSessionState(sessionId);
 
@@ -121,11 +123,14 @@ export class SessionLifecycleManager {
         await action();
       }
 
-      // Update database state
+      // Update database state (skips no-op intermediate writes)
       await this.updateDatabaseState(sessionId, toState);
 
-      // Clear caches
-      await this.clearSessionCaches(sessionId);
+      // Clear caches only on terminal states — intermediate transitions don't
+      // change what's visible to the user, so cache invalidation can wait.
+      if (toState === 'COMPLETED' || toState === 'FAILED') {
+        await this.clearSessionCaches(sessionId, userId);
+      }
     } catch (error) {
       // Rollback in-memory state on failure
       this.sessionStates.set(sessionId, currentState);
@@ -210,44 +215,44 @@ export class SessionLifecycleManager {
       // Transition through states
       await this.transitionSession(sessionId, 'ENDING');
       await this.transitionSession(sessionId, 'COMPLETING');
-    
+
     try {
-      // Ensure VAPI call is terminated
-      await this.terminateVapiCall(sessionId);
-      
+      // Single pre-fetch: get all fields needed by terminateVapiCall + credit deduction
+      const sessionData = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { vapiCallId: true, sessionType: true }
+      });
+
+      if (!sessionData) {
+        throw new Error(`Session ${sessionId} not found`);
+      }
+
+      // Ensure VAPI call is terminated (uses pre-fetched vapiCallId)
+      await this.terminateVapiCall(sessionId, sessionData.vapiCallId);
+
       // Deduct credits with timing reconciliation
       await this.transitionSession(sessionId, 'DEDUCTING_CREDITS', async () => {
         const creditManager = new CreditManager();
-        
-        // Get session details for credit calculation
-        const session = await prisma.session.findUnique({
-          where: { id: sessionId },
-          include: { user: true }
-        });
-        
-        if (!session) {
-          throw new Error(`Session ${sessionId} not found`);
-        }
 
         // Reconcile timing from all sources for accurate billing
         const reconciliation = await timingReconciliation.reconcileTiming(sessionId);
-        
+
         if (reconciliation.actualMinutes > 0) {
           await creditManager.deductCredits(
             userId,
             sessionId,
-            session.vapiCallId || `lifecycle-${sessionId}`,
+            sessionData.vapiCallId || `lifecycle-${sessionId}`,
             reconciliation.actualMinutes,
             {
               source: 'lifecycle_manager',
               reconciliationData: reconciliation,
-              sessionType: session.sessionType,
+              sessionType: sessionData.sessionType,
               completionState: 'unified_deduction',
               timingSource: reconciliation.source,
               confidence: reconciliation.confidence
             }
           );
-          
+
           logger.info('Credits deducted via lifecycle manager', {
             sessionId,
             userId,
@@ -270,8 +275,8 @@ export class SessionLifecycleManager {
         await calculateMetrics(sessionId, userId);
       });
 
-      // Final transition to completed
-      await this.transitionSession(sessionId, 'COMPLETED');
+      // Final transition to completed — pass userId for cache invalidation
+      await this.transitionSession(sessionId, 'COMPLETED', undefined, userId);
       
       logger.info('Session completion finished successfully', {
         sessionId,
@@ -286,7 +291,7 @@ export class SessionLifecycleManager {
       
       // Try to mark as failed, but don't throw if this fails
       try {
-        await this.transitionSession(sessionId, 'FAILED');
+        await this.transitionSession(sessionId, 'FAILED', undefined, userId);
       } catch (failError) {
         logger.error('Failed to transition to failed state', { sessionId, error: failError });
       }
@@ -333,26 +338,21 @@ export class SessionLifecycleManager {
   /**
    * Terminate VAPI call if active
    */
-  private async terminateVapiCall(sessionId: string): Promise<void> {
+  private async terminateVapiCall(sessionId: string, vapiCallId?: string | null): Promise<void> {
     try {
-      const session = await prisma.session.findUnique({
-        where: { id: sessionId },
-        select: { vapiCallId: true }
-      });
-
-      if (!session?.vapiCallId) {
+      if (!vapiCallId) {
         logger.info('No VAPI call to terminate', { sessionId });
         return;
       }
 
       const vapi = (await import('@/lib/vapi')).default;
-      await vapi.calls.update(session.vapiCallId, { 
-        endCallNow: true 
+      await vapi.calls.update(vapiCallId, {
+        endCallNow: true
       });
 
       logger.info('VAPI call terminated', {
         sessionId,
-        vapiCallId: session.vapiCallId
+        vapiCallId
       });
     } catch (error) {
       // Log but don't throw - call might already be ended
@@ -400,10 +400,15 @@ export class SessionLifecycleManager {
     state: SessionLifecycleState
   ): Promise<void> {
     const status = this.mapStateToStatus(state);
-    
+
+    // Intermediate states (ENDING → CALCULATING_METRICS) all map to ACTIVE in the DB,
+    // so writing them is a no-op. Only write when the DB status actually changes.
+    const isTerminalWrite = state === 'COMPLETED' || state === 'FAILED';
+    if (!isTerminalWrite) return;
+
     await prisma.session.update({
       where: { id: sessionId },
-      data: { 
+      data: {
         status,
         ...(state === 'COMPLETED' && { completedAt: new Date() })
       }
@@ -427,17 +432,11 @@ export class SessionLifecycleManager {
     }
   }
 
-  private async clearSessionCaches(sessionId: string): Promise<void> {
+  private async clearSessionCaches(sessionId: string, userId?: string): Promise<void> {
     await sessionCache.invalidate(sessionId);
-    
-    // Also clear user profile cache
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
-      select: { userId: true }
-    });
-    
-    if (session?.userId) {
-      await profileCache.invalidate(session.userId);
+
+    if (userId) {
+      await profileCache.invalidate(userId);
     }
   }
 

@@ -129,7 +129,7 @@ const ResourceCard = memo(
                 {resource.tags?.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-sm border border-white/40 text-white"
+                    className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-white/20 backdrop-blur-sm border border-white/40 text-white whitespace-nowrap"
                   >
                     {tag.charAt(0).toUpperCase() + tag.slice(1)}
                   </span>
@@ -150,7 +150,7 @@ const ResourceCard = memo(
                 href={resource.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-sm sm:text-base lg:text-lg font-semibold transition-all duration-300 group/link cursor-pointer text-blue-400 hover:text-blue-300"
+                className="inline-flex items-center text-sm sm:text-base lg:text-lg font-semibold transition-all duration-300 group/link cursor-pointer text-blue-400 hover:text-blue-300 whitespace-nowrap"
               >
                 <span className="mr-1">Access Resource</span>
                 <svg
@@ -641,7 +641,7 @@ export default function ResourcesOptimized() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-pink-900/20" />
 
         {/* Main overlay for content readability */}
-        <div className="relative z-10 min-h-screen backdrop-blur-lg bg-gradient-to-b from-slate-900/60 via-slate-900/70 to-slate-900/80 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="relative z-10 min-h-screen backdrop-blur-lg bg-gradient-to-b from-slate-900/60 via-slate-900/70 to-slate-900/80 pt-20 sm:pt-24 pb-12 px-4 sm:px-6 lg:px-8">
           {/* Mobile tabs */}
           {isMobile && (
             <motion.div

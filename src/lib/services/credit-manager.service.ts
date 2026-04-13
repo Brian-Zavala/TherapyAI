@@ -628,8 +628,10 @@ export class CreditManager {
           async (tx) => {
             // SECURITY FIX: Use SELECT FOR UPDATE to lock the row and prevent race conditions
             // This is the PostgreSQL way to prevent TOCTOU vulnerabilities
+            // Only select fields needed for credit calculation — avoids fetching metadata columns.
             const creditsResult = await tx.$queryRaw<UsageCredits[]>`
-              SELECT * FROM "UsageCredits"
+              SELECT "id", "userId", "totalCredits", "usedCredits", "bonusCredits", "planType"
+              FROM "UsageCredits"
               WHERE "userId" = ${userId}
                 AND "billingPeriodStart" <= NOW()
                 AND "billingPeriodEnd" >= NOW()
@@ -691,31 +693,20 @@ export class CreditManager {
               throw new Error(`Insufficient credits: ${currentAvailable} available, ${actualMinutes} requested`);
             }
 
-            // Now safely update with the row locked
-            const updateResult = await tx.usageCredits.update({
+            // Now safely update with the row locked — select returns updated fields
+            // directly, eliminating the need for a separate findUnique refetch.
+            const updatedCredits = await tx.usageCredits.update({
               where: { id: credits.id },
               data: {
                 usedCredits: credits.usedCredits + actualMinutes,
                 updatedAt: new Date(),
               },
+              select: { totalCredits: true, bonusCredits: true, usedCredits: true },
             });
 
-            if (!updateResult) {
-              throw new Error('Failed to update credits');
-            }
-
-          // Fetch the updated credits
-          const updatedCredits = await tx.usageCredits.findUnique({
-            where: { id: credits.id },
-          });
-
-          if (!updatedCredits) {
-            throw new Error('Failed to fetch updated credits after deduction');
-          }
-
-          // Calculate new balance
-          const totalAvailable = updatedCredits.totalCredits + updatedCredits.bonusCredits;
-          const newBalance = totalAvailable - updatedCredits.usedCredits;
+            // Calculate new balance from the returned update result
+            const totalAvailable = updatedCredits.totalCredits + updatedCredits.bonusCredits;
+            const newBalance = totalAvailable - updatedCredits.usedCredits;
 
           // Create transaction record
           const transaction = await tx.usageTransaction.create({

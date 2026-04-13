@@ -358,7 +358,7 @@ export default function CheckoutSuccessPage() {
                 >
                   <div className="bg-white/5 rounded-lg p-3 sm:p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ClockIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+                      <ClockIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0" />
                       <p className="text-white/70 text-xs sm:text-sm">
                         Redirecting to dashboard in {countdown} seconds...
                       </p>

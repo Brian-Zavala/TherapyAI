@@ -225,7 +225,7 @@ export default function SessionDurationModal({
               <div className="relative px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-600/30">
                 <button
                   onClick={onClose}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-gray-800/60 hover:bg-gray-700/80 transition-colors duration-200 border border-gray-600/50"
+                  className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-full bg-gray-800/60 hover:bg-gray-700/80 transition-colors duration-200 border border-gray-600/50 cursor-pointer"
                   disabled={isLoading}
                 >
                   <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300" />
@@ -272,7 +272,7 @@ export default function SessionDurationModal({
                       </span>
                       <button
                         onClick={() => window.location.reload()}
-                        className="ml-2 text-xs text-red-400 hover:text-red-300 underline"
+                        className="ml-2 text-xs text-red-400 hover:text-red-300 underline cursor-pointer"
                       >
                         Retry
                       </button>
@@ -459,7 +459,7 @@ export default function SessionDurationModal({
                               // Navigate to upgrade page
                               window.location.href = '/dashboard/subscription';
                             }}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all"
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all cursor-pointer"
                           >
                             <TrendingUp className="w-4 h-4" />
                             Upgrade Plan
@@ -477,7 +477,7 @@ export default function SessionDurationModal({
                                   toast.success(`Selected ${affordableDuration.duration}-minute session`);
                                 }
                               }}
-                              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all"
+                              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all cursor-pointer"
                             >
                               <Clock className="w-4 h-4" />
                               Use Available Credits
@@ -518,7 +518,7 @@ export default function SessionDurationModal({
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button
                     onClick={onClose}
-                    className="w-full sm:flex-1 px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 border border-gray-500 bg-gray-700 text-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl hover:bg-gray-600 hover:border-gray-400 transition-all duration-200 font-medium text-sm sm:text-base"
+                    className="w-full sm:flex-1 px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 border border-gray-500 bg-gray-700 text-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl hover:bg-gray-600 hover:border-gray-400 transition-all duration-200 font-medium text-sm sm:text-base cursor-pointer"
                     disabled={isLoading}
                   >
                     Cancel
@@ -528,7 +528,7 @@ export default function SessionDurationModal({
                     whileTap={{ scale: 0.98 }}
                     onClick={handleContinue}
                     disabled={isLoading || !selectedDuration || creditsLoading}
-                    className="w-full sm:flex-1 px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 bg-blue-500 text-white rounded-lg sm:rounded-xl lg:rounded-2xl hover:bg-blue-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base shadow-lg shadow-blue-500/20"
+                    className="w-full sm:flex-1 px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 bg-blue-500 text-white rounded-lg sm:rounded-xl lg:rounded-2xl hover:bg-blue-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base shadow-lg shadow-blue-500/20 cursor-pointer"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">

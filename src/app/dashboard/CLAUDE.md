@@ -28,6 +28,8 @@ Therapy progress insights, session management, real-time analytics. Next.js 15 A
 
 **Data**: SWR 30s refresh, 10s dedupe, userId cache keys, 3 retries
 
+**Session End → Dashboard**: Session completion API returns after critical path only (status + credits + billing). Background work (metrics verification, email, SMS, AI insights) runs via `after()` from `next/server`. Client navigates to dashboard immediately — no 500ms delay.
+
 **Components**: React.memo charts, lazy load heavy components, Suspense skeletons
 
 ## Error & Security

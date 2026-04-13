@@ -1793,7 +1793,7 @@ function WelcomePageInner() {
                                         : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
                                     }`}
                                   >
-                                    <span className="relative z-10 flex items-center justify-center">
+                                    <span className="relative z-10 flex items-center justify-center whitespace-nowrap">
                                       {option.label}
                                     </span>
                                     {isSelected && (
@@ -1932,7 +1932,7 @@ function WelcomePageInner() {
                                 <label className="text-white/60 text-xs sm:text-sm flex items-center gap-2">
                                   Your story
                                   {selectedSentences.size > 0 && (
-                                    <span className="text-emerald-400 text-[10px] sm:text-xs font-medium bg-emerald-400/10 px-2 py-0.5 rounded-full">
+                                    <span className="text-emerald-400 text-[10px] sm:text-xs font-medium bg-emerald-400/10 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
                                       {selectedSentences.size} selected
                                     </span>
                                   )}

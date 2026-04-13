@@ -256,6 +256,19 @@ export async function POST(request: NextRequest) {
 
         // 8. Reserve credits inline (avoids nested transaction from creditManager)
         if (!isUnlimited && currentCredits) {
+          // Clean up stale reservations for sessions that are no longer active
+          await tx.$executeRaw`
+            UPDATE "CreditReservation"
+            SET status = 'RELEASED', "updatedAt" = NOW()
+            WHERE "userId" = ${session.user.id}
+              AND status = 'ACTIVE'
+              AND "sessionId" IN (
+                SELECT s.id FROM "Session" s
+                WHERE s.id = "CreditReservation"."sessionId"
+                  AND s.status NOT IN ('ACTIVE', 'PAUSED', 'SCHEDULED')
+              )
+          `;
+
           // Check active reservations for this user (excluding current session)
           const activeReservations = await tx.$queryRaw<any[]>`
             SELECT COALESCE(SUM(minutes), 0) as total

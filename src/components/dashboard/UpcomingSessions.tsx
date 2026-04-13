@@ -190,7 +190,7 @@ export default function UpcomingSessions() {
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-4 py-1.5 text-sm font-medium text-purple-300"
+            className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-400/30 rounded-full px-4 py-1.5 text-sm font-medium text-purple-300 whitespace-nowrap"
           >
             {sessions.length} session{sessions.length !== 1 ? 's' : ''}
           </motion.div>
@@ -368,12 +368,12 @@ export default function UpcomingSessions() {
                   <div className="flex flex-col space-y-2">
                     <div className="flex items-center flex-wrap gap-2">
                       <h3 className={`font-semibold text-purple-800 ${isSmallScreen ? 'text-sm' : 'text-base'} leading-tight`}>{session.theme}</h3>
-                      <motion.span 
+                      <motion.span
                         whileHover={{ scale: 1.05 }}
-                        className={`text-xs px-3 py-1 rounded-full font-medium shadow-md 
-                        ${badgeStyles.label === 'Happening soon' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border border-red-400/30' : 
-                        badgeStyles.label === 'Today' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/30' : 
-                        badgeStyles.label === 'Tomorrow' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400/30' : 
+                        className={`text-xs px-3 py-1 rounded-full font-medium shadow-md whitespace-nowrap flex-shrink-0
+                        ${badgeStyles.label === 'Happening soon' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border border-red-400/30' :
+                        badgeStyles.label === 'Today' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/30' :
+                        badgeStyles.label === 'Tomorrow' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400/30' :
                         'bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-400/30'}`}>
                         {badgeStyles.label}
                       </motion.span>

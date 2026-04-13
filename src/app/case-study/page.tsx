@@ -38,7 +38,7 @@ export default function CaseStudyPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-purple-600 to-pink-600 text-white py-20">
+      <section className="bg-gradient-to-br from-purple-600 to-pink-600 text-white pt-24 sm:pt-28 pb-20">
         <div className="max-w-6xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -52,7 +52,7 @@ export default function CaseStudyPage() {
             <p className="text-xl mb-8 opacity-90">
               How we built a scalable therapy solution serving 10,000+ sessions
             </p>
-            <div className="flex justify-center space-x-4">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
               <Link
                 href="/demo"
                 className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
@@ -88,7 +88,7 @@ export default function CaseStudyPage() {
             <div className="bg-green-50 p-6 rounded-lg">
               <h3 className="text-xl font-semibold text-green-800 mb-4">Our Solution</h3>
               <ul className="space-y-2 text-green-700">
-                <li>• Reduced cost: $40 per session</li>
+                <li>• Just $10/month for unlimited sessions</li>
                 <li>• Instant access: No wait times</li>
                 <li>• Available 24/7/365</li>
                 <li>• Accessible from anywhere</li>
@@ -113,7 +113,7 @@ export default function CaseStudyPage() {
           </div>
 
           {/* Tech Stack */}
-          <div className="grid md:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-12">
             <div className="bg-white p-6 rounded-lg shadow">
               <h4 className="font-semibold mb-2">Frontend</h4>
               <ul className="text-sm text-gray-600 space-y-1">
@@ -183,7 +183,7 @@ vapi.on('call-end', handleCallEnd);`}
                 Built automatic session recovery that reconnects users within 2 seconds of connection loss,
                 preserving conversation context and progress.
               </p>
-              <div className="grid md:grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
                 <div className="bg-purple-50 p-4 rounded">
                   <div className="text-2xl font-bold text-purple-600">2s</div>
                   <div className="text-sm text-gray-600">Recovery Time</div>
@@ -210,7 +210,7 @@ vapi.on('call-end', handleCallEnd);`}
           {/* Performance Metrics */}
           <div className="mb-12">
             <h3 className="text-2xl font-semibold mb-6">Performance Metrics</h3>
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               {Object.entries(metrics.performance).map(([key, metric]) => (
                 <motion.div
                   key={key}
@@ -232,7 +232,7 @@ vapi.on('call-end', handleCallEnd);`}
           {/* Business Metrics */}
           <div className="mb-12">
             <h3 className="text-2xl font-semibold mb-6">Business Impact</h3>
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               {Object.entries(metrics.business).map(([key, metric]) => (
                 <motion.div
                   key={key}
@@ -282,7 +282,7 @@ vapi.on('call-end', handleCallEnd);`}
       <section className="py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8 text-center">What Users Say</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (

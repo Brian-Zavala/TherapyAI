@@ -12,14 +12,13 @@ import { validateVapiInlineConfig, logVapiValidationResult } from './vapi-config
  */
 const INVALID_FIELDS = [
   'variableValues',
-  'metadata', 
+  'metadata',
   'recordingEnabled',
   'hipaaEnabled',
   'responseDelaySeconds',
   'llmRequestDelaySeconds',
   'numWordsToInterruptAssistant',
   'functions', // Should be in model.tools instead
-  'backgroundDenoisingEnabled'
 ]
 
 /**

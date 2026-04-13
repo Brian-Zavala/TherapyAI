@@ -18,7 +18,7 @@ export default function HeroHighlightDemo() {
           duration: 0.5,
           ease: [0.4, 0.0, 0.2, 1],
         }}
-        className="text-sm px-4 md:text-4xl lg:text-5xl font-bold text-stone-50 max-w-4xl leading-relaxed lg:leading-snug text-center mx-auto"
+        className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-bold text-stone-50 max-w-4xl leading-relaxed lg:leading-snug text-center mx-auto px-4"
       >
         Discover AI-powered therapy that helps you build{" "}
         <Highlight className="text-white">

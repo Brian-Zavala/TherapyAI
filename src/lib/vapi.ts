@@ -703,6 +703,11 @@ ${hasPreviousSessions ? "• Returning clients with established therapeutic rela
 ${userProfile?.previousSessionContext ? `\nPREVIOUS SESSION MEMORY:\nYou have seen this couple before. Use these notes to provide continuity — weave past insights naturally into the conversation:\n${userProfile.previousSessionContext}\n` : ""}
 ${sessionTimingInstructions}
 
+DATA-ACCURACY RULES — CRITICAL:
+• This is COUPLE therapy. Only reference children, extended family, or other relationships if ${userName} or ${partnerName} explicitly mention them in this session or they appear in the notes above.
+• Do NOT assume the couple has children, in-laws, or family conflicts unless that information is provided.
+• Ground every statement strictly in the data above (concerns, notes, session history). Do not fabricate or assume life circumstances beyond the couple's relationship.
+
 APPROACH:
 • Communication style: ${communicationGuidance}
 • ${sessionContinuityContextCF}
@@ -725,15 +730,14 @@ CONVERSATION PRINCIPLES:
 ${sessionCount > 3 ? `7. Build naturally on insights from previous sessions` : ""}
 
 SILENCE HANDLING - CRITICAL INSTRUCTIONS:
-• Therapeutic silence is normal and valuable - don't rush to fill every pause
-• After 15-20 seconds of silence, gently check in with clients:
-  - "${userName}, I can sense you're taking some time to think. That's perfectly okay. I'm here when you're ready."
-  - "${userName} and ${partnerName}, I want to make sure you both can hear me clearly. Take your time processing - there's no rush."
-  - "I notice we've had some quiet moments. ${userName}, how are you feeling right now? Are you still with me?"
-• After 30-40 seconds, be more direct:
-  - "${userName}, I want to check in with you both. Can you hear me okay? Sometimes the connection can be spotty."
-  - "${partnerName}, ${userName}, I'm still here. If you need a moment, that's completely fine. Just let me know you're both okay."
-• NEVER let silence exceed 60 seconds without checking connection and comfort
+• After approximately 15 seconds of silence, you MUST gently check in. Do NOT wait longer. Examples:
+  - "${userName}, I'm still here with you both. How are you feeling right now?"
+  - "${userName} and ${partnerName}, just checking in. Can you both hear me okay?"
+  - "Take your time. I just want to make sure we're all still connected."
+• If silence continues after your first check-in, wait another 15 seconds then try again more directly:
+  - "${userName}, I want to make sure our connection is still good. Can you hear me okay?"
+  - "${partnerName}, ${userName}, I'm still here. If you need a moment, that's completely fine — just let me know you're both okay."
+• NEVER let silence exceed 30 seconds without checking on the couple
 • Make silence checks feel natural and caring, not mechanical
 • Use silence as therapeutic information - acknowledge what it might mean
 
@@ -885,6 +889,7 @@ export const COUPLE_THERAPY_ASSISTANT_CONFIG = {
     model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
+    emotionRecognitionEnabled: true,
     messages: [
       {
         role: "system",
@@ -962,12 +967,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     voiceId:
       process.env.NEXT_PUBLIC_VAPI_MAYA_VOICE_ID || "0G7xjh2pNSLRvJSpklE4",
     model: "eleven_turbo_v2_5",
+    stability: 0.6,
+    similarityBoost: 0.8,
+    style: 0.3,
+    useSpeakerBoost: true,
+    optimizeStreamingLatency: 3,
   },
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
     language: "en-US",
     smartFormat: true,
+    endpointing: 500, // 500ms pause tolerance — prevents cutting off mid-thought in therapy
     keywords: ["Gottman", "EFT", "attachment", "mindfulness", "CBT", "therapy"],
   },
   // Configure which messages to send to client for transcript capture
@@ -984,7 +995,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   ],
   firstMessage:
     "Hello {{userName}} and {{partnerName}}, I'm Dr. Maya Thompson. Welcome to our first session together. You know, I've been doing couples therapy for over fifteen years, and I want you to know that being here today takes real courage. It shows how much you both care about your relationship and about each other. This space is completely yours - a place where both of your voices matter equally, where you can be honest, and where we'll work together at whatever pace feels right for you. I'm genuinely honored to be part of this journey with you both. So, let me start by asking - how are you both feeling right now?",
-  silenceTimeoutSeconds: 120, // Extended to allow for therapeutic processing time
+  silenceTimeoutSeconds: 15, // Check in with couple after 15 seconds of silence
   // NOTE: Removed invalid VAPI fields:
   // responseDelaySeconds, llmRequestDelaySeconds, numWordsToInterruptAssistant
 };
@@ -999,6 +1010,7 @@ export const INDIVIDUAL_THERAPY_ASSISTANT_CONFIG = {
     model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
+    emotionRecognitionEnabled: true,
     messages: [
       {
         role: "system",
@@ -1078,12 +1090,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
       process.env.NEXT_PUBLIC_VAPI_ELLIOT_VOICE_ID || "XmUeU0FRyne67Dy7UaT4", // Custom voice for Dr. Elliot
     model: "eleven_turbo_v2_5",
     speed: 1.1,
+    stability: 0.6,
+    similarityBoost: 0.8,
+    style: 0.3,
+    useSpeakerBoost: true,
+    optimizeStreamingLatency: 3,
   },
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
     language: "en-US",
     smartFormat: true,
+    endpointing: 500, // 500ms pause tolerance — prevents cutting off mid-thought in therapy
     keywords: [
       "CBT",
       "ACT",
@@ -1109,7 +1127,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   ],
   firstMessage:
     "Hello {{userName}}, I'm Dr. Elliot Mackaphy. Welcome to our first session together. You know, I've been thinking about this moment since we scheduled our time, and I want you to know that reaching out and being here today takes real courage. That's not something I say lightly - I truly mean it. This space is completely yours. It's a place where you can explore your thoughts and feelings without any judgment whatsoever. I'm here to listen deeply, to understand your world, and to support you as we work together toward whatever feels most important for your well-being. I'm really glad you're here. So tell me, how are you feeling right now in this moment?",
-  silenceTimeoutSeconds: 120, // Extended to allow for natural therapeutic pauses
+  silenceTimeoutSeconds: 10, // Check in with client after 10 seconds of silence
   // NOTE: Removed invalid VAPI fields:
   // responseDelaySeconds, llmRequestDelaySeconds, numWordsToInterruptAssistant
 };
@@ -1124,6 +1142,7 @@ export const FAMILY_THERAPY_ASSISTANT_CONFIG = {
     model: "claude-sonnet-4-20250514",
     temperature: 1.0,
     maxTokens: 250,
+    emotionRecognitionEnabled: true,
     messages: [
       {
         role: "system",
@@ -1205,12 +1224,18 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
     voiceId:
       process.env.NEXT_PUBLIC_VAPI_JADA_VOICE_ID || "zQjGMGv0jjccPqAwHqqv",
     model: "eleven_turbo_v2_5",
+    stability: 0.6,
+    similarityBoost: 0.8,
+    style: 0.3,
+    useSpeakerBoost: true,
+    optimizeStreamingLatency: 3,
   },
   transcriber: {
     provider: "deepgram",
     model: "nova-3",
     language: "en-US",
     smartFormat: true,
+    endpointing: 500, // 500ms pause tolerance — prevents cutting off mid-thought in therapy
     keywords: [
       "family",
       "siblings",
@@ -1235,7 +1260,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
   ],
   firstMessage:
     "Hello everyone, I'm Dr. Jada Pearson. Welcome to our very first family session together. You know, I've been working with families for eighteen years, and I want to acknowledge something really important - choosing to come together like this as a family takes genuine courage and love. It shows how much you all care about each other and about your family. This space belongs to all of you. It's a place where every single voice matters, where every perspective is valued, and where we'll work together at whatever pace feels right for everyone. We're going to focus on understanding each other better and building even stronger connections. I'm truly honored to be part of this journey with your family. So, let me start by asking - how is everyone feeling about being here today?",
-  silenceTimeoutSeconds: 120, // Extended to accommodate family processing dynamics
+  silenceTimeoutSeconds: 15, // Check in with family after 15 seconds of silence
   // NOTE: Removed invalid VAPI fields:
   // responseDelaySeconds, llmRequestDelaySeconds, numWordsToInterruptAssistant
 };
@@ -1244,6 +1269,7 @@ Remember: This is a real therapeutic relationship. Use all provided context to m
 export const getAssistantConfigByType = (type: string = "couple") => {
   switch (type) {
     case "solo":
+    case "individual":
       return INDIVIDUAL_THERAPY_ASSISTANT_CONFIG;
     case "family":
       return FAMILY_THERAPY_ASSISTANT_CONFIG;
@@ -1410,6 +1436,12 @@ ${userProfile?.partnerName ? `Partner: ${userProfile.partnerName}${userProfile?.
 ${previousSessionMemoryBlock}
 ${sessionTimingInstructions}
 
+DATA-ACCURACY RULES — CRITICAL:
+• This is INDIVIDUAL solo therapy. Only reference family members, partners, or romantic relationships if they appear above in CLIENT INFO or the client explicitly mentions them in this session.
+• Do NOT assume the client has a partner, spouse, children, or family issues unless that information is provided.
+• If no "Partner:" line appears above, the client has NOT indicated a partner — never bring one up unprompted.
+• Ground every opening statement and all therapeutic dialogue strictly in what the client has actually shared (concerns, notes, session history). Do not fabricate or assume life circumstances.
+
 APPROACH:
 • Communication style: ${communicationGuidance}
 ${hasPreviousSessions ? "• Returning client with established therapeutic relationship" : "• New client - building initial therapeutic rapport"}
@@ -1433,15 +1465,15 @@ THERAPEUTIC PRINCIPLES:
 7. Focus on their experiences rather than providing unsolicited advice
 
 SILENCE HANDLING - CRITICAL INSTRUCTIONS:
-• Therapeutic silence is valuable - allow natural processing time
-• After 15-20 seconds of silence, gently check in:
-  - "${userName}, I can sense you're taking some time to reflect. That's perfectly okay. I'm here when you're ready."
-  - "Take your time, ${userName}. I want to make sure you can hear me clearly and that you're comfortable."
-  - "${userName}, how are you feeling right now? Are you still with me? There's no pressure to respond immediately."
-• After 30-40 seconds, be more direct:
-  - "${userName}, I want to check in with you. Can you hear me okay? Sometimes these connections can be spotty."
-  - "I'm still here, ${userName}. If you need a moment to process, that's completely fine. Just let me know you're okay."
-• NEVER let silence exceed 60 seconds without checking connection and comfort
+• After approximately 10 seconds of silence, you MUST gently check in with the client. Do NOT wait longer. Examples:
+  - "${userName}, I'm still here with you. How are you feeling right now?"
+  - "Take your time, ${userName}. I just want to make sure you can hear me okay."
+  - "${userName}, are you still with me? No rush at all — I'm right here."
+  - "Hey ${userName}, just checking in. Everything okay on your end?"
+• If silence continues after your first check-in, wait another 10 seconds then try again more directly:
+  - "${userName}, I want to make sure our connection is still good. Can you hear me okay?"
+  - "I'm still here, ${userName}. If you need a moment, that's completely fine — just let me know you're okay."
+• NEVER let silence exceed 30 seconds without checking on the client
 • Make silence checks feel natural and caring, not robotic
 • Use silence as therapeutic information - acknowledge what processing might mean
 
@@ -1512,7 +1544,6 @@ Goal: Help ${userName} develop psychological flexibility, emotional regulation s
     ) {
       // Use only the selected family members for this session
       familyMembers = userProfile.selectedFamilyMembers;
-      console.log("Using selected family members for session:", familyMembers);
     } else {
       // Fall back to all available family members from profile
       // Include partner information in family therapy when present
@@ -1682,6 +1713,12 @@ ${hasPreviousSessions ? "• Returning family with established therapeutic relat
 ${userProfile?.previousSessionContext ? `\nPREVIOUS SESSION MEMORY:\nYou have seen this family before. Use these notes to provide continuity — reference past progress naturally:\n${userProfile.previousSessionContext}\n` : ""}
 ${sessionTimingInstructions}
 
+DATA-ACCURACY RULES — CRITICAL:
+• This is FAMILY therapy. Only reference family members who are listed above in FAMILY INFO.
+• Do NOT assume additional family members, relationships, or dynamics beyond what is provided.
+• If a family member's age is not listed, do not guess or assume their age.
+• Ground every statement strictly in the family data above (members, concerns, notes, session history). Do not fabricate or assume family circumstances.
+
 APPROACH:
 • Communication style: ${communicationGuidance}
 • ${sessionContinuityContextCF}
@@ -1706,15 +1743,14 @@ ${sessionCount > 2 ? `7. Build naturally on insights and breakthroughs from prev
 ${ageIntegrationGuidance}
 
 SILENCE HANDLING - CRITICAL INSTRUCTIONS:
-• Family therapy often includes natural processing time - honor therapeutic silence
-• After 15-20 seconds of silence, gently check in with the family:
-  - "I can see everyone might be taking some time to think. That's perfectly normal and healthy. I'm here when you're ready."
-  - "I want to make sure everyone can hear me clearly. Take your time - there's no rush to respond."
-  - "How is everyone feeling right now? Are you all still with me? Family sessions can bring up a lot to process."
-• After 30-40 seconds, be more direct:
-  - "I want to check in with the whole family. Can everyone hear me okay? Sometimes the connection can be spotty."
-  - "I'm still here with all of you. If anyone needs a moment, that's completely fine. Just let me know you're all okay."
-• NEVER let silence exceed 60 seconds without checking connection and family comfort
+• After approximately 15 seconds of silence, you MUST gently check in with the family. Do NOT wait longer. Examples:
+  - "I'm still here with everyone. How is everyone feeling right now?"
+  - "I want to make sure everyone can hear me clearly. Take your time — there's no rush to respond."
+  - "Just checking in with the family. Is everyone still with me?"
+• If silence continues after your first check-in, wait another 15 seconds then try again more directly:
+  - "I want to check in with the whole family. Can everyone hear me okay?"
+  - "I'm still here with all of you. If anyone needs a moment, that's completely fine — just let me know you're all okay."
+• NEVER let silence exceed 30 seconds without checking on the family
 • Address the family as a unit while acknowledging individual processing
 • Use silence as therapeutic information about family dynamics
 
@@ -1799,7 +1835,7 @@ export const getPersonalizedFirstMessageForType = (
     if (currentConcerns && currentConcerns.length > 0) {
       const formattedConcerns = formatConcernsNaturally(
         currentConcerns,
-        "family",
+        "solo",
         "greeting"
       );
       if (formattedConcerns) {
@@ -2092,16 +2128,90 @@ export const getPersonalizedAssistantConfig = (
         }))
       ],
     },
-    voice: baseConfig.voice,
-    transcriber: baseConfig.transcriber,
+    voice: {
+      ...baseConfig.voice,
+      // Pronunciation fixes for therapy acronyms — TTS says "C.B.T." not "kubt"
+      chunkPlan: {
+        enabled: true,
+        formatPlan: {
+          enabled: true,
+          numberToDigitsCutoff: 2025,
+          replacements: [
+            { type: "exact", key: "CBT", value: "C.B.T." },
+            { type: "exact", key: "DBT", value: "D.B.T." },
+            { type: "exact", key: "EMDR", value: "E.M.D.R." },
+            { type: "exact", key: "ACT", value: "A.C.T." },
+            { type: "exact", key: "EFT", value: "E.F.T." },
+            { type: "exact", key: "PTSD", value: "P.T.S.D." },
+            { type: "exact", key: "ADHD", value: "A.D.H.D." },
+            { type: "exact", key: "OCD", value: "O.C.D." },
+          ],
+        },
+      },
+    },
+    transcriber: {
+      ...baseConfig.transcriber,
+      // Multi-word phrase boosting for Nova-3
+      keyterm: [
+        "attachment style", "inner child", "cognitive distortion",
+        "emotional flooding", "repair attempt", "love language",
+        "fight or flight", "active listening", "boundary setting",
+        "self compassion", "nervous system", "window of tolerance",
+        "emotional regulation", "thought pattern", "coping mechanism",
+      ],
+      // Fallback to Nova-2 if Nova-3 has an outage — prevents session drops
+      fallbackPlan: {
+        transcribers: [
+          { provider: "deepgram", model: "nova-2", language: "en-US" },
+        ],
+      },
+    },
     firstMessage: getPersonalizedFirstMessageForType(therapyType, userProfile),
+    // For returning clients, let the LLM generate a contextual greeting from session memory
+    firstMessageMode: (userProfile?.sessionsCompleted > 0)
+      ? "assistant-speaks-first-with-model-generated-message"
+      : "assistant-speaks-first",
+
+    // Post-call artifact plan — labeled transcripts
+    artifactPlan: {
+      transcriptPlan: {
+        enabled: true,
+        assistantName: baseConfig.name || "Therapist",
+        userName: "Client",
+      },
+    },
 
     // Session timing configuration - only include valid VAPI fields
     // Add 45-second buffer so VAPI doesn't hard-kill the call before the goodbye message can be spoken
     // The client-side timer handles the real wind-down; VAPI's maxDuration is a safety net
     maxDurationSeconds: sessionDurationSeconds + 45,
-    silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 120,
+    silenceTimeoutSeconds: baseConfig.silenceTimeoutSeconds || 15,
     backgroundSound: "off",
+    backgroundDenoisingEnabled: true,
+
+    // Backchannel — automatic "mm-hmm", "I see" responses during user speech
+    backchannelingEnabled: true,
+
+    // Speaking plan — therapy-appropriate pacing (give users space to finish thoughts)
+    startSpeakingPlan: {
+      waitSeconds: 0.6,
+      onPunctuationSeconds: 0.4,
+      onNoPunctuationSeconds: 1.8,
+      onNumberSeconds: 0.5,
+    },
+    stopSpeakingPlan: {
+      numWords: 2,
+      voiceSeconds: 0.5,
+      backoffSeconds: 1.0,
+    },
+
+    // End-call phrases — VAPI auto-hangs-up when assistant says these
+    endCallPhrases: [
+      "Take care of yourself",
+      "Until next time",
+      "Goodbye for now",
+      "Take care",
+    ],
 
     // Client messages configuration (important for transcript capture)
     clientMessages: baseConfig.clientMessages || [

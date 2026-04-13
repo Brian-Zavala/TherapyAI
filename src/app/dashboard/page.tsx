@@ -95,7 +95,7 @@ function DashboardBanner({
             <p className="text-xs text-white/50 mt-1 leading-relaxed">{subtitle}</p>
           </div>
         </div>
-        <div className="flex-shrink-0 pl-12 sm:pl-0">{action}</div>
+        <div className="flex-shrink-0 pl-4 sm:pl-0">{action}</div>
       </div>
     </motion.div>
   );
@@ -387,28 +387,28 @@ export default function Dashboard() {
             className={getTabClasses("overview")}
           >
             <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-            <span>Overview</span>
+            <span className="truncate">Overview</span>
           </TabsTrigger>
           <TabsTrigger
             value="insights"
             className={getTabClasses("insights")}
           >
             <Brain className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-            <span>Insights</span>
+            <span className="truncate">Insights</span>
           </TabsTrigger>
           <TabsTrigger
             value="progress"
             className={getTabClasses("progress")}
           >
             <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-            <span>Progress</span>
+            <span className="truncate">Progress</span>
           </TabsTrigger>
           <TabsTrigger
             value="sessions"
             className={getTabClasses("sessions")}
           >
             <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-            <span>Sessions</span>
+            <span className="truncate">Sessions</span>
           </TabsTrigger>
         </TabsList>
 
@@ -484,10 +484,10 @@ export default function Dashboard() {
         {isRealTimeConnected && (
           <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-background/80 backdrop-blur-sm border rounded-full px-3 py-1.5 text-xs">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground whitespace-nowrap">
               Live updates active
               {lastRealTimeUpdate && (
-                <span className="ml-1">
+                <span className="ml-1 whitespace-nowrap">
                   • Last update: {new Date(lastRealTimeUpdate).toLocaleTimeString()}
                 </span>
               )}

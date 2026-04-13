@@ -227,7 +227,7 @@ export function AIInsightsCard() {
                       <Icon className={`h-3 w-3 ${category.color}`} />
                       <span className="text-xs">{category.label}</span>
                     </div>
-                    <Badge variant="outline" className="text-xs h-5">
+                    <Badge variant="outline" className="text-xs h-5 flex-shrink-0">
                       {category.count}
                     </Badge>
                   </div>

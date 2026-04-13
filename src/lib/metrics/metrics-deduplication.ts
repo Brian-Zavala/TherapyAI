@@ -115,11 +115,20 @@ async function performMetricsCalculation(
   sessionId: string,
   userId: string
 ): Promise<SessionMetrics> {
-  // Get session data
+  // Get session data — select only the fields we need for metrics calculation.
+  // Transcript entries only need text + speaker (not full metadata).
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
-    include: {
+    select: {
+      id: true,
+      conversationTimeSeconds: true,
+      completedAt: true,
+      createdAt: true,
+      assistantId: true,
+      theme: true,
+      sessionType: true,
       transcriptEntries: {
+        select: { text: true, speaker: true, timestamp: true },
         orderBy: { timestamp: 'asc' }
       }
     }
@@ -231,31 +240,22 @@ async function performMetricsCalculation(
     isolationLevel: 'ReadCommitted' // Prevent phantom reads
   });
 
-  // CRITICAL FIX: Invalidate dashboard cache when new metrics are created
-  // This ensures fresh data is returned to dashboard APIs instead of cached empty results
+  // Invalidate dashboard cache — reuse theme/sessionType from the initial session fetch
   try {
     const { dashboardCache } = await import('@/lib/cache/dashboard-cache');
-    
-    // Get session details for cache invalidation
-    const sessionForCache = await prisma.session.findUnique({
-      where: { id: sessionId },
-      select: { theme: true, sessionType: true }
+
+    await dashboardCache.invalidateOnSessionComplete(
+      userId,
+      session.theme || '',
+      session.sessionType || 'SOLO'
+    );
+
+    logger.info('Dashboard cache invalidated after metrics creation', {
+      sessionId,
+      userId,
+      sessionType: session.sessionType,
+      theme: session.theme
     });
-    
-    if (sessionForCache) {
-      await dashboardCache.invalidateOnSessionComplete(
-        userId, 
-        sessionForCache.theme || '', 
-        sessionForCache.sessionType || 'SOLO'
-      );
-      
-      logger.info('Dashboard cache invalidated after metrics creation', {
-        sessionId,
-        userId,
-        sessionType: sessionForCache.sessionType,
-        theme: sessionForCache.theme
-      });
-    }
   } catch (cacheError) {
     logger.error('Failed to invalidate dashboard cache after metrics creation', {
       sessionId,

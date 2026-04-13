@@ -48,6 +48,8 @@ UI components: sessions, modals, dashboard, animations. TypeScript + Framer Moti
 → `SessionDurationModal` → `TherapyTypeSelector` → VAPI Start → `SessionTimer` + `CallControls`  
 Recovery: Page Refresh → `ActiveSessionFoundModal` → Session Recovery
 
+**Session End**: `handleEndSession` runs VAPI stop, session completion API, and Supabase broadcast **in parallel** (`Promise.all`). No client-side transcript flush — server handles it. Wind-down modal shows during the await, then navigates to `/dashboard` immediately (no delay).
+
 **Refactored**: Modular hooks, inline VAPI config, better error handling
 
 **State**: Session hooks, real-time updates, auto-recovery, error boundaries

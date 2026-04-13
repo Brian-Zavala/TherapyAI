@@ -12,13 +12,13 @@ Authentication, database, real-time metrics, VAPI integration, WebSocket communi
 
 ## VAPI Integration
 
-**`vapi.ts`** - SDK config, transcriber, ICE servers, reconnection, token auth, WebSocket. Contains `getPersonalizedSystemPromptForType()` which builds system prompts for solo/couple/family therapy. Injects `previousSessionContext` from `userProfile` into all three prompts as a `PREVIOUS SESSION MEMORY` block when prior `SessionSummary` records exist.
+**`vapi.ts`** - SDK config, transcriber, ICE servers, reconnection, token auth, WebSocket. Contains `getPersonalizedSystemPromptForType()` which builds system prompts for solo/couple/family therapy. Injects `previousSessionContext` from `userProfile` into all three prompts as a `PREVIOUS SESSION MEMORY` block when prior `SessionSummary` records exist. All three prompts include `DATA-ACCURACY RULES` (prevents AI from fabricating family/partner context) and tuned `SILENCE HANDLING` instructions (solo: 10s, couple/family: 15s). `getAssistantConfigByType()` maps both `"solo"` and `"individual"` to `INDIVIDUAL_THERAPY_ASSISTANT_CONFIG`. `getPersonalizedAssistantConfig()` builds the final VAPI config with advanced features: `backchannelingEnabled`, `emotionRecognitionEnabled`, `backgroundDenoisingEnabled`, `startSpeakingPlan`/`stopSpeakingPlan`, `endCallPhrases`, `artifactPlan.transcriptPlan`, `firstMessageMode` (model-generated for returning clients), `chunkPlan` with therapy acronym pronunciation fixes (CBT→C.B.T., etc.), `keyterm` for Nova-3 multi-word phrase boosting, and `fallbackPlan` (Nova-2 failover). ElevenLabs voices configured with `useSpeakerBoost`, `optimizeStreamingLatency: 3`, `stability: 0.6`, `similarityBoost: 0.8`, `style: 0.3`. Deepgram transcribers use `endpointing: 500` for therapy-appropriate pause tolerance.
 
 **`vapi-server.ts`** - Server API calls, webhooks, API key mgmt, dynamic assistants
 
 **`vapi-config-store.ts`** - User-specific configs, personalized prompts, caching
 
-**`vapi-config-cleaner.ts`** - Removes invalid VAPI fields, ensures providers, validates configs
+**`vapi-config-cleaner.ts`** - Removes invalid VAPI fields, ensures providers, validates configs. `backgroundDenoisingEnabled` removed from INVALID_FIELDS (now a valid VAPI property).
 
 **`vapi-message-validator.ts`** - Message sanitization, role validation, conversation formatting
 
@@ -37,6 +37,12 @@ Authentication, database, real-time metrics, VAPI integration, WebSocket communi
 **`transcript-service-optimized.ts`** - Real-time processing, batch ops, deduplication, transactions, recovery. `getPreviousSessionsTranscript()` fetches `/api/sessions` and filters by `status?.toUpperCase() === 'COMPLETED'` (API returns uppercase Prisma enums).
 
 **`transcript-service.ts`** - Same as above (legacy version). Same uppercase fix applies.
+
+**`session/session-lifecycle-manager.ts`** - Singleton state machine for session completion. `completeSession()` pre-fetches session once (vapiCallId + sessionType), reuses across VAPI termination and credit deduction. Intermediate state transitions (ENDING → CALCULATING_METRICS) skip DB writes since they all map to `ACTIVE` status — only COMPLETED/FAILED write to DB. Cache invalidation only runs on terminal states with userId passed through (no re-fetch).
+
+**`metrics/metrics-deduplication.ts`** - `calculateMetrics()` with Redis lock + dedup. Uses selective transcript fetch (`select: { text, speaker, timestamp }` instead of full records). Reuses session `theme`/`sessionType` from initial fetch for cache invalidation — no duplicate `findUnique`.
+
+**`ai-insights/session-completion-handler.ts`** - `onSessionCompleted()` runs in `after()` callback. Pattern upserts use `Promise.allSettled` (not sequential loop). Milestone counts run in `Promise.all`. Milestone goals/celebrations use `createMany` (not N+1 creates).
 
 **`session-cache.ts`** - In-memory cache, TTL expiration, Redis-compatible interface
 
@@ -289,7 +295,7 @@ CLERK_WEBHOOK_SECRET=whsec_...
    })
    ```
 3. **Tools location**: Must be in `model.tools`, NOT at root level
-4. **Invalid fields** (cause 400): `variableValues`, `metadata`, `recordingEnabled`, `hipaaEnabled`, `responseDelaySeconds`, `llmRequestDelaySeconds`, `functions` (root), `backgroundDenoisingEnabled`
+4. **Invalid fields** (cause 400): `variableValues`, `metadata`, `recordingEnabled`, `hipaaEnabled`, `responseDelaySeconds`, `llmRequestDelaySeconds`, `functions` (root). Note: `backgroundDenoisingEnabled` is now valid and enabled.
 5. **ElevenLabs Voice IDs** (April 2026):
    - Dr. Elliot (solo): `XmUeU0FRyne67Dy7UaT4`
    - Dr. Maya (couples): `0G7xjh2pNSLRvJSpklE4`
@@ -308,9 +314,31 @@ CLERK_WEBHOOK_SECRET=whsec_...
 📊 METRICS: Confidence: 20% → 40% → 80% → 95%
 ```
 
+### VAPI Advanced Features (April 2026)
+
+All configured in `getPersonalizedAssistantConfig()` and passed through the inline config whitelist in `/api/vapi/assistant/route.ts`:
+
+- **`backchannelingEnabled: true`** — automatic "mm-hmm", "I see" during user speech
+- **`emotionRecognitionEnabled: true`** — detects emotional tone from audio, passes to LLM
+- **`backgroundDenoisingEnabled: true`** — reduces background noise for clearer sessions
+- **`startSpeakingPlan`** — therapy pacing: 0.6s wait, 1.8s no-punctuation wait
+- **`stopSpeakingPlan`** — requires 2+ words to interrupt (prevents background noise triggers)
+- **`endCallPhrases`** — VAPI auto-hangs-up when assistant says "Take care", "Goodbye for now", etc.
+- **`artifactPlan.transcriptPlan`** — labeled transcripts (therapist name + "Client")
+- **`firstMessageMode`** — returning clients get `"assistant-speaks-first-with-model-generated-message"` (LLM generates contextual greeting from session memory)
+- **`chunkPlan.formatPlan.replacements`** — pronunciation fixes: CBT→C.B.T., DBT→D.B.T., EMDR→E.M.D.R., etc.
+- **`keyterm`** — Nova-3 multi-word phrase boosting: "attachment style", "cognitive distortion", etc.
+- **`fallbackPlan`** — Nova-2 failover if Nova-3 has an outage
+- **`endpointing: 500`** — 500ms pause tolerance on Deepgram transcriber
+- **Silence timeouts** — solo: 10s, couple: 15s, family: 15s (down from 120s)
+- **ElevenLabs voice** — `useSpeakerBoost`, `optimizeStreamingLatency: 3`, `stability: 0.6`, `similarityBoost: 0.8`, `style: 0.3`
+- **DATA-ACCURACY RULES** — all 3 system prompts guard against fabricating family/partner context
+
+**CRITICAL**: The inline config path in `/api/vapi/assistant/route.ts` uses a whitelist (`cleanConfig`). Any new VAPI fields must be added there or they'll be silently dropped.
+
 ## 💳 Credit System Key Components
 
-- **`services/credit-manager.service.ts`** — core credit ops, Redis caching with robust error handling
+- **`services/credit-manager.service.ts`** — core credit ops, Redis caching. `deductCredits()` uses `SELECT FOR UPDATE` with explicit column list (not `SELECT *`). Post-mutation refetch eliminated: `.update()` returns needed fields via `select`, removing the separate `findUnique` after writes.
 - **`services/vapi-session-manager.ts`** — session limit enforcement, grace period logic
 - **`services/vapi-instance-manager.ts`** — singleton VAPI SDK instance, pre-warmed on JWT ready
 
@@ -356,3 +384,18 @@ try {
 - **Error**: `Unknown argument 'status'` Prisma runtime error — insights always fell back to generic hardcoded content
 - **FIX**: Map to real schema fields (`type`, `importance`, `actionable`), store extras in `metadata` JSON. Use `goalType` and uppercase `GoalStatus` enum. Anchor dynamic insights to user's most recent completed session for valid `sessionId` FK.
 - **LESSON**: `@ts-nocheck` hides schema mismatches. Always verify Prisma field names against `schema.prisma` — the TypeScript compiler can't catch errors when type checking is disabled.
+
+**MISTAKE**: Solo first message called `formatConcernsNaturally(concerns, "family", "greeting")` instead of `"solo"`
+- **Error**: Therapist opened every solo session referencing family dynamics even when user had no family data
+- **FIX**: Changed to `formatConcernsNaturally(concerns, "solo", "greeting")`. Also added `DATA-ACCURACY RULES` to all 3 system prompts.
+- **LESSON**: Always match the therapy type parameter to the actual session type. Also add explicit guardrails in system prompts against fabricating context.
+
+**MISTAKE**: `getAssistantConfigByType("individual")` fell through switch `default` to `COUPLE_THERAPY_ASSISTANT_CONFIG`
+- **Error**: If `userProfile.therapyType` was `"individual"` (not `"solo"`), the assistant silently loaded the couple therapy config
+- **FIX**: Added `case "individual":` alongside `case "solo":` in the switch statement
+- **LESSON**: Switch statements with `default` cases silently swallow unexpected values. Add explicit cases for known aliases.
+
+**MISTAKE**: Inline config whitelist in `/api/vapi/assistant/route.ts` silently dropped new VAPI features
+- **Error**: `backchannelingEnabled`, `startSpeakingPlan`, `stopSpeakingPlan`, `endCallPhrases`, `artifactPlan`, `firstMessageMode`, `backgroundDenoisingEnabled` were all set in `getPersonalizedAssistantConfig()` but never reached VAPI — the `cleanConfig` object only whitelisted specific fields
+- **FIX**: Added all new VAPI features to the `cleanConfig` whitelist
+- **LESSON**: When `NEXT_PUBLIC_USE_INLINE_ASSISTANT=true`, the `cleanConfig` object in the assistant route is a whitelist. Any new VAPI field MUST be added there or it's silently dropped.

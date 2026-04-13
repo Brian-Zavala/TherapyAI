@@ -319,9 +319,10 @@ export class SessionCompletionHandler {
    * Store pattern updates in database
    */
   private static async storePatternUpdates(userId: string, trends: any[]): Promise<void> {
-    for (const trend of trends) {
-      try {
-        await prisma.insightPattern.upsert({
+    // Run all upserts in parallel instead of sequentially (eliminates N+1)
+    const results = await Promise.allSettled(
+      trends.map(trend =>
+        prisma.insightPattern.upsert({
           where: {
             userId_patternType: {
               userId,
@@ -355,12 +356,16 @@ export class SessionCompletionHandler {
             },
             isPositive: trend.direction === 'improving'
           }
-        });
-      } catch (error) {
-        logger.error('Failed to store pattern update', { 
-          userId, 
-          metric: trend.metric,
-          error: error instanceof Error ? error.message : error 
+        })
+      )
+    );
+
+    for (const [i, result] of results.entries()) {
+      if (result.status === 'rejected') {
+        logger.error('Failed to store pattern update', {
+          userId,
+          metric: trends[i].metric,
+          error: result.reason instanceof Error ? result.reason.message : result.reason
         });
       }
     }
@@ -373,13 +378,20 @@ export class SessionCompletionHandler {
     // Check various milestone criteria
     const milestones = [];
 
-    // Session count milestones
-    const sessionCount = await prisma.session.count({
-      where: { 
-        userId: context.userId, 
-        status: 'COMPLETED' 
-      }
-    });
+    // Fetch both counts in parallel instead of sequentially
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [sessionCount, recentSessions] = await Promise.all([
+      prisma.session.count({
+        where: { userId: context.userId, status: 'COMPLETED' }
+      }),
+      prisma.session.count({
+        where: {
+          userId: context.userId,
+          status: 'COMPLETED',
+          startTime: { gte: thirtyDaysAgo }
+        }
+      })
+    ]);
 
     if ([5, 10, 25, 50].includes(sessionCount)) {
       milestones.push({
@@ -389,17 +401,6 @@ export class SessionCompletionHandler {
         value: sessionCount
       });
     }
-
-    // Consistency milestones
-    const recentSessions = await prisma.session.count({
-      where: {
-        userId: context.userId,
-        status: 'COMPLETED',
-        startTime: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
-        }
-      }
-    });
 
     if (recentSessions >= 4) {
       milestones.push({
@@ -427,30 +428,30 @@ export class SessionCompletionHandler {
    * Store milestone achievements
    */
   private static async storeMilestoneAchievements(userId: string, milestones: any[]): Promise<void> {
-    for (const milestone of milestones) {
-      try {
-        await prisma.dynamicGoal.create({
-          data: {
-            userId,
-            title: milestone.title,
-            description: milestone.description,
-            category: 'milestone',
-            goalType: milestone.type,
-            targetDate: new Date(),
-            status: 'COMPLETED',
-            progress: 100,
-            completedAt: new Date(),
-            aiGenerated: false,
-            metadata: { confidence: 100 }
-          }
-        });
-      } catch (error) {
-        logger.error('Failed to store milestone achievement', { 
-          userId, 
-          milestone: milestone.title,
-          error: error instanceof Error ? error.message : error 
-        });
-      }
+    if (milestones.length === 0) return;
+
+    try {
+      await prisma.dynamicGoal.createMany({
+        data: milestones.map(milestone => ({
+          userId,
+          title: milestone.title,
+          description: milestone.description,
+          category: 'milestone',
+          goalType: milestone.type,
+          targetDate: new Date(),
+          status: 'COMPLETED',
+          progress: 100,
+          completedAt: new Date(),
+          aiGenerated: false,
+          metadata: { confidence: 100 }
+        }))
+      });
+    } catch (error) {
+      logger.error('Failed to store milestone achievements', {
+        userId,
+        count: milestones.length,
+        error: error instanceof Error ? error.message : error
+      });
     }
   }
 
@@ -458,41 +459,41 @@ export class SessionCompletionHandler {
    * Create celebratory insights for milestones
    */
   private static async createMilestoneCelebrations(userId: string, sessionId: string, milestones: any[]): Promise<void> {
-    for (const milestone of milestones) {
-      try {
-        await prisma.aIInsight.create({
-          data: {
-            userId,
-            sessionId,
-            type: 'progress',
-            title: `🎉 ${milestone.title}`,
-            description: milestone.description + ' This shows your dedication to improving your relationship.',
-            importance: 'low',
-            actionable: true,
-            confidence: 100,
-            metadata: {
-              category: 'progress',
-              priority: 'low',
-              timeframe: 'immediate',
-              actionItems: [
-                'Celebrate this achievement with your partner',
-                'Reflect on how far you\'ve come',
-                'Share this success with someone you trust'
-              ],
-              basedOn: [`Milestone: ${milestone.type} = ${milestone.value}`],
-              evidence: [],
-              aiModel: 'milestone-detection',
-              isPersonalized: true
-            }
+    if (milestones.length === 0) return;
+
+    try {
+      await prisma.aIInsight.createMany({
+        data: milestones.map(milestone => ({
+          userId,
+          sessionId,
+          type: 'progress',
+          title: `🎉 ${milestone.title}`,
+          description: milestone.description + ' This shows your dedication to improving your relationship.',
+          importance: 'low',
+          actionable: true,
+          confidence: 100,
+          metadata: {
+            category: 'progress',
+            priority: 'low',
+            timeframe: 'immediate',
+            actionItems: [
+              'Celebrate this achievement with your partner',
+              'Reflect on how far you\'ve come',
+              'Share this success with someone you trust'
+            ],
+            basedOn: [`Milestone: ${milestone.type} = ${milestone.value}`],
+            evidence: [],
+            aiModel: 'milestone-detection',
+            isPersonalized: true
           }
-        });
-      } catch (error) {
-        logger.error('Failed to create milestone celebration', { 
-          userId, 
-          milestone: milestone.title,
-          error: error instanceof Error ? error.message : error 
-        });
-      }
+        }))
+      });
+    } catch (error) {
+      logger.error('Failed to create milestone celebrations', {
+        userId,
+        count: milestones.length,
+        error: error instanceof Error ? error.message : error
+      });
     }
   }
 

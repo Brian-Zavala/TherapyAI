@@ -14,7 +14,7 @@ import {
   SessionDuration
 } from '@/lib/therapy-session/constants'
 import { useAccurateSessionTimer, useSessionRecoveryTimer, useSessionTimeAlerts } from './useAccurateSessionTimer'
-import { flushSessionTranscripts } from '@/lib/transcript-service-optimized'
+// Transcript flush removed from client — server handles it in after() callback
 import { safeSessionStorage } from '@/lib/safe-session-storage'
 
 // Hook configuration interface
@@ -508,10 +508,11 @@ export function useSessionManagementV2(options: UseSessionManagementV2Options): 
         completionNotes: reason !== 'normal' ? reason : undefined
       }
       
-      // Flush any pending transcripts before completing the session
-      console.log('💾 Flushing pending transcripts before session completion...')
-      await flushSessionTranscripts(sessionId)
-      
+      // Transcript flush removed from client — the server's after() callback
+      // handles flushing, and metrics calculation in the lifecycle manager
+      // reads transcripts already persisted by the real-time batch writer.
+      // Removing this saves 200-500ms of blocking time on session end.
+
       // Complete session via API
       const response = await fetch(API_ENDPOINTS.SESSION_COMPLETE(sessionId), {
         method: 'POST',

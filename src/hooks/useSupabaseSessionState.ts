@@ -318,32 +318,18 @@ export function useSupabaseSessionState({
   }, [sessionId, broadcastStateChange])
 
   // End session
+  // NOTE: This hook does NOT call the complete API - that is handled by useSessionManagementV2.
+  // This hook only broadcasts the state change and clears local state to avoid a race condition
+  // where both hooks calling the same endpoint simultaneously causes a Redis lock conflict.
   const endSession = useCallback(async () => {
     if (!sessionId) return
-    
+
     try {
-      // Update database - use complete endpoint
-      const response = await fetch(`/api/sessions/${sessionId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies for authentication
-        body: JSON.stringify({
-          actualDurationMinutes: 0, // This should be calculated from session data
-          completionNotes: 'Session ended by user'
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to end session')
-      }
-      
-      // Broadcast state change
+      // Broadcast state change so other clients know the session ended
       await broadcastStateChange('ENDED', {
         endedAt: new Date().toISOString(),
       })
-      
+
       // Clear local state
       setState(prev => ({
         ...prev,
@@ -351,10 +337,17 @@ export function useSupabaseSessionState({
         isActive: false,
         isPaused: false,
       }))
-      
+
     } catch (error) {
-      console.error('Failed to end session:', error)
-      setState(prev => ({ ...prev, error: 'Failed to end session' }))
+      console.error('Failed to broadcast session end:', error)
+      // Still clear local state even if broadcast fails
+      setState(prev => ({
+        ...prev,
+        session: null,
+        isActive: false,
+        isPaused: false,
+        error: 'Failed to broadcast session end',
+      }))
     }
   }, [sessionId, broadcastStateChange])
 

@@ -2,7 +2,7 @@
 
 export default function CommunicationTechniques() {
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto pt-20 sm:pt-24 px-4">
       <h1 className="text-2xl font-bold mb-6">Effective Communication Techniques</h1>
       
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">

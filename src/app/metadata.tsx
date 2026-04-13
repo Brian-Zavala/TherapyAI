@@ -18,7 +18,6 @@ export default function SiteMetadata() {
       
       {/* Preload critical assets */}
       <link rel="preload" href="/images/home/happy-couple.webp" as="image" fetchPriority="high" />
-      <link rel="preload" href="/images/home/happy-family.webp" as="image" fetchPriority="high" />
       <link rel="preload" href="/images/therapyType/couple.webp" as="image" />
       <link rel="preload" href="/images/therapyType/family.webp" as="image" />
       <link rel="preload" href="/images/therapyType/solo.webp" as="image" />

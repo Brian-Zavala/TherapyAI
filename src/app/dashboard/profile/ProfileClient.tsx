@@ -622,8 +622,8 @@ export default function ProfileClient() {
                   if (!memberName) return null
                   
                   return (
-                    <div key={num} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div className="flex-1">
+                    <div key={num} className="flex items-center justify-between p-3 bg-white/5 rounded-lg gap-2">
+                      <div className="flex-1 min-w-0">
                         <span className="text-white font-medium">{memberName}</span>
                         {(memberAge || memberRelation) && (
                           <span className="text-gray-400 text-sm ml-2">
@@ -635,7 +635,7 @@ export default function ProfileClient() {
                       </div>
                       <button
                         onClick={() => handleRemoveMember(num)}
-                        className="text-red-400 hover:text-red-300 transition-colors ml-4"
+                        className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0 whitespace-nowrap"
                       >
                         Remove
                       </button>

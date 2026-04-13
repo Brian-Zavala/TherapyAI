@@ -356,12 +356,12 @@ function RelationshipProgressComponent() {
           </div>
           <div className="flex items-center gap-2">
             {hasExceptionalProgress && (
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="gap-1 flex-shrink-0 whitespace-nowrap">
                 <Award className="h-3 w-3" />
                 Excellent Progress
               </Badge>
             )}
-            <Badge variant={getTrendBadgeVariant(data.trend)} className="gap-1">
+            <Badge variant={getTrendBadgeVariant(data.trend)} className="gap-1 flex-shrink-0 whitespace-nowrap">
               {getTrendIcon(data.trend)}
               {data.trend}
             </Badge>

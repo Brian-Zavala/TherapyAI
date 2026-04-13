@@ -29,6 +29,7 @@ const nextConfig = {
 
   // Image optimization
   images: {
+    qualities: [75, 85, 100],
     domains: [
       'localhost',
       'pjmdlinrffawvhoktopd.supabase.co',

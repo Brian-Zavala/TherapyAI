@@ -213,12 +213,10 @@ function MilestoneCard({
         {/* Content */}
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className={`font-semibold ${isUnlocked ? 'text-white' : 'text-white/80'}`}>
+            <h4 className={`font-semibold min-w-0 ${isUnlocked ? 'text-white' : 'text-white/80'}`}>
               {milestone.title}
             </h4>
-            <div className={`
-              ${isUnlocked ? 'text-purple-400' : 'text-white/40'}
-            `}>
+            <div className={`flex-shrink-0 ${isUnlocked ? 'text-purple-400' : 'text-white/40'}`}>
               {getTypeIcon()}
             </div>
           </div>
