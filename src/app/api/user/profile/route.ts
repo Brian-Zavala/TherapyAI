@@ -505,9 +505,10 @@ export async function PUT(request: Request) {
     
     // Track family members for debug output (declare outside transaction scope)
     let familyMembersCreatedCount = 0
-    
+    let transactionUserId: string
+
     // Update with transaction
-    const updatedUser = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // First check if user exists
       const existingUser = await tx.user.findUnique({
         where: { email: userEmail }
@@ -678,32 +679,29 @@ export async function PUT(request: Request) {
 
       // Store count for debug output
       familyMembersCreatedCount = familyMembersToCreate.length
-      
-      // Fetch the complete updated profile within the transaction to ensure consistency
-      // Add small delay to ensure upsert is fully committed in the transaction
-      const updatedUserWithProfile = await tx.user.findUnique({
-        where: { id: user.id },
-        include: {
-          profile: true,
-          familyMembers: {
-            where: { isActive: true },
-            orderBy: { order: 'asc' }
-          }
-        }
-      })
-      
-      // Log what we're about to return
-      console.log(`[Profile API] Transaction result - user ${user.id} profile:`, {
-        pronouns: updatedUserWithProfile?.profile?.pronouns,
-        age: updatedUserWithProfile?.profile?.age,
-        partnerName: updatedUserWithProfile?.profile?.partnerName,
-        hasProfile: !!updatedUserWithProfile?.profile
-      })
-      
-      return updatedUserWithProfile
-    })
+
+      // Capture user ID for post-transaction fetch (read happens outside tx to avoid timeout)
+      transactionUserId = user.id
+    }, { timeout: 15000 })
     
-    console.log(`[Profile API] Profile update transaction completed for user ${updatedUser.id}`)
+    // Fetch complete profile outside the transaction to avoid P2028 timeout errors
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: transactionUserId! },
+      include: {
+        profile: true,
+        familyMembers: {
+          where: { isActive: true },
+          orderBy: { order: 'asc' }
+        }
+      }
+    })
+
+    console.log(`[Profile API] Profile update completed for user ${updatedUser?.id}:`, {
+      pronouns: updatedUser?.profile?.pronouns,
+      age: updatedUser?.profile?.age,
+      partnerName: updatedUser?.profile?.partnerName,
+      hasProfile: !!updatedUser?.profile
+    })
     
     // CRITICAL: Invalidate ALL cache layers comprehensively BEFORE setting new cache
     try {
