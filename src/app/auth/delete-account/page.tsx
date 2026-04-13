@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 // Generate secure random token on client side
@@ -16,6 +16,18 @@ function generateSecureToken(length: number = 32): string {
 }
 
 export default function DeleteAccountConfirmation() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-400 border-t-transparent" />
+      </div>
+    }>
+      <DeleteAccountContent />
+    </Suspense>
+  );
+}
+
+function DeleteAccountContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)

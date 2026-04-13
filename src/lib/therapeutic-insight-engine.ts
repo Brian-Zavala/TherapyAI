@@ -38,12 +38,15 @@ interface EmotionalState {
 }
 
 export class TherapeuticInsightEngine {
-  private openai: OpenAI;
-  
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+  private _openai: OpenAI | null = null;
+
+  private get openai(): OpenAI {
+    if (!this._openai) {
+      this._openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+    }
+    return this._openai;
   }
 
   /**

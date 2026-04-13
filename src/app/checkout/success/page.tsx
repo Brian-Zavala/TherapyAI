@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircleIcon, SparklesIcon, ClockIcon, CalendarIcon, CreditCardIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
@@ -17,6 +17,18 @@ interface SubscriptionDetails {
 }
 
 export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-green-950 to-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-400 border-t-transparent" />
+      </div>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}
+
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();

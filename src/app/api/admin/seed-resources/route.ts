@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { seedResources } from '@/lib/resources/seed-resources'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/admin/seed-resources
 // Seeds the Resource table with curated content. Safe to call multiple times (wipes + re-seeds).
 export async function POST() {

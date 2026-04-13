@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma-optimized';
 import { redis } from '@/lib/cache/redis-client';
 import { SessionStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const requestId = crypto.randomUUID();
 

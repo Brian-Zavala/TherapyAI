@@ -4,6 +4,8 @@ import { Resend } from "resend"
 import { verifySignedToken } from "@/lib/security/tokens"
 import { checkRateLimit } from "@/lib/security/rateLimiter"
 
+export const dynamic = 'force-dynamic';
+
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Helper function to create audit log entry

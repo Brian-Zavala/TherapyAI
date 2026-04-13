@@ -8,9 +8,6 @@ const bunnyConfig = require('./config/bunny-cdn.config');
 const nextConfig = {
   reactStrictMode: true,
 
-  // Allow ngrok tunnels for mobile testing
-  allowedDevHosts: ['.ngrok-free.app', '.ngrok.io'],
-  
   // Railway-specific optimizations
   output: 'standalone',
   
@@ -30,13 +27,13 @@ const nextConfig = {
   // Image optimization
   images: {
     qualities: [75, 85, 100],
-    domains: [
-      'localhost',
-      'pjmdlinrffawvhoktopd.supabase.co',
-      'images.unsplash.com',
-      'api.dicebear.com',
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'pjmdlinrffawvhoktopd.supabase.co' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'api.dicebear.com' },
       // Add Bunny CDN domain when configured
-      ...(bunnyConfig.cdnUrl ? [new URL(bunnyConfig.cdnUrl).hostname] : []),
+      ...(bunnyConfig.cdnUrl ? [{ protocol: 'https', hostname: new URL(bunnyConfig.cdnUrl).hostname }] : []),
     ],
     // Use custom loader for CDN
     loader: bunnyConfig.enabled ? 'custom' : 'default',
@@ -126,21 +123,6 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': require('path').resolve(__dirname, 'src'),
-    };
-
-    // Optimize compilation speed
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-          },
-        },
-      },
     };
 
     return config;

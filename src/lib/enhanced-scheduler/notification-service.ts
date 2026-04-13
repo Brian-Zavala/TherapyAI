@@ -118,17 +118,21 @@ export class NotificationService {
     this.logger = new Logger('NotificationService');
     
     // Initialize email service
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY is required');
+    if (process.env.RESEND_API_KEY) {
+      this.resend = new Resend(process.env.RESEND_API_KEY);
     }
-    this.resend = new Resend(process.env.RESEND_API_KEY);
 
-    // Initialize SMS service
+    // Initialize SMS service lazily to avoid build-time errors
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-      this.twilio = new Twilio(
-        process.env.TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_AUTH_TOKEN
-      );
+      try {
+        const twilio = require('twilio');
+        this.twilio = new twilio(
+          process.env.TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
+      } catch {
+        // Twilio not available — SMS disabled
+      }
     }
   }
 
