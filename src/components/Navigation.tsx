@@ -14,6 +14,7 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSessionActive, setIsSessionActive] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const playSound = useButtonSound();
@@ -99,13 +100,28 @@ export default function Navigation() {
     };
   }, [isMenuOpen, handleEscape]);
 
+  // Hide nav when a therapy session is active
+  useEffect(() => {
+    const show = () => setIsSessionActive(false);
+    const hide = () => setIsSessionActive(true);
+    window.addEventListener('sessionStarted', hide);
+    window.addEventListener('sessionEnded', show);
+    window.addEventListener('sessionEnd', show);
+    return () => {
+      window.removeEventListener('sessionStarted', hide);
+      window.removeEventListener('sessionEnded', show);
+      window.removeEventListener('sessionEnd', show);
+    };
+  }, []);
+
   // Define consistent link styles
   const linkStyles = (isActive: boolean) =>
     isActive ? "text-white font-bold" : "text-gray-100 hover:text-white";
 
-  // Don't show navbar on auth pages, intro, onboarding, or during logout transition
+  // Don't show navbar on auth pages, intro, onboarding, logout, or active sessions
   if (
     isLoggingOut ||
+    isSessionActive ||
     pathname?.startsWith("/auth/") ||
     pathname?.startsWith("/welcome") ||
     pathname?.startsWith("/sign-in") ||
