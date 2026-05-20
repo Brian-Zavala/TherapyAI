@@ -11,10 +11,11 @@ import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 import { ProfileProvider } from "@/providers/ProfileProvider";
 import { NotificationProvider } from "@/providers/NotificationProvider";
 import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter";
+import { AnalyticsProvider } from "@/lib/analytics/posthog";
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
-    <>
+    <AnalyticsProvider>
       <SpotlightManager />
       <AuthProvider>
         <ReactQueryProvider>
@@ -30,6 +31,6 @@ export function ClientProviders({ children }: { children: ReactNode }) {
           </ProfileProvider>
         </ReactQueryProvider>
       </AuthProvider>
-    </>
+    </AnalyticsProvider>
   );
 }

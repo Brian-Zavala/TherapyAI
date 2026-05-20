@@ -3,7 +3,8 @@
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
+import React from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 // PostHog configuration
@@ -129,14 +130,22 @@ export const analytics = {
 // Export PostHog instance for advanced usage
 export { posthog, PHProvider as PostHogProvider }
 
+// Page view tracker - isolated so Suspense can wrap it for useSearchParams
+function PageViewTracker() {
+  usePostHogPageView()
+  return null
+}
+
 // Analytics context provider
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
-  usePostHogPageView()
-  
   if (!POSTHOG_KEY) {
-    console.warn('[Analytics] PostHog key not configured')
     return children as React.ReactElement
   }
-  
-  return React.createElement(PHProvider, { client: posthog }, children)
+
+  return React.createElement(
+    PHProvider,
+    { client: posthog },
+    React.createElement(Suspense, { fallback: null }, React.createElement(PageViewTracker)),
+    children
+  )
 }

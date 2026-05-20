@@ -302,3 +302,4 @@ storybook-static
 README-MEMORY.md
 # clerk configuration (can include secrets)
 /.clerk/
+.env*.local
