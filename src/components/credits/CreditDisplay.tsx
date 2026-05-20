@@ -160,20 +160,7 @@ export function CreditDisplay({ className }: { className?: string }) {
         </div>
       )}
 
-      {/* Upgrade prompt */}
-      {isLow && (
-        <div className="flex items-center justify-between bg-yellow-50 rounded-lg p-2">
-          <span className="text-xs text-yellow-800">
-            Need more minutes?
-          </span>
-          <a
-            href="/pricing"
-            className="text-xs font-medium text-yellow-900 hover:text-yellow-700 underline"
-          >
-            Upgrade Plan →
-          </a>
-        </div>
-      )}
+      {/* Upgrade prompt hidden while pricing page is disabled */}
     </div>
   );
 }

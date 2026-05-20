@@ -454,16 +454,6 @@ export default function SessionDurationModal({
                           )}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={() => {
-                              // Navigate to upgrade page
-                              window.location.href = '/dashboard/subscription';
-                            }}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all cursor-pointer"
-                          >
-                            <TrendingUp className="w-4 h-4" />
-                            Upgrade Plan
-                          </button>
                           {creditStatus?.credits?.remaining >= 15 && (
                             <button
                               onClick={() => {
