@@ -1286,6 +1286,83 @@ export class CreditManager {
   }
 
   /**
+   * Reset a user's credit usage to 0 on their CURRENT billing period.
+   * Releases any ACTIVE reservations and writes an audit transaction.
+   * For support flows ("give credits back") — does not roll the billing period.
+   */
+  async resetUserCredits(
+    userId: string,
+    reason: string
+  ): Promise<UsageCredits> {
+    const lockKey = `credits:reset-user:${userId}`;
+    const lockValue = await this.acquireLock(lockKey);
+
+    if (!lockValue) {
+      throw new Error('Unable to acquire reset-user lock after retries');
+    }
+
+    try {
+      const updated = await prisma.$transaction(async (tx) => {
+        const credits = await tx.usageCredits.findFirst({
+          where: {
+            userId,
+            billingPeriodStart: { lte: new Date() },
+            billingPeriodEnd: { gte: new Date() },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (!credits) {
+          throw new Error('No active billing period found for user');
+        }
+
+        const previousUsed = credits.usedCredits;
+
+        await tx.creditReservation.updateMany({
+          where: { userId, status: 'ACTIVE' },
+          data: { status: 'RELEASED' },
+        });
+
+        const next = await tx.usageCredits.update({
+          where: { id: credits.id },
+          data: { usedCredits: 0 },
+        });
+
+        if (previousUsed > 0) {
+          await tx.usageTransaction.create({
+            data: {
+              userId,
+              creditId: credits.id,
+              type: TransactionType.REFUND,
+              amount: previousUsed,
+              balance: next.totalCredits + next.bonusCredits,
+              description: `Admin reset: ${reason}`,
+            },
+          });
+        }
+
+        return next;
+      });
+
+      await redis.del(`credits:${userId}:current`);
+
+      await this.broadcastCreditUpdate(userId, 'usage_update', {
+        available: updated.totalCredits + updated.bonusCredits - updated.usedCredits,
+        total: updated.totalCredits,
+        used: updated.usedCredits,
+        bonus: updated.bonusCredits,
+        planType: updated.planType,
+        billingPeriodStart: updated.billingPeriodStart,
+        billingPeriodEnd: updated.billingPeriodEnd,
+      });
+
+      return updated;
+    } finally {
+      await this.releaseLock(lockKey, lockValue);
+    }
+  }
+
+  /**
    * Rollback failed transaction with compensation
    */
   async rollbackTransaction(
