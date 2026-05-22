@@ -32,13 +32,13 @@ if (typeof window !== 'undefined' && POSTHOG_KEY) {
     loaded_callback: () => {
       console.log('[Analytics] PostHog loaded successfully')
     },
-    sanitize_properties: (properties) => {
-      // Remove sensitive data
-      const sanitized = { ...properties }
-      delete sanitized.password
-      delete sanitized.email
-      delete sanitized.phone
-      return sanitized
+    before_send: (event) => {
+      if (event?.properties) {
+        delete event.properties.password
+        delete event.properties.email
+        delete event.properties.phone
+      }
+      return event
     },
   })
 }

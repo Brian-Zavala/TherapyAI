@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
@@ -113,6 +114,13 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
 
   // Declared early so handleVapiCallEnd (defined below) can reference it before other state
   const [showWindDown, setShowWindDown] = useState(false)
+
+  // Portal-readiness gate. The active-session overlay is portaled into
+  // `#modal-root` to escape transformed ancestors (e.g. main-container's
+  // `fadeIn` keeps a `translateY(0)` which creates a containing block and
+  // breaks viewport-relative `position: fixed`).
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => { setIsClient(true) }, [])
 
   // Ref to handleEndSession so handleVapiCallEnd can trigger it without stale closures
   const handleEndSessionRef = useRef<(() => void) | null>(null)
@@ -2025,11 +2033,10 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   const showPhoneUI = (session.sessionId || vapi.isConnected || vapi.isConnecting || isLoading || isRecoveredSession || isTransitioning || sessionState.isPaused) && !session.isEndingSession && !forceHidePhoneUI
   
   const sessionContent = (showPhoneUI || isLoading) ? (
-      <div className="flex flex-col items-center justify-center w-full mx-auto" style={{
-        position: 'relative',
+      <div className="fixed inset-0 flex flex-col items-center justify-center w-full" style={{
         zIndex: 10000,
-        paddingTop: '8px',
-        paddingBottom: '8px',
+        paddingTop: 'max(env(safe-area-inset-top), 8px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
       }}>
         {/* iPhone chassis wrapper */}
         <motion.div
@@ -2501,12 +2508,22 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     </>
   )
 
+  // Active-session overlay must escape any ancestor with a CSS transform
+  // (e.g. main-container's `fadeIn` animation), which would otherwise
+  // create a containing block and break `position: fixed` against the
+  // viewport. We portal into `#modal-root` (declared in app/layout.tsx).
+  const isActiveOverlay = showPhoneUI || isLoading
+  const modalRoot = isClient && typeof document !== 'undefined' ? document.getElementById('modal-root') : null
+  const renderedSession = isActiveOverlay
+    ? (modalRoot ? createPortal(sessionContent, modalRoot) : null)
+    : sessionContent
+
   return (
     <>
       {/* Single persistent modal instance — lives above both branches so it never re-mounts
           when the component switches between phone-UI and default-button states */}
       <SessionWindDownModal isOpen={showWindDown} />
-      {sessionContent}
+      {renderedSession}
     </>
   )
 })

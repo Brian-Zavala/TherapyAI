@@ -86,7 +86,7 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth bg-gray-900">
+    <html lang="en" className="scroll-smooth bg-gray-900" suppressHydrationWarning>
       <body className="w-full overflow-x-hidden bg-gray-900">
         <ErrorBoundary level="page" resetOnPropsChange>
           <ClientProviders>

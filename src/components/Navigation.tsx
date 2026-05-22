@@ -14,7 +14,10 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [isSessionActive, setIsSessionActive] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.body.classList.contains('session-active');
+  });
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const playSound = useButtonSound();
@@ -105,17 +108,27 @@ export default function Navigation() {
     window.dispatchEvent(new CustomEvent(isMenuOpen ? 'mobileMenuOpen' : 'mobileMenuClose'));
   }, [isMenuOpen]);
 
-  // Hide nav when a therapy session is active
+  // Hide nav when a therapy session is active.
+  // Source of truth: `body.session-active` class (centralized in TherapyButtonRefactored).
+  // Events alone race with mount order on refresh/recovery.
   useEffect(() => {
-    const show = () => setIsSessionActive(false);
+    setIsSessionActive(document.body.classList.contains('session-active'));
+
+    const observer = new MutationObserver(() => {
+      setIsSessionActive(document.body.classList.contains('session-active'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    const sync = () => setIsSessionActive(document.body.classList.contains('session-active'));
     const hide = () => setIsSessionActive(true);
     window.addEventListener('sessionStarted', hide);
-    window.addEventListener('sessionEnded', show);
-    window.addEventListener('sessionEnd', show);
+    window.addEventListener('sessionEnded', sync);
+    window.addEventListener('sessionEnd', sync);
     return () => {
+      observer.disconnect();
       window.removeEventListener('sessionStarted', hide);
-      window.removeEventListener('sessionEnded', show);
-      window.removeEventListener('sessionEnd', show);
+      window.removeEventListener('sessionEnded', sync);
+      window.removeEventListener('sessionEnd', sync);
     };
   }, []);
 
@@ -726,18 +739,18 @@ export default function Navigation() {
             y2="0"
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0" stopColor="#00ffc3" />
-            <stop offset="0.09090909090909091" stopColor="#00fad9" />
-            <stop offset="0.18181818181818182" stopColor="#00f4f0" />
-            <stop offset="0.2727272727272727" stopColor="#00eeff" />
-            <stop offset="0.36363636363636365" stopColor="#00e6ff" />
-            <stop offset="0.4545454545454546" stopColor="#00dcff" />
-            <stop offset="0.5454545454545454" stopColor="#00d2ff" />
-            <stop offset="0.6363636363636364" stopColor="#00c5ff" />
-            <stop offset="0.7272727272727273" stopColor="#00b8ff" />
-            <stop offset="0.8181818181818182" stopColor="#6da8ff" />
-            <stop offset="0.9090909090909092" stopColor="#9f97ff" />
-            <stop offset="1" stopColor="#c285ff" />
+            <stop offset="0" stopColor="#00ffc3" suppressHydrationWarning />
+            <stop offset="0.09090909090909091" stopColor="#00fad9" suppressHydrationWarning />
+            <stop offset="0.18181818181818182" stopColor="#00f4f0" suppressHydrationWarning />
+            <stop offset="0.2727272727272727" stopColor="#00eeff" suppressHydrationWarning />
+            <stop offset="0.36363636363636365" stopColor="#00e6ff" suppressHydrationWarning />
+            <stop offset="0.4545454545454546" stopColor="#00dcff" suppressHydrationWarning />
+            <stop offset="0.5454545454545454" stopColor="#00d2ff" suppressHydrationWarning />
+            <stop offset="0.6363636363636364" stopColor="#00c5ff" suppressHydrationWarning />
+            <stop offset="0.7272727272727273" stopColor="#00b8ff" suppressHydrationWarning />
+            <stop offset="0.8181818181818182" stopColor="#6da8ff" suppressHydrationWarning />
+            <stop offset="0.9090909090909092" stopColor="#9f97ff" suppressHydrationWarning />
+            <stop offset="1" stopColor="#c285ff" suppressHydrationWarning />
           </linearGradient>
         </defs>
       </svg>
