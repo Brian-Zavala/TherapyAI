@@ -32,7 +32,7 @@ const HeroHighlightDemo = dynamic(
     loading: () => (
       <div className="w-full h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl animate-pulse"></div>
     ),
-  }
+  },
 );
 
 // Layout grid for therapy options - lazy loaded
@@ -47,7 +47,7 @@ const LayoutGrid = dynamic(
         ))}
       </div>
     ),
-  }
+  },
 );
 
 // Media query helper constant
@@ -95,13 +95,13 @@ const PRIORITY_HERO_IMAGES = [
   MOBILE_HERO_IMAGES[0],
   DESKTOP_HERO_IMAGES[0],
   MOBILE_HERO_IMAGES[1],
-  DESKTOP_HERO_IMAGES[1]
+  DESKTOP_HERO_IMAGES[1],
 ];
 
 // Combined array for lazy preloading remaining images
 const DEFERRED_HERO_IMAGES = [
   ...MOBILE_HERO_IMAGES.slice(2),
-  ...DESKTOP_HERO_IMAGES.slice(2)
+  ...DESKTOP_HERO_IMAGES.slice(2),
 ];
 
 // --- Standard Animation Variants ---
@@ -117,7 +117,7 @@ function useViewportAnimation(
   options: { once?: boolean; threshold?: number } = {
     once: false,
     threshold: 0.2,
-  }
+  },
 ) {
   const ref = useRef(null);
   const isInView = useInView(ref, {
@@ -145,12 +145,12 @@ function useViewportAnimation(
 export default function Home() {
   // --- Basic State and Hooks ---
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Enable smooth scrolling for this page
   useEffect(() => {
-    document.documentElement.classList.add('smooth-scroll');
+    document.documentElement.classList.add("smooth-scroll");
     return () => {
-      document.documentElement.classList.remove('smooth-scroll');
+      document.documentElement.classList.remove("smooth-scroll");
     };
   }, []);
   // Always initialize as false (desktop) to match SSR — useEffect updates after hydration
@@ -224,7 +224,7 @@ export default function Home() {
   const featuresOpacity = useTransform(
     scrollYProgress,
     [0.15, 0.25, 0.35], // Original trigger points
-    [0, 1, 1]
+    [0, 1, 1],
   );
 
   // --- Button Hover/Tap Animation Variants (Copied from original) ---
@@ -276,11 +276,11 @@ export default function Home() {
         setIsStatsAnimationPaused(!entry.isIntersecting);
         // Update CSS custom property for animation control
         document.documentElement.style.setProperty(
-          '--animation-play-state', 
-          entry.isIntersecting ? 'running' : 'paused'
+          "--animation-play-state",
+          entry.isIntersecting ? "running" : "paused",
         );
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (statsVideoCardView.ref.current) {
@@ -580,10 +580,10 @@ export default function Home() {
               className="relative rounded-3xl p-6 sm:p-8 md:p-6 lg:p-8 bg-gradient-to-br from-white/20 to-white/10 border border-white/20 shadow-lg hover:shadow-xl transition-shadow duration-300"
             >
               {/* Original content */}
-              <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 relative z-10 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent drop-shadow-lg">
+              <h3 className="text-xl  text-center sm:text-2xl font-bold mb-5 sm:mb-6 relative z-10 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent drop-shadow-lg">
                 Average Therapy Costs
               </h3>
-              <p className="text-white text-sm sm:text-base md:text-lg mb-6 sm:mb-8 relative z-10">
+              <p className="text-white  text-center  text-sm sm:text-base md:text-lg mb-6 sm:mb-8 relative z-10">
                 Traditional therapy can be costly and inaccessible for many. We
                 break down these barriers by offering affordable, AI-powered
                 therapy solutions that provide the same quality of care at a
@@ -599,7 +599,9 @@ export default function Home() {
                       <span className="flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800 text-white px-3 py-1 rounded-lg shadow-md">
                         TRADITIONAL
                       </span>
-                      <span className="flex-shrink-0 text-gray-800 font-semibold">Therapy</span>
+                      <span className="flex-shrink-0 text-gray-800 font-semibold">
+                        Therapy
+                      </span>
                       <span className="flex-shrink-0 sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md whitespace-nowrap">
                         HIGH COST
                       </span>
@@ -634,22 +636,22 @@ export default function Home() {
                             <motion.div
                               className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
                               initial={{ opacity: 0 }}
-                              animate={{ 
+                              animate={{
                                 opacity: [0, 0.4, 0, 0.3, 0],
                               }}
                               transition={{
                                 duration: 4,
                                 repeat: Infinity,
-                                ease: "easeInOut"
+                                ease: "easeInOut",
                               }}
                             >
-                              <div 
+                              <div
                                 className="text-red-500/80 select-none flex items-center justify-center w-full h-full"
-                                style={{ 
-                                  fontSize: '12rem', 
-                                  lineHeight: '1',
-                                  width: '100%',
-                                  height: '100%'
+                                style={{
+                                  fontSize: "12rem",
+                                  lineHeight: "1",
+                                  width: "100%",
+                                  height: "100%",
                                 }}
                               >
                                 ✕
@@ -701,7 +703,9 @@ export default function Home() {
                       <span className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg shadow-md">
                         AI-POWERED
                       </span>
-                      <span className="flex-shrink-0 text-blue-600 font-semibold">Therapy</span>
+                      <span className="flex-shrink-0 text-blue-600 font-semibold">
+                        Therapy
+                      </span>
                       <span className="flex-shrink-0 sm:ml-auto text-xs sm:text-sm font-bold px-2 py-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md whitespace-nowrap">
                         AFFORDABLE
                       </span>
@@ -722,7 +726,15 @@ export default function Home() {
                           <span className="text-gray-400 line-through text-lg sm:text-xl font-medium">
                             $200/session
                           </span>
-                          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg
+                            className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 flex-shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
                           <div className="relative inline-block">
@@ -736,7 +748,7 @@ export default function Home() {
                                   : statsCostsAIPulse1.controls
                               }
                             />
-                            <span className="text-2xl sm:text-3xl font-bold text-green-500 relative z-10">
+                            <span className="text-xl sm:text-3xl font-bold text-green-500 relative z-10">
                               $10/mo
                             </span>
                           </div>
@@ -749,43 +761,97 @@ export default function Home() {
                         <ul className="text-sm text-gray-700 space-y-2.5">
                           <li className="flex items-center">
                             <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Available <strong>24/7</strong> — no waitlists or scheduling</span>
+                            <span>
+                              Available <strong>24/7</strong> — no waitlists or
+                              scheduling
+                            </span>
                           </li>
                           <li className="flex items-center">
                             <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span><strong>Flexible</strong> guided therapy sessions</span>
+                            <span>
+                              <strong>Flexible</strong> guided therapy sessions
+                            </span>
                           </li>
                           <li className="flex items-center">
                             <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Private, <strong>judgment-free</strong> environment</span>
+                            <span>
+                              Private, <strong>judgment-free</strong>{" "}
+                              environment
+                            </span>
                           </li>
                           <li className="flex items-center">
                             <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-md">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Full session <strong>transcripts & insights</strong></span>
+                            <span>
+                              Full session{" "}
+                              <strong>transcripts & insights</strong>
+                            </span>
                           </li>
                           <li className="flex items-center">
                             <div className="flex-shrink-0 w-5 h-5 mr-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-md">
-                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <path d="M20 6L9 17l-5-5" />
                               </svg>
                             </div>
-                            <span>Start <strong>free</strong> — 2 short sessions, no credit card</span>
+                            <span>
+                              Start <strong>free</strong> — 2 short sessions, no
+                              credit card
+                            </span>
                           </li>
                         </ul>
                       </motion.div>
@@ -858,9 +924,9 @@ export default function Home() {
                   playsInline
                   preload="metadata" // Only load metadata initially for faster load
                   className="absolute inset-0 w-full h-full object-cover opacity-80 will-change-transform" // GPU optimization
-                  style={{ 
-                    transform: 'translateZ(0)', // Force GPU layer
-                    backfaceVisibility: 'hidden' // Prevent flickering
+                  style={{
+                    transform: "translateZ(0)", // Force GPU layer
+                    backfaceVisibility: "hidden", // Prevent flickering
                   }}
                   // poster="/videos/rain-poster.webp" // Optional: Add poster image
                 >
@@ -877,7 +943,7 @@ export default function Home() {
               {/* Container to control all icon pulses */}
               <div
                 ref={statsIconsPulseView.ref}
-                className={`space-y-5 sm:space-y-6 relative z-10 ${isStatsAnimationPaused ? 'animation-paused' : ''}`}
+                className={`space-y-5 sm:space-y-6 relative z-10 ${isStatsAnimationPaused ? "animation-paused" : ""}`}
               >
                 {[
                   {
