@@ -632,9 +632,8 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
   
   const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Array<{name: string, age: number, relationship: string}>>([])
   
-  // Mute functionality
-  const [isMuted, setIsMuted] = useState(false)
-  
+  // Mute state lives in `useVapiSession` (vapi.isMuted) — single source of truth
+
   // Recovery deduplication with timestamp tracking for proper cleanup
   const [isProcessingRecovery, setIsProcessingRecovery] = useState(false)
   const recoveryProcessedRef = useRef(new Map<string, number>()) // Map of sessionId -> timestamp
@@ -1784,19 +1783,12 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
     }
   }, [handleEndSession, vapi, therapyType, session.isEndingSession, user]) // Include user for personalized goodbye
 
-  // Check for VAPI function call session end request
-  // Handle mute toggle
+  // Handle mute toggle — delegates fully to vapi.toggleMute so state stays in sync with Daily.co
   const toggleMute = useCallback(() => {
-    const newMuteState = !isMuted
-    setIsMuted(newMuteState)
-    
-    // Call VAPI mute if available
-    if (vapi.toggleMute) {
-      vapi.toggleMute()
-    }
-    
-    console.log(`🔇 Microphone ${newMuteState ? 'muted' : 'unmuted'}`)
-  }, [isMuted, vapi])
+    if (!vapi.toggleMute) return
+    vapi.toggleMute()
+    console.log(`🔇 Microphone toggle requested (was ${vapi.isMuted ? 'muted' : 'unmuted'})`)
+  }, [vapi])
 
   // Handle family member selection for family therapy
   const handleFamilyMembersSelected = useCallback((members: Array<{name: string, age: number, relationship: string}>) => {
@@ -2300,11 +2292,11 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
                 
                 {/* Voice Waveform */}
                 <div className="w-full my-2 sm:my-3 relative">
-                  <VoiceWaveform 
-                    audioLevel={isMuted || sessionState.isPaused ? 0 : (vapi.audioLevel ?? 0)} 
+                  <VoiceWaveform
+                    audioLevel={vapi.isMuted || sessionState.isPaused ? 0 : (vapi.audioLevel ?? 0)}
                     isTransitioning={isTransitioning}
                   />
-                  {isMuted && (
+                  {vapi.isMuted && (
                     <div className="absolute inset-0 flex items-center justify-center z-20">
                       <div className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full animate-pulse shadow-md">
                         Microphone Muted
@@ -2342,7 +2334,7 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
                 
                 {/* Call Controls using extracted component */}
                 <CallControls
-                  isMuted={isMuted}
+                  isMuted={vapi.isMuted}
                   isSessionPaused={sessionState.isPaused}
                   totalPausedTimeSeconds={session.totalPausedTimeSeconds || sessionState.session?.totalPausedTimeSeconds || 0}
                   conversationTimeSeconds={session.conversationTimeSeconds}
