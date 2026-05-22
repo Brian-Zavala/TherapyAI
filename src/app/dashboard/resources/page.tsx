@@ -855,7 +855,7 @@ export default function ResourcesOptimized() {
               <div className="flex rounded-lg bg-black/40 backdrop-blur-md p-1 shadow-xl border border-white/20">
                 <button
                   onClick={() => setActiveTab("search")}
-                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
                     activeTab === "search"
                       ? "bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30"
                       : "text-white/70 hover:text-white hover:bg-white/10"
@@ -880,7 +880,7 @@ export default function ResourcesOptimized() {
                 </button>
                 <button
                   onClick={() => setActiveTab("results")}
-                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
                     activeTab === "results"
                       ? "bg-white/20 backdrop-blur-md text-blue-300 shadow-lg border border-white/30"
                       : "text-white/70 hover:text-white hover:bg-white/10"
@@ -1227,7 +1227,7 @@ export default function ResourcesOptimized() {
                       onClick={() => setActiveTab("results")}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center shadow-lg transition-all duration-200"
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center shadow-lg transition-all duration-200 cursor-pointer"
                     >
                       <span>View {filteredResources.length} results</span>
                       <svg
@@ -1262,7 +1262,7 @@ export default function ResourcesOptimized() {
                   <motion.button
                     onClick={() => setActiveTab("search")}
                     whileTap={{ scale: 0.95 }}
-                    className="inline-flex items-center text-blue-300 hover:text-white transition-colors"
+                    className="inline-flex items-center text-blue-300 hover:text-white transition-colors cursor-pointer"
                   >
                     <svg
                       className="mr-1 h-5 w-5"
