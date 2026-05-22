@@ -69,18 +69,70 @@ const ResourceCard = memo(
       return icons[type] || "📝";
     }, []);
 
-    // Memoize tag color calculation
-    const tagColorClass = useMemo(() => {
+    // Per-category styling. Classes are written out statically so Tailwind's
+    // JIT keeps every variant in the build.
+    const tagStyle = useMemo(() => {
       const primaryTag = resource.tags?.[0];
-      const colorMap: Record<string, string> = {
-        communication: "from-blue-500 to-blue-600",
-        conflict: "from-amber-500 to-amber-600",
-        intimacy: "from-rose-500 to-rose-600",
-        growth: "from-green-500 to-green-600",
-        crisis: "from-red-500 to-red-600",
+      const styleMap: Record<
+        string,
+        {
+          gradient: string;
+          borderRest: string;
+          borderHover: string;
+          shadowHover: string;
+          haloFrom: string;
+          activeTint: string;
+        }
+      > = {
+        communication: {
+          gradient: "from-blue-500 to-blue-600",
+          borderRest: "border-blue-400/15",
+          borderHover:
+            "group-hover:border-blue-400/60 group-focus-visible:border-blue-400/60",
+          shadowHover: "group-hover:shadow-blue-500/25",
+          haloFrom: "from-blue-500",
+          activeTint: "active:bg-blue-500/10 active:border-blue-400/60",
+        },
+        conflict: {
+          gradient: "from-amber-500 to-amber-600",
+          borderRest: "border-amber-400/15",
+          borderHover:
+            "group-hover:border-amber-400/60 group-focus-visible:border-amber-400/60",
+          shadowHover: "group-hover:shadow-amber-500/25",
+          haloFrom: "from-amber-500",
+          activeTint: "active:bg-amber-500/10 active:border-amber-400/60",
+        },
+        intimacy: {
+          gradient: "from-rose-500 to-rose-600",
+          borderRest: "border-rose-400/15",
+          borderHover:
+            "group-hover:border-rose-400/60 group-focus-visible:border-rose-400/60",
+          shadowHover: "group-hover:shadow-rose-500/25",
+          haloFrom: "from-rose-500",
+          activeTint: "active:bg-rose-500/10 active:border-rose-400/60",
+        },
+        growth: {
+          gradient: "from-emerald-500 to-emerald-600",
+          borderRest: "border-emerald-400/15",
+          borderHover:
+            "group-hover:border-emerald-400/60 group-focus-visible:border-emerald-400/60",
+          shadowHover: "group-hover:shadow-emerald-500/25",
+          haloFrom: "from-emerald-500",
+          activeTint: "active:bg-emerald-500/10 active:border-emerald-400/60",
+        },
+        crisis: {
+          gradient: "from-red-500 to-red-600",
+          borderRest: "border-red-400/15",
+          borderHover:
+            "group-hover:border-red-400/60 group-focus-visible:border-red-400/60",
+          shadowHover: "group-hover:shadow-red-500/25",
+          haloFrom: "from-red-500",
+          activeTint: "active:bg-red-500/10 active:border-red-400/60",
+        },
       };
-      return colorMap[primaryTag || ""] || "from-blue-500 to-blue-600";
+      return styleMap[primaryTag || ""] || styleMap.communication;
     }, [resource.tags]);
+    const tagColorClass = tagStyle.gradient;
 
     return (
       <motion.div
@@ -94,19 +146,42 @@ const ResourceCard = memo(
           willChange: "auto",
         }}
       >
-        {/* Removed blur effect for performance */}
+        {/* Category-tinted halo — visible on hover (desktop) and tap (touch) */}
         <div
-          className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-150 bg-gradient-to-r ${tagColorClass}`}
+          className={`pointer-events-none absolute -inset-px rounded-[1.55rem] opacity-0 group-hover:opacity-100 group-active:opacity-90 transition-opacity duration-200 bg-gradient-to-br ${tagStyle.haloFrom} to-transparent blur-md sm:blur-xl`}
+          aria-hidden="true"
         />
 
-        {/* Modern Glass Card Container with Enhanced Effects */}
-        <div className="relative h-full glass-card rounded-3xl overflow-hidden transition-all duration-300 flex flex-col group-hover:shadow-2xl">
-          {/* Top accent bar */}
+        {/* Card surface: real bordered glass, lifts on hover, taps on touch */}
+        <div
+          className={`relative h-full rounded-[1.5rem] overflow-hidden flex flex-col bg-slate-900/40 backdrop-blur-xl border ${tagStyle.borderRest} ${tagStyle.borderHover} ${tagStyle.activeTint} shadow-[0_8px_24px_-12px_rgba(0,0,0,0.55)] group-hover:shadow-2xl ${tagStyle.shadowHover} group-hover:bg-slate-900/55 group-hover:-translate-y-0.5 group-active:translate-y-0 group-active:scale-[0.985] transition-[transform,border-color,background-color,box-shadow] duration-300 ease-out`}
+        >
+          {/* Top accent bar grows on hover */}
           <div
-            className={`h-1 bg-gradient-to-r ${tagColorClass} flex-shrink-0`}
+            className={`h-[3px] group-hover:h-[5px] transition-[height] duration-300 bg-gradient-to-r ${tagColorClass} flex-shrink-0`}
           />
 
-          <div className="p-5 sm:p-6 flex flex-col flex-grow">
+          {/* Subtle top sheen — adds depth, hidden on small screens for perf */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-[3px] h-24 hidden sm:block opacity-60"
+            aria-hidden="true"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(255,255,255,0.04), transparent)",
+            }}
+          />
+
+          {/* Inner corner glints — illuminate slightly more on hover */}
+          <div
+            className="pointer-events-none absolute -top-px -left-px h-16 w-16 rounded-tl-[1.5rem] opacity-40 group-hover:opacity-80 transition-opacity duration-300"
+            aria-hidden="true"
+            style={{
+              background:
+                "radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 70%)",
+            }}
+          />
+
+          <div className="relative p-5 sm:p-6 flex flex-col flex-grow">
             <div className="flex items-start mb-4 flex-shrink-0">
               <div
                 className={`rounded-xl w-12 h-12 flex items-center justify-center mr-4 bg-gradient-to-br ${tagColorClass} shadow-lg flex-shrink-0`}
