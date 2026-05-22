@@ -24,6 +24,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/vapi/webhook(.*)',
   '/api/cron/(.*)',
   '/api/stripe/webhook(.*)',
+  '/api/admin/reset-user-credits',
 ])
 
 // Lightweight TTL cache — evicts expired entries on access, caps at MAX_SIZE
