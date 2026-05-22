@@ -80,7 +80,7 @@ const ResourceCard = memo(
           borderRest: string;
           borderHover: string;
           shadowHover: string;
-          haloFrom: string;
+          haloBg: string;
           activeTint: string;
         }
       > = {
@@ -90,7 +90,7 @@ const ResourceCard = memo(
           borderHover:
             "group-hover:border-blue-400/60 group-focus-visible:border-blue-400/60",
           shadowHover: "group-hover:shadow-blue-500/25",
-          haloFrom: "from-blue-500",
+          haloBg: "bg-blue-500/55",
           activeTint: "active:bg-blue-500/10 active:border-blue-400/60",
         },
         conflict: {
@@ -99,7 +99,7 @@ const ResourceCard = memo(
           borderHover:
             "group-hover:border-amber-400/60 group-focus-visible:border-amber-400/60",
           shadowHover: "group-hover:shadow-amber-500/25",
-          haloFrom: "from-amber-500",
+          haloBg: "bg-amber-500/55",
           activeTint: "active:bg-amber-500/10 active:border-amber-400/60",
         },
         intimacy: {
@@ -108,7 +108,7 @@ const ResourceCard = memo(
           borderHover:
             "group-hover:border-rose-400/60 group-focus-visible:border-rose-400/60",
           shadowHover: "group-hover:shadow-rose-500/25",
-          haloFrom: "from-rose-500",
+          haloBg: "bg-rose-500/55",
           activeTint: "active:bg-rose-500/10 active:border-rose-400/60",
         },
         growth: {
@@ -117,7 +117,7 @@ const ResourceCard = memo(
           borderHover:
             "group-hover:border-emerald-400/60 group-focus-visible:border-emerald-400/60",
           shadowHover: "group-hover:shadow-emerald-500/25",
-          haloFrom: "from-emerald-500",
+          haloBg: "bg-emerald-500/55",
           activeTint: "active:bg-emerald-500/10 active:border-emerald-400/60",
         },
         crisis: {
@@ -126,7 +126,7 @@ const ResourceCard = memo(
           borderHover:
             "group-hover:border-red-400/60 group-focus-visible:border-red-400/60",
           shadowHover: "group-hover:shadow-red-500/25",
-          haloFrom: "from-red-500",
+          haloBg: "bg-red-500/55",
           activeTint: "active:bg-red-500/10 active:border-red-400/60",
         },
       };
@@ -146,9 +146,9 @@ const ResourceCard = memo(
           willChange: "auto",
         }}
       >
-        {/* Category-tinted halo — visible on hover (desktop) and tap (touch) */}
+        {/* Category-tinted halo — symmetric, respects card's rounded corners */}
         <div
-          className={`pointer-events-none absolute -inset-px rounded-[1.55rem] opacity-0 group-hover:opacity-100 group-active:opacity-90 transition-opacity duration-200 bg-gradient-to-br ${tagStyle.haloFrom} to-transparent blur-md sm:blur-xl`}
+          className={`pointer-events-none absolute -inset-1 sm:-inset-1.5 rounded-[1.65rem] sm:rounded-[1.7rem] opacity-0 group-hover:opacity-100 group-active:opacity-80 transition-opacity duration-200 ${tagStyle.haloBg} blur-xl sm:blur-2xl`}
           aria-hidden="true"
         />
 
