@@ -8,6 +8,10 @@
  */
 @import "tailwindcss";
 
+/* Lock dark mode to class-based so OS preference never flips the theme.
+   The site has a single fixed theme — add `.dark` to <html> to always activate. */
+@variant dark (&:is(.dark, .dark *));
+
 @theme inline {
   --animate-aurora: aurora 120s linear infinite;
   @keyframes aurora {
