@@ -12,6 +12,7 @@ import { ProfileProvider } from "@/providers/ProfileProvider";
 import { NotificationProvider } from "@/providers/NotificationProvider";
 import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter";
 import { AnalyticsProvider } from "@/lib/analytics/posthog";
+import { Toaster } from "sonner";
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
@@ -31,6 +32,14 @@ export function ClientProviders({ children }: { children: ReactNode }) {
           </ProfileProvider>
         </ReactQueryProvider>
       </AuthProvider>
+      {/* Toast surface — z-[10002] above phone overlay (10000) and error modal (10001) */}
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        theme="dark"
+        toastOptions={{ style: { zIndex: 10002 } }}
+      />
     </AnalyticsProvider>
   );
 }

@@ -2385,11 +2385,15 @@ export const TherapyButtonRefactored = React.memo(function TherapyButtonRefactor
           }))}
         />
         
-        {/* Error Display */}
+        {/* Error Display — portals itself to #modal-root at z-[10001] (above phone overlay) */}
         {error && (
           <ErrorDisplay
             error={error}
             onDismiss={() => setError(null)}
+            onRetry={() => {
+              setError(null)
+              handleTherapyClick()
+            }}
           />
         )}
       </div>

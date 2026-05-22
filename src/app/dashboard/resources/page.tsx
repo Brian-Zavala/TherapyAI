@@ -12,6 +12,13 @@ import {
 } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  ChevronDown,
+  Check,
+  X,
+  SlidersHorizontal,
+  Search as SearchIcon,
+} from "lucide-react";
 
 // Lazy load heavy components
 const TherapeuticBokehBackground = lazy(
@@ -178,70 +185,180 @@ const ResourceCard = memo(
 
 ResourceCard.displayName = "ResourceCard";
 
-// Memoized category button component
-const CategoryButton = memo(
+// Map "from-blue-500 to-blue-600" -> "bg-blue-500" for the small dot accent.
+// Hue tokens are listed statically so Tailwind's JIT keeps them in the build.
+const HUE_DOT: Record<string, string> = {
+  purple: "bg-purple-400",
+  blue: "bg-blue-400",
+  amber: "bg-amber-400",
+  rose: "bg-rose-400",
+  green: "bg-emerald-400",
+  red: "bg-red-400",
+};
+const dotFromGradient = (color: string): string => {
+  const match = color.match(/from-(\w+)-/);
+  return (match && HUE_DOT[match[1]]) || "bg-white/50";
+};
+
+// Refined category dropdown — replaces the row of 6 colored pills.
+const CategoryFilter = memo(
   ({
-    category,
-    isActive,
-    onClick,
-    index,
+    categories,
+    activeCategory,
+    onChange,
+    counts,
   }: {
-    category: Category;
-    isActive: boolean;
-    onClick: () => void;
-    index: number;
+    categories: Category[];
+    activeCategory: string;
+    onChange: (id: string) => void;
+    counts: Record<string, number>;
   }) => {
+    const [open, setOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const active =
+      categories.find((c) => c.id === activeCategory) ?? categories[0];
+
+    useEffect(() => {
+      if (!open) return;
+      const onClickOutside = (e: MouseEvent) => {
+        if (
+          wrapperRef.current &&
+          !wrapperRef.current.contains(e.target as Node)
+        ) {
+          setOpen(false);
+        }
+      };
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setOpen(false);
+      };
+      document.addEventListener("mousedown", onClickOutside);
+      document.addEventListener("keydown", onKey);
+      return () => {
+        document.removeEventListener("mousedown", onClickOutside);
+        document.removeEventListener("keydown", onKey);
+      };
+    }, [open]);
+
     return (
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: Math.min(index * 0.02, 0.2), duration: 0.15 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={onClick}
-        className={`relative px-4 sm:px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 overflow-hidden group cursor-pointer ${
-          isActive ? "text-white shadow-lg" : "text-white/80 hover:text-white"
-        }`}
-        style={{ willChange: "auto" }}
+      <div
+        ref={wrapperRef}
+        className="relative w-full sm:w-[300px] flex-shrink-0"
       >
-        {/* Background gradient */}
-        <span
-          className={`absolute inset-0 transition-opacity duration-200 ${
-            isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label="Filter resources by category"
+          className="group w-full flex items-center gap-3 h-[60px] px-4 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/10 hover:bg-white/[0.07] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-white/25 transition-all duration-200 cursor-pointer"
         >
-          <span
-            className={`absolute inset-0 bg-gradient-to-r ${category.color}`}
-          />
-        </span>
-
-        {/* Glass effect background */}
-        <span
-          className={`absolute inset-0 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full transition-opacity duration-200 ${
-            isActive ? "opacity-0" : "opacity-100"
-          }`}
-        />
-
-        {/* Content */}
-        <span className="relative flex items-center">
-          <span className="mr-2 text-lg">{category.icon}</span>
-          <span className="hidden sm:inline">{category.title}</span>
-          <span className="inline sm:hidden">
-            {category.id === "all" ? "All" : category.title.split(" ")[0]}
+          <span className="flex items-center justify-center h-9 w-9 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+            <SlidersHorizontal className="h-4 w-4 text-white/65" />
           </span>
-          {isActive && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="ml-2 h-2 w-2 bg-white rounded-full"
-            />
+          <span className="flex-1 text-left min-w-0">
+            <span className="block text-[10px] uppercase tracking-[0.22em] text-white/40 font-medium leading-none mb-1.5">
+              Category
+            </span>
+            <span className="flex items-center gap-2 min-w-0">
+              <span
+                className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotFromGradient(active.color)}`}
+              />
+              <span className="text-sm font-medium text-white truncate">
+                {active.title}
+              </span>
+            </span>
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-white/50 transition-transform duration-200 flex-shrink-0 ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.985 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute z-50 left-0 right-0 sm:right-auto sm:w-[380px] mt-2 rounded-2xl bg-slate-950/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/60 overflow-hidden"
+              role="listbox"
+              aria-label="Categories"
+              style={{ transformOrigin: "top left" }}
+            >
+              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-white/45 font-medium">
+                  Browse by topic
+                </p>
+                <span className="text-[10px] font-mono tabular-nums text-white/35">
+                  {Object.values(counts).reduce((a, b) => a + b, 0) -
+                    (counts.all ?? 0)}{" "}
+                  tagged
+                </span>
+              </div>
+              <ul className="max-h-[60vh] overflow-y-auto py-1.5">
+                {categories.map((cat) => {
+                  const isActive = cat.id === activeCategory;
+                  const count = counts[cat.id] ?? 0;
+                  return (
+                    <li key={cat.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(cat.id);
+                          setOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={isActive}
+                        className={`group w-full flex items-start gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
+                          isActive
+                            ? "bg-white/[0.05]"
+                            : "hover:bg-white/[0.035]"
+                        }`}
+                      >
+                        <span className="relative flex items-center justify-center h-9 w-9 rounded-xl bg-white/[0.04] border border-white/[0.07] flex-shrink-0 mt-0.5">
+                          <span className="text-base leading-none">
+                            {cat.icon}
+                          </span>
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-slate-950 ${dotFromGradient(cat.color)}`}
+                          />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-white truncate">
+                              {cat.title}
+                            </span>
+                            <span className="text-[10.5px] font-mono tabular-nums text-white/55 bg-white/[0.04] border border-white/[0.07] px-1.5 py-0.5 rounded-md leading-none">
+                              {count}
+                            </span>
+                          </span>
+                          <span className="block text-[11.5px] text-white/50 mt-1 leading-snug line-clamp-2">
+                            {cat.description}
+                          </span>
+                        </span>
+                        <Check
+                          className={`h-4 w-4 mt-1 flex-shrink-0 transition-opacity ${
+                            isActive
+                              ? "text-blue-400 opacity-100"
+                              : "opacity-0"
+                          }`}
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </motion.div>
           )}
-        </span>
-      </motion.button>
+        </AnimatePresence>
+      </div>
     );
   }
 );
 
-CategoryButton.displayName = "CategoryButton";
+CategoryFilter.displayName = "CategoryFilter";
 
 // Removed CSS layer styles - moved to external CSS file for better performance
 
@@ -483,6 +600,16 @@ export default function ResourcesOptimized() {
     ],
     []
   );
+
+  // Per-category resource counts for the dropdown badges
+  const resourceCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: resources.length };
+    for (const c of categories) {
+      if (c.id === "all") continue;
+      counts[c.id] = resources.filter((r) => r.tags?.includes(c.id)).length;
+    }
+    return counts;
+  }, [resources, categories]);
 
   // Emergency support resources - memoized
   const emergencyResources = useMemo(
@@ -903,76 +1030,123 @@ export default function ResourcesOptimized() {
             <div
               className={`${isMobile ? (activeTab === "search" ? "block" : "hidden") : "block"}`}
             >
-              {/* Category navigation */}
+              {/* Refined filter toolbar — replaces gradient pill row */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="mb-12"
+                className="mb-10"
               >
-                <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-white mb-4 sm:mb-6 pl-1">
-                  Filter by category:
-                </h2>
-                <div className="flex flex-wrap gap-3 sm:gap-4">
-                  {categories.map((category, index) => (
-                    <CategoryButton
-                      key={category.id}
-                      category={category}
-                      isActive={activeCategory === category.id}
-                      onClick={() => handleCategoryChange(category.id)}
-                      index={index}
-                    />
-                  ))}
+                <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
+                  <h2 className="text-[11px] sm:text-xs uppercase tracking-[0.22em] font-medium text-white/45">
+                    Refine library
+                  </h2>
+                  {(activeCategory !== "all" || searchQuery) && (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      onClick={handleResetSearch}
+                      className="group inline-flex items-center gap-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-[0.18em] text-white/45 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Reset
+                      <X className="h-3 w-3 transition-transform group-hover:rotate-90" />
+                    </motion.button>
+                  )}
                 </div>
-              </motion.div>
 
-              {/* Search bar */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-                className="mb-8"
-              >
-                <div className="relative group">
-                  <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-1 border border-white/20">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <CategoryFilter
+                    categories={categories}
+                    activeCategory={activeCategory}
+                    onChange={handleCategoryChange}
+                    counts={resourceCounts}
+                  />
+
+                  <div className="relative flex-1 min-w-0">
+                    <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={handleSearchChange}
-                      placeholder="Search resources by keyword, topic, or source..."
-                      className="w-full px-6 py-4 bg-slate-900/60 backdrop-blur-md rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                      placeholder="Search resources by keyword, topic, or source…"
+                      aria-label="Search resources"
+                      className="w-full h-[60px] pl-11 pr-12 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/10 text-sm text-white placeholder:text-white/40 hover:bg-white/[0.07] hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-white/25 transition-all duration-200"
                     />
-                    <button
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200"
-                      onClick={() => {
-                        if (isMobile && filteredResources.length > 0) {
-                          setActiveTab("results");
-                        }
-                      }}
-                    >
-                      <svg
-                        className="h-6 w-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        aria-label="Clear search"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-lg bg-white/[0.06] hover:bg-white/[0.14] text-white/60 hover:text-white transition-colors cursor-pointer"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
-                    </button>
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {/* Active filter chips */}
+                <AnimatePresence>
+                  {(activeCategory !== "all" || debouncedSearchQuery) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-4 flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-white/35">
+                          Filtering by
+                        </span>
+                        {activeCategory !== "all" && (() => {
+                          const cat = categories.find(
+                            (c) => c.id === activeCategory
+                          );
+                          if (!cat) return null;
+                          return (
+                            <button
+                              onClick={() => setActiveCategory("all")}
+                              className="group inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 hover:border-white/25 hover:bg-white/[0.07] transition-colors cursor-pointer"
+                              aria-label={`Remove ${cat.title} filter`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${dotFromGradient(cat.color)}`}
+                              />
+                              <span className="text-xs text-white/85">
+                                {cat.title}
+                              </span>
+                              <span className="grid place-items-center h-5 w-5 rounded-full bg-white/[0.06] group-hover:bg-white/[0.16] transition-colors">
+                                <X className="h-3 w-3 text-white/65" />
+                              </span>
+                            </button>
+                          );
+                        })()}
+                        {debouncedSearchQuery && (
+                          <button
+                            onClick={() => setSearchQuery("")}
+                            className="group inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 hover:border-white/25 hover:bg-white/[0.07] transition-colors cursor-pointer"
+                            aria-label="Clear search filter"
+                          >
+                            <SearchIcon className="h-3 w-3 text-white/55" />
+                            <span className="text-xs text-white/85 max-w-[160px] truncate">
+                              &ldquo;{debouncedSearchQuery}&rdquo;
+                            </span>
+                            <span className="grid place-items-center h-5 w-5 rounded-full bg-white/[0.06] group-hover:bg-white/[0.16] transition-colors">
+                              <X className="h-3 w-3 text-white/65" />
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {filteredResources.length > 0 && isMobile && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-3"
+                    className="mt-4"
                   >
                     <motion.button
                       onClick={() => setActiveTab("results")}
